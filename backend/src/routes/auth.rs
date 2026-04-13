@@ -1,0 +1,137 @@
+use axum::extract::State;
+use axum::http::StatusCode;
+use axum::routing::{get, post};
+use axum::{Json, Router};
+use chrono::Utc;
+use jsonwebtoken::{encode, EncodingKey, Header};
+use uuid::Uuid;
+
+use crate::config::AppState;
+use crate::error::AppError;
+use crate::middleware::auth::Claims;
+use crate::models::user::{AuthResponse, CreateUser, LoginUser, User, UserResponse};
+
+use argon2::{
+    password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
+    Argon2,
+};
+
+pub fn router() -> Router<AppState> {
+    Router::new()
+        .route("/auth/register", post(register))
+        .route("/auth/login", post(login))
+        .route("/auth/me", get(me))
+}
+
+async fn register(
+    State(state): State<AppState>,
+    Json(input): Json<CreateUser>,
+) -> Result<Json<AuthResponse>, AppError> {
+    // Validate email
+    if input.email.is_empty() || !input.email.contains('@') {
+        return Err(AppError::new(StatusCode::BAD_REQUEST, "Invalid email"));
+    }
+
+    // Validate password length
+    if input.password.len() < 8 {
+        return Err(AppError::new(
+            StatusCode::BAD_REQUEST,
+            "Password must be at least 8 characters",
+        ));
+    }
+
+    // Hash password
+    let salt = SaltString::generate(&mut OsRng);
+    let password_hash = Argon2::default()
+        .hash_password(input.password.as_bytes(), &salt)
+        .map_err(|_| AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "Failed to hash password"))?
+        .to_string();
+
+    // Insert user — unique constraint handles duplicate emails
+    let user = sqlx::query_as::<_, User>(
+        "INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING *",
+    )
+    .bind(&input.email)
+    .bind(&password_hash)
+    .fetch_one(&state.pool)
+    .await
+    .map_err(|e| match &e {
+        sqlx::Error::Database(db_err) if db_err.code().as_deref() == Some("23505") => {
+            AppError::new(StatusCode::CONFLICT, "Email already registered")
+        }
+        _ => e.into(),
+    })?;
+
+    // Generate JWT
+    let token = create_token(&user.id, &state.config.jwt_secret)?;
+
+    Ok(Json(AuthResponse {
+        token,
+        user: user.into(),
+    }))
+}
+
+async fn login(
+    State(state): State<AppState>,
+    Json(input): Json<LoginUser>,
+) -> Result<Json<AuthResponse>, AppError> {
+    // Find user by email
+    let user = sqlx::query_as::<_, User>("SELECT * FROM users WHERE email = $1")
+        .bind(&input.email)
+        .fetch_optional(&state.pool)
+        .await?
+        .ok_or_else(|| AppError::new(StatusCode::UNAUTHORIZED, "Invalid email or password"))?;
+
+    // Verify password
+    let parsed_hash = PasswordHash::new(&user.password_hash)
+        .map_err(|_| AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "Internal server error"))?;
+
+    Argon2::default()
+        .verify_password(input.password.as_bytes(), &parsed_hash)
+        .map_err(|_| AppError::new(StatusCode::UNAUTHORIZED, "Invalid email or password"))?;
+
+    // Generate JWT
+    let token = create_token(&user.id, &state.config.jwt_secret)?;
+
+    Ok(Json(AuthResponse {
+        token,
+        user: user.into(),
+    }))
+}
+
+async fn me(
+    State(state): State<AppState>,
+    claims: Claims,
+) -> Result<Json<UserResponse>, AppError> {
+    let user_id = claims
+        .sub
+        .parse::<Uuid>()
+        .map_err(|_| AppError::new(StatusCode::UNAUTHORIZED, "Invalid token"))?;
+
+    let user = sqlx::query_as::<_, User>("SELECT * FROM users WHERE id = $1")
+        .bind(user_id)
+        .fetch_optional(&state.pool)
+        .await?
+        .ok_or_else(|| AppError::new(StatusCode::UNAUTHORIZED, "User not found"))?;
+
+    Ok(Json(user.into()))
+}
+
+fn create_token(user_id: &Uuid, jwt_secret: &str) -> Result<String, AppError> {
+    let expiry = Utc::now()
+        .checked_add_signed(chrono::Duration::days(365))
+        .expect("valid timestamp")
+        .timestamp() as usize;
+
+    let claims = Claims {
+        sub: user_id.to_string(),
+        exp: expiry,
+    };
+
+    encode(
+        &Header::default(),
+        &claims,
+        &EncodingKey::from_secret(jwt_secret.as_bytes()),
+    )
+    .map_err(|_| AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "Failed to create token"))
+}
