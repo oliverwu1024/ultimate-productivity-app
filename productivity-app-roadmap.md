@@ -326,7 +326,7 @@ At this point, confirm:
 
 ---
 
-## Phase 1: Sleep Tracking — End to End (Weeks 3–5)
+## Phase 1: Sleep Tracking — End to End (Weeks 3–5)    Done 4/14 (1.1–1.6, 1.8 code complete; 1.7 reworking to session-based UX)
 
 ### 1.1 — Sleep Backend: Database Tables
 
@@ -626,9 +626,46 @@ class SleepRepository(
 }
 ```
 
-### 1.7 — Sleep Android: UI Screen
+### 1.7 — Sleep Android: Session-Based Tracking
 
-**`ui/sleep/SleepViewModel.kt`:**
+Two ways to log sleep:
+
+**A. Live session (primary flow):**
+1. Tap **"Start Sleep"** at bedtime → records `actual_bedtime`, starts foreground service
+2. Service auto-tracks phone pickups via `ACTION_SCREEN_ON` / `ACTION_SCREEN_OFF` events
+3. Tap **"End Sleep"** on waking → records `actual_wake_time`, stops service
+4. Quick dialog: rate quality (1–5 stars) + optional notes → saves the record
+
+**B. Manual log (fallback):**
+- "Log Past Sleep" option for when the user forgot to start a session
+- Full form: target times, actual times, quality, phone pickups, notes
+
+**Future:** Smartwatch integration for automatic sleep/wake detection, heart rate, movement data.
+
+---
+
+#### `service/SleepTrackingService.kt` — Foreground Service
+
+- Starts when user taps "Start Sleep"
+- Shows persistent notification ("Sleep tracking active — tap to open")
+- Registers `BroadcastReceiver` for `ACTION_SCREEN_ON` and `ACTION_SCREEN_OFF`
+- On each `SCREEN_ON`: increment pickup count, record `picked_up_at` timestamp
+- On each `SCREEN_OFF`: calculate duration since last `SCREEN_ON`, add to `total_phone_minutes`
+- Stores pickup count + total minutes in-memory (survives via service lifecycle)
+- Stops when user taps "End Sleep"
+- Returns tracked data (pickups, phone minutes, bedtime) to ViewModel
+
+**AndroidManifest.xml additions:**
+```xml
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+<service
+    android:name=".service.SleepTrackingService"
+    android:foregroundServiceType="health" />
+```
+
+#### `ui/sleep/SleepViewModel.kt`
 
 State:
 ```kotlin
@@ -637,68 +674,68 @@ data class SleepUiState(
     val stats: SleepStats? = null,
     val isLoading: Boolean = false,
     val error: String? = null,
-    val showAddDialog: Boolean = false,
-    val selectedTimeRange: TimeRange = TimeRange.WEEK,  // WEEK, MONTH
+    val selectedTimeRange: TimeRange = TimeRange.WEEK,
+    // Session tracking
+    val isSessionActive: Boolean = false,
+    val sessionStartTime: Long? = null,       // epoch millis
+    val phonePickups: Int = 0,
+    val totalPhoneMinutes: Int = 0,
+    // Dialogs
+    val showEndSleepDialog: Boolean = false,   // quality + notes prompt
+    val showManualLogDialog: Boolean = false,   // full manual form
 )
 ```
 
 Functions:
-- `loadRecords()` — observe `repository.getSleepRecords()` as Flow
-- `loadStats(range)` — calculate from local data
-- `addRecord(record)` — call `repository.createSleepRecord()`
-- `deleteRecord(id)` — call `repository.deleteSleepRecord()`
-- `sync()` — call `repository.sync()`
+- `startSleepSession()` — start foreground service, update state
+- `endSleepSession()` — stop service, show end-sleep dialog
+- `saveSessionRecord(quality, notes)` — create record from session data
+- `addManualRecord(record)` — create record from manual form
+- `loadRecords()` / `loadStats(range)` / `deleteRecord(id)` / `sync()` — unchanged
 
-**`ui/sleep/SleepScreen.kt`:**
+#### `ui/sleep/SleepScreen.kt`
 
 Layout (top to bottom):
-1. **Header bar**: "Sleep Tracker" title + "Add" FAB (floating action button)
-2. **Stats cards row** (horizontal scroll):
-   - Card: "Avg Duration" — e.g. "7h 23m"
-   - Card: "Avg Quality" — e.g. "3.8 / 5" with star icon
-   - Card: "Sleep Debt" — e.g. "-2h 15m" (red if negative)
-   - Card: "Avg Phone Pickups" — e.g. "2.3 / night"
-3. **Bar chart**: sleep duration for each of the last 7 days (x-axis = day, y-axis = hours)
-   - Bars colored by quality: green (4-5), yellow (3), red (1-2)
-   - Horizontal line showing target sleep duration
-4. **Tab row**: "Week" | "Month" toggle for stats/chart range
-5. **Sleep history list** (`LazyColumn`):
-   - Each item shows: date, duration (e.g. "7h 45m"), quality stars, phone pickups icon + count
-   - Tap to expand: shows target vs actual times, notes, phone usage details
-   - Swipe to delete
+1. **Session control** (replaces FAB):
+   - **Not tracking**: Large "Start Sleep" button (moon icon) + small "Log Past Sleep" text link
+   - **Tracking**: "Sleeping..." card with elapsed time, pickup count, and "End Sleep" button
+2. **Stats cards row** (horizontal scroll): Avg Duration, Avg Quality, Sleep Debt, Avg Phone Pickups
+3. **Bar chart**: last 7 days (colored by quality, target line)
+4. **Tab row**: Week | Month toggle
+5. **Sleep history list**: date, duration, quality stars, pickups — tap to expand, swipe to delete
 
-**`ui/sleep/AddSleepDialog.kt`:**
+#### `ui/sleep/EndSleepDialog.kt`
 
-A bottom sheet or dialog with:
-1. **Target bedtime** — time picker (defaults to user's usual target)
-2. **Target wake time** — time picker
-3. **Actual bedtime** — date + time picker
-4. **Actual wake time** — date + time picker
-5. **Quality rating** — row of 5 tappable stars
-6. **Phone pickups** — number stepper (- / number / +)
-7. **Total phone minutes** — optional number input
-8. **Notes** — multiline text field
-9. **Save button** — validates, calls ViewModel
-10. **Cancel button**
+Bottom sheet shown after tapping "End Sleep":
+1. **Summary**: "You slept 7h 23m — 3 phone pickups (12 min)"
+2. **Quality rating** — row of 5 tappable stars
+3. **Notes** — optional multiline text field
+4. **Save** / **Cancel** buttons
 
-Validation before save:
-- Actual bedtime must be before actual wake time
-- Quality rating must be selected (1-5)
-- Phone pickups must be >= 0
+#### `ui/sleep/AddSleepDialog.kt` (manual fallback)
 
-### 1.8 — Sleep: Charting
+Full form for logging past sleep — same as before:
+1. Target bedtime / wake time (time pickers)
+2. Actual bedtime / wake time (date + time pickers)
+3. Quality rating (stars)
+4. Phone pickups (stepper)
+5. Total phone minutes (number input)
+6. Notes
+7. Save / Cancel
 
-**Use Vico charting library.**
+### 1.8 — Sleep: Charting    Done 4/14
 
-Gradle dependency: `com.patrykandpatrick.vico:compose-m3` (latest)
+**Vico charting library.**
+
+Gradle dependency: `com.patrykandpatrick.vico:compose-m3:2.0.0-beta.3`
 
 **Bar chart composable (`ui/sleep/SleepChart.kt`):**
 - X-axis: day labels (Mon, Tue, etc.)
 - Y-axis: hours (0–12)
 - Each bar = one night's sleep duration
-- Bar color based on quality rating
-- Horizontal dashed line = target duration
-- Tap on bar to show tooltip with exact values
+- Bar color based on quality: green (4-5), yellow (3), red (1-2)
+- Horizontal line = average target duration
+- 3 stacked series (green/yellow/red) with zero-fill for correct per-bar coloring
 
 ---
 

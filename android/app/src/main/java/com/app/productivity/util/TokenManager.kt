@@ -14,6 +14,7 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 class TokenManager(private val context: Context) {
     companion object {
         private val TOKEN_KEY = stringPreferencesKey("jwt_token")
+        private val USER_ID_KEY = stringPreferencesKey("user_id")
     }
 
     fun getToken(): Flow<String?> {
@@ -31,6 +32,19 @@ class TokenManager(private val context: Context) {
     suspend fun clearToken() {
         context.dataStore.edit { prefs ->
             prefs.remove(TOKEN_KEY)
+            prefs.remove(USER_ID_KEY)
+        }
+    }
+
+    fun getUserId(): Flow<String?> {
+        return context.dataStore.data.map { prefs ->
+            prefs[USER_ID_KEY]
+        }
+    }
+
+    suspend fun saveUserId(userId: String) {
+        context.dataStore.edit { prefs ->
+            prefs[USER_ID_KEY] = userId
         }
     }
 }
