@@ -54,6 +54,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 val response = api.login(LoginRequest(email, password))
                 tokenManager.saveToken(response.token)
+                tokenManager.saveUserId(response.user.id)
                 _uiState.value = AuthUiState(isLoggedIn = true, isCheckingAuth = false)
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
@@ -70,6 +71,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 val response = api.register(RegisterRequest(email, password))
                 tokenManager.saveToken(response.token)
+                tokenManager.saveUserId(response.user.id)
                 _uiState.value = AuthUiState(isLoggedIn = true, isCheckingAuth = false)
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
