@@ -102,7 +102,7 @@ fun SleepScreen(viewModel: SleepViewModel = viewModel()) {
             SessionControl(
                 isActive = uiState.isSessionActive,
                 sessionStartTime = uiState.sessionStartTime,
-                phonePickups = uiState.phonePickups,
+                pickupEvents = uiState.pickupEvents,
                 onStartSleep = {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                         permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)

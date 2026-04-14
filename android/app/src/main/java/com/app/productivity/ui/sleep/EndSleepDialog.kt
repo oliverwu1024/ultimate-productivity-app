@@ -9,11 +9,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -33,13 +37,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.app.productivity.service.PickupEvent
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EndSleepDialog(
     durationMinutes: Long,
-    phonePickups: Int,
-    totalPhoneMinutes: Int,
+    pickupEvents: List<PickupEvent>,
     onSave: (qualityRating: Int, notes: String?) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -50,6 +57,10 @@ fun EndSleepDialog(
 
     val hours = durationMinutes / 60
     val mins = durationMinutes % 60
+    val totalPhoneSeconds = pickupEvents.sumOf { it.durationSeconds }
+    val totalPhoneMinutes = totalPhoneSeconds / 60
+    val timeFormat = DateTimeFormatter.ofPattern("hh:mm a")
+    val zone = ZoneId.systemDefault()
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -59,8 +70,9 @@ fun EndSleepDialog(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp)
-                .navigationBarsPadding(),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .navigationBarsPadding()
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text("Good morning!", style = MaterialTheme.typography.headlineSmall)
 
@@ -71,13 +83,58 @@ fun EndSleepDialog(
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
             )
-            Text(
-                "$phonePickups phone pickup${if (phonePickups != 1) "s" else ""} ($totalPhoneMinutes min)",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
 
-            Spacer(modifier = Modifier.height(4.dp))
+            if (pickupEvents.isEmpty()) {
+                Text(
+                    "No phone pickups — nice!",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color(0xFF4CAF50)
+                )
+            } else {
+                Text(
+                    "${pickupEvents.size} pickup${if (pickupEvents.size != 1) "s" else ""} — ${totalPhoneMinutes}m ${totalPhoneSeconds % 60}s total",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+                // Individual pickup details
+                pickupEvents.forEachIndexed { index, event ->
+                    val time = Instant.ofEpochMilli(event.pickedUpAt)
+                        .atZone(zone).format(timeFormat)
+                    val durMins = event.durationSeconds / 60
+                    val durSecs = event.durationSeconds % 60
+                    val durText = if (durMins > 0) "${durMins}m ${durSecs}s" else "${durSecs}s"
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Default.PhoneAndroid,
+                                null,
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                "  #${index + 1} at $time",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                        Text(
+                            durText,
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+            }
 
             // Quality rating
             Text("How did you sleep?", style = MaterialTheme.typography.labelLarge)
@@ -104,12 +161,10 @@ fun EndSleepDialog(
                 maxLines = 4
             )
 
-            // Error
             if (error != null) {
                 Text(error!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             }
 
-            // Buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End)
