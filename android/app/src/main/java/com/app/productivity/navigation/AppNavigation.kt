@@ -38,6 +38,7 @@ import androidx.navigation.compose.rememberNavController
 import com.app.productivity.ui.auth.AuthViewModel
 import com.app.productivity.ui.auth.LoginScreen
 import com.app.productivity.ui.auth.RegisterScreen
+import com.app.productivity.ui.sleep.SleepScreen
 
 sealed class Screen(val route: String) {
     data object Login : Screen("login")
@@ -132,7 +133,7 @@ fun AppNavigation(authViewModel: AuthViewModel = viewModel()) {
                 DashboardScreen(onLogout = { authViewModel.logout() })
             }
             composable(Screen.Sleep.route) {
-                PlaceholderScreen("Sleep")
+                SleepScreen()
             }
             composable(Screen.Sessions.route) {
                 PlaceholderScreen("Sessions")

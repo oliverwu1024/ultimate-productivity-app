@@ -83,4 +83,7 @@ dependencies {
 
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
+
+    // Vico charting
+    implementation("com.patrykandpatrick.vico:compose-m3:2.0.0-beta.3")
 }
