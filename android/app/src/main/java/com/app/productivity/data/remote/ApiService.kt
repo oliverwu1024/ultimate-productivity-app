@@ -1,11 +1,15 @@
 package com.app.productivity.data.remote
 
 import com.app.productivity.data.remote.dto.AuthResponse
+import com.app.productivity.data.remote.dto.CreateSessionDto
 import com.app.productivity.data.remote.dto.CreateSleepRecordDto
 import com.app.productivity.data.remote.dto.LoginRequest
 import com.app.productivity.data.remote.dto.RegisterRequest
+import com.app.productivity.data.remote.dto.SessionDto
+import com.app.productivity.data.remote.dto.SessionStatsDto
 import com.app.productivity.data.remote.dto.SleepRecordDto
 import com.app.productivity.data.remote.dto.SleepStatsDto
+import com.app.productivity.data.remote.dto.UpdateSessionDto
 import com.app.productivity.data.remote.dto.UserResponse
 import retrofit2.http.Body
 import retrofit2.http.DELETE
@@ -52,4 +56,29 @@ interface ApiService {
         @Query("start") start: String?,
         @Query("end") end: String?
     ): SleepStatsDto
+
+    @POST("sessions")
+    suspend fun createSession(@Body request: CreateSessionDto): SessionDto
+
+    @GET("sessions")
+    suspend fun getSessions(
+        @Query("start") start: String?,
+        @Query("end") end: String?,
+        @Query("tag") tag: String?
+    ): List<SessionDto>
+
+    @GET("sessions/{id}")
+    suspend fun getSession(@Path("id") id: String): SessionDto
+
+    @PUT("sessions/{id}")
+    suspend fun updateSession(
+        @Path("id") id: String,
+        @Body request: UpdateSessionDto
+    ): SessionDto
+
+    @DELETE("sessions/{id}")
+    suspend fun deleteSession(@Path("id") id: String)
+
+    @GET("sessions/stats")
+    suspend fun getSessionStats(@Query("range") range: String): SessionStatsDto
 }
