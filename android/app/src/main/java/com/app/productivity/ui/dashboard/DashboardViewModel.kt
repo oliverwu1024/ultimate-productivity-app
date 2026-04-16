@@ -9,6 +9,7 @@ import com.app.productivity.data.remote.RetrofitClient
 import com.app.productivity.data.repository.CalendarRepository
 import com.app.productivity.data.repository.SessionRepository
 import com.app.productivity.data.repository.SleepRepository
+import com.app.productivity.data.repository.SyncManager
 import com.app.productivity.util.TokenManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -59,6 +60,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     private val sleepRepo = SleepRepository(sleepDao, api)
     private val sessionRepo = SessionRepository(sessionDao, api)
     private val calendarRepo = CalendarRepository(db.calendarEventDao(), api)
+    private val syncManager = SyncManager(sleepRepo, sessionRepo, calendarRepo)
 
     private val _uiState = MutableStateFlow(DashboardUiState())
     val uiState: StateFlow<DashboardUiState> = _uiState
@@ -180,9 +182,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
 
     private suspend fun sync() {
         try {
-            sleepRepo.sync()
-            sessionRepo.sync()
-            calendarRepo.sync()
+            syncManager.syncAll().getOrThrow()
             _uiState.value = _uiState.value.copy(lastSyncTime = System.currentTimeMillis())
         } catch (_: Exception) { }
     }
