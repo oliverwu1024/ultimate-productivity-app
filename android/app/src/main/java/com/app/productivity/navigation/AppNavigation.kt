@@ -1,11 +1,7 @@
 package com.app.productivity.navigation
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
@@ -17,7 +13,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -38,6 +33,8 @@ import androidx.navigation.compose.rememberNavController
 import com.app.productivity.ui.auth.AuthViewModel
 import com.app.productivity.ui.auth.LoginScreen
 import com.app.productivity.ui.auth.RegisterScreen
+import com.app.productivity.ui.calendar.CalendarScreen
+import com.app.productivity.ui.dashboard.DashboardScreen
 import com.app.productivity.ui.sessions.SessionsScreen
 import com.app.productivity.ui.sleep.SleepScreen
 
@@ -131,7 +128,30 @@ fun AppNavigation(authViewModel: AuthViewModel = viewModel()) {
                 )
             }
             composable(Screen.Dashboard.route) {
-                DashboardScreen(onLogout = { authViewModel.logout() })
+                DashboardScreen(
+                    onNavigateToSleep = {
+                        navController.navigate(Screen.Sleep.route) {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                    onNavigateToSessions = {
+                        navController.navigate(Screen.Sessions.route) {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                    onNavigateToCalendar = {
+                        navController.navigate(Screen.Calendar.route) {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                    onLogout = { authViewModel.logout() }
+                )
             }
             composable(Screen.Sleep.route) {
                 SleepScreen()
@@ -140,7 +160,7 @@ fun AppNavigation(authViewModel: AuthViewModel = viewModel()) {
                 SessionsScreen()
             }
             composable(Screen.Calendar.route) {
-                PlaceholderScreen("Calendar")
+                CalendarScreen()
             }
         }
     }
@@ -155,21 +175,6 @@ fun AppNavigation(authViewModel: AuthViewModel = viewModel()) {
             navController.navigate(Screen.Login.route) {
                 popUpTo(0) { inclusive = true }
             }
-        }
-    }
-}
-
-@Composable
-fun DashboardScreen(onLogout: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(text = "Dashboard", style = MaterialTheme.typography.headlineMedium)
-        Spacer(modifier = Modifier.height(24.dp))
-        OutlinedButton(onClick = onLogout) {
-            Text("Logout")
         }
     }
 }

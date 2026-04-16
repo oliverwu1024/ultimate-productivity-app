@@ -1,6 +1,8 @@
 package com.app.productivity.data.remote
 
 import com.app.productivity.data.remote.dto.AuthResponse
+import com.app.productivity.data.remote.dto.CalendarEventDto
+import com.app.productivity.data.remote.dto.CreateCalendarEventDto
 import com.app.productivity.data.remote.dto.CreateSessionDto
 import com.app.productivity.data.remote.dto.CreateSleepRecordDto
 import com.app.productivity.data.remote.dto.LoginRequest
@@ -81,4 +83,27 @@ interface ApiService {
 
     @GET("sessions/stats")
     suspend fun getSessionStats(@Query("range") range: String): SessionStatsDto
+
+    @POST("calendar")
+    suspend fun createCalendarEvent(@Body event: CreateCalendarEventDto): CalendarEventDto
+
+    @GET("calendar")
+    suspend fun getCalendarEvents(
+        @Query("start") start: String?,
+        @Query("end") end: String?,
+        @Query("category") category: String?,
+        @Query("priority") priority: String?
+    ): List<CalendarEventDto>
+
+    @GET("calendar/{id}")
+    suspend fun getCalendarEvent(@Path("id") id: String): CalendarEventDto
+
+    @PUT("calendar/{id}")
+    suspend fun updateCalendarEvent(
+        @Path("id") id: String,
+        @Body event: CreateCalendarEventDto
+    ): CalendarEventDto
+
+    @DELETE("calendar/{id}")
+    suspend fun deleteCalendarEvent(@Path("id") id: String)
 }

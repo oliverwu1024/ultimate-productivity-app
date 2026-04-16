@@ -6,19 +6,22 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.app.productivity.data.local.dao.CalendarEventDao
 import com.app.productivity.data.local.dao.SessionDao
 import com.app.productivity.data.local.dao.SleepDao
+import com.app.productivity.data.local.entity.CalendarEventEntity
 import com.app.productivity.data.local.entity.SessionEntity
 import com.app.productivity.data.local.entity.SleepRecordEntity
 
 @Database(
-    entities = [SleepRecordEntity::class, SessionEntity::class],
-    version = 2,
+    entities = [SleepRecordEntity::class, SessionEntity::class, CalendarEventEntity::class],
+    version = 3,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun sleepDao(): SleepDao
     abstract fun sessionDao(): SessionDao
+    abstract fun calendarEventDao(): CalendarEventDao
 
     companion object {
         @Volatile
@@ -47,6 +50,30 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """CREATE TABLE IF NOT EXISTS `calendar_events` (
+                        `id` TEXT NOT NULL,
+                        `userId` TEXT NOT NULL,
+                        `title` TEXT NOT NULL,
+                        `description` TEXT,
+                        `startTime` INTEGER NOT NULL,
+                        `endTime` INTEGER NOT NULL,
+                        `category` TEXT NOT NULL,
+                        `priority` TEXT NOT NULL,
+                        `isRecurring` INTEGER NOT NULL,
+                        `recurrenceRule` TEXT,
+                        `color` TEXT NOT NULL,
+                        `createdAt` INTEGER NOT NULL,
+                        `updatedAt` INTEGER NOT NULL,
+                        `isSynced` INTEGER NOT NULL DEFAULT 0,
+                        PRIMARY KEY(`id`)
+                    )"""
+                )
+            }
+        }
+
         fun getInstance(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 Room.databaseBuilder(
@@ -54,7 +81,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "productivity_db"
                 )
-                    .addMigrations(MIGRATION_1_2)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                     .build()
                     .also { INSTANCE = it }
             }
