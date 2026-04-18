@@ -172,6 +172,7 @@ fun AppNavigation(
                 SettingsScreen(
                     onBack = { navController.popBackStack() },
                     onNavigateToReminders = { navController.navigate(Screen.Reminders.route) },
+                    onNavigateToReports = { navController.navigate(Screen.Reports.route) },
                     onLogout = { authViewModel.logout() },
                 )
             }
