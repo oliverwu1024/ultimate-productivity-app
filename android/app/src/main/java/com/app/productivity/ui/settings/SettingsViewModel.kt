@@ -3,9 +3,11 @@ package com.app.productivity.ui.settings
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.app.productivity.BuildConfig
 import com.app.productivity.ui.theme.ThemeMode
 import com.app.productivity.util.ReminderPreferences
 import com.app.productivity.util.ThemePreference
+import com.app.productivity.util.TokenManager
 import com.app.productivity.util.UserPreferences
 import com.app.productivity.util.UserSettings
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,12 +19,16 @@ import java.time.LocalTime
 data class SettingsUiState(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val user: UserSettings? = null,
+    val email: String? = null,
+    val versionName: String = BuildConfig.VERSION_NAME,
+    val versionCode: Int = BuildConfig.VERSION_CODE,
 )
 
 class SettingsViewModel(application: Application) : AndroidViewModel(application) {
     private val themePreference = ThemePreference(application)
     private val userPreferences = UserPreferences(application)
     private val reminderPreferences = ReminderPreferences(application)
+    private val tokenManager = TokenManager(application)
 
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState: StateFlow<SettingsUiState> = _uiState
@@ -36,6 +42,11 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             userPreferences.settings.collectLatest { settings ->
                 _uiState.value = _uiState.value.copy(user = settings)
+            }
+        }
+        viewModelScope.launch {
+            tokenManager.getEmail().collectLatest { email ->
+                _uiState.value = _uiState.value.copy(email = email)
             }
         }
     }
