@@ -15,6 +15,7 @@ class TokenManager(private val context: Context) {
     companion object {
         private val TOKEN_KEY = stringPreferencesKey("jwt_token")
         private val USER_ID_KEY = stringPreferencesKey("user_id")
+        private val EMAIL_KEY = stringPreferencesKey("user_email")
     }
 
     fun getToken(): Flow<String?> {
@@ -33,6 +34,7 @@ class TokenManager(private val context: Context) {
         context.dataStore.edit { prefs ->
             prefs.remove(TOKEN_KEY)
             prefs.remove(USER_ID_KEY)
+            prefs.remove(EMAIL_KEY)
         }
     }
 
@@ -45,6 +47,18 @@ class TokenManager(private val context: Context) {
     suspend fun saveUserId(userId: String) {
         context.dataStore.edit { prefs ->
             prefs[USER_ID_KEY] = userId
+        }
+    }
+
+    fun getEmail(): Flow<String?> {
+        return context.dataStore.data.map { prefs ->
+            prefs[EMAIL_KEY]
+        }
+    }
+
+    suspend fun saveEmail(email: String) {
+        context.dataStore.edit { prefs ->
+            prefs[EMAIL_KEY] = email
         }
     }
 }

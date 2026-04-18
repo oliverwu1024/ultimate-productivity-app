@@ -21,6 +21,9 @@ import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.SettingsBrightness
@@ -61,6 +64,7 @@ import java.time.format.DateTimeFormatter
 fun SettingsScreen(
     onBack: () -> Unit,
     onNavigateToReminders: () -> Unit,
+    onNavigateToReports: () -> Unit,
     onLogout: () -> Unit,
     viewModel: SettingsViewModel = viewModel(),
 ) {
@@ -100,7 +104,13 @@ fun SettingsScreen(
             item { SectionHeader("Appearance") }
             item { ThemeCard(current = uiState.themeMode, onSelect = viewModel::setThemeMode) }
 
-            item { SectionHeader("Sleep targets") }
+            item {
+                val durationMins = targetDurationMinutes(user.targetBedtime, user.targetWakeTime)
+                SectionHeaderWithSuffix(
+                    title = "Sleep targets",
+                    suffix = "Duration: ${formatDuration(durationMins)}",
+                )
+            }
             item {
                 TimeSettingCard(
                     icon = Icons.Default.Bedtime,
@@ -156,11 +166,35 @@ fun SettingsScreen(
                 )
             }
 
+            item { SectionHeader("Insights") }
+            item {
+                LinkRow(
+                    icon = Icons.Default.Insights,
+                    title = "Weekly report",
+                    description = "Sleep, focus, and achievements",
+                    onClick = onNavigateToReports,
+                )
+            }
+
             item { SectionHeader("Account") }
             item {
                 Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("Logged in", style = MaterialTheme.typography.bodyMedium)
+                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Icon(Icons.Default.Email, null, tint = MaterialTheme.colorScheme.primary)
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    uiState.email ?: "Signed in",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Medium,
+                                )
+                                Text(
+                                    "Signed in",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
                         OutlinedButton(onClick = onLogout) {
                             Icon(Icons.AutoMirrored.Filled.Logout, null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(8.dp))
@@ -170,8 +204,68 @@ fun SettingsScreen(
                 }
             }
 
+            item { SectionHeader("About") }
+            item {
+                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Icon(Icons.Default.Info, null, tint = MaterialTheme.colorScheme.primary)
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                "Productivity",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Medium,
+                            )
+                            Text(
+                                "Version ${uiState.versionName} (${uiState.versionCode})",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+            }
+
             item { Spacer(Modifier.height(8.dp)) }
         }
+    }
+}
+
+private fun targetDurationMinutes(bedtime: LocalTime, wakeTime: LocalTime): Int {
+    val bed = bedtime.hour * 60 + bedtime.minute
+    val wake = wakeTime.hour * 60 + wakeTime.minute
+    return if (wake >= bed) wake - bed else 24 * 60 - bed + wake
+}
+
+private fun formatDuration(minutes: Int): String {
+    val h = minutes / 60
+    val m = minutes % 60
+    return if (m == 0) "${h}h" else "${h}h ${m}m"
+}
+
+@Composable
+private fun SectionHeaderWithSuffix(title: String, suffix: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 4.dp, end = 4.dp, top = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(
+            title.uppercase(),
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.primary,
+        )
+        Text(
+            suffix,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

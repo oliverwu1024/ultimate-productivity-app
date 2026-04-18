@@ -53,14 +53,27 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
             val token = tokenManager.getToken().firstOrNull()
             if (token != null) {
                 try {
-                    api.getMe()
-                    _uiState.value = AuthUiState(isLoggedIn = true, isCheckingAuth = false)
+                    val me = api.getMe()
+                    // Backfill cached email for users logged in before email persistence landed
+                    if (tokenManager.getEmail().firstOrNull().isNullOrBlank()) {
+                        tokenManager.saveEmail(me.email)
+                    }
+                    _uiState.value = _uiState.value.copy(
+                        isLoggedIn = true,
+                        isCheckingAuth = false,
+                    )
                 } catch (_: Exception) {
                     tokenManager.clearToken()
-                    _uiState.value = AuthUiState(isCheckingAuth = false)
+                    _uiState.value = _uiState.value.copy(
+                        isLoggedIn = false,
+                        isCheckingAuth = false,
+                    )
                 }
             } else {
-                _uiState.value = AuthUiState(isCheckingAuth = false)
+                _uiState.value = _uiState.value.copy(
+                    isLoggedIn = false,
+                    isCheckingAuth = false,
+                )
             }
         }
     }
@@ -72,7 +85,12 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                 val response = api.login(LoginRequest(email, password))
                 tokenManager.saveToken(response.token)
                 tokenManager.saveUserId(response.user.id)
-                _uiState.value = AuthUiState(isLoggedIn = true, isCheckingAuth = false)
+                tokenManager.saveEmail(response.user.email)
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    isLoggedIn = true,
+                    isCheckingAuth = false,
+                )
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
@@ -89,7 +107,12 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                 val response = api.register(RegisterRequest(email, password))
                 tokenManager.saveToken(response.token)
                 tokenManager.saveUserId(response.user.id)
-                _uiState.value = AuthUiState(isLoggedIn = true, isCheckingAuth = false)
+                tokenManager.saveEmail(response.user.email)
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    isLoggedIn = true,
+                    isCheckingAuth = false,
+                )
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
@@ -102,7 +125,10 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     fun logout() {
         viewModelScope.launch {
             tokenManager.clearToken()
-            _uiState.value = AuthUiState(isCheckingAuth = false)
+            _uiState.value = _uiState.value.copy(
+                isLoggedIn = false,
+                isCheckingAuth = false,
+            )
         }
     }
 
