@@ -8,6 +8,7 @@ import com.app.productivity.data.local.entity.CalendarEventEntity
 import com.app.productivity.data.remote.RetrofitClient
 import com.app.productivity.data.remote.dto.CreateCalendarEventDto
 import com.app.productivity.data.repository.CalendarRepository
+import com.app.productivity.util.AlarmScheduler
 import com.app.productivity.util.TokenManager
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,7 +38,8 @@ class CalendarViewModel(application: Application) : AndroidViewModel(application
     private val tokenManager = TokenManager(application)
     private val api = RetrofitClient.create(tokenManager)
     private val db = AppDatabase.getInstance(application)
-    private val repository = CalendarRepository(db.calendarEventDao(), api)
+    private val alarmScheduler = AlarmScheduler(application)
+    private val repository = CalendarRepository(db.calendarEventDao(), api, alarmScheduler)
 
     private val _uiState = MutableStateFlow(CalendarUiState())
     val uiState: StateFlow<CalendarUiState> = _uiState

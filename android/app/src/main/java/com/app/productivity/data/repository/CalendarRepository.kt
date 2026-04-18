@@ -6,6 +6,7 @@ import com.app.productivity.data.remote.ApiService
 import com.app.productivity.data.remote.dto.CreateCalendarEventDto
 import com.app.productivity.data.remote.dto.toCreateDto
 import com.app.productivity.data.remote.dto.toEntity
+import com.app.productivity.util.AlarmScheduler
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.DayOfWeek
@@ -18,7 +19,8 @@ import java.util.UUID
 
 class CalendarRepository(
     private val calendarEventDao: CalendarEventDao,
-    private val apiService: ApiService
+    private val apiService: ApiService,
+    private val alarmScheduler: AlarmScheduler? = null,
 ) {
 
     fun getEventsForMonth(year: Int, month: Int): Flow<List<CalendarEventEntity>> {
@@ -47,7 +49,7 @@ class CalendarRepository(
     }
 
     suspend fun createEvent(dto: CreateCalendarEventDto, userId: String): Result<CalendarEventEntity> {
-        return try {
+        val result = try {
             val serverEvent = apiService.createCalendarEvent(dto)
             val entity = serverEvent.toEntity()
             calendarEventDao.insert(entity)
@@ -77,10 +79,12 @@ class CalendarRepository(
                 Result.failure(localErr)
             }
         }
+        result.getOrNull()?.let { alarmScheduler?.scheduleEventReminder(it) }
+        return result
     }
 
     suspend fun updateEvent(id: String, dto: CreateCalendarEventDto, userId: String): Result<CalendarEventEntity> {
-        return try {
+        val result = try {
             val serverEvent = apiService.updateCalendarEvent(id, dto)
             val entity = serverEvent.toEntity()
             calendarEventDao.insert(entity)
@@ -111,10 +115,16 @@ class CalendarRepository(
                 Result.failure(localErr)
             }
         }
+        result.getOrNull()?.let {
+            alarmScheduler?.cancelEventReminder(it.id)
+            alarmScheduler?.scheduleEventReminder(it)
+        }
+        return result
     }
 
     suspend fun deleteEvent(id: String): Result<Unit> {
         calendarEventDao.deleteById(id)
+        alarmScheduler?.cancelEventReminder(id)
         return try {
             apiService.deleteCalendarEvent(id)
             Result.success(Unit)
@@ -143,7 +153,9 @@ class CalendarRepository(
             }
 
             val serverEvents = apiService.getCalendarEvents(null, null, null, null)
-            calendarEventDao.insertAll(serverEvents.map { it.toEntity() })
+            val entities = serverEvents.map { it.toEntity() }
+            calendarEventDao.insertAll(entities)
+            alarmScheduler?.rescheduleAllEventReminders(entities)
         } catch (_: Exception) {
             // offline, skip sync
         }

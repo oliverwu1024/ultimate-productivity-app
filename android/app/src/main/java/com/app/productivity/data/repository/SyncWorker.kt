@@ -5,6 +5,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.app.productivity.data.local.AppDatabase
 import com.app.productivity.data.remote.RetrofitClient
+import com.app.productivity.util.AlarmScheduler
 import com.app.productivity.util.TokenManager
 
 class SyncWorker(
@@ -20,7 +21,7 @@ class SyncWorker(
         val syncManager = SyncManager(
             sleepRepo = SleepRepository(db.sleepDao(), api),
             sessionRepo = SessionRepository(db.sessionDao(), api),
-            calendarRepo = CalendarRepository(db.calendarEventDao(), api)
+            calendarRepo = CalendarRepository(db.calendarEventDao(), api, AlarmScheduler(applicationContext))
         )
 
         return try {
