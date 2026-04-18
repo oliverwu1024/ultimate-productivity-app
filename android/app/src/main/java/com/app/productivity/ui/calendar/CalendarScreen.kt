@@ -53,7 +53,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.material.icons.filled.EventAvailable
 import com.app.productivity.data.local.entity.CalendarEventEntity
+import com.app.productivity.ui.common.EmptyState
 import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
@@ -118,24 +120,18 @@ fun CalendarScreen(viewModel: CalendarViewModel = viewModel()) {
             ) {
                 if (uiState.selectedDayEvents.isEmpty()) {
                     item {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 32.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                "No events",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
+                        EmptyState(
+                            icon = Icons.Default.EventAvailable,
+                            title = "No events today",
+                            body = "Tap + to schedule something.",
+                        )
                     }
                 }
                 items(uiState.selectedDayEvents, key = { "${it.id}_${it.startTime}" }) { event ->
                     EventItem(
                         event = event,
-                        onClick = { viewModel.showEditDialog(event) }
+                        onClick = { viewModel.showEditDialog(event) },
+                        modifier = Modifier.animateItem(),
                     )
                 }
             }
@@ -322,9 +318,9 @@ private fun SelectedDayHeader(date: LocalDate) {
 }
 
 @Composable
-private fun EventItem(event: CalendarEventEntity, onClick: () -> Unit) {
+private fun EventItem(event: CalendarEventEntity, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(12.dp),
@@ -394,23 +390,19 @@ private fun CategoryChip(category: String) {
 
 @Composable
 private fun PriorityIndicator(priority: String) {
-    val (color, label) = when (priority) {
-        "high" -> MaterialTheme.colorScheme.error to "High"
-        "low" -> MaterialTheme.colorScheme.onSurfaceVariant to "Low"
-        else -> MaterialTheme.colorScheme.primary to "Med"
+    val color = com.app.productivity.ui.theme.PriorityColors.forPriority(priority)
+    val label = when (priority) {
+        "high" -> "High"
+        "low" -> "Low"
+        else -> "Med"
     }
     Text(label, style = MaterialTheme.typography.labelSmall, color = color)
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────
 
-internal fun categoryColor(category: String): Color = when (category) {
-    "study" -> Color(0xFF4A90D9)
-    "project" -> Color(0xFFE67E22)
-    "exercise" -> Color(0xFF2ECC71)
-    "personal" -> Color(0xFF9B59B6)
-    else -> Color(0xFF95A5A6)
-}
+internal fun categoryColor(category: String): Color =
+    com.app.productivity.ui.theme.CategoryColors.forCategory(category)
 
 internal fun parseHexColor(hex: String): Color {
     return try {

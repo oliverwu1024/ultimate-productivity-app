@@ -7,9 +7,12 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import com.app.productivity.navigation.AppNavigation
 import com.app.productivity.ui.theme.ProductivityTheme
+import com.app.productivity.ui.theme.ThemeMode
 import com.app.productivity.util.NotificationHelper
+import com.app.productivity.util.ThemePreference
 import kotlinx.coroutines.flow.MutableStateFlow
 
 class MainActivity : ComponentActivity() {
@@ -21,8 +24,11 @@ class MainActivity : ComponentActivity() {
         deepLink.value = intent?.getStringExtra(NotificationHelper.EXTRA_DEEP_LINK)
         enableEdgeToEdge()
         setContent {
-            ProductivityTheme {
-                val target by deepLink.collectAsState()
+            val themePreference = remember { ThemePreference(applicationContext) }
+            val themeMode by themePreference.themeMode.collectAsState(initial = ThemeMode.SYSTEM)
+            val target by deepLink.collectAsState()
+
+            ProductivityTheme(themeMode = themeMode) {
                 AppNavigation(
                     pendingDeepLink = target,
                     onDeepLinkConsumed = { deepLink.value = null }

@@ -8,8 +8,10 @@ import com.app.productivity.data.remote.RetrofitClient
 import com.app.productivity.data.remote.dto.LoginRequest
 import com.app.productivity.data.remote.dto.RegisterRequest
 import com.app.productivity.util.TokenManager
+import com.app.productivity.util.UserPreferences
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 
@@ -17,18 +19,33 @@ data class AuthUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val isLoggedIn: Boolean = false,
-    val isCheckingAuth: Boolean = true
+    val isCheckingAuth: Boolean = true,
+    val onboardingCompleted: Boolean = true, // default true to avoid flicker — overwritten once loaded
+    val isCheckingOnboarding: Boolean = true,
 )
 
 class AuthViewModel(application: Application) : AndroidViewModel(application) {
     private val tokenManager = TokenManager(application)
     private val api: ApiService = RetrofitClient.create(tokenManager)
+    private val userPreferences = UserPreferences(application)
 
     private val _uiState = MutableStateFlow(AuthUiState())
     val uiState: StateFlow<AuthUiState> = _uiState
 
     init {
         checkAuth()
+        observeOnboarding()
+    }
+
+    private fun observeOnboarding() {
+        viewModelScope.launch {
+            userPreferences.settings.collectLatest { settings ->
+                _uiState.value = _uiState.value.copy(
+                    onboardingCompleted = settings.onboardingCompleted,
+                    isCheckingOnboarding = false,
+                )
+            }
+        }
     }
 
     fun checkAuth() {

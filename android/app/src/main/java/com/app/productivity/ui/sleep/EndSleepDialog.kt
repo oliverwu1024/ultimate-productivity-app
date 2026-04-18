@@ -144,7 +144,7 @@ fun EndSleepDialog(
                         Icon(
                             imageVector = if (star <= qualityRating) Icons.Filled.Star else Icons.Outlined.StarBorder,
                             contentDescription = "Star $star",
-                            tint = if (star <= qualityRating) Color(0xFFFFD700) else MaterialTheme.colorScheme.onSurfaceVariant,
+                            tint = if (star <= qualityRating) com.app.productivity.ui.theme.QualityStar else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(36.dp)
                         )
                     }

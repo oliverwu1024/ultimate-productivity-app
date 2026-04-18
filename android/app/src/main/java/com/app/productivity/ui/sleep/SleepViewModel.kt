@@ -12,9 +12,12 @@ import com.app.productivity.data.remote.dto.CreateSleepRecordDto
 import com.app.productivity.data.remote.dto.SleepStats
 import com.app.productivity.data.remote.dto.toLocalStats
 import com.app.productivity.data.repository.SleepRepository
+import com.app.productivity.data.achievements.AchievementChecker
 import com.app.productivity.service.PickupEvent
 import com.app.productivity.service.SleepTrackingService
 import com.app.productivity.util.TokenManager
+import com.app.productivity.util.UserPreferences
+import java.time.LocalTime
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -41,14 +44,21 @@ data class SleepUiState(
     val showManualLogDialog: Boolean = false,
     // Snapshot of session data at end (for EndSleepDialog)
     val endedSessionStart: Long = 0L,
-    val endedPickupEvents: List<PickupEvent> = emptyList()
+    val endedPickupEvents: List<PickupEvent> = emptyList(),
+    // User-configured targets
+    val targetBedtime: LocalTime = LocalTime.of(22, 0),
+    val targetWakeTime: LocalTime = LocalTime.of(6, 0),
 )
 
 class SleepViewModel(application: Application) : AndroidViewModel(application) {
     private val tokenManager = TokenManager(application)
     private val api = RetrofitClient.create(tokenManager)
     private val db = AppDatabase.getInstance(application)
-    private val repository = SleepRepository(db.sleepDao(), api)
+    private val userPreferences = UserPreferences(application)
+    private val achievementChecker = AchievementChecker(
+        db.achievementDao(), db.sleepDao(), db.sessionDao(), userPreferences,
+    )
+    private val repository = SleepRepository(db.sleepDao(), api, achievementChecker)
 
     private val _uiState = MutableStateFlow(SleepUiState())
     val uiState: StateFlow<SleepUiState> = _uiState
@@ -58,6 +68,11 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
     init {
         viewModelScope.launch {
             userId = tokenManager.getUserId().firstOrNull() ?: ""
+            val settings = userPreferences.snapshot()
+            _uiState.value = _uiState.value.copy(
+                targetBedtime = settings.targetBedtime,
+                targetWakeTime = settings.targetWakeTime,
+            )
             observeServiceState()
             loadRecords()
             sync()
@@ -112,8 +127,8 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
             val phoneMinutes = totalPhoneSeconds / 60
 
             val dto = CreateSleepRecordDto(
-                target_bedtime = "22:00:00",
-                target_wake_time = "06:00:00",
+                target_bedtime = formatTargetTime(state.targetBedtime),
+                target_wake_time = formatTargetTime(state.targetWakeTime),
                 actual_bedtime = bedtime.toString(),
                 actual_wake_time = wakeTime.toString(),
                 quality_rating = qualityRating,
@@ -195,4 +210,7 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
         }
         return start to end
     }
+
+    private fun formatTargetTime(time: LocalTime): String =
+        "%02d:%02d:00".format(time.hour, time.minute)
 }

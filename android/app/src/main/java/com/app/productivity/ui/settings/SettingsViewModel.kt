@@ -1,0 +1,64 @@
+package com.app.productivity.ui.settings
+
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.app.productivity.ui.theme.ThemeMode
+import com.app.productivity.util.ReminderPreferences
+import com.app.productivity.util.ThemePreference
+import com.app.productivity.util.UserPreferences
+import com.app.productivity.util.UserSettings
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
+import java.time.LocalTime
+
+data class SettingsUiState(
+    val themeMode: ThemeMode = ThemeMode.SYSTEM,
+    val user: UserSettings? = null,
+)
+
+class SettingsViewModel(application: Application) : AndroidViewModel(application) {
+    private val themePreference = ThemePreference(application)
+    private val userPreferences = UserPreferences(application)
+    private val reminderPreferences = ReminderPreferences(application)
+
+    private val _uiState = MutableStateFlow(SettingsUiState())
+    val uiState: StateFlow<SettingsUiState> = _uiState
+
+    init {
+        viewModelScope.launch {
+            themePreference.themeMode.collectLatest { mode ->
+                _uiState.value = _uiState.value.copy(themeMode = mode)
+            }
+        }
+        viewModelScope.launch {
+            userPreferences.settings.collectLatest { settings ->
+                _uiState.value = _uiState.value.copy(user = settings)
+            }
+        }
+    }
+
+    fun setThemeMode(mode: ThemeMode) = viewModelScope.launch {
+        themePreference.setThemeMode(mode)
+    }
+
+    fun setTargetBedtime(time: LocalTime) = viewModelScope.launch {
+        userPreferences.setTargetBedtime(time)
+        // Keep the bedtime reminder time in sync with the user's target
+        reminderPreferences.setBedtimeTime(time)
+    }
+
+    fun setTargetWakeTime(time: LocalTime) = viewModelScope.launch {
+        userPreferences.setTargetWakeTime(time)
+    }
+
+    fun setDefaultWorkDuration(minutes: Int) = viewModelScope.launch {
+        userPreferences.setDefaultWorkDuration(minutes)
+    }
+
+    fun setDefaultBreakDuration(minutes: Int) = viewModelScope.launch {
+        userPreferences.setDefaultBreakDuration(minutes)
+    }
+}

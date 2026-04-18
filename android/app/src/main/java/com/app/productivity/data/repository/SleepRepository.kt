@@ -1,5 +1,6 @@
 package com.app.productivity.data.repository
 
+import com.app.productivity.data.achievements.AchievementChecker
 import com.app.productivity.data.local.dao.SleepDao
 import com.app.productivity.data.local.entity.SleepRecordEntity
 import com.app.productivity.data.remote.ApiService
@@ -11,7 +12,8 @@ import java.util.UUID
 
 class SleepRepository(
     private val sleepDao: SleepDao,
-    private val apiService: ApiService
+    private val apiService: ApiService,
+    private val achievementChecker: AchievementChecker? = null,
 ) {
     fun getSleepRecords(): Flow<List<SleepRecordEntity>> = sleepDao.getAllRecords()
 
@@ -19,7 +21,7 @@ class SleepRepository(
         sleepDao.getRecordsBetween(start, end)
 
     suspend fun createSleepRecord(record: CreateSleepRecordDto, userId: String): Result<SleepRecordEntity> {
-        return try {
+        val result = try {
             val serverRecord = apiService.createSleepRecord(record)
             val entity = serverRecord.toEntity()
             sleepDao.insert(entity)
@@ -49,6 +51,10 @@ class SleepRepository(
                 Result.failure(localErr)
             }
         }
+        if (result.isSuccess) {
+            runCatching { achievementChecker?.checkAndStore() }
+        }
+        return result
     }
 
     suspend fun updateSleepRecord(id: String, record: CreateSleepRecordDto, userId: String): Result<SleepRecordEntity> {
