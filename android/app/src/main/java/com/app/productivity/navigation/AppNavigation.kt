@@ -22,7 +22,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -36,7 +35,9 @@ import com.app.productivity.ui.auth.RegisterScreen
 import com.app.productivity.ui.calendar.CalendarScreen
 import com.app.productivity.ui.dashboard.DashboardScreen
 import com.app.productivity.ui.sessions.SessionsScreen
+import com.app.productivity.ui.settings.RemindersScreen
 import com.app.productivity.ui.sleep.SleepScreen
+import com.app.productivity.util.NotificationHelper
 
 sealed class Screen(val route: String) {
     data object Login : Screen("login")
@@ -45,6 +46,7 @@ sealed class Screen(val route: String) {
     data object Sleep : Screen("sleep")
     data object Sessions : Screen("sessions")
     data object Calendar : Screen("calendar")
+    data object Reminders : Screen("reminders")
 }
 
 data class BottomNavItem(
@@ -61,7 +63,11 @@ val bottomNavItems = listOf(
 )
 
 @Composable
-fun AppNavigation(authViewModel: AuthViewModel = viewModel()) {
+fun AppNavigation(
+    authViewModel: AuthViewModel = viewModel(),
+    pendingDeepLink: String? = null,
+    onDeepLinkConsumed: () -> Unit = {},
+) {
     val uiState by authViewModel.uiState.collectAsState()
     val navController = rememberNavController()
 
@@ -129,43 +135,22 @@ fun AppNavigation(authViewModel: AuthViewModel = viewModel()) {
             }
             composable(Screen.Dashboard.route) {
                 DashboardScreen(
-                    onNavigateToSleep = {
-                        navController.navigate(Screen.Sleep.route) {
-                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    },
-                    onNavigateToSessions = {
-                        navController.navigate(Screen.Sessions.route) {
-                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    },
-                    onNavigateToCalendar = {
-                        navController.navigate(Screen.Calendar.route) {
-                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    },
+                    onNavigateToSleep = { navigateToTab(navController, Screen.Sleep) },
+                    onNavigateToSessions = { navigateToTab(navController, Screen.Sessions) },
+                    onNavigateToCalendar = { navigateToTab(navController, Screen.Calendar) },
+                    onNavigateToReminders = { navController.navigate(Screen.Reminders.route) },
                     onLogout = { authViewModel.logout() }
                 )
             }
-            composable(Screen.Sleep.route) {
-                SleepScreen()
-            }
-            composable(Screen.Sessions.route) {
-                SessionsScreen()
-            }
-            composable(Screen.Calendar.route) {
-                CalendarScreen()
+            composable(Screen.Sleep.route) { SleepScreen() }
+            composable(Screen.Sessions.route) { SessionsScreen() }
+            composable(Screen.Calendar.route) { CalendarScreen() }
+            composable(Screen.Reminders.route) {
+                RemindersScreen(onBack = { navController.popBackStack() })
             }
         }
     }
 
-    // Navigate when auth state changes
     LaunchedEffect(uiState.isLoggedIn) {
         if (uiState.isLoggedIn) {
             navController.navigate(Screen.Dashboard.route) {
@@ -176,6 +161,33 @@ fun AppNavigation(authViewModel: AuthViewModel = viewModel()) {
                 popUpTo(0) { inclusive = true }
             }
         }
+    }
+
+    LaunchedEffect(pendingDeepLink, uiState.isLoggedIn) {
+        val target = pendingDeepLink ?: return@LaunchedEffect
+        if (!uiState.isLoggedIn) return@LaunchedEffect
+        val screen = when (target) {
+            NotificationHelper.DEEP_LINK_SLEEP -> Screen.Sleep
+            NotificationHelper.DEEP_LINK_SESSIONS -> Screen.Sessions
+            NotificationHelper.DEEP_LINK_CALENDAR -> Screen.Calendar
+            NotificationHelper.DEEP_LINK_DASHBOARD -> Screen.Dashboard
+            else -> null
+        }
+        if (screen != null) {
+            navigateToTab(navController, screen)
+            onDeepLinkConsumed()
+        }
+    }
+}
+
+private fun navigateToTab(
+    navController: androidx.navigation.NavHostController,
+    screen: Screen,
+) {
+    navController.navigate(screen.route) {
+        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+        launchSingleTop = true
+        restoreState = true
     }
 }
 
