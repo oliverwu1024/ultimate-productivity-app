@@ -1,5 +1,10 @@
 package com.app.productivity.navigation
 
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -34,19 +39,25 @@ import com.app.productivity.ui.auth.LoginScreen
 import com.app.productivity.ui.auth.RegisterScreen
 import com.app.productivity.ui.calendar.CalendarScreen
 import com.app.productivity.ui.dashboard.DashboardScreen
+import com.app.productivity.ui.onboarding.OnboardingScreen
+import com.app.productivity.ui.reports.WeeklyReportScreen
 import com.app.productivity.ui.sessions.SessionsScreen
 import com.app.productivity.ui.settings.RemindersScreen
+import com.app.productivity.ui.settings.SettingsScreen
 import com.app.productivity.ui.sleep.SleepScreen
 import com.app.productivity.util.NotificationHelper
 
 sealed class Screen(val route: String) {
+    data object Onboarding : Screen("onboarding")
     data object Login : Screen("login")
     data object Register : Screen("register")
     data object Dashboard : Screen("dashboard")
     data object Sleep : Screen("sleep")
     data object Sessions : Screen("sessions")
     data object Calendar : Screen("calendar")
+    data object Settings : Screen("settings")
     data object Reminders : Screen("reminders")
+    data object Reports : Screen("reports")
 }
 
 data class BottomNavItem(
@@ -71,14 +82,18 @@ fun AppNavigation(
     val uiState by authViewModel.uiState.collectAsState()
     val navController = rememberNavController()
 
-    if (uiState.isCheckingAuth) {
+    if (uiState.isCheckingAuth || uiState.isCheckingOnboarding) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
         }
         return
     }
 
-    val startDestination = if (uiState.isLoggedIn) Screen.Dashboard.route else Screen.Login.route
+    val startDestination = when {
+        !uiState.onboardingCompleted -> Screen.Onboarding.route
+        uiState.isLoggedIn -> Screen.Dashboard.route
+        else -> Screen.Login.route
+    }
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
@@ -113,8 +128,15 @@ fun AppNavigation(
         NavHost(
             navController = navController,
             startDestination = startDestination,
-            modifier = Modifier.padding(innerPadding)
+            modifier = Modifier.padding(innerPadding),
+            enterTransition = { slideInHorizontally(tween(250)) { it / 6 } + fadeIn(tween(250)) },
+            exitTransition = { fadeOut(tween(150)) },
+            popEnterTransition = { slideInHorizontally(tween(250)) { -it / 6 } + fadeIn(tween(250)) },
+            popExitTransition = { slideOutHorizontally(tween(200)) { it / 6 } + fadeOut(tween(200)) },
         ) {
+            composable(Screen.Onboarding.route) {
+                OnboardingScreen(onFinish = { /* auth-state observer routes us onward */ })
+            }
             composable(Screen.Login.route) {
                 LoginScreen(
                     uiState = uiState,
@@ -138,27 +160,55 @@ fun AppNavigation(
                     onNavigateToSleep = { navigateToTab(navController, Screen.Sleep) },
                     onNavigateToSessions = { navigateToTab(navController, Screen.Sessions) },
                     onNavigateToCalendar = { navigateToTab(navController, Screen.Calendar) },
-                    onNavigateToReminders = { navController.navigate(Screen.Reminders.route) },
+                    onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
+                    onNavigateToReports = { navController.navigate(Screen.Reports.route) },
                     onLogout = { authViewModel.logout() }
                 )
             }
             composable(Screen.Sleep.route) { SleepScreen() }
             composable(Screen.Sessions.route) { SessionsScreen() }
             composable(Screen.Calendar.route) { CalendarScreen() }
+            composable(Screen.Settings.route) {
+                SettingsScreen(
+                    onBack = { navController.popBackStack() },
+                    onNavigateToReminders = { navController.navigate(Screen.Reminders.route) },
+                    onLogout = { authViewModel.logout() },
+                )
+            }
             composable(Screen.Reminders.route) {
                 RemindersScreen(onBack = { navController.popBackStack() })
+            }
+            composable(Screen.Reports.route) {
+                WeeklyReportScreen(onBack = { navController.popBackStack() })
             }
         }
     }
 
-    LaunchedEffect(uiState.isLoggedIn) {
+    // When onboarding completes, move to login/dashboard
+    LaunchedEffect(uiState.onboardingCompleted) {
+        if (uiState.onboardingCompleted &&
+            navController.currentDestination?.route == Screen.Onboarding.route
+        ) {
+            val target = if (uiState.isLoggedIn) Screen.Dashboard.route else Screen.Login.route
+            navController.navigate(target) {
+                popUpTo(Screen.Onboarding.route) { inclusive = true }
+            }
+        }
+    }
+
+    // Auth state transitions
+    LaunchedEffect(uiState.isLoggedIn, uiState.onboardingCompleted) {
+        if (!uiState.onboardingCompleted) return@LaunchedEffect
         if (uiState.isLoggedIn) {
             navController.navigate(Screen.Dashboard.route) {
                 popUpTo(Screen.Login.route) { inclusive = true }
             }
         } else {
-            navController.navigate(Screen.Login.route) {
-                popUpTo(0) { inclusive = true }
+            val current = navController.currentDestination?.route
+            if (current != Screen.Login.route && current != Screen.Register.route) {
+                navController.navigate(Screen.Login.route) {
+                    popUpTo(0) { inclusive = true }
+                }
             }
         }
     }

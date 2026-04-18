@@ -258,11 +258,6 @@ class CalendarRepository(
         else -> null
     }
 
-    private fun defaultColor(category: String): String = when (category) {
-        "study" -> "#4A90D9"
-        "project" -> "#E67E22"
-        "exercise" -> "#2ECC71"
-        "personal" -> "#9B59B6"
-        else -> "#95A5A6"
-    }
+    private fun defaultColor(category: String): String =
+        com.app.productivity.ui.theme.CategoryColors.hexForCategory(category)
 }

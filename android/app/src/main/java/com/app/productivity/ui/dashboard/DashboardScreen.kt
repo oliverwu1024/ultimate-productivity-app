@@ -60,6 +60,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.app.productivity.data.local.entity.CalendarEventEntity
 import com.app.productivity.ui.calendar.categoryColor
+import com.app.productivity.ui.theme.AnimatedAppear
 import java.time.Instant
 import java.time.LocalTime
 import java.time.ZoneId
@@ -71,7 +72,8 @@ fun DashboardScreen(
     onNavigateToSleep: () -> Unit,
     onNavigateToSessions: () -> Unit,
     onNavigateToCalendar: () -> Unit,
-    onNavigateToReminders: () -> Unit,
+    onNavigateToSettings: () -> Unit,
+    onNavigateToReports: () -> Unit,
     onLogout: () -> Unit,
     viewModel: DashboardViewModel = viewModel()
 ) {
@@ -92,8 +94,8 @@ fun DashboardScreen(
             TopAppBar(
                 title = { Text("Dashboard") },
                 actions = {
-                    IconButton(onClick = onNavigateToReminders) {
-                        Icon(Icons.Default.Settings, "Reminders")
+                    IconButton(onClick = onNavigateToSettings) {
+                        Icon(Icons.Default.Settings, "Settings")
                     }
                     IconButton(onClick = onLogout) {
                         Icon(Icons.AutoMirrored.Filled.Logout, "Logout")
@@ -128,12 +130,16 @@ fun DashboardScreen(
 
             // 3. Last Night's Sleep
             item {
-                SleepCard(sleep = uiState.lastNightSleep, onClick = onNavigateToSleep)
+                AnimatedAppear(delayMillis = 50) {
+                    SleepCard(sleep = uiState.lastNightSleep, onClick = onNavigateToSleep)
+                }
             }
 
             // 4. Today's Focus
             item {
-                FocusCard(focus = uiState.todayFocus, onClick = onNavigateToSessions)
+                AnimatedAppear(delayMillis = 100) {
+                    FocusCard(focus = uiState.todayFocus, onClick = onNavigateToSessions)
+                }
             }
 
             // 5. Upcoming Events
@@ -154,7 +160,11 @@ fun DashboardScreen(
                 }
             }
             items(uiState.upcomingEvents, key = { "${it.id}_${it.startTime}" }) { event ->
-                UpcomingEventItem(event = event, onClick = onNavigateToCalendar)
+                UpcomingEventItem(
+                    event = event,
+                    onClick = onNavigateToCalendar,
+                    modifier = Modifier.animateItem(),
+                )
             }
             if (uiState.upcomingEvents.isNotEmpty()) {
                 item {
@@ -175,7 +185,12 @@ fun DashboardScreen(
 
             // 7. Weekly Highlights
             item {
-                WeeklyHighlightsCard(highlights = uiState.weeklyHighlights)
+                AnimatedAppear(delayMillis = 200) {
+                    WeeklyHighlightsCard(
+                        highlights = uiState.weeklyHighlights,
+                        onClick = onNavigateToReports,
+                    )
+                }
             }
 
             item { Spacer(Modifier.height(8.dp)) }
@@ -253,7 +268,7 @@ private fun SleepCard(sleep: SleepSummary?, onClick: () -> Unit) {
                         Icon(
                             imageVector = if (star <= sleep.quality) Icons.Filled.Star else Icons.Outlined.StarBorder,
                             contentDescription = null,
-                            tint = if (star <= sleep.quality) Color(0xFFFFD700) else MaterialTheme.colorScheme.onSurfaceVariant,
+                            tint = if (star <= sleep.quality) com.app.productivity.ui.theme.QualityStar else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -321,14 +336,14 @@ private fun FocusCard(focus: FocusSummary?, onClick: () -> Unit) {
 // ── Upcoming event item ─────────────────────────────────────────────────
 
 @Composable
-private fun UpcomingEventItem(event: CalendarEventEntity, onClick: () -> Unit) {
+private fun UpcomingEventItem(event: CalendarEventEntity, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val zone = ZoneId.systemDefault()
     val fmt = DateTimeFormatter.ofPattern("EEE h:mm a")
     val timeStr = Instant.ofEpochMilli(event.startTime).atZone(zone).format(fmt)
     val dotColor = categoryColor(event.category)
 
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(8.dp)
@@ -394,9 +409,11 @@ private fun QuickActionButton(label: String, icon: ImageVector, onClick: () -> U
 // ── Weekly Highlights ───────────────────────────────────────────────────
 
 @Composable
-private fun WeeklyHighlightsCard(highlights: WeeklyHighlights?) {
+private fun WeeklyHighlightsCard(highlights: WeeklyHighlights?, onClick: () -> Unit) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {

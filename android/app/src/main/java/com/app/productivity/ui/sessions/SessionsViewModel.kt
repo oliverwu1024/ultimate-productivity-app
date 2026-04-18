@@ -7,8 +7,10 @@ import com.app.productivity.data.local.AppDatabase
 import com.app.productivity.data.local.entity.SessionEntity
 import com.app.productivity.data.remote.RetrofitClient
 import com.app.productivity.data.repository.SessionRepository
+import com.app.productivity.data.achievements.AchievementChecker
 import com.app.productivity.util.PhoneUsageTracker
 import com.app.productivity.util.TokenManager
+import com.app.productivity.util.UserPreferences
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -49,7 +51,11 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
     private val api = RetrofitClient.create(tokenManager)
     private val db = AppDatabase.getInstance(application)
     private val sessionDao = db.sessionDao()
-    private val repository = SessionRepository(sessionDao, api)
+    private val userPreferences = UserPreferences(application)
+    private val achievementChecker = AchievementChecker(
+        db.achievementDao(), db.sleepDao(), db.sessionDao(), userPreferences,
+    )
+    private val repository = SessionRepository(sessionDao, api, achievementChecker)
 
     private val usageTracker = PhoneUsageTracker(application)
 
@@ -65,6 +71,11 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
         _uiState.value = _uiState.value.copy(hasUsagePermission = usageTracker.hasPermission())
         viewModelScope.launch {
             userId = tokenManager.getUserId().firstOrNull() ?: ""
+            val settings = userPreferences.snapshot()
+            _uiState.value = _uiState.value.copy(
+                workDuration = settings.defaultWorkDuration,
+                breakDuration = settings.defaultBreakDuration,
+            )
             loadSessionsAndStats()
             sync()
         }
