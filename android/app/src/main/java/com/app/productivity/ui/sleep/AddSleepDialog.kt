@@ -51,14 +51,16 @@ import java.time.format.DateTimeFormatter
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddSleepDialog(
+    initialTargetBedtime: LocalTime = LocalTime.of(22, 0),
+    initialTargetWakeTime: LocalTime = LocalTime.of(6, 0),
     onDismiss: () -> Unit,
-    onSave: (CreateSleepRecordDto) -> Unit
+    onSave: (CreateSleepRecordDto) -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val context = LocalContext.current
 
-    var targetBedtime by remember { mutableStateOf(LocalTime.of(22, 0)) }
-    var targetWakeTime by remember { mutableStateOf(LocalTime.of(6, 0)) }
+    var targetBedtime by remember { mutableStateOf(initialTargetBedtime) }
+    var targetWakeTime by remember { mutableStateOf(initialTargetWakeTime) }
     var actualBedDate by remember { mutableStateOf(LocalDate.now().minusDays(1)) }
     var actualBedTime by remember { mutableStateOf(LocalTime.of(22, 30)) }
     var actualWakeDate by remember { mutableStateOf(LocalDate.now()) }
@@ -164,7 +166,7 @@ fun AddSleepDialog(
                         Icon(
                             imageVector = if (star <= qualityRating) Icons.Filled.Star else Icons.Outlined.StarBorder,
                             contentDescription = "Star $star",
-                            tint = if (star <= qualityRating) Color(0xFFFFD700) else MaterialTheme.colorScheme.onSurfaceVariant,
+                            tint = if (star <= qualityRating) com.app.productivity.ui.theme.QualityStar else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(32.dp)
                         )
                     }

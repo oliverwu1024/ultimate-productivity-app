@@ -1,5 +1,6 @@
 package com.app.productivity.data.repository
 
+import com.app.productivity.data.achievements.AchievementChecker
 import com.app.productivity.data.local.dao.SessionDao
 import com.app.productivity.data.local.entity.SessionEntity
 import com.app.productivity.data.remote.ApiService
@@ -13,7 +14,8 @@ import java.util.UUID
 
 class SessionRepository(
     private val sessionDao: SessionDao,
-    private val apiService: ApiService
+    private val apiService: ApiService,
+    private val achievementChecker: AchievementChecker? = null,
 ) {
     fun getAllSessions(): Flow<List<SessionEntity>> = sessionDao.getAllSessions()
 
@@ -64,7 +66,7 @@ class SessionRepository(
             ?: return Result.failure(IllegalArgumentException("Session not found"))
         val now = System.currentTimeMillis()
 
-        return try {
+        val result = try {
             val updateDto = UpdateSessionDto(
                 ended_at = null,
                 completed = true,
@@ -91,6 +93,10 @@ class SessionRepository(
                 Result.failure(localErr)
             }
         }
+        if (result.isSuccess) {
+            runCatching { achievementChecker?.checkAndStore() }
+        }
+        return result
     }
 
     suspend fun deleteSession(id: String): Result<Unit> {

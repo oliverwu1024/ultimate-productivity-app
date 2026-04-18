@@ -60,6 +60,9 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.app.productivity.data.local.entity.SessionEntity
+import com.app.productivity.ui.common.EmptyState
+import com.app.productivity.ui.theme.AnimatedAppear
+import androidx.compose.material.icons.filled.SelfImprovement
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -128,7 +131,7 @@ fun SessionsScreen(viewModel: SessionsViewModel = viewModel()) {
             }
 
             // 1. Today's stats bar
-            TodayStatsBar(uiState.todayStats)
+            AnimatedAppear { TodayStatsBar(uiState.todayStats) }
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -164,23 +167,15 @@ fun SessionsScreen(viewModel: SessionsViewModel = viewModel()) {
             ) {
                 if (uiState.recentSessions.isEmpty() && uiState.timerState == TimerState.IDLE) {
                     item {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 32.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                "No sessions yet.\nStart your first Pomodoro!",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                textAlign = TextAlign.Center
-                            )
-                        }
+                        EmptyState(
+                            icon = Icons.Default.SelfImprovement,
+                            title = "Ready to focus?",
+                            body = "Tag a task, pick durations, and start your first focus block.",
+                        )
                     }
                 }
                 items(uiState.recentSessions, key = { it.id }) { session ->
-                    SessionItem(session)
+                    SessionItem(session, modifier = Modifier.animateItem())
                 }
             }
         }
@@ -443,7 +438,7 @@ private fun ActiveControls(
 }
 
 @Composable
-private fun SessionItem(session: SessionEntity) {
+private fun SessionItem(session: SessionEntity, modifier: Modifier = Modifier) {
     val zone = ZoneId.systemDefault()
     val dateStr = Instant.ofEpochMilli(session.startedAt)
         .atZone(zone)
@@ -454,7 +449,7 @@ private fun SessionItem(session: SessionEntity) {
 
     Card(
         shape = RoundedCornerShape(12.dp),
-        modifier = Modifier.fillMaxWidth()
+        modifier = modifier.fillMaxWidth()
     ) {
         Row(
             modifier = Modifier

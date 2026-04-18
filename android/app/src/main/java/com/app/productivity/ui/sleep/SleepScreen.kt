@@ -65,6 +65,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.app.productivity.data.local.entity.SleepRecordEntity
 import com.app.productivity.data.remote.dto.SleepStats
+import com.app.productivity.ui.common.EmptyState
+import com.app.productivity.ui.theme.AnimatedAppear
+import com.app.productivity.ui.theme.QualityStar
 import kotlinx.coroutines.delay
 import java.time.Instant
 import java.time.ZoneId
@@ -116,16 +119,18 @@ fun SleepScreen(viewModel: SleepViewModel = viewModel()) {
 
             // Stats cards
             if (uiState.stats != null && uiState.stats!!.totalRecords > 0) {
-                StatsRow(uiState.stats!!)
+                AnimatedAppear { StatsRow(uiState.stats!!) }
                 Spacer(modifier = Modifier.height(8.dp))
 
-                SleepChart(
-                    records = uiState.records,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp)
-                        .padding(horizontal = 16.dp)
-                )
+                AnimatedAppear(delayMillis = 100) {
+                    SleepChart(
+                        records = uiState.records,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp)
+                            .padding(horizontal = 16.dp)
+                    )
+                }
                 Spacer(modifier = Modifier.height(8.dp))
             }
 
@@ -138,17 +143,11 @@ fun SleepScreen(viewModel: SleepViewModel = viewModel()) {
 
             // Records list
             if (uiState.records.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        "No sleep records yet.\nTap Start Sleep tonight!",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center
-                    )
-                }
+                EmptyState(
+                    icon = Icons.Default.Bedtime,
+                    title = "No sleep records yet",
+                    body = "Tap Start Sleep tonight and we'll track your rest automatically.",
+                )
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
@@ -158,7 +157,8 @@ fun SleepScreen(viewModel: SleepViewModel = viewModel()) {
                     items(uiState.records, key = { it.id }) { record ->
                         SleepRecordItem(
                             record = record,
-                            onDelete = { viewModel.deleteRecord(record.id) }
+                            onDelete = { viewModel.deleteRecord(record.id) },
+                            modifier = Modifier.animateItem(),
                         )
                     }
                 }
@@ -180,6 +180,8 @@ fun SleepScreen(viewModel: SleepViewModel = viewModel()) {
     // Manual log dialog
     if (uiState.showManualLogDialog) {
         AddSleepDialog(
+            initialTargetBedtime = uiState.targetBedtime,
+            initialTargetWakeTime = uiState.targetWakeTime,
             onDismiss = { viewModel.hideManualLog() },
             onSave = { viewModel.addManualRecord(it) }
         )
@@ -349,7 +351,8 @@ private fun StatCard(
 @Composable
 private fun SleepRecordItem(
     record: SleepRecordEntity,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     var expanded by remember { mutableStateOf(false) }
     val dismissState = rememberSwipeToDismissBoxState(
@@ -363,6 +366,7 @@ private fun SleepRecordItem(
 
     SwipeToDismissBox(
         state = dismissState,
+        modifier = modifier,
         backgroundContent = {
             Box(
                 modifier = Modifier
@@ -402,7 +406,7 @@ private fun SleepRecordItem(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Row {
                             repeat(record.qualityRating) {
-                                Icon(Icons.Filled.Star, null, modifier = Modifier.size(16.dp), tint = Color(0xFFFFD700))
+                                Icon(Icons.Filled.Star, null, modifier = Modifier.size(16.dp), tint = QualityStar)
                             }
                         }
                         Spacer(modifier = Modifier.width(12.dp))

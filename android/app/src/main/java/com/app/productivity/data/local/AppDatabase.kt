@@ -6,22 +6,30 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.app.productivity.data.local.dao.AchievementDao
 import com.app.productivity.data.local.dao.CalendarEventDao
 import com.app.productivity.data.local.dao.SessionDao
 import com.app.productivity.data.local.dao.SleepDao
+import com.app.productivity.data.local.entity.AchievementEntity
 import com.app.productivity.data.local.entity.CalendarEventEntity
 import com.app.productivity.data.local.entity.SessionEntity
 import com.app.productivity.data.local.entity.SleepRecordEntity
 
 @Database(
-    entities = [SleepRecordEntity::class, SessionEntity::class, CalendarEventEntity::class],
-    version = 3,
+    entities = [
+        SleepRecordEntity::class,
+        SessionEntity::class,
+        CalendarEventEntity::class,
+        AchievementEntity::class,
+    ],
+    version = 4,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun sleepDao(): SleepDao
     abstract fun sessionDao(): SessionDao
     abstract fun calendarEventDao(): CalendarEventDao
+    abstract fun achievementDao(): AchievementDao
 
     companion object {
         @Volatile
@@ -74,6 +82,18 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """CREATE TABLE IF NOT EXISTS `achievements` (
+                        `id` TEXT NOT NULL,
+                        `earnedAt` INTEGER NOT NULL,
+                        PRIMARY KEY(`id`)
+                    )"""
+                )
+            }
+        }
+
         fun getInstance(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 Room.databaseBuilder(
@@ -81,7 +101,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "productivity_db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                     .build()
                     .also { INSTANCE = it }
             }
