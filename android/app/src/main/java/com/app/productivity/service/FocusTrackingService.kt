@@ -12,10 +12,12 @@ import android.content.IntentFilter
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.app.productivity.MainActivity
-import com.app.productivity.ui.lockout.LockoutActivity
 import com.app.productivity.ui.lockout.LockoutMode
+import com.app.productivity.ui.lockout.LockoutOverlayController
+import com.app.productivity.util.LockoutNotifier
 import com.app.productivity.util.UserPreferences
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -24,10 +26,12 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class FocusTrackingService : Service() {
 
     companion object {
+        const val TAG = "FocusTrackingService"
         const val CHANNEL_ID = "focus_tracking"
         const val NOTIFICATION_ID = 1002
 
@@ -41,19 +45,33 @@ class FocusTrackingService : Service() {
 
     private val userPresentReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
+            Log.d(TAG, "onReceive action=${intent.action}")
             if (intent.action != Intent.ACTION_USER_PRESENT) return
+            val appContext = context.applicationContext
             serviceScope.launch {
                 val settings = userPreferences.settings.first()
+                Log.d(TAG, "USER_PRESENT — lockoutForFocus=${settings.lockoutForFocus}")
                 if (!settings.lockoutForFocus) return@launch
 
                 unlockCount.value = unlockCount.value + 1
 
-                val launchIntent = LockoutActivity.launchIntent(
-                    context = context.applicationContext,
-                    mode = LockoutMode.FOCUS,
-                    sessionStartedAt = sessionStartTime.value,
-                )
-                context.applicationContext.startActivity(launchIntent)
+                if (LockoutOverlayController.canShow(appContext)) {
+                    Log.d(TAG, "Showing lockout overlay (focus)")
+                    withContext(Dispatchers.Main) {
+                        LockoutOverlayController.show(
+                            context = appContext,
+                            mode = LockoutMode.FOCUS,
+                            sessionStartedAt = sessionStartTime.value,
+                        )
+                    }
+                } else {
+                    Log.d(TAG, "Overlay permission missing — falling back to notification")
+                    LockoutNotifier.notify(
+                        context = appContext,
+                        mode = LockoutMode.FOCUS,
+                        sessionStartedAt = sessionStartTime.value,
+                    )
+                }
             }
         }
     }
@@ -65,6 +83,7 @@ class FocusTrackingService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        Log.d(TAG, "onStartCommand — starting focus tracking")
         unlockCount.value = 0
         sessionStartTime.value = System.currentTimeMillis()
         isRunning.value = true
@@ -80,20 +99,57 @@ class FocusTrackingService : Service() {
         }
 
         val filter = IntentFilter(Intent.ACTION_USER_PRESENT)
+        // System broadcasts: register as EXPORTED on Android 13+ so the system can deliver them.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(userPresentReceiver, filter, RECEIVER_NOT_EXPORTED)
+            registerReceiver(userPresentReceiver, filter, RECEIVER_EXPORTED)
         } else {
             registerReceiver(userPresentReceiver, filter)
         }
+        Log.d(TAG, "USER_PRESENT receiver registered")
+
+        // Pop the gate immediately so the user feels the session has begun.
+        // We use the same overlay-with-notification-fallback path as the unlock receiver.
+        showLockoutNow()
 
         return START_STICKY
     }
 
+    private fun showLockoutNow() {
+        serviceScope.launch {
+            val settings = userPreferences.settings.first()
+            if (!settings.lockoutForFocus) {
+                Log.d(TAG, "Initial gate skipped — lockoutForFocus disabled")
+                return@launch
+            }
+
+            if (LockoutOverlayController.canShow(applicationContext)) {
+                Log.d(TAG, "Showing initial lockout overlay (focus)")
+                withContext(Dispatchers.Main) {
+                    LockoutOverlayController.show(
+                        context = applicationContext,
+                        mode = LockoutMode.FOCUS,
+                        sessionStartedAt = sessionStartTime.value,
+                    )
+                }
+            } else {
+                Log.d(TAG, "Initial gate — overlay perm missing, posting notification")
+                LockoutNotifier.notify(
+                    context = applicationContext,
+                    mode = LockoutMode.FOCUS,
+                    sessionStartedAt = sessionStartTime.value,
+                )
+            }
+        }
+    }
+
     override fun onDestroy() {
+        Log.d(TAG, "onDestroy — stopping focus tracking")
         try {
             unregisterReceiver(userPresentReceiver)
         } catch (_: Exception) { }
 
+        LockoutNotifier.cancel(applicationContext)
+        LockoutOverlayController.hide()
         serviceScope.cancel()
         isRunning.value = false
         super.onDestroy()

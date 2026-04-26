@@ -13,6 +13,7 @@ import com.app.productivity.data.remote.dto.SleepStats
 import com.app.productivity.data.remote.dto.toLocalStats
 import com.app.productivity.data.repository.SleepRepository
 import com.app.productivity.data.achievements.AchievementChecker
+import com.app.productivity.service.FocusTrackingService
 import com.app.productivity.service.PickupEvent
 import com.app.productivity.service.SleepTrackingService
 import com.app.productivity.util.TokenManager
@@ -96,6 +97,12 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun startSleepSession() {
+        if (FocusTrackingService.isRunning.value) {
+            _uiState.value = _uiState.value.copy(
+                error = "End your focus session before starting sleep tracking",
+            )
+            return
+        }
         val context = getApplication<Application>()
         val intent = Intent(context, SleepTrackingService::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
