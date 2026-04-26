@@ -6,12 +6,18 @@
 | ---------------- | ------------------------ |
 | Android UI       | Kotlin + Jetpack Compose |
 | Backend API      | Rust + Axum              |
-| Database (server)| PostgreSQL               |
+| Database (cloud) | AWS RDS PostgreSQL       |
 | Database (local) | SQLite (Room)            |
 | ORM (Rust)       | SQLx                     |
 | Auth             | JWT tokens               |
 | HTTP Client      | Retrofit                 |
-| Deployment       | Docker + VPS             |
+| Container        | Docker + AWS ECR         |
+| Compute          | AWS ECS Fargate          |
+| Load Balancer    | AWS ALB + ACM (HTTPS)    |
+| Secrets          | AWS Secrets Manager      |
+| Monitoring       | AWS CloudWatch           |
+| DNS              | AWS Route 53             |
+| CI/CD            | GitHub Actions → AWS     |
 
 ---
 
@@ -66,7 +72,9 @@ backend/
 6. Add CORS layer (allow all origins in dev)
 7. Bind to `0.0.0.0:8080` and serve
 
-### 0.2 — Docker Compose for Dev Database
+### 0.2 — Docker Compose for Local Dev Database
+
+> **Local dev only.** Production uses AWS RDS PostgreSQL — see Phase 6.2. This setup keeps your laptop self-contained so you don't burn cloud spend during day-to-day coding.
 
 **`docker-compose.dev.yml`:**
 
@@ -1435,17 +1443,103 @@ All preferences stored in DataStore.
 
 ---
 
-## Phase 6: Deployment (Weeks 17–18)
+## Phase 6: AWS Deployment (Weeks 17–20)
 
-### 6.1 — Backend Deployment
+The full deployment runs on AWS. The architecture below is the standard production pattern: container behind ALB, database in private subnets, secrets out of source code, logs/metrics in CloudWatch, deploys via GitHub Actions.
 
-**Dockerize the backend:**
+```
+                       Internet
+                          │
+                    Route 53 (DNS)
+                          │
+              ALB (public subnets, HTTPS via ACM)
+                          │
+              ECS Fargate task (private subnet)
+                Rust/Axum container, port 8080
+                /                    \
+        Secrets Manager           RDS Postgres
+        (DB URL, JWT secret)      (private subnet, single AZ)
 
-`backend/Dockerfile`:
+         CloudWatch Logs + Metrics + Alarms (everywhere)
+
+   GitHub push → GH Actions → ECR → ECS service rolling update
+```
+
+### 6.1 — AWS Foundation
+
+**One-time account setup:**
+1. Create AWS account, enable MFA on the root user, lock root credentials away
+2. Create IAM admin user (`oliver-admin`) with `AdministratorAccess` + MFA — use this for daily work, never the root user
+3. Install AWS CLI v2 and configure: `aws configure --profile productivity-app`
+4. Pick a region (e.g. `us-east-1` or whichever is closest) and stick to it everywhere — cross-region data transfer costs add up fast
+5. Set a billing alarm: Billing → Budgets → $20/month threshold with email alert
+
+**Networking (VPC):**
+
+| Resource | CIDR | Purpose |
+|----------|------|---------|
+| VPC | `10.0.0.0/16` | Top-level network |
+| Public subnet A | `10.0.1.0/24` (AZ a) | ALB |
+| Public subnet B | `10.0.2.0/24` (AZ b) | ALB (HA needs 2 AZs) |
+| Private subnet A | `10.0.11.0/24` (AZ a) | ECS tasks + RDS primary |
+| Private subnet B | `10.0.12.0/24` (AZ b) | RDS subnet group requires 2 AZs |
+
+Plus:
+- **Internet Gateway** attached to the VPC
+- **NAT Gateway** in public subnet A (so private-subnet ECS tasks can reach ECR / Secrets Manager / CloudWatch). *Cost-saving alternative below.*
+- **Route tables**: public → IGW; private → NAT
+- **Security groups** (least-privilege chain):
+  - `alb-sg`: 80, 443 inbound from `0.0.0.0/0`
+  - `ecs-sg`: 8080 inbound from `alb-sg` only
+  - `rds-sg`: 5432 inbound from `ecs-sg` only
+
+**Cost-saving alternative to NAT Gateway** (~$32/month):
+Replace it with **VPC Endpoints** for ECR (api + dkr), Secrets Manager, CloudWatch Logs, and S3 (gateway). Recommended for this project — same security posture at ~$0.01/hour per endpoint instead of $0.045/hour for NAT.
+
+### 6.2 — Database (RDS + Secrets Manager)
+
+**Create the RDS instance:**
+- Engine: Postgres 16
+- Instance class: `db.t4g.micro` (Graviton, ~$13/month — cheapest reasonable option)
+- Storage: 20 GB gp3, encrypted at rest (KMS-managed)
+- Multi-AZ: **off** (cost savings; turn on later if you need HA)
+- VPC: the one from 6.1
+- Subnet group: private subnets A + B
+- Security group: `rds-sg`
+- Public access: **no**
+- Backup retention: 7 days
+- Master username: `productivity_admin`
+- Master password: AWS-generated, immediately copied into Secrets Manager (next step)
+
+**First-time migrations** (the database needs schema before the app can boot):
+- **Recommended:** rely on `sqlx::migrate!()` running on app startup — already wired in Phase 0.1's `main.rs`. The first ECS task will apply migrations on boot.
+- *Fallback if startup migrations are too slow:* run a one-off ECS task with `command: ["sqlx", "migrate", "run"]` before deploying the app service.
+
+**Create two secrets in Secrets Manager:**
+
+| Secret name | JSON value |
+|-------------|------------|
+| `productivity-app/prod/database` | `{ "DATABASE_URL": "postgres://productivity_admin:PASSWORD@<rds-endpoint>:5432/productivity" }` |
+| `productivity-app/prod/jwt` | `{ "JWT_SECRET": "<openssl rand -base64 32>" }` |
+
+These get injected into the ECS task as env vars — no plaintext secrets in task definitions or git.
+
+### 6.3 — Backend Container & ECR
+
+**Add a `/health` endpoint** to `routes/mod.rs` (ALB needs one for target group health checks):
+```rust
+async fn health() -> &'static str { "ok" }
+// add `.route("/health", get(health))` to the public router
+```
+
+**`backend/Dockerfile`** — multi-stage, slim production image:
 ```dockerfile
-FROM rust:1.77 AS builder
+FROM rust:1.77-slim AS builder
 WORKDIR /app
-COPY . .
+RUN apt-get update && apt-get install -y pkg-config libssl-dev && rm -rf /var/lib/apt/lists/*
+COPY Cargo.toml Cargo.lock ./
+COPY src ./src
+COPY migrations ./migrations
 RUN cargo build --release
 
 FROM debian:bookworm-slim
@@ -1455,51 +1549,221 @@ EXPOSE 8080
 CMD ["backend"]
 ```
 
-**Production `docker-compose.yml`:**
-```yaml
-services:
-  backend:
-    build: ./backend
-    ports:
-      - "8080:8080"
-    environment:
-      DATABASE_URL: ${DATABASE_URL}
-      JWT_SECRET: ${JWT_SECRET}
-    depends_on:
-      - db
-
-  db:
-    image: postgres:16
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-
-volumes:
-  pgdata:
+Verify locally:
+```bash
+docker build -t productivity-backend ./backend
+docker run --rm -p 8080:8080 \
+  -e DATABASE_URL=postgres://dev:devpass@host.docker.internal:5432/productivity \
+  -e JWT_SECRET=test productivity-backend
+curl http://localhost:8080/health   # → "ok"
 ```
 
-**Deploy to a VPS (Fly.io or Railway):**
-1. Create account on platform
-2. Install CLI tool
-3. Deploy using platform-specific commands
-4. Set environment variables via platform dashboard
-5. Set up HTTPS (platform-provided TLS)
-6. Verify all endpoints work via curl
+**Create ECR repo and push the first image:**
+```bash
+aws ecr create-repository \
+  --repository-name productivity-app/backend \
+  --image-scanning-configuration scanOnPush=true
 
-**Update Android app:**
-- Change `RetrofitClient.kt` base URL from `http://10.0.2.2:8080` to `https://your-production-url.com`
-- Use BuildConfig to switch between debug (local) and release (production) URLs
+ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+ECR_URI=$ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/productivity-app/backend
 
-### 6.2 — Google Play Store Release
+aws ecr get-login-password --region us-east-1 | \
+  docker login --username AWS --password-stdin $ECR_URI
+
+docker tag productivity-backend:latest $ECR_URI:latest
+docker push $ECR_URI:latest
+```
+
+### 6.4 — ECS Fargate Cluster & Service
+
+**Cluster:** `productivity-app` (Fargate launch type — no EC2 to manage).
+
+**Task definition (`productivity-backend`):**
+- Launch type: Fargate
+- CPU / memory: 0.25 vCPU / 0.5 GB (smallest size, ~$8/month at 24/7)
+- Network mode: awsvpc
+- Container `backend`:
+  - Image: `<ECR-URI>:latest` (pinned to a SHA tag in CI)
+  - Port mapping: 8080 (TCP)
+  - Secrets (injected as env vars):
+    - `DATABASE_URL` ← `arn:aws:secretsmanager:...:productivity-app/prod/database:DATABASE_URL::`
+    - `JWT_SECRET` ← `arn:aws:secretsmanager:...:productivity-app/prod/jwt:JWT_SECRET::`
+  - Log driver: `awslogs` → group `/ecs/productivity-backend`, stream prefix `ecs`
+- **Task role:** custom role with `secretsmanager:GetSecretValue` on the two secret ARNs
+- **Execution role:** AWS-managed `AmazonECSTaskExecutionRolePolicy` plus `secretsmanager:GetSecretValue` for the same secrets
+
+**Service (`backend-service`):**
+- Cluster: `productivity-app`
+- Task definition: latest revision
+- Desired count: 1 (cost savings; 2 for HA later)
+- Capacity provider: `FARGATE`
+- Network: private subnets, security group `ecs-sg`, no public IP
+- Load balancer: target group `backend-tg` on container port 8080
+- Deployment: rolling, max 200% / min 100% (zero-downtime)
+- Health check grace period: 60s (gives migrations time to run on first boot)
+
+### 6.5 — ALB + DNS + HTTPS
+
+**Application Load Balancer (`productivity-alb`):**
+- Internet-facing, in public subnets A + B
+- Security group: `alb-sg`
+- Listeners:
+  - `:80` → redirect to `:443` (HTTP → HTTPS)
+  - `:443` → forward to target group `backend-tg`
+
+**Target group (`backend-tg`):**
+- Type: IP (Fargate uses IP targets, not instance)
+- Protocol: HTTP, port 8080
+- Health check path: `/health`, healthy threshold 2, interval 30s
+- Deregistration delay: 30s (faster deploys)
+
+**ACM certificate:**
+- Region: same as ALB (must match)
+- Domain: `api.your-domain.com` (and optionally `*.your-domain.com`)
+- Validation: DNS — automatic if your domain is in Route 53
+
+**Route 53:**
+- If domain is registered elsewhere: create a hosted zone, then update nameservers at your registrar
+- Add alias record: `api.your-domain.com → ALB`
+
+> **No domain yet?** You can test against the ALB's auto-generated DNS, but ACM won't issue a certificate for AWS-owned DNS names — so HTTPS requires a real domain. Cheapest option: register `.click` or `.link` via Route 53 for ~$3/year.
+
+### 6.6 — CloudWatch Monitoring
+
+**Logs:** ECS auto-ships container stdout/stderr to log group `/ecs/productivity-backend`. Set retention to 14 days (Logs → log group → Actions → Edit retention) — default is "never expire" which gets expensive.
+
+**Built-in metrics** (no setup needed):
+- ECS: CPU utilization, memory utilization, running task count
+- ALB: request count, target response time, 4xx/5xx rates
+- RDS: CPU, DB connections, free storage space
+
+**Alarms** (CloudWatch → Alarms → Create):
+
+| Alarm | Threshold | Action |
+|-------|-----------|--------|
+| ALB `HTTPCode_Target_5XX_Count` | > 5 in 5 min | SNS email |
+| ECS `RunningTaskCount` | < 1 for 2 min | SNS email |
+| RDS `CPUUtilization` | > 80% for 10 min | SNS email |
+| RDS `FreeStorageSpace` | < 5 GB | SNS email |
+| Estimated charges (Billing) | > $50/month | SNS email |
+
+**SNS topic** `productivity-alerts` with your email subscribed (confirm via the email link AWS sends).
+
+**Dashboard** (`Productivity Backend`): one widget each for ALB request count, ECS CPU, RDS CPU, ALB 5xx rate. Bookmark it.
+
+### 6.7 — GitHub Actions CI/CD
+
+**Why OIDC, not access keys:** GitHub authenticates to AWS via OpenID Connect — no long-lived AWS credentials stored as GitHub secrets, just an IAM role that trusts GitHub's OIDC issuer.
+
+**One-time AWS setup:**
+1. IAM → Identity providers → Add provider:
+   - URL: `https://token.actions.githubusercontent.com`
+   - Audience: `sts.amazonaws.com`
+2. Create IAM role `github-actions-deploy`:
+   - Trust policy: trust the GitHub OIDC provider, restricted to your repo via `sub` condition (`repo:olivermsi/ultimate_productivity_app:ref:refs/heads/main`)
+   - Permissions: `ecr:*` on the backend repo; `ecs:UpdateService`, `ecs:RegisterTaskDefinition`, `ecs:DescribeServices`, `ecs:DescribeTaskDefinition`; `iam:PassRole` for the task execution + task roles
+
+**`.github/workflows/deploy-backend.yml`:**
+```yaml
+name: Deploy backend
+on:
+  push:
+    branches: [main]
+    paths: ['backend/**']
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-deploy
+          aws-region: us-east-1
+
+      - uses: aws-actions/amazon-ecr-login@v2
+        id: ecr
+
+      - name: Build and push image
+        run: |
+          IMAGE=${{ steps.ecr.outputs.registry }}/productivity-app/backend:${{ github.sha }}
+          docker build -t $IMAGE ./backend
+          docker push $IMAGE
+          echo "IMAGE=$IMAGE" >> $GITHUB_ENV
+
+      - name: Update ECS service
+        run: |
+          aws ecs update-service \
+            --cluster productivity-app \
+            --service backend-service \
+            --force-new-deployment
+
+      - name: Wait for stable deployment
+        run: |
+          aws ecs wait services-stable \
+            --cluster productivity-app \
+            --services backend-service
+```
+
+(Refinement: register a new task definition revision pinned to `$IMAGE` instead of relying on `:latest` — gives you proper rollback via revision history.)
+
+### 6.8 — Update Android App Config
+
+Switch the API base URL by build type:
+
+**`app/build.gradle.kts`:**
+```kotlin
+android {
+    buildTypes {
+        debug {
+            buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8080/\"")
+        }
+        release {
+            buildConfigField("String", "API_BASE_URL", "\"https://api.your-domain.com/\"")
+        }
+    }
+    buildFeatures { buildConfig = true }
+}
+```
+
+**`RetrofitClient.kt`:**
+```kotlin
+.baseUrl(BuildConfig.API_BASE_URL)
+```
+
+Verify against the production URL with a release build before submitting to the Play Store.
+
+### 6.9 — Cost Estimate & Alternatives
+
+**Baseline (with NAT Gateway, single task, 24/7):**
+
+| Resource | Monthly cost (USD) |
+|----------|-------------------|
+| ECS Fargate (0.25 vCPU, 0.5 GB) | ~$8 |
+| ALB | ~$16 |
+| RDS db.t4g.micro | ~$13 |
+| NAT Gateway | ~$32 |
+| ECR storage + CloudWatch logs + data transfer | ~$3–5 |
+| **Total** | **~$72/month** |
+
+**Cheaper variants (in order of savings):**
+- **Skip NAT Gateway** with VPC Endpoints (ECR API/DKR, Secrets Manager, CloudWatch Logs, S3 Gateway) → save $32 → **~$40/month** ← *recommended for this project*
+- **Replace ECS+ALB with App Runner** (managed container service, includes load balancer + HTTPS) → **~$30/month**, but less standard "AWS production" experience
+- **Pause when idle**: `aws ecs update-service --desired-count 0` between coding sessions — Fargate cost drops to zero, ALB and RDS still bill
+
+**AWS Free Tier:** new accounts get 12 months of free RDS db.t3.micro (750h/mo) and 750h/mo of ALB — first year can be ~$25/month cheaper.
+
+### 6.10 — Google Play Store Release
 
 **Generate signed AAB:**
 1. Android Studio → Build → Generate Signed Bundle/APK
-2. Create a new keystore (save it securely — you need this for all future updates)
-3. Build release AAB
+2. Create a new keystore (back it up — you need this for all future updates)
+3. Build release AAB pointed at `https://api.your-domain.com`
 
 **Google Play Console:**
 1. Create Google Play Developer account ($25 one-time)
@@ -1512,10 +1776,22 @@ volumes:
    - App icon: 512x512 PNG
    - Feature graphic: 1024x500
 4. Content rating questionnaire
-5. Privacy policy (required — host a simple page on GitHub Pages or similar)
+5. Privacy policy (required — host it on **S3 + CloudFront** to keep it on AWS, or GitHub Pages)
 6. Set pricing: Free
 7. Upload AAB to Production track
 8. Submit for review
+
+### 6.11 — Optional: Deeper AWS Integration (Future)
+
+Not part of the v1 build — but worth knowing where you'd grow into AWS later:
+
+- **Cognito** — replace custom JWT with managed user pools (gets you OAuth/SSO/MFA for free). Substantial Phase 0 rewrite, only worth it if you outgrow custom JWT.
+- **SNS + FCM** — server-driven push notifications (currently all reminders are local AlarmManager in Phase 5.1). Adds backend logic to trigger pushes from sync events.
+- **S3** — user-generated file uploads (e.g. sleep notes attachments, exported reports), and as a backup target for `pg_dump` snapshots.
+- **CloudFront** — CDN for static content (privacy policy page, marketing site, exported reports).
+- **EventBridge + Lambda** — scheduled jobs (e.g. nightly streak recalculation, weekly report generation) without keeping a worker process running.
+- **AWS WAF** on the ALB — block common attack patterns once the app is public.
+- **AWS Backup** — automated cross-region snapshots of RDS + ECR for disaster recovery.
 
 ---
 
@@ -1529,7 +1805,7 @@ volumes:
 | Phase 3: Calendar | 9–11 | Full calendar: API + Android screen + recurring events |
 | Phase 4: Dashboard & Sync | 12–13 | Dashboard home screen, background sync across all features |
 | Phase 5: Polish | 14–16 | Notifications, theming, weekly reports, achievements, settings |
-| Phase 6: Deploy | 17–18 | Backend on VPS, app on Google Play Store |
-| **Total** | **~18 weeks** | **Production app on Google Play** |
+| Phase 6: AWS Deployment | 17–20 | Production app on AWS (ECS Fargate + RDS + ALB + CI/CD) and Google Play Store |
+| **Total** | **~20 weeks** | **Production app on AWS + Google Play** |
 
-Assumes ~15–20 hours/week. Adjust based on your availability around uni.
+Assumes ~15–20 hours/week. AWS deployment adds ~2 weeks vs simpler PaaS — worth it for the resume value and the genuine production architecture.
