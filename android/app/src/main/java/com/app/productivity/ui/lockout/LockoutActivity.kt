@@ -17,6 +17,7 @@ import com.app.productivity.service.FocusTrackingService
 import com.app.productivity.service.SleepTrackingService
 import com.app.productivity.ui.theme.ProductivityTheme
 import com.app.productivity.ui.theme.ThemeMode
+import com.app.productivity.util.LockoutNotifier
 import com.app.productivity.util.ThemePreference
 import com.app.productivity.util.UserPreferences
 import kotlinx.coroutines.delay
@@ -100,10 +101,12 @@ class LockoutActivity : ComponentActivity() {
     }
 
     private fun dismiss() {
+        LockoutNotifier.cancel(applicationContext)
         finishAndRemoveTask()
     }
 
     private fun openAppOnSessionScreen() {
+        LockoutNotifier.cancel(applicationContext)
         startActivity(
             Intent(this, MainActivity::class.java).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

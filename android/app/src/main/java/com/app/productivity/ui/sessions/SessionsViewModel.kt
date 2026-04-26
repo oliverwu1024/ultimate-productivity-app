@@ -11,6 +11,7 @@ import com.app.productivity.data.remote.RetrofitClient
 import com.app.productivity.data.repository.SessionRepository
 import com.app.productivity.data.achievements.AchievementChecker
 import com.app.productivity.service.FocusTrackingService
+import com.app.productivity.service.SleepTrackingService
 import com.app.productivity.util.PhoneUsageTracker
 import com.app.productivity.util.TokenManager
 import com.app.productivity.util.UserPreferences
@@ -137,6 +138,12 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
         val state = _uiState.value
         if (state.tag.isBlank()) {
             _uiState.value = state.copy(error = "Enter a tag to start")
+            return
+        }
+        if (SleepTrackingService.isRunning.value) {
+            _uiState.value = state.copy(
+                error = "End your sleep session before starting a focus session",
+            )
             return
         }
 
