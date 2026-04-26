@@ -21,6 +21,10 @@ data class UserSettings(
     val defaultWorkDuration: Int,
     val defaultBreakDuration: Int,
     val onboardingCompleted: Boolean,
+    val lockoutForFocus: Boolean,
+    val lockoutForSleep: Boolean,
+    val showPickupCountOnLockout: Boolean,
+    val allowEndSessionFromLockout: Boolean,
 )
 
 class UserPreferences(private val context: Context) {
@@ -31,6 +35,10 @@ class UserPreferences(private val context: Context) {
         val DEFAULT_WORK = intPreferencesKey("default_work_duration")
         val DEFAULT_BREAK = intPreferencesKey("default_break_duration")
         val ONBOARDING_DONE = booleanPreferencesKey("onboarding_completed")
+        val LOCKOUT_FOR_FOCUS = booleanPreferencesKey("lockout_for_focus")
+        val LOCKOUT_FOR_SLEEP = booleanPreferencesKey("lockout_for_sleep")
+        val SHOW_PICKUP_COUNT_ON_LOCKOUT = booleanPreferencesKey("show_pickup_count_on_lockout")
+        val ALLOW_END_SESSION_FROM_LOCKOUT = booleanPreferencesKey("allow_end_session_from_lockout")
     }
 
     private val defaults = UserSettings(
@@ -39,6 +47,10 @@ class UserPreferences(private val context: Context) {
         defaultWorkDuration = 25,
         defaultBreakDuration = 5,
         onboardingCompleted = false,
+        lockoutForFocus = true,
+        lockoutForSleep = false,
+        showPickupCountOnLockout = true,
+        allowEndSessionFromLockout = true,
     )
 
     val settings: Flow<UserSettings> = context.userDataStore.data.map { prefs ->
@@ -48,6 +60,10 @@ class UserPreferences(private val context: Context) {
             defaultWorkDuration = prefs[Keys.DEFAULT_WORK] ?: defaults.defaultWorkDuration,
             defaultBreakDuration = prefs[Keys.DEFAULT_BREAK] ?: defaults.defaultBreakDuration,
             onboardingCompleted = prefs[Keys.ONBOARDING_DONE] ?: defaults.onboardingCompleted,
+            lockoutForFocus = prefs[Keys.LOCKOUT_FOR_FOCUS] ?: defaults.lockoutForFocus,
+            lockoutForSleep = prefs[Keys.LOCKOUT_FOR_SLEEP] ?: defaults.lockoutForSleep,
+            showPickupCountOnLockout = prefs[Keys.SHOW_PICKUP_COUNT_ON_LOCKOUT] ?: defaults.showPickupCountOnLockout,
+            allowEndSessionFromLockout = prefs[Keys.ALLOW_END_SESSION_FROM_LOCKOUT] ?: defaults.allowEndSessionFromLockout,
         )
     }
 
@@ -71,6 +87,22 @@ class UserPreferences(private val context: Context) {
 
     suspend fun setOnboardingCompleted(done: Boolean) {
         context.userDataStore.edit { it[Keys.ONBOARDING_DONE] = done }
+    }
+
+    suspend fun setLockoutForFocus(enabled: Boolean) {
+        context.userDataStore.edit { it[Keys.LOCKOUT_FOR_FOCUS] = enabled }
+    }
+
+    suspend fun setLockoutForSleep(enabled: Boolean) {
+        context.userDataStore.edit { it[Keys.LOCKOUT_FOR_SLEEP] = enabled }
+    }
+
+    suspend fun setShowPickupCountOnLockout(enabled: Boolean) {
+        context.userDataStore.edit { it[Keys.SHOW_PICKUP_COUNT_ON_LOCKOUT] = enabled }
+    }
+
+    suspend fun setAllowEndSessionFromLockout(enabled: Boolean) {
+        context.userDataStore.edit { it[Keys.ALLOW_END_SESSION_FROM_LOCKOUT] = enabled }
     }
 
     private fun parseTime(value: String): LocalTime = try {
