@@ -6,8 +6,10 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.app.productivity.data.local.AppDatabase
+import com.app.productivity.data.local.entity.ChecklistEntity
 import com.app.productivity.data.local.entity.SessionEntity
 import com.app.productivity.data.remote.RetrofitClient
+import com.app.productivity.data.repository.ChecklistRepository
 import com.app.productivity.data.repository.SessionRepository
 import com.app.productivity.data.achievements.AchievementChecker
 import com.app.productivity.service.FocusTrackingService
@@ -48,6 +50,14 @@ data class SessionsUiState(
     val recentSessions: List<SessionEntity> = emptyList(),
     val hasUsagePermission: Boolean = false,
     val error: String? = null,
+    val openChecklistItems: List<ChecklistEntity> = emptyList(),
+    val selectedChecklistItemId: String? = null,
+    val completionPrompt: ChecklistCompletionPrompt? = null,
+)
+
+data class ChecklistCompletionPrompt(
+    val itemId: String,
+    val title: String,
 )
 
 class SessionsViewModel(application: Application) : AndroidViewModel(application) {
@@ -60,6 +70,7 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
         db.achievementDao(), db.sleepDao(), db.sessionDao(), userPreferences,
     )
     private val repository = SessionRepository(sessionDao, api, achievementChecker)
+    private val checklistRepository = ChecklistRepository(db.checklistDao(), api)
 
     private val usageTracker = PhoneUsageTracker(application)
 
@@ -81,8 +92,27 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
                 breakDuration = settings.defaultBreakDuration,
             )
             loadSessionsAndStats()
+            observeTodayChecklist()
             sync()
         }
+    }
+
+    private fun observeTodayChecklist() {
+        viewModelScope.launch {
+            val todayEpochDay = LocalDate.now().toEpochDay()
+            android.util.Log.d("SessionsViewModel", "observing checklist for epochDay=$todayEpochDay")
+            checklistRepository.getOpenForDate(todayEpochDay).collect { items ->
+                android.util.Log.d("SessionsViewModel", "checklist update: ${items.size} open item(s) for today")
+                _uiState.value = _uiState.value.copy(openChecklistItems = items)
+            }
+        }
+    }
+
+    fun selectChecklistItem(item: ChecklistEntity?) {
+        _uiState.value = _uiState.value.copy(
+            selectedChecklistItemId = item?.id,
+            tag = item?.title ?: _uiState.value.tag,
+        )
     }
 
     fun checkUsagePermission() {
@@ -123,7 +153,11 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun updateTag(tag: String) {
-        _uiState.value = _uiState.value.copy(tag = tag)
+        // Manual typing clears any previously selected checklist item.
+        _uiState.value = _uiState.value.copy(
+            tag = tag,
+            selectedChecklistItemId = null,
+        )
     }
 
     fun updateWorkDuration(minutes: Int) {
@@ -158,7 +192,11 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
 
         viewModelScope.launch {
             val result = repository.createSession(
-                state.tag.trim(), state.workDuration, state.breakDuration, userId
+                tag = state.tag.trim(),
+                workDuration = state.workDuration,
+                breakDuration = state.breakDuration,
+                userId = userId,
+                checklistItemId = state.selectedChecklistItemId,
             )
             result.onSuccess { session ->
                 currentSessionId = session.id
@@ -227,6 +265,8 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
             0
         }
         val totalMinutes = state.completedPomodoros * state.workDuration + partialMinutes
+        val linkedItemId = state.selectedChecklistItemId
+        val linkedItemTitle = state.openChecklistItems.firstOrNull { it.id == linkedItemId }?.title
 
         viewModelScope.launch {
             currentSessionId?.let { id ->
@@ -240,8 +280,24 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
                 totalTimeSeconds = 0,
                 completedPomodoros = 0,
                 phonePickups = 0,
+                selectedChecklistItemId = null,
+                completionPrompt = if (linkedItemId != null && linkedItemTitle != null) {
+                    ChecklistCompletionPrompt(itemId = linkedItemId, title = linkedItemTitle)
+                } else null,
             )
         }
+    }
+
+    fun confirmChecklistCompletion() {
+        val prompt = _uiState.value.completionPrompt ?: return
+        viewModelScope.launch {
+            checklistRepository.markCompleted(prompt.itemId)
+            _uiState.value = _uiState.value.copy(completionPrompt = null)
+        }
+    }
+
+    fun dismissChecklistCompletion() {
+        _uiState.value = _uiState.value.copy(completionPrompt = null)
     }
 
     private fun startFocusTrackingService() {

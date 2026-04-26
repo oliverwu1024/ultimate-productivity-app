@@ -14,7 +14,7 @@ pub fn router() -> Router<AppState> {
     Router::new()
         .route("/sleep", post(create).get(list))
         .route("/sleep/stats", get(stats))
-        .route("/sleep/{id}", get(get_one).put(update).delete(remove))
+        .route("/sleep/:id", get(get_one).put(update).delete(remove))
 }
 
 #[derive(serde::Deserialize)]

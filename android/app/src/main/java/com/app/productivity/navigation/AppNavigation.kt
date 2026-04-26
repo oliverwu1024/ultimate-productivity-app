@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Nightlight
 import androidx.compose.material.icons.filled.Timer
@@ -38,6 +39,8 @@ import com.app.productivity.ui.auth.AuthViewModel
 import com.app.productivity.ui.auth.LoginScreen
 import com.app.productivity.ui.auth.RegisterScreen
 import com.app.productivity.ui.calendar.CalendarScreen
+import com.app.productivity.ui.checklist.ChecklistScreen
+import com.app.productivity.ui.checklist.WeeklyPlannerScreen
 import com.app.productivity.ui.dashboard.DashboardScreen
 import com.app.productivity.ui.onboarding.OnboardingScreen
 import com.app.productivity.ui.reports.WeeklyReportScreen
@@ -52,6 +55,8 @@ sealed class Screen(val route: String) {
     data object Login : Screen("login")
     data object Register : Screen("register")
     data object Dashboard : Screen("dashboard")
+    data object Checklist : Screen("checklist")
+    data object WeeklyPlanner : Screen("weekly_planner")
     data object Sleep : Screen("sleep")
     data object Sessions : Screen("sessions")
     data object Calendar : Screen("calendar")
@@ -68,6 +73,7 @@ data class BottomNavItem(
 
 val bottomNavItems = listOf(
     BottomNavItem(Screen.Dashboard, "Dashboard", Icons.Filled.Dashboard),
+    BottomNavItem(Screen.Checklist, "Checklist", Icons.Filled.Checklist),
     BottomNavItem(Screen.Sleep, "Sleep", Icons.Filled.Nightlight),
     BottomNavItem(Screen.Sessions, "Sessions", Icons.Filled.Timer),
     BottomNavItem(Screen.Calendar, "Calendar", Icons.Filled.CalendarMonth),
@@ -160,10 +166,19 @@ fun AppNavigation(
                     onNavigateToSleep = { navigateToTab(navController, Screen.Sleep) },
                     onNavigateToSessions = { navigateToTab(navController, Screen.Sessions) },
                     onNavigateToCalendar = { navigateToTab(navController, Screen.Calendar) },
+                    onNavigateToChecklist = { navigateToTab(navController, Screen.Checklist) },
                     onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
                     onNavigateToReports = { navController.navigate(Screen.Reports.route) },
                     onLogout = { authViewModel.logout() }
                 )
+            }
+            composable(Screen.Checklist.route) {
+                ChecklistScreen(
+                    onNavigateToWeeklyPlanner = { navController.navigate(Screen.WeeklyPlanner.route) },
+                )
+            }
+            composable(Screen.WeeklyPlanner.route) {
+                WeeklyPlannerScreen(onDone = { navController.popBackStack() })
             }
             composable(Screen.Sleep.route) { SleepScreen() }
             composable(Screen.Sessions.route) { SessionsScreen() }

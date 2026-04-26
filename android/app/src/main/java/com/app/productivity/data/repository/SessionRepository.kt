@@ -24,11 +24,18 @@ class SessionRepository(
 
     fun getActiveSessions(): Flow<List<SessionEntity>> = sessionDao.getActiveSessions()
 
-    suspend fun createSession(tag: String, workDuration: Int, breakDuration: Int, userId: String): Result<SessionEntity> {
+    suspend fun createSession(
+        tag: String,
+        workDuration: Int,
+        breakDuration: Int,
+        userId: String,
+        checklistItemId: String? = null,
+    ): Result<SessionEntity> {
         val createDto = CreateSessionDto(
             tag = tag,
             work_duration = workDuration,
-            break_duration = breakDuration
+            break_duration = breakDuration,
+            checklist_item_id = checklistItemId,
         )
         return try {
             val serverSession = apiService.createSession(createDto)
@@ -51,6 +58,7 @@ class SessionRepository(
                     completed = false,
                     createdAt = now,
                     updatedAt = now,
+                    checklistItemId = checklistItemId,
                     isSynced = false
                 )
                 sessionDao.insert(entity)

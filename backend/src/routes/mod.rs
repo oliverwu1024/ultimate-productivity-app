@@ -1,5 +1,6 @@
 pub mod auth;
 pub mod calendar;
+pub mod checklist;
 pub mod phone_pickups;
 pub mod sessions;
 pub mod sleep;
@@ -14,4 +15,5 @@ pub fn all_routes() -> Router<AppState> {
         .merge(phone_pickups::router())
         .merge(sessions::router())
         .merge(calendar::router())
+        .merge(checklist::router())
 }
