@@ -1,6 +1,7 @@
 package com.app.productivity.ui.settings
 
 import android.app.Application
+import android.provider.Settings
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.app.productivity.BuildConfig
@@ -20,6 +21,7 @@ data class SettingsUiState(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val user: UserSettings? = null,
     val email: String? = null,
+    val canDrawOverlays: Boolean = false,
     val versionName: String = BuildConfig.VERSION_NAME,
     val versionCode: Int = BuildConfig.VERSION_CODE,
 )
@@ -49,6 +51,13 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 _uiState.value = _uiState.value.copy(email = email)
             }
         }
+        refreshOverlayPermission()
+    }
+
+    fun refreshOverlayPermission() {
+        _uiState.value = _uiState.value.copy(
+            canDrawOverlays = Settings.canDrawOverlays(getApplication()),
+        )
     }
 
     fun setThemeMode(mode: ThemeMode) = viewModelScope.launch {

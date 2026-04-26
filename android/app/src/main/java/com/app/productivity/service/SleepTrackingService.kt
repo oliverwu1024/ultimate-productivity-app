@@ -12,10 +12,12 @@ import android.content.IntentFilter
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.app.productivity.MainActivity
-import com.app.productivity.ui.lockout.LockoutActivity
 import com.app.productivity.ui.lockout.LockoutMode
+import com.app.productivity.ui.lockout.LockoutOverlayController
+import com.app.productivity.util.LockoutNotifier
 import com.app.productivity.util.UserPreferences
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -24,6 +26,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 data class PickupEvent(
     val pickedUpAt: Long,
@@ -33,6 +36,7 @@ data class PickupEvent(
 class SleepTrackingService : Service() {
 
     companion object {
+        const val TAG = "SleepTrackingService"
         const val CHANNEL_ID = "sleep_tracking"
         const val NOTIFICATION_ID = 1001
 
@@ -49,6 +53,7 @@ class SleepTrackingService : Service() {
 
     private val screenReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
+            Log.d(TAG, "onReceive action=${intent.action}")
             when (intent.action) {
                 Intent.ACTION_SCREEN_ON -> {
                     lastScreenOnTime = System.currentTimeMillis()
@@ -65,18 +70,31 @@ class SleepTrackingService : Service() {
                     }
                 }
                 Intent.ACTION_USER_PRESENT -> {
+                    val appContext = context.applicationContext
                     serviceScope.launch {
                         val settings = userPreferences.settings.first()
+                        Log.d(TAG, "USER_PRESENT — lockoutForSleep=${settings.lockoutForSleep}")
                         if (!settings.lockoutForSleep) return@launch
 
                         sessionUnlockCount.value = sessionUnlockCount.value + 1
 
-                        val launchIntent = LockoutActivity.launchIntent(
-                            context = context.applicationContext,
-                            mode = LockoutMode.SLEEP,
-                            sessionStartedAt = sessionStartTime.value,
-                        )
-                        context.applicationContext.startActivity(launchIntent)
+                        if (LockoutOverlayController.canShow(appContext)) {
+                            Log.d(TAG, "Showing lockout overlay (sleep)")
+                            withContext(Dispatchers.Main) {
+                                LockoutOverlayController.show(
+                                    context = appContext,
+                                    mode = LockoutMode.SLEEP,
+                                    sessionStartedAt = sessionStartTime.value,
+                                )
+                            }
+                        } else {
+                            Log.d(TAG, "Overlay permission missing — falling back to notification")
+                            LockoutNotifier.notify(
+                                context = appContext,
+                                mode = LockoutMode.SLEEP,
+                                sessionStartedAt = sessionStartTime.value,
+                            )
+                        }
                     }
                 }
             }
@@ -108,12 +126,45 @@ class SleepTrackingService : Service() {
             addAction(Intent.ACTION_USER_PRESENT)
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(screenReceiver, filter, RECEIVER_NOT_EXPORTED)
+            // System broadcasts: register as EXPORTED on Android 13+ so the system can deliver them.
+            registerReceiver(screenReceiver, filter, RECEIVER_EXPORTED)
         } else {
             registerReceiver(screenReceiver, filter)
         }
+        Log.d(TAG, "Screen + USER_PRESENT receiver registered")
+
+        // Pop the gate immediately so the user feels the session has begun.
+        showLockoutNow()
 
         return START_STICKY
+    }
+
+    private fun showLockoutNow() {
+        serviceScope.launch {
+            val settings = userPreferences.settings.first()
+            if (!settings.lockoutForSleep) {
+                Log.d(TAG, "Initial gate skipped — lockoutForSleep disabled")
+                return@launch
+            }
+
+            if (LockoutOverlayController.canShow(applicationContext)) {
+                Log.d(TAG, "Showing initial lockout overlay (sleep)")
+                withContext(Dispatchers.Main) {
+                    LockoutOverlayController.show(
+                        context = applicationContext,
+                        mode = LockoutMode.SLEEP,
+                        sessionStartedAt = sessionStartTime.value,
+                    )
+                }
+            } else {
+                Log.d(TAG, "Initial gate — overlay perm missing, posting notification")
+                LockoutNotifier.notify(
+                    context = applicationContext,
+                    mode = LockoutMode.SLEEP,
+                    sessionStartedAt = sessionStartTime.value,
+                )
+            }
+        }
     }
 
     override fun onDestroy() {
@@ -132,6 +183,8 @@ class SleepTrackingService : Service() {
             unregisterReceiver(screenReceiver)
         } catch (_: Exception) { }
 
+        LockoutNotifier.cancel(applicationContext)
+        LockoutOverlayController.hide()
         serviceScope.cancel()
         isRunning.value = false
         super.onDestroy()

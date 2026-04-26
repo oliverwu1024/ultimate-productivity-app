@@ -1,6 +1,9 @@
 package com.app.productivity.ui.settings
 
 import android.app.TimePickerDialog
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -26,6 +29,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.PhonelinkLock
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.SettingsBrightness
 import androidx.compose.material.icons.filled.Stop
@@ -49,8 +53,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -73,6 +81,18 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.refreshOverlayPermission()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     Scaffold(
         topBar = {
@@ -161,6 +181,18 @@ fun SettingsScreen(
             }
 
             item { SectionHeader("Focus mode") }
+            item {
+                OverlayPermissionCard(
+                    granted = uiState.canDrawOverlays,
+                    onGrant = {
+                        val intent = Intent(
+                            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                            Uri.parse("package:${context.packageName}"),
+                        ).apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK }
+                        context.startActivity(intent)
+                    },
+                )
+            }
             item {
                 SwitchCard(
                     icon = Icons.Default.Lock,
@@ -425,6 +457,70 @@ private fun StepperCard(
                     onClick = { onValueChange((value + step).coerceAtMost(range.last)) },
                     enabled = value < range.last,
                 ) { Icon(Icons.Default.Add, "Increase") }
+            }
+        }
+    }
+}
+
+@Composable
+private fun OverlayPermissionCard(
+    granted: Boolean,
+    onGrant: () -> Unit,
+) {
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = if (granted) {
+                MaterialTheme.colorScheme.surfaceVariant
+            } else {
+                MaterialTheme.colorScheme.errorContainer
+            },
+        ),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Icon(
+                    Icons.Default.PhonelinkLock,
+                    null,
+                    tint = if (granted) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onErrorContainer
+                    },
+                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        "Display over other apps",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Medium,
+                    )
+                    Text(
+                        if (granted) {
+                            "Granted — lockout will take over the screen"
+                        } else {
+                            "Required so the lockout can take over the screen on unlock"
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (granted) {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        } else {
+                            MaterialTheme.colorScheme.onErrorContainer
+                        },
+                    )
+                }
+            }
+            if (!granted) {
+                OutlinedButton(
+                    onClick = onGrant,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Grant permission")
+                }
             }
         }
     }
