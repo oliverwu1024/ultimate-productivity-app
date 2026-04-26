@@ -24,10 +24,13 @@ import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Insights
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.SettingsBrightness
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -41,6 +44,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -153,6 +157,44 @@ fun SettingsScreen(
                     step = 1,
                     range = 1..60,
                     onValueChange = viewModel::setDefaultBreakDuration,
+                )
+            }
+
+            item { SectionHeader("Focus mode") }
+            item {
+                SwitchCard(
+                    icon = Icons.Default.Lock,
+                    title = "Lockout during focus sessions",
+                    description = "Pop a confirmation screen each time you unlock during a focus session",
+                    checked = user.lockoutForFocus,
+                    onCheckedChange = viewModel::setLockoutForFocus,
+                )
+            }
+            item {
+                SwitchCard(
+                    icon = Icons.Default.Bedtime,
+                    title = "Lockout during sleep",
+                    description = "Off by default — sleep is for sleeping, not friction",
+                    checked = user.lockoutForSleep,
+                    onCheckedChange = viewModel::setLockoutForSleep,
+                )
+            }
+            item {
+                SwitchCard(
+                    icon = Icons.Default.Visibility,
+                    title = "Show unlock count",
+                    description = "Display how many times you've unlocked during the active session",
+                    checked = user.showPickupCountOnLockout,
+                    onCheckedChange = viewModel::setShowPickupCountOnLockout,
+                )
+            }
+            item {
+                SwitchCard(
+                    icon = Icons.Default.Stop,
+                    title = "Allow ending session from lockout",
+                    description = "Show an 'End session early' link on the lockout screen",
+                    checked = user.allowEndSessionFromLockout,
+                    onCheckedChange = viewModel::setAllowEndSessionFromLockout,
                 )
             }
 
@@ -384,6 +426,32 @@ private fun StepperCard(
                     enabled = value < range.last,
                 ) { Icon(Icons.Default.Add, "Increase") }
             }
+        }
+    }
+}
+
+@Composable
+private fun SwitchCard(
+    icon: ImageVector,
+    title: String,
+    description: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Icon(icon, null, tint = MaterialTheme.colorScheme.primary)
+            Column(modifier = Modifier.weight(1f)) {
+                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
+                Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Switch(checked = checked, onCheckedChange = onCheckedChange)
         }
     }
 }

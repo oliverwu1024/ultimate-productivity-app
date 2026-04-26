@@ -72,4 +72,20 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun setDefaultBreakDuration(minutes: Int) = viewModelScope.launch {
         userPreferences.setDefaultBreakDuration(minutes)
     }
+
+    fun setLockoutForFocus(enabled: Boolean) = viewModelScope.launch {
+        userPreferences.setLockoutForFocus(enabled)
+    }
+
+    fun setLockoutForSleep(enabled: Boolean) = viewModelScope.launch {
+        userPreferences.setLockoutForSleep(enabled)
+    }
+
+    fun setShowPickupCountOnLockout(enabled: Boolean) = viewModelScope.launch {
+        userPreferences.setShowPickupCountOnLockout(enabled)
+    }
+
+    fun setAllowEndSessionFromLockout(enabled: Boolean) = viewModelScope.launch {
+        userPreferences.setAllowEndSessionFromLockout(enabled)
+    }
 }
