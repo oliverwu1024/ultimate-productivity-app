@@ -1321,7 +1321,7 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
 
 ---
 
-## Phase 5: Polish & Advanced Features (Weeks 14–16)
+## Phase 5: Polish & Advanced Features (Weeks 14–17)
 
 ### 5.1 — Notifications & Reminders
 
@@ -1441,9 +1441,121 @@ Options:
 
 All preferences stored in DataStore.
 
+### 5.5 — Phone Pickup Confirmation Gate
+
+When a focus or sleep session is active, every screen-unlock pops a fullscreen "Are you sure?" prompt before the user can use the phone. Each bypass auto-increments the session's pickup counter — closing the loop with the existing distraction stats. This is **friction, not lockdown** — calls, alarms, notifications, and quick-replies all work normally.
+
+**Why this design over usage-stats / accessibility-based blocking:**
+- No `PACKAGE_USAGE_STATS`, no `SYSTEM_ALERT_WINDOW`, no accessibility service → much safer for Play Store review
+- Same Android pattern that alarm-clock apps use (`USE_FULL_SCREEN_INTENT`) — well-established, accepted
+- User always has the escape hatch (Confirm to proceed) → no permanent lockout
+- Pickups become a deliberate, friction-laden choice → behavioral nudge without being adversarial
+
+#### Detection: `ACTION_USER_PRESENT` BroadcastReceiver
+
+Already-running foreground services from Phase 1.7 (sleep) and Phase 2 (focus sessions) register a receiver while the session is active:
+
+| Action | When it fires | Used for |
+|--------|---------------|----------|
+| `ACTION_SCREEN_ON` | Screen turned on (still locked) | Pickup count (existing) |
+| `ACTION_USER_PRESENT` | User has unlocked the device | Trigger lockout activity (new) |
+| `ACTION_SCREEN_OFF` | Screen off | Calculate phone-on duration (existing) |
+
+On `ACTION_USER_PRESENT` during an active session: launch `LockoutActivity` via a high-priority full-screen intent.
+
+#### `ui/lockout/LockoutActivity.kt`
+
+A single fullscreen activity, no nav, no system bars:
+
+Layout:
+- **Headline**: "Focus session active" or "Sleep session active"
+- **Subtitle**: "You're {18 minutes} into your {25 min} focus session" (live elapsed/remaining)
+- **Pickup count so far**: "Phone pickups this session: 3"
+- Two prominent buttons:
+  - **Cancel** (primary) — `finishAndRemoveTask()`, screen returns to lock screen state
+  - **Yes, I need my phone** (secondary, intentionally less prominent) — increments pickup counter, logs to `phone_pickups` table with `session_id` set, `finishAndRemoveTask()` returns to home
+- Tertiary text link: "End session early" — opens session-end flow (quality dialog for sleep, completion for focus)
+
+Activity flags (in `onCreate()`):
+```kotlin
+window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+setShowWhenLocked(true)
+setTurnScreenOn(true)
+```
+
+#### `AndroidManifest.xml` additions
+
+```xml
+<uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+<uses-permission android:name="android.permission.WAKE_LOCK" />
+
+<activity
+    android:name=".ui.lockout.LockoutActivity"
+    android:excludeFromRecents="true"
+    android:launchMode="singleInstance"
+    android:showOnLockScreen="true"
+    android:turnScreenOn="true"
+    android:exported="false"
+    android:theme="@style/Theme.Lockout" />
+```
+
+`Theme.Lockout`: `Theme.Material3.NoActionBar` parent, opaque background, no system bars.
+
+#### Wiring it into existing services
+
+**`SleepTrackingService.kt`** (Phase 1.7) — already handles `ACTION_SCREEN_ON` for pickup counting. Add:
+```kotlin
+private val userPresentReceiver = object : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) {
+        if (settings.lockoutForSleep && isSessionActive) {
+            val launch = Intent(context, LockoutActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                putExtra("mode", "SLEEP")
+                putExtra("session_started_at", sessionStartTime)
+            }
+            context.startActivity(launch)
+        }
+    }
+}
+// register in onStartCommand() with IntentFilter(Intent.ACTION_USER_PRESENT)
+```
+
+**`SessionTrackingService.kt`** (Phase 2) — needs to be promoted to a foreground service if it isn't already (so it can register the receiver and survive backgrounding). Same pattern with `mode = "FOCUS"`.
+
+#### Settings (extends Phase 5.4)
+
+Add a "**Focus Mode**" section to `SettingsScreen.kt`:
+- **Lockout for focus sessions**: toggle (default **ON**)
+- **Lockout for sleep sessions**: toggle (default **OFF** — sleep is for sleeping, friction adds nothing)
+- **Show pickup count on lockout**: toggle (default ON — visible accountability is a feature)
+- **Allow ending session from lockout**: toggle (default ON)
+
+User can disable the whole feature globally if they decide it's annoying.
+
+#### Edge cases (all handled by Android, no extra work)
+
+| Scenario | Behavior |
+|----------|----------|
+| Incoming call | Telephony full-screen intent outranks ours → call UI shows normally |
+| Alarm fires | Alarm full-screen intent outranks ours → alarm UI shows normally |
+| Notification (heads-up) | Appears briefly over our activity, normal behavior |
+| Lock-screen quick-reply | `ACTION_USER_PRESENT` does *not* fire on lock-screen actions → no trigger (good — important comms slip through) |
+| Power button to check time | Only `ACTION_SCREEN_ON` fires, not `ACTION_USER_PRESENT` → no lockout trigger (good — glance at clock without penalty) |
+| Boot during active session | `BOOT_COMPLETED` receiver re-launches the foreground service if a session row is unfinished |
+| User force-stops app | Session ends as if cancelled; lockout disappears |
+
+#### Play Store policy
+
+`USE_FULL_SCREEN_INTENT` on Android 14+ requires apps to declare a use case in the manifest. **"Digital wellbeing / focus"** is an accepted category — be ready to justify in the Play Console submission alongside the privacy policy. Risk is much lower than for `PACKAGE_USAGE_STATS` or accessibility-service approaches.
+
+#### Backend changes
+
+None — the existing `phone_pickups` table (Phase 1.1) already supports `session_id`, and the `POST /phone-pickups` endpoint (Phase 1.3) already accepts the new rows. The lockout dismissal just calls the existing repository method with the active session ID.
+
 ---
 
-## Phase 6: AWS Deployment (Weeks 17–20)
+## Phase 6: AWS Deployment (Weeks 18–21)
 
 The full deployment runs on AWS. The architecture below is the standard production pattern: container behind ALB, database in private subnets, secrets out of source code, logs/metrics in CloudWatch, deploys via GitHub Actions.
 
@@ -1795,6 +1907,353 @@ Not part of the v1 build — but worth knowing where you'd grow into AWS later:
 
 ---
 
+## Phase 7: Web Analytics Dashboard (Weeks 22–26)
+
+A Rust/WASM web app focused on analytics and visualization — explores the data the mobile app collects through richer, larger-screen charts. The same Rust/Axum backend serves both clients, so this is purely a new frontend.
+
+### Stack
+
+| Layer             | Tech                                                |
+| ----------------- | --------------------------------------------------- |
+| Framework         | Leptos (Rust + WASM, fine-grained reactivity)       |
+| Build tool        | Trunk                                               |
+| Styling           | TailwindCSS via PostCSS                             |
+| Charts (primary)  | leptos-chartistry (pure-Rust SVG)                   |
+| Charts (advanced) | charming (Rust wrapper for Apache ECharts JS)       |
+| HTTP              | gloo-net + Leptos `Resource`                        |
+| State             | Leptos signals (built-in, no extra lib)             |
+| Hosting           | AWS S3 + CloudFront + Route 53 + ACM                |
+| CI/CD             | GitHub Actions → S3 sync + CloudFront invalidation  |
+
+**Why Leptos over Yew/Dioxus:** fine-grained reactivity (no virtual DOM), best runtime performance of the Rust web frameworks, fastest-growing ecosystem, ergonomic signal-based API.
+
+**Why CSR (client-side rendering), not SSR:** the dashboard is auth-gated, so SEO doesn't matter. A static SPA on S3+CloudFront is simpler and cheaper than running a Leptos SSR server (which would mean another ECS task).
+
+**Where Rust ends:** TailwindCSS is JS tooling (PostCSS) and `charming` wraps ECharts JS. Everything else — components, state, API client, routing, charts where SVG suffices — is pure Rust.
+
+### Architecture
+
+```
+Browser → CloudFront → S3 (static SPA: index.html, *.wasm, *.js, *.css)
+                          │
+                          └─→ JS shim loads .wasm → Leptos boots
+                              │
+                              └─→ fetch(api.your-domain.com) → ALB → ECS Fargate → RDS
+```
+
+### 7.1 — Project Scaffold
+
+Add a `web/` Cargo project to the workspace:
+
+```
+web/
+├── Cargo.toml
+├── Trunk.toml
+├── index.html              # Trunk entry: <link data-trunk rel="rust" /> + tailwind
+├── tailwind.config.js
+├── package.json            # tailwindcss only
+├── src/
+│   ├── main.rs             # mount_to_body
+│   ├── app.rs              # <App>: router + AuthProvider + layout
+│   ├── api/
+│   │   ├── mod.rs
+│   │   ├── client.rs       # base URL, JWT header, ApiError
+│   │   ├── auth.rs
+│   │   ├── sleep.rs
+│   │   ├── sessions.rs
+│   │   └── calendar.rs
+│   ├── auth.rs             # AuthContext (LocalStorage-backed JWT)
+│   ├── routes.rs           # leptos_router route definitions
+│   ├── components/         # Card, Button, Spinner, DateRangePicker, KpiTile, ...
+│   ├── charts/             # LineChart, BarChart, Heatmap, Scatter, Donut, ...
+│   ├── stats.rs            # client-side correlation / aggregation helpers
+│   └── pages/
+│       ├── login.rs
+│       ├── overview.rs
+│       ├── sleep.rs
+│       ├── focus.rs
+│       ├── calendar.rs
+│       ├── correlations.rs
+│       └── reports.rs
+└── style/
+    └── input.css           # @tailwind base/components/utilities
+```
+
+**Cargo dependencies:**
+- `leptos` (with `csr` feature)
+- `leptos_router`, `leptos_meta`
+- `gloo-net` (http feature) — fetch wrapper
+- `gloo-storage` — JWT in LocalStorage
+- `serde` + `serde_json`
+- `chrono` (`wasmbind` feature for browser time)
+- `web-sys`, `wasm-bindgen`, `js-sys`
+- `console_error_panic_hook` — readable panics in DevTools
+- `leptos-chartistry` — pure-Rust SVG charts
+- `charming` — only where ECharts beats SVG (heatmaps, sankey, complex polar)
+
+### 7.2 — Auth & API Client
+
+**`api/client.rs`:**
+- Base URL from `env!("API_BASE_URL")` set at build time by Trunk + GitHub Actions
+- One `request<T>(method, path, body)` helper:
+  - Reads JWT from `gloo_storage::LocalStorage`
+  - Attaches `Authorization: Bearer <token>`
+  - JSON via `serde_json`
+  - Returns `Result<T, ApiError>` — typed errors per endpoint
+  - On 401 → clear token, trigger reactive redirect to `/login`
+
+**`auth.rs`:**
+- `AuthContext { user: RwSignal<Option<User>>, login(...), logout() }`
+- Provided at app root via `provide_context`
+- `init()` on boot: read token, call `/auth/me`, hydrate `user` (or stay logged out)
+
+**Route guard:** `<RequireAuth>` HOC redirecting to `/login` when `user` is `None`.
+
+### 7.3 — Layout, Routing & Theme
+
+Routes (`leptos_router`):
+
+| Path             | Page                |
+|------------------|---------------------|
+| `/login`         | `LoginPage`         |
+| `/`              | `OverviewPage`      |
+| `/sleep`         | `SleepAnalytics`    |
+| `/focus`         | `FocusAnalytics`    |
+| `/calendar`      | `CalendarAnalytics` |
+| `/correlations`  | `CorrelationsPage`  |
+| `/reports`       | `ReportsPage`       |
+
+App shell:
+- **Sidebar** (left): logo, nav links, user menu at bottom — collapsible on mobile
+- **Topbar**: page title + global date range picker (drives all charts on the page)
+- **Main**: page content
+
+Dark mode by default; palette matches the Android app (calm blue-purple primary).
+
+### 7.4 — Overview Dashboard
+
+The "at a glance" landing page after login. Single scrollable column.
+
+**KPI row** (4 cards):
+- Avg sleep last 7d (with delta vs prior 7d, ↑/↓)
+- Focus hours last 7d
+- Current focus streak (flame icon)
+- Avg phone pickups/day
+
+**Sleep over time** (line + area, leptos-chartistry):
+- X = last 30 days, Y = duration in hours, target line overlay, fill colored by quality
+
+**Focus calendar heatmap** (charming/ECharts):
+- GitHub-style year grid, cells colored by total focus minutes that day
+- Click a cell → navigate to `/focus?date=...`
+
+**Upcoming events** (next 5 from calendar — same data as Android dashboard).
+
+**Quick stats** (text-only card): "Best sleep this month: 8h 12m on Apr 14", "Top focus tag this week: LeetCode (4h 30m)".
+
+### 7.5 — Sleep Analytics
+
+All charts driven by the global date range picker.
+
+1. **Duration over time** — line + area, daily duration vs target
+2. **Quality distribution** — histogram of nights by quality 1–5
+3. **Bedtime drift** — scatter, X=date, Y=actual bedtime; reveals if you're trending earlier/later
+4. **Wake time consistency** — same scatter pattern for wake time
+5. **Sleep debt accumulation** — area, running total of debt vs target
+6. **Phone pickups during sleep** — per-night bar chart
+7. **Sleep timing heatmap** — hour-of-day × day-of-week, frequency-colored (charming)
+
+Filters: date range, quality threshold.
+
+**Insights panel** (computed client-side from raw records):
+- "You hit your bedtime target X of Y nights this month"
+- "Mondays average X hours — N% less than weekends"
+- "Longest streak at quality ≥ 4: N nights"
+
+### 7.6 — Focus Analytics
+
+1. **Daily focus minutes** — bar chart, completed vs cancelled stacked
+2. **Focus by tag** — horizontal stacked bar, sorted by total minutes
+3. **Pomodoros by hour-of-day** — heatmap (charming) — when you're most productive
+4. **Streak timeline** — line of streak length over time
+5. **Distractions per session** — scatter / histogram of phone pickups per session
+6. **Tag breakdown table** — sortable: `tag | total min | sessions | avg session length | avg pickups`
+7. **Cumulative focus hours** — area chart
+
+Filters: date range, tag, completed-only toggle.
+
+### 7.7 — Calendar Analytics
+
+1. **Time by category** — donut (Study / Project / Exercise / Personal / Other)
+2. **Events per day** — bar chart
+3. **Category trend over time** — stacked area
+4. **Priority distribution** — donut
+5. **Day-of-week pattern** — heatmap by category × day
+
+### 7.8 — Cross-Feature Correlations
+
+The view that earns the "analytics" label. All correlations computed client-side over fetched records (`stats.rs` helper).
+
+1. **Previous night's sleep vs next day's focus** — scatter + linear regression line, Pearson `r` displayed
+2. **Phone pickups vs focus minutes** — scatter (expected inverse trend)
+3. **Sleep quality vs focus streak continuation** — overlaid line chart
+4. **Calendar load vs focus minutes** — scatter
+5. **Combined timeline** — multi-series line: sleep, focus, calendar load on shared time axis
+
+Each chart shows a one-sentence interpretation: "r=0.62, p<0.05 — significant positive correlation" or "no significant correlation".
+
+### 7.9 — Reports Page
+
+- Period selector (week ending date / month)
+- Click "Generate" → render printable HTML report:
+  - Headline stats from sleep/focus/calendar
+  - Inline SVG charts (smaller versions of the dashboard charts)
+  - Achievement progress (from Phase 5.3)
+- "Print" button → browser-native PDF export, no PDF library needed
+
+Email delivery deferred (would need backend SES integration — see Phase 6.11).
+
+### 7.10 — Backend Changes
+
+Minimal — same JSON endpoints, two additions:
+
+**1. CORS layer for the web origin** (`backend/src/main.rs`):
+```rust
+use tower_http::cors::CorsLayer;
+use http::{Method, header::{AUTHORIZATION, CONTENT_TYPE}, HeaderValue};
+
+let cors = CorsLayer::new()
+    .allow_origin("https://app.your-domain.com".parse::<HeaderValue>().unwrap())
+    .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE])
+    .allow_headers([AUTHORIZATION, CONTENT_TYPE]);
+
+let app = Router::new().merge(routes).layer(cors);
+```
+
+**2. (Optional) Aggregation endpoints** — only add if client-side aggregation gets slow:
+- `GET /analytics/sleep-trends?days=N`
+- `GET /analytics/focus-by-tag?range=...`
+- `GET /analytics/correlations?range=...`
+
+Default to client-side aggregation from raw `/sleep`, `/sessions`, `/calendar` responses. Add server endpoints only when the dataset grows enough to need it.
+
+### 7.11 — AWS Hosting (S3 + CloudFront)
+
+**S3 bucket `productivity-app-web`:**
+- Block all public access: ON (CloudFront uses Origin Access Control, not public URLs)
+- Versioning: ON (cheap rollback to a prior deploy)
+
+**CloudFront distribution:**
+- Origin: the S3 bucket via OAC (Origin Access Control)
+- Default root object: `index.html`
+- **Custom error responses**: `403` and `404` both return `index.html` with status `200` — required so client-side routing handles direct URL hits like `app.your-domain.com/sleep`
+- Cache behaviors:
+  - `index.html`: `Cache-Control: public, max-age=300` (5 min — fast deploy visibility)
+  - `*.wasm`, `*.js`, `*.css` (Trunk emits content-hashed filenames): `Cache-Control: public, max-age=31536000, immutable`
+- Compression: gzip + brotli enabled
+- HTTPS-only: redirect HTTP → HTTPS
+- Alternate domain: `app.your-domain.com`
+- ACM certificate: **must be in `us-east-1`** (CloudFront-wide requirement, regardless of bucket region)
+
+**Route 53:**
+- Alias record `app.your-domain.com → CloudFront distribution`
+
+### 7.12 — GitHub Actions CI/CD
+
+**`.github/workflows/deploy-web.yml`:**
+
+```yaml
+name: Deploy web
+on:
+  push:
+    branches: [main]
+    paths: ['web/**']
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Trunk
+        run: cargo install --locked trunk
+
+      - name: Install Tailwind
+        working-directory: web
+        run: npm install
+
+      - name: Build (release)
+        working-directory: web
+        env:
+          API_BASE_URL: https://api.your-domain.com
+        run: trunk build --release
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-deploy-web
+          aws-region: us-east-1
+
+      - name: Sync hashed assets (long cache)
+        working-directory: web
+        run: |
+          aws s3 sync dist/ s3://productivity-app-web/ \
+            --delete \
+            --cache-control "public, max-age=31536000, immutable" \
+            --exclude "index.html"
+
+      - name: Sync index.html (short cache)
+        working-directory: web
+        run: |
+          aws s3 cp dist/index.html s3://productivity-app-web/index.html \
+            --cache-control "public, max-age=300"
+
+      - name: Invalidate CloudFront
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} \
+            --paths "/" "/index.html"
+```
+
+IAM role `github-actions-deploy-web` permissions: `s3:PutObject` / `DeleteObject` / `ListBucket` on the bucket; `cloudfront:CreateInvalidation` on the distribution. Trust policy restricted to your repo via the same OIDC pattern as Phase 6.7.
+
+### 7.13 — Cost Estimate
+
+Adds ~$1–2/month to Phase 6:
+
+| Resource | Monthly cost (USD) |
+|----------|-------------------|
+| S3 (~50–100 MB site) | < $0.01 |
+| CloudFront | ~$1 (1 TB free tier first 12 months, then $0.085/GB) |
+| Route 53 hosted zone | already exists from Phase 6 |
+| ACM cert | free |
+
+**Phase 6 + 7 combined:** ~$42/month with VPC Endpoints, ~$74/month with NAT Gateway.
+
+### 7.14 — Resume Value
+
+This phase converts a phone-only side project into a full-stack Rust portfolio piece:
+- **Backend**: Rust + Axum + SQLx + Postgres
+- **Mobile**: Kotlin + Compose + Room + Retrofit
+- **Web**: Rust + Leptos + WASM
+- **Infra**: AWS (ECS Fargate, RDS, ALB, S3, CloudFront, Route 53, Secrets Manager, CloudWatch)
+- **CI/CD**: GitHub Actions with OIDC
+
+Two clients, one backend, three deployment targets — a strong demonstration of full-stack systems thinking.
+
+---
+
 ## Phase Summary
 
 | Phase | Weeks | What You'll Have |
@@ -1804,8 +2263,9 @@ Not part of the v1 build — but worth knowing where you'd grow into AWS later:
 | Phase 2: Pomodoro Sessions | 6–8 | Full pomodoro timer: API + Android screen + streaks + phone detection |
 | Phase 3: Calendar | 9–11 | Full calendar: API + Android screen + recurring events |
 | Phase 4: Dashboard & Sync | 12–13 | Dashboard home screen, background sync across all features |
-| Phase 5: Polish | 14–16 | Notifications, theming, weekly reports, achievements, settings |
-| Phase 6: AWS Deployment | 17–20 | Production app on AWS (ECS Fargate + RDS + ALB + CI/CD) and Google Play Store |
-| **Total** | **~20 weeks** | **Production app on AWS + Google Play** |
+| Phase 5: Polish | 14–17 | Notifications, theming, weekly reports, achievements, settings, **pickup confirmation gate** |
+| Phase 6: AWS Deployment | 18–21 | Production app on AWS (ECS Fargate + RDS + ALB + CI/CD) and Google Play Store |
+| Phase 7: Web Analytics Dashboard | 22–26 | Rust/WASM analytics site at `app.your-domain.com` (Leptos + S3 + CloudFront) — full-stack Rust portfolio piece |
+| **Total** | **~26 weeks** | **Production app on AWS + Google Play + analytics website** |
 
-Assumes ~15–20 hours/week. AWS deployment adds ~2 weeks vs simpler PaaS — worth it for the resume value and the genuine production architecture.
+Assumes ~15–20 hours/week. Phase 7 is the "ambitious" extension — skip it if you'd rather ship the mobile app first and add the web frontend as a v2.
