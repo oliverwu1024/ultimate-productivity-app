@@ -25,6 +25,8 @@ data class UserSettings(
     val lockoutForSleep: Boolean,
     val showPickupCountOnLockout: Boolean,
     val allowEndSessionFromLockout: Boolean,
+    /** Encoded as `isoYear * 100 + weekOfYear` (e.g. 202617 for week 17 of 2026). */
+    val lastPlanningPromptDismissedWeek: Int,
 )
 
 class UserPreferences(private val context: Context) {
@@ -39,6 +41,7 @@ class UserPreferences(private val context: Context) {
         val LOCKOUT_FOR_SLEEP = booleanPreferencesKey("lockout_for_sleep")
         val SHOW_PICKUP_COUNT_ON_LOCKOUT = booleanPreferencesKey("show_pickup_count_on_lockout")
         val ALLOW_END_SESSION_FROM_LOCKOUT = booleanPreferencesKey("allow_end_session_from_lockout")
+        val LAST_PLANNING_DISMISSED_WEEK = intPreferencesKey("last_planning_dismissed_week")
     }
 
     private val defaults = UserSettings(
@@ -51,6 +54,7 @@ class UserPreferences(private val context: Context) {
         lockoutForSleep = false,
         showPickupCountOnLockout = true,
         allowEndSessionFromLockout = true,
+        lastPlanningPromptDismissedWeek = 0,
     )
 
     val settings: Flow<UserSettings> = context.userDataStore.data.map { prefs ->
@@ -64,6 +68,7 @@ class UserPreferences(private val context: Context) {
             lockoutForSleep = prefs[Keys.LOCKOUT_FOR_SLEEP] ?: defaults.lockoutForSleep,
             showPickupCountOnLockout = prefs[Keys.SHOW_PICKUP_COUNT_ON_LOCKOUT] ?: defaults.showPickupCountOnLockout,
             allowEndSessionFromLockout = prefs[Keys.ALLOW_END_SESSION_FROM_LOCKOUT] ?: defaults.allowEndSessionFromLockout,
+            lastPlanningPromptDismissedWeek = prefs[Keys.LAST_PLANNING_DISMISSED_WEEK] ?: defaults.lastPlanningPromptDismissedWeek,
         )
     }
 
@@ -103,6 +108,10 @@ class UserPreferences(private val context: Context) {
 
     suspend fun setAllowEndSessionFromLockout(enabled: Boolean) {
         context.userDataStore.edit { it[Keys.ALLOW_END_SESSION_FROM_LOCKOUT] = enabled }
+    }
+
+    suspend fun setLastPlanningPromptDismissedWeek(encodedYearWeek: Int) {
+        context.userDataStore.edit { it[Keys.LAST_PLANNING_DISMISSED_WEEK] = encodedYearWeek }
     }
 
     private fun parseTime(value: String): LocalTime = try {

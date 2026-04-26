@@ -2,7 +2,9 @@ package com.app.productivity.data.remote
 
 import com.app.productivity.data.remote.dto.AuthResponse
 import com.app.productivity.data.remote.dto.CalendarEventDto
+import com.app.productivity.data.remote.dto.ChecklistItemDto
 import com.app.productivity.data.remote.dto.CreateCalendarEventDto
+import com.app.productivity.data.remote.dto.CreateChecklistItemDto
 import com.app.productivity.data.remote.dto.CreateSessionDto
 import com.app.productivity.data.remote.dto.CreateSleepRecordDto
 import com.app.productivity.data.remote.dto.LoginRequest
@@ -11,6 +13,7 @@ import com.app.productivity.data.remote.dto.SessionDto
 import com.app.productivity.data.remote.dto.SessionStatsDto
 import com.app.productivity.data.remote.dto.SleepRecordDto
 import com.app.productivity.data.remote.dto.SleepStatsDto
+import com.app.productivity.data.remote.dto.UpdateChecklistItemDto
 import com.app.productivity.data.remote.dto.UpdateSessionDto
 import com.app.productivity.data.remote.dto.UserResponse
 import retrofit2.http.Body
@@ -106,4 +109,37 @@ interface ApiService {
 
     @DELETE("calendar/{id}")
     suspend fun deleteCalendarEvent(@Path("id") id: String)
+
+    @POST("checklist")
+    suspend fun createChecklistItem(@Body item: CreateChecklistItemDto): ChecklistItemDto
+
+    @GET("checklist")
+    suspend fun getChecklistItems(
+        @Query("start") start: String?,
+        @Query("end") end: String?,
+        @Query("completed") completed: Boolean?
+    ): List<ChecklistItemDto>
+
+    @GET("checklist/today")
+    suspend fun getChecklistToday(): List<ChecklistItemDto>
+
+    @GET("checklist/{id}")
+    suspend fun getChecklistItem(@Path("id") id: String): ChecklistItemDto
+
+    @PUT("checklist/{id}")
+    suspend fun updateChecklistItem(
+        @Path("id") id: String,
+        @Body item: UpdateChecklistItemDto
+    ): ChecklistItemDto
+
+    @POST("checklist/{id}/complete")
+    suspend fun completeChecklistItem(@Path("id") id: String): ChecklistItemDto
+
+    @DELETE("checklist/{id}")
+    suspend fun deleteChecklistItem(@Path("id") id: String)
+
+    @POST("checklist/bulk")
+    suspend fun bulkCreateChecklistItems(
+        @Body items: List<CreateChecklistItemDto>
+    ): List<ChecklistItemDto>
 }

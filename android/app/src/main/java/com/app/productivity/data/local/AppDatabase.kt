@@ -8,10 +8,12 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.app.productivity.data.local.dao.AchievementDao
 import com.app.productivity.data.local.dao.CalendarEventDao
+import com.app.productivity.data.local.dao.ChecklistDao
 import com.app.productivity.data.local.dao.SessionDao
 import com.app.productivity.data.local.dao.SleepDao
 import com.app.productivity.data.local.entity.AchievementEntity
 import com.app.productivity.data.local.entity.CalendarEventEntity
+import com.app.productivity.data.local.entity.ChecklistEntity
 import com.app.productivity.data.local.entity.SessionEntity
 import com.app.productivity.data.local.entity.SleepRecordEntity
 
@@ -21,8 +23,9 @@ import com.app.productivity.data.local.entity.SleepRecordEntity
         SessionEntity::class,
         CalendarEventEntity::class,
         AchievementEntity::class,
+        ChecklistEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -30,6 +33,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun sessionDao(): SessionDao
     abstract fun calendarEventDao(): CalendarEventDao
     abstract fun achievementDao(): AchievementDao
+    abstract fun checklistDao(): ChecklistDao
 
     companion object {
         @Volatile
@@ -94,6 +98,36 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """CREATE TABLE IF NOT EXISTS `checklist_items` (
+                        `id` TEXT NOT NULL,
+                        `userId` TEXT NOT NULL,
+                        `title` TEXT NOT NULL,
+                        `description` TEXT,
+                        `dueDateEpochDay` INTEGER NOT NULL,
+                        `estimatedMinutes` INTEGER,
+                        `priority` INTEGER NOT NULL,
+                        `completed` INTEGER NOT NULL,
+                        `completedAt` INTEGER,
+                        `createdAt` INTEGER NOT NULL,
+                        `updatedAt` INTEGER NOT NULL,
+                        `isSynced` INTEGER NOT NULL DEFAULT 0,
+                        PRIMARY KEY(`id`)
+                    )"""
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `idx_checklist_user_due` " +
+                        "ON `checklist_items` (`userId`, `dueDateEpochDay`)"
+                )
+                db.execSQL(
+                    "ALTER TABLE `productivity_sessions` " +
+                        "ADD COLUMN `checklistItemId` TEXT DEFAULT NULL"
+                )
+            }
+        }
+
         fun getInstance(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 Room.databaseBuilder(
@@ -101,7 +135,12 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "productivity_db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                    .addMigrations(
+                        MIGRATION_1_2,
+                        MIGRATION_2_3,
+                        MIGRATION_3_4,
+                        MIGRATION_4_5,
+                    )
                     .build()
                     .also { INSTANCE = it }
             }

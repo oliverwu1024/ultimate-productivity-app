@@ -1,7 +1,9 @@
 package com.app.productivity.ui.dashboard
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -14,10 +16,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Nightlight
@@ -37,6 +41,7 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -72,6 +77,7 @@ fun DashboardScreen(
     onNavigateToSleep: () -> Unit,
     onNavigateToSessions: () -> Unit,
     onNavigateToCalendar: () -> Unit,
+    onNavigateToChecklist: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToReports: () -> Unit,
     onLogout: () -> Unit,
@@ -139,6 +145,16 @@ fun DashboardScreen(
             item {
                 AnimatedAppear(delayMillis = 100) {
                     FocusCard(focus = uiState.todayFocus, onClick = onNavigateToSessions)
+                }
+            }
+
+            // 4b. Today's Checklist
+            item {
+                AnimatedAppear(delayMillis = 130) {
+                    ChecklistCard(
+                        summary = uiState.todayChecklist,
+                        onClick = onNavigateToChecklist,
+                    )
                 }
             }
 
@@ -327,6 +343,92 @@ private fun FocusCard(focus: FocusSummary?, onClick: () -> Unit) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.PhoneAndroid, null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(" ${f.phonePickupsToday}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+    }
+}
+
+// ── Today's checklist card ──────────────────────────────────────────────
+
+@Composable
+private fun ChecklistCard(summary: TodayChecklistSummary?, onClick: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Icon(
+                    Icons.Filled.Checklist,
+                    null,
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+                Text(
+                    "Today's checklist",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f),
+                )
+                if (summary != null && summary.totalCount > 0) {
+                    Text(
+                        "${summary.completedCount} of ${summary.totalCount} done",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+
+            if (summary == null || summary.totalCount == 0) {
+                Text(
+                    "Nothing planned for today — tap to add some",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                val progress = summary.completedCount.toFloat() / summary.totalCount.toFloat()
+                LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                summary.openItems.take(3).forEach { item ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        val priorityColor = when (item.priority) {
+                            2 -> MaterialTheme.colorScheme.error
+                            1 -> MaterialTheme.colorScheme.tertiary
+                            else -> MaterialTheme.colorScheme.outline
+                        }
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .background(color = priorityColor, shape = CircleShape),
+                        )
+                        Text(
+                            item.title,
+                            style = MaterialTheme.typography.bodyMedium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+                if (summary.openItems.size > 3) {
+                    Text(
+                        "+${summary.openItems.size - 3} more",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
         }
