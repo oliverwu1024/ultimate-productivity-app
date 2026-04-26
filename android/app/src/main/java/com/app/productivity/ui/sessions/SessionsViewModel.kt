@@ -1,6 +1,8 @@
 package com.app.productivity.ui.sessions
 
 import android.app.Application
+import android.content.Intent
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.app.productivity.data.local.AppDatabase
@@ -8,6 +10,7 @@ import com.app.productivity.data.local.entity.SessionEntity
 import com.app.productivity.data.remote.RetrofitClient
 import com.app.productivity.data.repository.SessionRepository
 import com.app.productivity.data.achievements.AchievementChecker
+import com.app.productivity.service.FocusTrackingService
 import com.app.productivity.util.PhoneUsageTracker
 import com.app.productivity.util.TokenManager
 import com.app.productivity.util.UserPreferences
@@ -157,6 +160,7 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
             }
         }
 
+        startFocusTrackingService()
         startTimer()
         startPickupPolling()
     }
@@ -188,6 +192,7 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
     fun cancelSession() {
         timerJob?.cancel()
         pickupPollJob?.cancel()
+        stopFocusTrackingService()
         currentSessionId?.let { id ->
             viewModelScope.launch { repository.deleteSession(id) }
         }
@@ -205,6 +210,7 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
     fun completeSession() {
         timerJob?.cancel()
         pickupPollJob?.cancel()
+        stopFocusTrackingService()
         val state = _uiState.value
 
         // Count full pomodoros + partial work time
@@ -229,6 +235,17 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
                 phonePickups = 0,
             )
         }
+    }
+
+    private fun startFocusTrackingService() {
+        val app = getApplication<Application>()
+        val intent = Intent(app, FocusTrackingService::class.java)
+        ContextCompat.startForegroundService(app, intent)
+    }
+
+    private fun stopFocusTrackingService() {
+        val app = getApplication<Application>()
+        app.stopService(Intent(app, FocusTrackingService::class.java))
     }
 
     fun clearError() {

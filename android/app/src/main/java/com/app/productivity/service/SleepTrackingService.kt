@@ -14,7 +14,16 @@ import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import com.app.productivity.MainActivity
+import com.app.productivity.ui.lockout.LockoutActivity
+import com.app.productivity.ui.lockout.LockoutMode
+import com.app.productivity.util.UserPreferences
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 data class PickupEvent(
     val pickedUpAt: Long,
@@ -30,9 +39,13 @@ class SleepTrackingService : Service() {
         val isRunning = MutableStateFlow(false)
         val sessionStartTime = MutableStateFlow(0L)
         val pickupEvents = MutableStateFlow<List<PickupEvent>>(emptyList())
+        val sessionUnlockCount = MutableStateFlow(0)
 
         private var lastScreenOnTime: Long? = null
     }
+
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private lateinit var userPreferences: UserPreferences
 
     private val screenReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -51,17 +64,34 @@ class SleepTrackingService : Service() {
                         lastScreenOnTime = null
                     }
                 }
+                Intent.ACTION_USER_PRESENT -> {
+                    serviceScope.launch {
+                        val settings = userPreferences.settings.first()
+                        if (!settings.lockoutForSleep) return@launch
+
+                        sessionUnlockCount.value = sessionUnlockCount.value + 1
+
+                        val launchIntent = LockoutActivity.launchIntent(
+                            context = context.applicationContext,
+                            mode = LockoutMode.SLEEP,
+                            sessionStartedAt = sessionStartTime.value,
+                        )
+                        context.applicationContext.startActivity(launchIntent)
+                    }
+                }
             }
         }
     }
 
     override fun onCreate() {
         super.onCreate()
+        userPreferences = UserPreferences(applicationContext)
         createNotificationChannel()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         pickupEvents.value = emptyList()
+        sessionUnlockCount.value = 0
         sessionStartTime.value = System.currentTimeMillis()
         lastScreenOnTime = null
         isRunning.value = true
@@ -75,6 +105,7 @@ class SleepTrackingService : Service() {
         val filter = IntentFilter().apply {
             addAction(Intent.ACTION_SCREEN_ON)
             addAction(Intent.ACTION_SCREEN_OFF)
+            addAction(Intent.ACTION_USER_PRESENT)
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(screenReceiver, filter, RECEIVER_NOT_EXPORTED)
@@ -101,6 +132,7 @@ class SleepTrackingService : Service() {
             unregisterReceiver(screenReceiver)
         } catch (_: Exception) { }
 
+        serviceScope.cancel()
         isRunning.value = false
         super.onDestroy()
     }
