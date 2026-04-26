@@ -6,7 +6,8 @@ import java.time.Instant
 data class CreateSessionDto(
     val tag: String,
     val work_duration: Int,
-    val break_duration: Int
+    val break_duration: Int,
+    val checklist_item_id: String? = null,
 )
 
 data class UpdateSessionDto(
@@ -27,6 +28,7 @@ data class SessionDto(
     val started_at: String,
     val ended_at: String?,
     val completed: Boolean,
+    val checklist_item_id: String? = null,
     val created_at: String,
     val updated_at: String
 )
@@ -81,6 +83,7 @@ fun SessionDto.toEntity(): SessionEntity {
         completed = completed,
         createdAt = Instant.parse(created_at).toEpochMilli(),
         updatedAt = Instant.parse(updated_at).toEpochMilli(),
+        checklistItemId = checklist_item_id,
         isSynced = true
     )
 }
@@ -89,7 +92,8 @@ fun SessionEntity.toCreateDto(): CreateSessionDto {
     return CreateSessionDto(
         tag = tag,
         work_duration = workDuration,
-        break_duration = breakDuration
+        break_duration = breakDuration,
+        checklist_item_id = checklistItemId,
     )
 }
 

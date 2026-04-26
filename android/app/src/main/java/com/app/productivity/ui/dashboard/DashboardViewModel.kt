@@ -5,8 +5,10 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.app.productivity.data.local.AppDatabase
 import com.app.productivity.data.local.entity.CalendarEventEntity
+import com.app.productivity.data.local.entity.ChecklistEntity
 import com.app.productivity.data.remote.RetrofitClient
 import com.app.productivity.data.repository.CalendarRepository
+import com.app.productivity.data.repository.ChecklistRepository
 import com.app.productivity.data.repository.SessionRepository
 import com.app.productivity.data.repository.SleepRepository
 import com.app.productivity.data.repository.SyncManager
@@ -42,11 +44,18 @@ data class WeeklyHighlights(
     val eventsTotal: Int,
 )
 
+data class TodayChecklistSummary(
+    val openItems: List<ChecklistEntity>,
+    val completedCount: Int,
+    val totalCount: Int,
+)
+
 data class DashboardUiState(
     val lastNightSleep: SleepSummary? = null,
     val todayFocus: FocusSummary? = null,
     val upcomingEvents: List<CalendarEventEntity> = emptyList(),
     val weeklyHighlights: WeeklyHighlights? = null,
+    val todayChecklist: TodayChecklistSummary? = null,
     val isLoading: Boolean = false,
     val isSyncing: Boolean = false,
     val lastSyncTime: Long = 0L,
@@ -61,6 +70,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     private val sleepRepo = SleepRepository(sleepDao, api)
     private val sessionRepo = SessionRepository(sessionDao, api)
     private val calendarRepo = CalendarRepository(db.calendarEventDao(), api, AlarmScheduler(application))
+    private val checklistRepo = ChecklistRepository(db.checklistDao(), api)
     private val syncManager = SyncManager(sleepRepo, sessionRepo, calendarRepo)
 
     private val _uiState = MutableStateFlow(DashboardUiState())
@@ -72,6 +82,23 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             sync()
             loadAll()
             _uiState.value = _uiState.value.copy(isLoading = false)
+        }
+        observeTodayChecklist()
+    }
+
+    private fun observeTodayChecklist() {
+        viewModelScope.launch {
+            val todayEpochDay = LocalDate.now().toEpochDay()
+            db.checklistDao().getByDate(todayEpochDay).collect { all ->
+                val open = all.filterNot { it.completed }
+                _uiState.value = _uiState.value.copy(
+                    todayChecklist = TodayChecklistSummary(
+                        openItems = open,
+                        completedCount = all.count { it.completed },
+                        totalCount = all.size,
+                    ),
+                )
+            }
         }
     }
 
@@ -89,6 +116,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         loadFocusSummary()
         loadUpcomingEvents()
         loadWeeklyHighlights()
+        // Today's checklist is observed via observeTodayChecklist() — flow keeps it live.
     }
 
     private suspend fun loadSleepSummary() {
@@ -184,6 +212,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     private suspend fun sync() {
         try {
             syncManager.syncAll().getOrThrow()
+            runCatching { checklistRepo.sync() }
             _uiState.value = _uiState.value.copy(lastSyncTime = System.currentTimeMillis())
         } catch (_: Exception) { }
     }

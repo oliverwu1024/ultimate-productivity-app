@@ -1321,7 +1321,7 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
 
 ---
 
-## Phase 5: Polish & Advanced Features (Weeks 14–17)
+## Phase 5: Polish & Advanced Features (Weeks 14–19)
 
 ### 5.1 — Notifications & Reminders
 
@@ -1553,9 +1553,117 @@ User can disable the whole feature globally if they decide it's annoying.
 
 None — the existing `phone_pickups` table (Phase 1.1) already supports `session_id`, and the `POST /phone-pickups` endpoint (Phase 1.3) already accepts the new rows. The lockout dismissal just calls the existing repository method with the active session ID.
 
+### 5.6 — Daily Checklist + Focus Integration
+
+A lightweight todo list separate from the calendar, with a dropdown on the Sessions screen so you don't have to retype tags. Distinction:
+
+| Calendar event | Checklist item |
+|----------------|----------------|
+| "Study from 2–4pm" | "Review chapter 5" |
+| Has start + end time | Has a due date, no time |
+| Blocking your day | Open todo for the day |
+
+#### 5.6.1 — Backend: schema + endpoints
+
+**Migration `005_create_checklist.sql`:**
+
+```sql
+CREATE TABLE checklist_items (
+    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id         UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    title           VARCHAR(255) NOT NULL,
+    description     TEXT,
+    due_date        DATE NOT NULL,
+    estimated_minutes INT,
+    priority        SMALLINT NOT NULL DEFAULT 1 CHECK (priority IN (0, 1, 2)),
+    completed       BOOLEAN NOT NULL DEFAULT FALSE,
+    completed_at    TIMESTAMPTZ,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_checklist_user_due ON checklist_items(user_id, due_date);
+
+ALTER TABLE productivity_sessions
+ADD COLUMN checklist_item_id UUID REFERENCES checklist_items(id) ON DELETE SET NULL;
+```
+
+**Endpoints:**
+
+| Method | Path                             | Body / Params                       | Response                | Auth? |
+|--------|----------------------------------|-------------------------------------|-------------------------|-------|
+| POST   | `/checklist`                     | `CreateChecklistItem`               | `ChecklistItem`         | Yes   |
+| GET    | `/checklist`                     | `?start=DATE&end=DATE&completed=BOOL` | `Vec<ChecklistItem>`  | Yes   |
+| GET    | `/checklist/today`               | —                                   | `Vec<ChecklistItem>`    | Yes   |
+| PUT    | `/checklist/:id`                 | `UpdateChecklistItem`               | `ChecklistItem`         | Yes   |
+| POST   | `/checklist/:id/complete`        | —                                   | `ChecklistItem`         | Yes   |
+| DELETE | `/checklist/:id`                 | —                                   | 204 No Content          | Yes   |
+| POST   | `/checklist/bulk`                | `Vec<CreateChecklistItem>`          | `Vec<ChecklistItem>`    | Yes   |
+
+`POST /sessions` accepts an optional `checklist_item_id`; the FK is stored on the row so the session→item link is queryable later.
+
+#### 5.6.2 — Android: data layer
+
+`ChecklistEntity`, `ChecklistDao`, `ChecklistRepository` — same offline-first pattern as the other features. DAO highlights:
+- `getByDate(epochDay): Flow<List<ChecklistEntity>>`
+- `getOpenForDate(epochDay): Flow<List<ChecklistEntity>>` — sorted by priority desc
+- `markCompleted(id, completedAt)`
+
+`SessionEntity` gains a nullable `checklistItemId` field. Room migration `MIGRATION_4_5` creates `checklist_items` and adds the column to `productivity_sessions`.
+
+#### 5.6.3 — Checklist screen + 5th nav tab
+
+New top-level destination "**Checklist**" — bottom-nav tab inserted right after **Dashboard** (so order is Dashboard, Checklist, Sleep, Sessions, Calendar).
+
+**Layout:**
+1. **Date selector** (top): "← Today (Mon, Apr 27) →"
+2. **Progress bar**: "3 of 7 done"
+3. **Open items list** — checkbox + title + priority chip + estimated minutes
+4. **Completed items** (collapsed by default) — strikethrough
+5. **FAB** "+" to add a new item
+
+**Add/edit dialog:** title, due date, optional estimated minutes, priority (Low / Med / High), optional description.
+
+#### 5.6.4 — Weekly planning prompt
+
+On app launch, if today is **Sunday or Monday** AND no checklist items exist for the upcoming week, show a one-time-per-week dialog:
+
+> **Plan your week?**
+> Sketch what you want to get done each day. Skip and fill in as you go.
+> [ Plan now ] [ Skip ]
+
+"Plan now" → opens **WeeklyPlannerScreen** — 7-day vertical list, each day a column with an editable list. Saves all items via `POST /checklist/bulk`. Storage: `last_planning_dismissed_week` in DataStore (ISO week number).
+
+#### 5.6.5 — Focus session integration
+
+The closing-the-loop part.
+
+**`SessionsScreen.kt` — dropdown above the tag field** when there are open items for today:
+
+- `ExposedDropdownMenuBox` listing today's open items (title + priority dot)
+- Selecting one fills the tag with the item's title and stores `checklistItemId` in `SessionsUiState`
+- Manual typing still works (clears `checklistItemId`)
+
+**On session start** (`SessionsViewModel.startSession`):
+- Pass `checklistItemId` to `repository.createSession(...)` → backend stores it on the session row
+
+**On session complete:** always prompt:
+> "Mark 'Review chapter 5' as done?"
+> [ Yes ] [ No ]
+> (Cancel / dismiss = No)
+
+"Yes" → `POST /checklist/:id/complete`.
+
+#### 5.6.6 — Dashboard hook
+
+Add a "**Today's checklist**" card to the Dashboard between sleep and focus:
+- "3 of 7 done" + tiny progress bar
+- Top 3 open items as a preview list
+- Tap → navigates to Checklist tab
+
 ---
 
-## Phase 6: AWS Deployment (Weeks 18–21)
+## Phase 6: AWS Deployment (Weeks 20–23)
 
 The full deployment runs on AWS. The architecture below is the standard production pattern: container behind ALB, database in private subnets, secrets out of source code, logs/metrics in CloudWatch, deploys via GitHub Actions.
 
@@ -1907,7 +2015,7 @@ Not part of the v1 build — but worth knowing where you'd grow into AWS later:
 
 ---
 
-## Phase 7: Web Analytics Dashboard (Weeks 22–26)
+## Phase 7: Web Analytics Dashboard (Weeks 24–28)
 
 A Rust/WASM web app focused on analytics and visualization — explores the data the mobile app collects through richer, larger-screen charts. The same Rust/Axum backend serves both clients, so this is purely a new frontend.
 
@@ -2263,9 +2371,9 @@ Two clients, one backend, three deployment targets — a strong demonstration of
 | Phase 2: Pomodoro Sessions | 6–8 | Full pomodoro timer: API + Android screen + streaks + phone detection |
 | Phase 3: Calendar | 9–11 | Full calendar: API + Android screen + recurring events |
 | Phase 4: Dashboard & Sync | 12–13 | Dashboard home screen, background sync across all features |
-| Phase 5: Polish | 14–17 | Notifications, theming, weekly reports, achievements, settings, **pickup confirmation gate** |
-| Phase 6: AWS Deployment | 18–21 | Production app on AWS (ECS Fargate + RDS + ALB + CI/CD) and Google Play Store |
-| Phase 7: Web Analytics Dashboard | 22–26 | Rust/WASM analytics site at `app.your-domain.com` (Leptos + S3 + CloudFront) — full-stack Rust portfolio piece |
-| **Total** | **~26 weeks** | **Production app on AWS + Google Play + analytics website** |
+| Phase 5: Polish | 14–19 | Notifications, theming, weekly reports, achievements, settings, pickup confirmation gate, **daily checklist + focus dropdown** |
+| Phase 6: AWS Deployment | 20–23 | Production app on AWS (ECS Fargate + RDS + ALB + CI/CD) and Google Play Store |
+| Phase 7: Web Analytics Dashboard | 24–28 | Rust/WASM analytics site at `app.your-domain.com` (Leptos + S3 + CloudFront) — full-stack Rust portfolio piece |
+| **Total** | **~28 weeks** | **Production app on AWS + Google Play + analytics website** |
 
 Assumes ~15–20 hours/week. Phase 7 is the "ambitious" extension — skip it if you'd rather ship the mobile app first and add the web frontend as a v2.

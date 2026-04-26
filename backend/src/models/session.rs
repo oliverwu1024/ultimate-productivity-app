@@ -15,6 +15,7 @@ pub struct ProductivitySession {
     pub started_at: DateTime<Utc>,
     pub ended_at: Option<DateTime<Utc>>,
     pub completed: bool,
+    pub checklist_item_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -25,6 +26,8 @@ pub struct CreateSession {
     pub tag: String,
     pub work_duration: i32,
     pub break_duration: i32,
+    #[serde(default)]
+    pub checklist_item_id: Option<Uuid>,
 }
 
 // Request: update session (partial)

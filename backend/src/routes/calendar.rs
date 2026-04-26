@@ -13,7 +13,7 @@ use crate::models::calendar::{CalendarEvent, CreateCalendarEvent, EventCategory}
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/calendar", post(create).get(list))
-        .route("/calendar/{id}", get(get_one).put(update).delete(remove))
+        .route("/calendar/:id", get(get_one).put(update).delete(remove))
 }
 
 #[derive(serde::Deserialize)]

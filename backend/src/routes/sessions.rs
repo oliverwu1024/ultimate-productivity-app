@@ -16,7 +16,7 @@ pub fn router() -> Router<AppState> {
     Router::new()
         .route("/sessions", post(create).get(list))
         .route("/sessions/stats", get(stats))
-        .route("/sessions/{id}", get(get_one).put(update).delete(remove))
+        .route("/sessions/:id", get(get_one).put(update).delete(remove))
 }
 
 #[derive(serde::Deserialize)]
@@ -66,14 +66,15 @@ async fn create(
 
     let session = sqlx::query_as::<_, ProductivitySession>(
         "INSERT INTO productivity_sessions
-            (user_id, tag, duration_minutes, work_duration, break_duration, started_at)
-         VALUES ($1, $2, 0, $3, $4, NOW())
+            (user_id, tag, duration_minutes, work_duration, break_duration, started_at, checklist_item_id)
+         VALUES ($1, $2, 0, $3, $4, NOW(), $5)
          RETURNING *",
     )
     .bind(user_id)
     .bind(input.tag.trim())
     .bind(input.work_duration)
     .bind(input.break_duration)
+    .bind(input.checklist_item_id)
     .fetch_one(&state.pool)
     .await?;
 

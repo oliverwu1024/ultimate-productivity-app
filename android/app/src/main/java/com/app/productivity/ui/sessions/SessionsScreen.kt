@@ -25,11 +25,16 @@ import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuBoxScope
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -47,7 +52,9 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -179,6 +186,21 @@ fun SessionsScreen(viewModel: SessionsViewModel = viewModel()) {
                 }
             }
         }
+    }
+
+    val prompt = uiState.completionPrompt
+    if (prompt != null) {
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissChecklistCompletion() },
+            title = { Text("Mark as done?") },
+            text = { Text("'${prompt.title}'") },
+            confirmButton = {
+                Button(onClick = { viewModel.confirmChecklistCompletion() }) { Text("Yes") }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.dismissChecklistCompletion() }) { Text("No") }
+            },
+        )
     }
 }
 
@@ -326,8 +348,16 @@ private fun TimerControls(uiState: SessionsUiState, viewModel: SessionsViewModel
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun IdleControls(uiState: SessionsUiState, viewModel: SessionsViewModel) {
+    ChecklistDropdown(
+        items = uiState.openChecklistItems,
+        selectedId = uiState.selectedChecklistItemId,
+        onSelect = viewModel::selectChecklistItem,
+    )
+    Spacer(Modifier.height(8.dp))
+
     OutlinedTextField(
         value = uiState.tag,
         onValueChange = { viewModel.updateTag(it) },
@@ -362,6 +392,93 @@ private fun IdleControls(uiState: SessionsUiState, viewModel: SessionsViewModel)
         Icon(Icons.Default.PlayArrow, null, Modifier.size(18.dp))
         Spacer(Modifier.width(8.dp))
         Text("Start Focus")
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ChecklistDropdown(
+    items: List<com.app.productivity.data.local.entity.ChecklistEntity>,
+    selectedId: String?,
+    onSelect: (com.app.productivity.data.local.entity.ChecklistEntity?) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val selected = items.firstOrNull { it.id == selectedId }
+    val text = selected?.title
+        ?: if (items.isEmpty()) "No items for today — add some in Checklist"
+        else "Pick from today's checklist (${items.size})"
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { if (items.isNotEmpty()) expanded = it },
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        OutlinedTextField(
+            value = text,
+            onValueChange = {},
+            readOnly = true,
+            enabled = items.isNotEmpty(),
+            label = { Text("From checklist (optional)") },
+            trailingIcon = {
+                if (items.isNotEmpty()) {
+                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                }
+            },
+            modifier = Modifier
+                .menuAnchor()
+                .fillMaxWidth(),
+        )
+        if (items.isNotEmpty()) {
+            ChecklistMenu(
+                scope = this,
+                expanded = expanded,
+                onDismiss = { expanded = false },
+                items = items,
+                onSelect = onSelect,
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ChecklistMenu(
+    scope: ExposedDropdownMenuBoxScope,
+    expanded: Boolean,
+    onDismiss: () -> Unit,
+    items: List<com.app.productivity.data.local.entity.ChecklistEntity>,
+    onSelect: (com.app.productivity.data.local.entity.ChecklistEntity?) -> Unit,
+) {
+    with(scope) {
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = onDismiss,
+        ) {
+            DropdownMenuItem(
+                text = { Text("(type a custom tag)") },
+                onClick = { onSelect(null); onDismiss() },
+            )
+            items.forEach { item ->
+                val priorityLabel = when (item.priority) {
+                    2 -> "● High"
+                    1 -> "● Med"
+                    else -> "● Low"
+                }
+                DropdownMenuItem(
+                    text = {
+                        Column {
+                            Text(item.title, fontWeight = FontWeight.Medium)
+                            Text(
+                                priorityLabel,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    },
+                    onClick = { onSelect(item); onDismiss() },
+                )
+            }
+        }
     }
 }
 

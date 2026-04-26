@@ -17,5 +17,6 @@ data class SessionEntity(
     val completed: Boolean,
     val createdAt: Long,
     val updatedAt: Long,
-    val isSynced: Boolean = false
+    val checklistItemId: String? = null,
+    val isSynced: Boolean = false,
 )
