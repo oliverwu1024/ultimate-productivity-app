@@ -127,7 +127,7 @@ fun List<SleepRecordEntity>.toLocalStats(): SleepStats {
         avgDurationMinutes = totalDurationMins / count,
         avgQuality = totalQuality / count,
         totalRecords = size.toLong(),
-        sleepDebtMinutes = totalDebtMins,
+        sleepDebtMinutes = totalDebtMins / count,
         avgPhonePickups = totalPickups / count,
         bestQualityDay = best?.second,
         worstQualityDay = worst?.second

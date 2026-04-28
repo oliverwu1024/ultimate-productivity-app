@@ -57,7 +57,32 @@ class PhoneUsageTracker(private val context: Context) {
         return count
     }
 
-    private fun isSystemComponent(packageName: String): Boolean {
+    /**
+     * Returns the package name of whatever app is currently in the foreground, by
+     * scanning the most recent MOVE_TO_FOREGROUND event in the given window. Returns
+     * null if usage access isn't granted or no event is found.
+     */
+    fun getForegroundPackage(lookbackMs: Long = 10_000L): String? {
+        if (!hasPermission()) return null
+        val now = System.currentTimeMillis()
+        val events = usageStatsManager.queryEvents(now - lookbackMs, now)
+        val event = UsageEvents.Event()
+        var latestPackage: String? = null
+        var latestTime = 0L
+        while (events.hasNextEvent()) {
+            events.getNextEvent(event)
+            @Suppress("DEPRECATION")
+            if (event.eventType == UsageEvents.Event.MOVE_TO_FOREGROUND &&
+                event.timeStamp >= latestTime
+            ) {
+                latestTime = event.timeStamp
+                latestPackage = event.packageName
+            }
+        }
+        return latestPackage
+    }
+
+    fun isSystemComponent(packageName: String): Boolean {
         return packageName == "android" ||
                 packageName.contains("launcher") ||
                 packageName.contains("systemui") ||

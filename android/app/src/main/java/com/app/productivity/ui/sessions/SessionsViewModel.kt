@@ -126,7 +126,7 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
     private fun loadSessionsAndStats() {
         viewModelScope.launch {
             repository.getAllSessions().collect { allSessions ->
-                val recent = allSessions.filter { it.completed }.take(10)
+                val recent = allSessions.filter { it.completed }
 
                 val zone = ZoneId.systemDefault()
                 val todayStart = LocalDate.now().atStartOfDay(zone).toInstant().toEpochMilli()
@@ -232,6 +232,12 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
             totalTimeSeconds = state.workDuration * 60,
         )
         startTimer()
+    }
+
+    fun deletePastSession(id: String) {
+        viewModelScope.launch {
+            repository.deleteSession(id)
+        }
     }
 
     fun cancelSession() {

@@ -18,11 +18,14 @@ import com.app.productivity.MainActivity
 import com.app.productivity.ui.lockout.LockoutMode
 import com.app.productivity.ui.lockout.LockoutOverlayController
 import com.app.productivity.util.LockoutNotifier
+import com.app.productivity.util.PhoneUsageTracker
 import com.app.productivity.util.UserPreferences
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -50,6 +53,7 @@ class SleepTrackingService : Service() {
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private lateinit var userPreferences: UserPreferences
+    private var foregroundWatcherJob: Job? = null
 
     private val screenReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -85,6 +89,7 @@ class SleepTrackingService : Service() {
                                     context = appContext,
                                     mode = LockoutMode.SLEEP,
                                     sessionStartedAt = sessionStartTime.value,
+                                    graceMinutes = settings.lockoutGraceMinutes,
                                 )
                             }
                         } else {
@@ -135,8 +140,39 @@ class SleepTrackingService : Service() {
 
         // Pop the gate immediately so the user feels the session has begun.
         showLockoutNow()
+        startForegroundWatcher()
 
         return START_STICKY
+    }
+
+    private fun startForegroundWatcher() {
+        foregroundWatcherJob?.cancel()
+        foregroundWatcherJob = serviceScope.launch {
+            val tracker = PhoneUsageTracker(applicationContext)
+            val ownPackage = applicationContext.packageName
+            while (true) {
+                delay(3_000)
+                val settings = userPreferences.settings.first()
+                if (!settings.lockoutForSleep) continue
+                if (LockoutOverlayController.isShown()) continue
+                if (LockoutOverlayController.isInGracePeriod()) continue
+                val foreground = tracker.getForegroundPackage() ?: continue
+                if (foreground == ownPackage) continue
+                if (tracker.isSystemComponent(foreground)) continue
+
+                if (LockoutOverlayController.canShow(applicationContext)) {
+                    Log.d(TAG, "Foreground=$foreground — re-showing lockout overlay (sleep)")
+                    withContext(Dispatchers.Main) {
+                        LockoutOverlayController.show(
+                            context = applicationContext,
+                            mode = LockoutMode.SLEEP,
+                            sessionStartedAt = sessionStartTime.value,
+                            graceMinutes = settings.lockoutGraceMinutes,
+                        )
+                    }
+                }
+            }
+        }
     }
 
     private fun showLockoutNow() {
@@ -154,6 +190,7 @@ class SleepTrackingService : Service() {
                         context = applicationContext,
                         mode = LockoutMode.SLEEP,
                         sessionStartedAt = sessionStartTime.value,
+                        graceMinutes = settings.lockoutGraceMinutes,
                     )
                 }
             } else {

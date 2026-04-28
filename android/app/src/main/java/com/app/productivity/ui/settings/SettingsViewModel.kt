@@ -5,6 +5,7 @@ import android.provider.Settings
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.app.productivity.BuildConfig
+import com.app.productivity.ui.lockout.LockoutAdmin
 import com.app.productivity.ui.theme.ThemeMode
 import com.app.productivity.util.ReminderPreferences
 import com.app.productivity.util.ThemePreference
@@ -22,6 +23,7 @@ data class SettingsUiState(
     val user: UserSettings? = null,
     val email: String? = null,
     val canDrawOverlays: Boolean = false,
+    val isStrictLockEnabled: Boolean = false,
     val versionName: String = BuildConfig.VERSION_NAME,
     val versionCode: Int = BuildConfig.VERSION_CODE,
 )
@@ -57,7 +59,13 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun refreshOverlayPermission() {
         _uiState.value = _uiState.value.copy(
             canDrawOverlays = Settings.canDrawOverlays(getApplication()),
+            isStrictLockEnabled = LockoutAdmin.isAdminActive(getApplication()),
         )
+    }
+
+    fun disableStrictLock() {
+        LockoutAdmin.disableAdmin(getApplication())
+        refreshOverlayPermission()
     }
 
     fun setThemeMode(mode: ThemeMode) = viewModelScope.launch {
@@ -96,5 +104,9 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     fun setAllowEndSessionFromLockout(enabled: Boolean) = viewModelScope.launch {
         userPreferences.setAllowEndSessionFromLockout(enabled)
+    }
+
+    fun setLockoutGraceMinutes(minutes: Int) = viewModelScope.launch {
+        userPreferences.setLockoutGraceMinutes(minutes)
     }
 }

@@ -26,18 +26,22 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
+private val NightColor = Color(0xFF3F51B5)         // indigo: bedtime 19:00–04:59
+private val MorningNapColor = Color(0xFF26C6DA)    // cyan: bedtime 05:00–11:59
+private val AfternoonNapColor = Color(0xFFFFA726)  // amber: bedtime 12:00–18:59
+
 private data class ChartData(
-    val greenSeries: List<Number>,
-    val yellowSeries: List<Number>,
-    val redSeries: List<Number>,
+    val nightSeries: List<Number>,
+    val morningSeries: List<Number>,
+    val afternoonSeries: List<Number>,
     val dayLabels: List<String>,
-    val targetHours: Double
+    val targetHours: Double,
 )
 
 @Composable
 fun SleepChart(
     records: List<SleepRecordEntity>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val modelProducer = remember { CartesianChartModelProducer() }
 
@@ -46,9 +50,9 @@ fun SleepChart(
     LaunchedEffect(chartData) {
         modelProducer.runTransaction {
             columnSeries {
-                series(chartData.greenSeries)
-                series(chartData.yellowSeries)
-                series(chartData.redSeries)
+                series(chartData.nightSeries)
+                series(chartData.morningSeries)
+                series(chartData.afternoonSeries)
             }
         }
     }
@@ -57,8 +61,8 @@ fun SleepChart(
         y = { chartData.targetHours },
         line = rememberLineComponent(
             fill = fill(Color(0xFF9E9E9E)),
-            thickness = 1.dp
-        )
+            thickness = 1.dp,
+        ),
     )
 
     CartesianChartHost(
@@ -66,34 +70,45 @@ fun SleepChart(
             rememberColumnCartesianLayer(
                 columnProvider = ColumnCartesianLayer.ColumnProvider.series(
                     rememberLineComponent(
-                        fill = fill(Color(0xFF4CAF50)),
+                        fill = fill(NightColor),
                         thickness = 16.dp,
-                        shape = CorneredShape.rounded(allPercent = 25)
+                        shape = CorneredShape.rounded(allPercent = 25),
                     ),
                     rememberLineComponent(
-                        fill = fill(Color(0xFFFFC107)),
+                        fill = fill(MorningNapColor),
                         thickness = 16.dp,
-                        shape = CorneredShape.rounded(allPercent = 25)
+                        shape = CorneredShape.rounded(allPercent = 25),
                     ),
                     rememberLineComponent(
-                        fill = fill(Color(0xFFF44336)),
+                        fill = fill(AfternoonNapColor),
                         thickness = 16.dp,
-                        shape = CorneredShape.rounded(allPercent = 25)
-                    )
+                        shape = CorneredShape.rounded(allPercent = 25),
+                    ),
                 ),
-                mergeMode = { ColumnCartesianLayer.MergeMode.Stacked }
+                mergeMode = { ColumnCartesianLayer.MergeMode.Stacked },
             ),
             startAxis = VerticalAxis.rememberStart(),
             bottomAxis = HorizontalAxis.rememberBottom(
                 valueFormatter = { _, value, _ ->
                     chartData.dayLabels.getOrElse(value.toInt()) { "" }
-                }
+                },
             ),
-            decorations = listOf(targetLine)
+            decorations = listOf(targetLine),
         ),
         modelProducer = modelProducer,
-        modifier = modifier
+        modifier = modifier,
     )
+}
+
+private enum class TimeOfDay { NIGHT, MORNING_NAP, AFTERNOON_NAP }
+
+private fun classifyByBedtime(epochMs: Long, zone: ZoneId): TimeOfDay {
+    val hour = Instant.ofEpochMilli(epochMs).atZone(zone).hour
+    return when (hour) {
+        in 5..11 -> TimeOfDay.MORNING_NAP
+        in 12..18 -> TimeOfDay.AFTERNOON_NAP
+        else -> TimeOfDay.NIGHT // 19–23 and 0–4
+    }
 }
 
 private fun processRecordsForChart(records: List<SleepRecordEntity>): ChartData {
@@ -106,37 +121,48 @@ private fun processRecordsForChart(records: List<SleepRecordEntity>): ChartData 
         Instant.ofEpochMilli(record.actualBedtime).atZone(zone).toLocalDate()
     }
 
-    val green = mutableListOf<Number>()
-    val yellow = mutableListOf<Number>()
-    val red = mutableListOf<Number>()
+    val night = mutableListOf<Number>()
+    val morning = mutableListOf<Number>()
+    val afternoon = mutableListOf<Number>()
     var totalTargetHours = 0.0
     var targetCount = 0
 
     for (day in days) {
         val dayRecords = recordsByDay[day]
-        if (dayRecords != null && dayRecords.isNotEmpty()) {
-            val record = dayRecords.first()
-            val hours = (record.actualWakeTime - record.actualBedtime).toDouble() / 3_600_000
-
-            when {
-                record.qualityRating >= 4 -> { green.add(hours); yellow.add(0); red.add(0) }
-                record.qualityRating == 3 -> { green.add(0); yellow.add(hours); red.add(0) }
-                else -> { green.add(0); yellow.add(0); red.add(hours) }
-            }
-
-            val bedParts = record.targetBedtime.split(":")
-            val bedSecs = bedParts[0].toInt() * 3600 + bedParts[1].toInt() * 60
-            val wakeParts = record.targetWakeTime.split(":")
-            val wakeSecs = wakeParts[0].toInt() * 3600 + wakeParts[1].toInt() * 60
-            val targetSecs = if (wakeSecs >= bedSecs) wakeSecs - bedSecs else 86400 + wakeSecs - bedSecs
-            totalTargetHours += targetSecs.toDouble() / 3600
-            targetCount++
-        } else {
-            green.add(0); yellow.add(0); red.add(0)
+        if (dayRecords.isNullOrEmpty()) {
+            night.add(0); morning.add(0); afternoon.add(0)
+            continue
         }
+
+        var nightHrs = 0.0
+        var morningHrs = 0.0
+        var afternoonHrs = 0.0
+
+        for (record in dayRecords) {
+            val hours = (record.actualWakeTime - record.actualBedtime).toDouble() / 3_600_000
+            when (classifyByBedtime(record.actualBedtime, zone)) {
+                TimeOfDay.NIGHT -> nightHrs += hours
+                TimeOfDay.MORNING_NAP -> morningHrs += hours
+                TimeOfDay.AFTERNOON_NAP -> afternoonHrs += hours
+            }
+        }
+
+        night.add(nightHrs)
+        morning.add(morningHrs)
+        afternoon.add(afternoonHrs)
+
+        // Use the first record's target as a representative for this day.
+        val ref = dayRecords.first()
+        val bedParts = ref.targetBedtime.split(":")
+        val bedSecs = bedParts[0].toInt() * 3600 + bedParts[1].toInt() * 60
+        val wakeParts = ref.targetWakeTime.split(":")
+        val wakeSecs = wakeParts[0].toInt() * 3600 + wakeParts[1].toInt() * 60
+        val targetSecs = if (wakeSecs >= bedSecs) wakeSecs - bedSecs else 86400 + wakeSecs - bedSecs
+        totalTargetHours += targetSecs.toDouble() / 3600
+        targetCount++
     }
 
     val targetHours = if (targetCount > 0) totalTargetHours / targetCount else 8.0
 
-    return ChartData(green, yellow, red, dayLabels, targetHours)
+    return ChartData(night, morning, afternoon, dayLabels, targetHours)
 }

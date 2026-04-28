@@ -3,17 +3,20 @@ package com.app.productivity.ui.auth
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.app.productivity.data.local.AppDatabase
 import com.app.productivity.data.remote.ApiService
 import com.app.productivity.data.remote.RetrofitClient
 import com.app.productivity.data.remote.dto.LoginRequest
 import com.app.productivity.data.remote.dto.RegisterRequest
 import com.app.productivity.util.TokenManager
 import com.app.productivity.util.UserPreferences
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 data class AuthUiState(
     val isLoading: Boolean = false,
@@ -129,6 +132,55 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                 isLoggedIn = false,
                 isCheckingAuth = false,
             )
+        }
+    }
+
+    fun deleteAccount() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            try {
+                api.deleteAccount()
+                scrubLocalState(includeAuth = true, includePreferences = true)
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    isLoggedIn = false,
+                    isCheckingAuth = false,
+                    onboardingCompleted = false,
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = e.message ?: "Failed to delete account",
+                )
+            }
+        }
+    }
+
+    fun resetAccount() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            try {
+                api.resetAccount()
+                scrubLocalState(includeAuth = false, includePreferences = false)
+                _uiState.value = _uiState.value.copy(isLoading = false)
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = e.message ?: "Failed to reset account",
+                )
+            }
+        }
+    }
+
+    private suspend fun scrubLocalState(includeAuth: Boolean, includePreferences: Boolean) {
+        withContext(Dispatchers.IO) {
+            AppDatabase.getInstance(getApplication()).clearAllTables()
+        }
+        if (includeAuth) {
+            tokenManager.clearToken()
+        }
+        if (includePreferences) {
+            userPreferences.clearAll()
         }
     }
 

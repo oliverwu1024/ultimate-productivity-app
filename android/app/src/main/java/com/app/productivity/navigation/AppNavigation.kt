@@ -45,6 +45,7 @@ import com.app.productivity.ui.dashboard.DashboardScreen
 import com.app.productivity.ui.onboarding.OnboardingScreen
 import com.app.productivity.ui.reports.WeeklyReportScreen
 import com.app.productivity.ui.sessions.SessionsScreen
+import com.app.productivity.ui.settings.ChangePasswordScreen
 import com.app.productivity.ui.settings.RemindersScreen
 import com.app.productivity.ui.settings.SettingsScreen
 import com.app.productivity.ui.sleep.SleepScreen
@@ -63,6 +64,7 @@ sealed class Screen(val route: String) {
     data object Settings : Screen("settings")
     data object Reminders : Screen("reminders")
     data object Reports : Screen("reports")
+    data object ChangePassword : Screen("change_password")
 }
 
 data class BottomNavItem(
@@ -75,7 +77,7 @@ val bottomNavItems = listOf(
     BottomNavItem(Screen.Dashboard, "Dashboard", Icons.Filled.Dashboard),
     BottomNavItem(Screen.Checklist, "Checklist", Icons.Filled.Checklist),
     BottomNavItem(Screen.Sleep, "Sleep", Icons.Filled.Nightlight),
-    BottomNavItem(Screen.Sessions, "Sessions", Icons.Filled.Timer),
+    BottomNavItem(Screen.Sessions, "Focus", Icons.Filled.Timer),
     BottomNavItem(Screen.Calendar, "Calendar", Icons.Filled.CalendarMonth),
 )
 
@@ -188,11 +190,17 @@ fun AppNavigation(
                     onBack = { navController.popBackStack() },
                     onNavigateToReminders = { navController.navigate(Screen.Reminders.route) },
                     onNavigateToReports = { navController.navigate(Screen.Reports.route) },
+                    onNavigateToChangePassword = { navController.navigate(Screen.ChangePassword.route) },
                     onLogout = { authViewModel.logout() },
+                    onResetAccount = { authViewModel.resetAccount() },
+                    onDeleteAccount = { authViewModel.deleteAccount() },
                 )
             }
             composable(Screen.Reminders.route) {
                 RemindersScreen(onBack = { navController.popBackStack() })
+            }
+            composable(Screen.ChangePassword.route) {
+                ChangePasswordScreen(onBack = { navController.popBackStack() })
             }
             composable(Screen.Reports.route) {
                 WeeklyReportScreen(onBack = { navController.popBackStack() })

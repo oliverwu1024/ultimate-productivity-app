@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
@@ -30,6 +32,10 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import com.app.productivity.util.PasswordStrength
 
 @Composable
 fun RegisterScreen(
@@ -89,6 +95,11 @@ fun RegisterScreen(
             modifier = Modifier.fillMaxWidth()
         )
 
+        if (password.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(8.dp))
+            PasswordStrengthChecklist(password = password)
+        }
+
         Spacer(modifier = Modifier.height(12.dp))
 
         OutlinedTextField(
@@ -127,7 +138,10 @@ fun RegisterScreen(
                     onRegister(email, password)
                 }
             },
-            enabled = !uiState.isLoading && email.isNotBlank() && password.isNotBlank() && confirmPassword.isNotBlank(),
+            enabled = !uiState.isLoading
+                && email.isNotBlank()
+                && PasswordStrength.isValid(password)
+                && confirmPassword.isNotBlank(),
             modifier = Modifier.fillMaxWidth()
         ) {
             if (uiState.isLoading) {
@@ -144,6 +158,36 @@ fun RegisterScreen(
 
         TextButton(onClick = onNavigateToLogin) {
             Text("Already have an account? Login")
+        }
+    }
+}
+
+@Composable
+fun PasswordStrengthChecklist(password: String) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        PasswordStrength.checks(password).forEach { check ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = if (check.passed) Icons.Filled.Check else Icons.Filled.Close,
+                    contentDescription = null,
+                    modifier = Modifier.size(14.dp),
+                    tint = if (check.passed) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = check.label,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (check.passed) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                )
+            }
         }
     }
 }
