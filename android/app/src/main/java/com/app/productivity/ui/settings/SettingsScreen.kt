@@ -36,6 +36,9 @@ import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -56,6 +59,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -67,6 +73,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.app.productivity.ui.lockout.LockoutAdmin
 import com.app.productivity.ui.theme.ThemeMode
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -77,7 +84,10 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onNavigateToReminders: () -> Unit,
     onNavigateToReports: () -> Unit,
+    onNavigateToChangePassword: () -> Unit,
     onLogout: () -> Unit,
+    onResetAccount: () -> Unit,
+    onDeleteAccount: () -> Unit,
     viewModel: SettingsViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -170,8 +180,8 @@ fun SettingsScreen(
             item {
                 StepperCard(
                     icon = Icons.Default.Timer,
-                    title = "Break duration",
-                    description = "Length of breaks between work blocks",
+                    title = "Rest duration",
+                    description = "Length of rest between work blocks",
                     value = user.defaultBreakDuration,
                     suffix = "min",
                     step = 1,
@@ -229,6 +239,33 @@ fun SettingsScreen(
                     onCheckedChange = viewModel::setAllowEndSessionFromLockout,
                 )
             }
+            item {
+                StrictLockCard(
+                    enabled = uiState.isStrictLockEnabled,
+                    onEnable = {
+                        val intent = LockoutAdmin.buildEnableIntent(
+                            context,
+                            "When you tap 'Stay locked' during a focus or sleep session, this " +
+                                "lets the app lock the screen. Unlocking re-shows the lockout " +
+                                "overlay, so you stay in a hard focus loop until the session ends.",
+                        )
+                        context.startActivity(intent)
+                    },
+                    onDisable = { viewModel.disableStrictLock() },
+                )
+            }
+            item {
+                StepperCard(
+                    icon = Icons.Default.Timer,
+                    title = "Phone break duration",
+                    description = "Quiet window after tapping 'Yes, I need my phone' before the lockout snaps back",
+                    value = user.lockoutGraceMinutes,
+                    suffix = "min",
+                    step = 1,
+                    range = 1..10,
+                    onValueChange = viewModel::setLockoutGraceMinutes,
+                )
+            }
 
             item { SectionHeader("Notifications") }
             item {
@@ -252,6 +289,8 @@ fun SettingsScreen(
 
             item { SectionHeader("Account") }
             item {
+                var showResetDialog by remember { mutableStateOf(false) }
+                var showDeleteDialog by remember { mutableStateOf(false) }
                 Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -269,12 +308,83 @@ fun SettingsScreen(
                                 )
                             }
                         }
+                        OutlinedButton(onClick = onNavigateToChangePassword) {
+                            Icon(Icons.Default.Lock, null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("Change password")
+                        }
                         OutlinedButton(onClick = onLogout) {
                             Icon(Icons.AutoMirrored.Filled.Logout, null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(8.dp))
                             Text("Log out")
                         }
+                        OutlinedButton(onClick = { showResetDialog = true }) {
+                            Text("Reset all data")
+                        }
+                        OutlinedButton(
+                            onClick = { showDeleteDialog = true },
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = MaterialTheme.colorScheme.error,
+                            ),
+                        ) {
+                            Text("Delete account")
+                        }
                     }
+                }
+
+                if (showResetDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showResetDialog = false },
+                        title = { Text("Reset all data?") },
+                        text = {
+                            Text(
+                                "Permanently deletes every sleep record, focus session, " +
+                                    "checklist item, and calendar event tied to your account. " +
+                                    "Your login stays — you can start fresh.",
+                            )
+                        },
+                        confirmButton = {
+                            Button(
+                                onClick = {
+                                    showResetDialog = false
+                                    onResetAccount()
+                                },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.error,
+                                ),
+                            ) { Text("Reset") }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showResetDialog = false }) { Text("Cancel") }
+                        },
+                    )
+                }
+
+                if (showDeleteDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showDeleteDialog = false },
+                        title = { Text("Delete account?") },
+                        text = {
+                            Text(
+                                "Permanently deletes your account and every record on it. " +
+                                    "You'll be logged out and the app will reset to onboarding.",
+                            )
+                        },
+                        confirmButton = {
+                            Button(
+                                onClick = {
+                                    showDeleteDialog = false
+                                    onDeleteAccount()
+                                },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.error,
+                                ),
+                            ) { Text("Delete") }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showDeleteDialog = false }) { Text("Cancel") }
+                        },
+                    )
                 }
             }
 
@@ -521,6 +631,53 @@ private fun OverlayPermissionCard(
                 ) {
                     Text("Grant permission")
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StrictLockCard(
+    enabled: Boolean,
+    onEnable: () -> Unit,
+    onDisable: () -> Unit,
+) {
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+        ),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Icon(Icons.Default.Lock, null, tint = MaterialTheme.colorScheme.primary)
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        "Strict lock (Device Admin)",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Medium,
+                    )
+                    Text(
+                        if (enabled) {
+                            "Enabled — 'Stay locked' will lock the screen during sessions"
+                        } else {
+                            "Off — 'Stay locked' just dismisses the overlay. Enable to lock the screen instead."
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            OutlinedButton(
+                onClick = if (enabled) onDisable else onEnable,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(if (enabled) "Disable strict lock" else "Enable strict lock")
             }
         }
     }

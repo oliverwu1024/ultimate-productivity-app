@@ -1,6 +1,6 @@
 use axum::extract::State;
 use axum::http::StatusCode;
-use axum::routing::{get, post};
+use axum::routing::{delete, get, post};
 use axum::{Json, Router};
 use chrono::Utc;
 use jsonwebtoken::{encode, EncodingKey, Header};
@@ -9,7 +9,7 @@ use uuid::Uuid;
 use crate::config::AppState;
 use crate::error::AppError;
 use crate::middleware::auth::Claims;
-use crate::models::user::{AuthResponse, CreateUser, LoginUser, User, UserResponse};
+use crate::models::user::{AuthResponse, ChangePassword, CreateUser, LoginUser, User, UserResponse};
 
 use argon2::{
     password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
@@ -21,6 +21,9 @@ pub fn router() -> Router<AppState> {
         .route("/auth/register", post(register))
         .route("/auth/login", post(login))
         .route("/auth/me", get(me))
+        .route("/auth/me", delete(delete_account))
+        .route("/auth/reset", post(reset_account))
+        .route("/auth/password", post(change_password))
 }
 
 async fn register(
@@ -32,13 +35,7 @@ async fn register(
         return Err(AppError::new(StatusCode::BAD_REQUEST, "Invalid email"));
     }
 
-    // Validate password length
-    if input.password.len() < 8 {
-        return Err(AppError::new(
-            StatusCode::BAD_REQUEST,
-            "Password must be at least 8 characters",
-        ));
-    }
+    validate_password_strength(&input.password)?;
 
     // Hash password
     let salt = SaltString::generate(&mut OsRng);
@@ -103,10 +100,7 @@ async fn me(
     State(state): State<AppState>,
     claims: Claims,
 ) -> Result<Json<UserResponse>, AppError> {
-    let user_id = claims
-        .sub
-        .parse::<Uuid>()
-        .map_err(|_| AppError::new(StatusCode::UNAUTHORIZED, "Invalid token"))?;
+    let user_id = parse_user_id(&claims)?;
 
     let user = sqlx::query_as::<_, User>("SELECT * FROM users WHERE id = $1")
         .bind(user_id)
@@ -115,6 +109,123 @@ async fn me(
         .ok_or_else(|| AppError::new(StatusCode::UNAUTHORIZED, "User not found"))?;
 
     Ok(Json(user.into()))
+}
+
+async fn delete_account(
+    State(state): State<AppState>,
+    claims: Claims,
+) -> Result<StatusCode, AppError> {
+    let user_id = parse_user_id(&claims)?;
+    // ON DELETE CASCADE on user_id columns wipes sleep records, sessions, calendar
+    // events, checklist items, phone pickups, etc. in one shot.
+    let result = sqlx::query("DELETE FROM users WHERE id = $1")
+        .bind(user_id)
+        .execute(&state.pool)
+        .await?;
+    if result.rows_affected() == 0 {
+        return Err(AppError::new(StatusCode::NOT_FOUND, "User not found"));
+    }
+    Ok(StatusCode::NO_CONTENT)
+}
+
+async fn reset_account(
+    State(state): State<AppState>,
+    claims: Claims,
+) -> Result<StatusCode, AppError> {
+    let user_id = parse_user_id(&claims)?;
+    // Wipe data tables but keep the user row + auth credentials.
+    // Order matters only for tables without CASCADE on each other.
+    let mut tx = state.pool.begin().await?;
+    sqlx::query("DELETE FROM phone_pickups WHERE user_id = $1")
+        .bind(user_id).execute(&mut *tx).await?;
+    sqlx::query("DELETE FROM productivity_sessions WHERE user_id = $1")
+        .bind(user_id).execute(&mut *tx).await?;
+    sqlx::query("DELETE FROM sleep_records WHERE user_id = $1")
+        .bind(user_id).execute(&mut *tx).await?;
+    sqlx::query("DELETE FROM calendar_events WHERE user_id = $1")
+        .bind(user_id).execute(&mut *tx).await?;
+    sqlx::query("DELETE FROM checklist_items WHERE user_id = $1")
+        .bind(user_id).execute(&mut *tx).await?;
+    tx.commit().await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+async fn change_password(
+    State(state): State<AppState>,
+    claims: Claims,
+    Json(input): Json<ChangePassword>,
+) -> Result<StatusCode, AppError> {
+    let user_id = parse_user_id(&claims)?;
+
+    // Look up current hash
+    let user = sqlx::query_as::<_, User>("SELECT * FROM users WHERE id = $1")
+        .bind(user_id)
+        .fetch_optional(&state.pool)
+        .await?
+        .ok_or_else(|| AppError::new(StatusCode::UNAUTHORIZED, "User not found"))?;
+
+    // Verify current password
+    let parsed_hash = PasswordHash::new(&user.password_hash)
+        .map_err(|_| AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "Internal server error"))?;
+    Argon2::default()
+        .verify_password(input.current_password.as_bytes(), &parsed_hash)
+        .map_err(|_| AppError::new(StatusCode::UNAUTHORIZED, "Current password is incorrect"))?;
+
+    // Validate new password
+    validate_password_strength(&input.new_password)?;
+    if input.new_password == input.current_password {
+        return Err(AppError::new(
+            StatusCode::BAD_REQUEST,
+            "New password must differ from the current password",
+        ));
+    }
+
+    // Hash and store
+    let salt = SaltString::generate(&mut OsRng);
+    let new_hash = Argon2::default()
+        .hash_password(input.new_password.as_bytes(), &salt)
+        .map_err(|_| AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "Failed to hash password"))?
+        .to_string();
+
+    sqlx::query("UPDATE users SET password_hash = $1 WHERE id = $2")
+        .bind(&new_hash)
+        .bind(user_id)
+        .execute(&state.pool)
+        .await?;
+
+    Ok(StatusCode::NO_CONTENT)
+}
+
+fn validate_password_strength(password: &str) -> Result<(), AppError> {
+    if password.len() < 8 {
+        return Err(AppError::new(
+            StatusCode::BAD_REQUEST,
+            "Password must be at least 8 characters",
+        ));
+    }
+    let has_upper = password.chars().any(|c| c.is_ascii_uppercase());
+    let has_lower = password.chars().any(|c| c.is_ascii_lowercase());
+    let has_digit = password.chars().any(|c| c.is_ascii_digit());
+    let has_special = password.chars().any(|c| !c.is_ascii_alphanumeric() && !c.is_whitespace());
+    let mut missing: Vec<&str> = Vec::new();
+    if !has_upper { missing.push("uppercase letter"); }
+    if !has_lower { missing.push("lowercase letter"); }
+    if !has_digit { missing.push("digit"); }
+    if !has_special { missing.push("special character"); }
+    if !missing.is_empty() {
+        return Err(AppError::new(
+            StatusCode::BAD_REQUEST,
+            format!("Password must include: {}", missing.join(", ")),
+        ));
+    }
+    Ok(())
+}
+
+fn parse_user_id(claims: &Claims) -> Result<Uuid, AppError> {
+    claims
+        .sub
+        .parse::<Uuid>()
+        .map_err(|_| AppError::new(StatusCode::UNAUTHORIZED, "Invalid token"))
 }
 
 fn create_token(user_id: &Uuid, jwt_secret: &str) -> Result<String, AppError> {

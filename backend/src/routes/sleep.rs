@@ -307,7 +307,7 @@ async fn stats(
         avg_duration_minutes: total_duration_mins / count,
         avg_quality: total_quality / count,
         total_records: records.len() as i64,
-        sleep_debt_minutes: total_debt_mins,
+        sleep_debt_minutes: total_debt_mins / count,
         avg_phone_pickups: total_pickups / count,
         best_quality_day: best.map(|(_, d)| d),
         worst_quality_day: worst.map(|(_, d)| d),

@@ -2,6 +2,7 @@ package com.app.productivity.data.remote
 
 import com.app.productivity.data.remote.dto.AuthResponse
 import com.app.productivity.data.remote.dto.CalendarEventDto
+import com.app.productivity.data.remote.dto.ChangePasswordRequest
 import com.app.productivity.data.remote.dto.ChecklistItemDto
 import com.app.productivity.data.remote.dto.CreateCalendarEventDto
 import com.app.productivity.data.remote.dto.CreateChecklistItemDto
@@ -33,6 +34,15 @@ interface ApiService {
 
     @GET("auth/me")
     suspend fun getMe(): UserResponse
+
+    @DELETE("auth/me")
+    suspend fun deleteAccount()
+
+    @POST("auth/reset")
+    suspend fun resetAccount()
+
+    @POST("auth/password")
+    suspend fun changePassword(@Body request: ChangePasswordRequest)
 
     @POST("sleep")
     suspend fun createSleepRecord(@Body record: CreateSleepRecordDto): SleepRecordDto

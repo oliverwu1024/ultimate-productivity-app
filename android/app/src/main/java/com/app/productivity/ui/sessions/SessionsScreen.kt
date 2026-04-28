@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.PlayArrow
@@ -44,9 +45,13 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberSwipeToDismissBoxState
+import androidx.compose.foundation.background
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -102,87 +107,85 @@ fun SessionsScreen(viewModel: SessionsViewModel = viewModel()) {
         topBar = { TopAppBar(title = { Text("Focus Timer") }) },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            // Usage permission banner
             if (!uiState.hasUsagePermission && uiState.timerState == TimerState.IDLE) {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 4.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer
-                    )
-                ) {
-                    Row(
+                item(key = "usage-banner") {
+                    Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            "Enable Usage Access to track distractions",
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.weight(1f)
+                            .padding(horizontal = 16.dp, vertical = 4.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer
                         )
-                        TextButton(onClick = { viewModel.openUsageSettings() }) {
-                            Text("Enable")
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                "Enable Usage Access to track distractions",
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.weight(1f)
+                            )
+                            TextButton(onClick = { viewModel.openUsageSettings() }) {
+                                Text("Enable")
+                            }
                         }
                     }
                 }
             }
 
-            // 1. Today's stats bar
-            AnimatedAppear { TodayStatsBar(uiState.todayStats) }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // 2. Timer circle with time display
-            TimerSection(uiState)
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // 3. Controls
-            TimerControls(uiState, viewModel)
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // 4. Recent sessions
-            if (uiState.recentSessions.isNotEmpty()) {
-                Text(
-                    "Recent Sessions",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                )
-                Spacer(modifier = Modifier.height(8.dp))
+            item(key = "today-stats") {
+                AnimatedAppear { TodayStatsBar(uiState.todayStats) }
             }
 
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                contentPadding = PaddingValues(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                if (uiState.recentSessions.isEmpty() && uiState.timerState == TimerState.IDLE) {
-                    item {
-                        EmptyState(
-                            icon = Icons.Default.SelfImprovement,
-                            title = "Ready to focus?",
-                            body = "Tag a task, pick durations, and start your first focus block.",
-                        )
-                    }
+            item(key = "timer") { TimerSection(uiState) }
+
+            item(key = "controls") {
+                Box(modifier = Modifier.padding(top = 8.dp)) {
+                    TimerControls(uiState, viewModel)
+                }
+            }
+
+            if (uiState.recentSessions.isEmpty() && uiState.timerState == TimerState.IDLE) {
+                item(key = "empty") {
+                    EmptyState(
+                        icon = Icons.Default.SelfImprovement,
+                        title = "Ready to focus?",
+                        body = "Tag a task, pick durations, and start your first focus block.",
+                    )
+                }
+            } else if (uiState.recentSessions.isNotEmpty()) {
+                item(key = "recent-header") {
+                    Text(
+                        "Past Sessions",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
                 }
                 items(uiState.recentSessions, key = { it.id }) { session ->
-                    SessionItem(session, modifier = Modifier.animateItem())
+                    SessionItem(
+                        session = session,
+                        onDelete = { viewModel.deletePastSession(session.id) },
+                        modifier = Modifier
+                            .padding(horizontal = 16.dp)
+                            .animateItem(),
+                    )
+                }
+                item(key = "bottom-spacer") {
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
             }
         }
@@ -280,7 +283,7 @@ private fun TimerSection(uiState: SessionsUiState) {
             )
             if (uiState.timerState != TimerState.IDLE) {
                 Text(
-                    text = if (isWork) "WORK" else "BREAK",
+                    text = if (isWork) "WORK" else "REST",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Medium,
                     color = if (isWork) Color(0xFF4CAF50) else Color(0xFFFF9800)
@@ -340,7 +343,7 @@ private fun TimerControls(uiState: SessionsUiState, viewModel: SessionsViewModel
                 onPause = { viewModel.skipBreak() },
                 onCancel = { viewModel.cancelSession() },
                 onComplete = { viewModel.completeSession() },
-                primaryLabel = "Skip Break",
+                primaryLabel = "Skip Rest",
                 primaryIcon = { Icon(Icons.Default.SkipNext, null, Modifier.size(18.dp)) }
             )
             TimerState.FINISHED -> {}
@@ -378,7 +381,7 @@ private fun IdleControls(uiState: SessionsUiState, viewModel: SessionsViewModel)
             onIncrease = { viewModel.updateWorkDuration(uiState.workDuration + 5) }
         )
         DurationPicker(
-            label = "Break",
+            label = "Rest",
             value = uiState.breakDuration,
             onDecrease = { viewModel.updateBreakDuration(uiState.breakDuration - 1) },
             onIncrease = { viewModel.updateBreakDuration(uiState.breakDuration + 1) }
@@ -554,8 +557,68 @@ private fun ActiveControls(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SessionItem(session: SessionEntity, modifier: Modifier = Modifier) {
+private fun SessionItem(
+    session: SessionEntity,
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var pendingDelete by remember { mutableStateOf(false) }
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            if (value == SwipeToDismissBoxValue.EndToStart) {
+                pendingDelete = true
+            }
+            // Never let the swipe auto-confirm — we wait for the dialog.
+            false
+        }
+    )
+
+    if (pendingDelete) {
+        AlertDialog(
+            onDismissRequest = { pendingDelete = false },
+            title = { Text("Delete session?") },
+            text = { Text("This will permanently remove '${session.tag}'.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        pendingDelete = false
+                        onDelete()
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
+                ) { Text("Delete") }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDelete = false }) { Text("Cancel") }
+            },
+        )
+    }
+
+    SwipeToDismissBox(
+        state = dismissState,
+        modifier = modifier,
+        backgroundContent = {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.error, RoundedCornerShape(12.dp))
+                    .padding(horizontal = 20.dp),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                Icon(Icons.Default.Delete, "Delete", tint = MaterialTheme.colorScheme.onError)
+            }
+        },
+        enableDismissFromStartToEnd = false,
+    ) {
+        SessionItemContent(session)
+    }
+}
+
+@Composable
+private fun SessionItemContent(session: SessionEntity) {
     val zone = ZoneId.systemDefault()
     val dateStr = Instant.ofEpochMilli(session.startedAt)
         .atZone(zone)
@@ -566,7 +629,7 @@ private fun SessionItem(session: SessionEntity, modifier: Modifier = Modifier) {
 
     Card(
         shape = RoundedCornerShape(12.dp),
-        modifier = modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth()
     ) {
         Row(
             modifier = Modifier

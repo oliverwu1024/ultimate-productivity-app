@@ -19,6 +19,7 @@ import com.app.productivity.service.SleepTrackingService
 import com.app.productivity.util.TokenManager
 import com.app.productivity.util.UserPreferences
 import java.time.LocalTime
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -41,12 +42,16 @@ data class SleepUiState(
     val sessionStartTime: Long = 0L,
     val pickupEvents: List<PickupEvent> = emptyList(),
     // Dialogs
+    val showSetTargetDialog: Boolean = false,
     val showEndSleepDialog: Boolean = false,
     val showManualLogDialog: Boolean = false,
     // Snapshot of session data at end (for EndSleepDialog)
     val endedSessionStart: Long = 0L,
     val endedPickupEvents: List<PickupEvent> = emptyList(),
-    // User-configured targets
+    // Per-session targets, captured when user confirms the pre-sleep dialog.
+    val sessionTargetBedtime: LocalTime = LocalTime.now(),
+    val sessionTargetWakeTime: LocalTime = LocalTime.now().plusHours(8),
+    // Defaults for the manual-log dialog only.
     val targetBedtime: LocalTime = LocalTime.of(22, 0),
     val targetWakeTime: LocalTime = LocalTime.of(6, 0),
 )
@@ -65,6 +70,7 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
     val uiState: StateFlow<SleepUiState> = _uiState
 
     private var userId: String = ""
+    private var recordsJob: Job? = null
 
     init {
         viewModelScope.launch {
@@ -103,6 +109,24 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
             )
             return
         }
+        // Show the per-session target dialog before actually starting tracking.
+        _uiState.value = _uiState.value.copy(
+            showSetTargetDialog = true,
+            sessionTargetBedtime = LocalTime.now(),
+            sessionTargetWakeTime = LocalTime.now().plusHours(8),
+        )
+    }
+
+    fun dismissSetTargetDialog() {
+        _uiState.value = _uiState.value.copy(showSetTargetDialog = false)
+    }
+
+    fun confirmStartSleepSession(targetWakeTime: LocalTime) {
+        _uiState.value = _uiState.value.copy(
+            showSetTargetDialog = false,
+            sessionTargetBedtime = LocalTime.now(),
+            sessionTargetWakeTime = targetWakeTime,
+        )
         val context = getApplication<Application>()
         val intent = Intent(context, SleepTrackingService::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -134,8 +158,8 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
             val phoneMinutes = totalPhoneSeconds / 60
 
             val dto = CreateSleepRecordDto(
-                target_bedtime = formatTargetTime(state.targetBedtime),
-                target_wake_time = formatTargetTime(state.targetWakeTime),
+                target_bedtime = formatTargetTime(state.sessionTargetBedtime),
+                target_wake_time = formatTargetTime(state.sessionTargetWakeTime),
                 actual_bedtime = bedtime.toString(),
                 actual_wake_time = wakeTime.toString(),
                 quality_rating = qualityRating,
@@ -176,7 +200,8 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun loadRecords() {
-        viewModelScope.launch {
+        recordsJob?.cancel()
+        recordsJob = viewModelScope.launch {
             val (start, end) = getRange(_uiState.value.selectedTimeRange)
             repository.getSleepRecordsBetween(start, end).collect { records ->
                 _uiState.value = _uiState.value.copy(
@@ -210,12 +235,13 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun getRange(range: TimeRange): Pair<Long, Long> {
         val now = Instant.now()
-        val end = now.toEpochMilli()
         val start = when (range) {
             TimeRange.WEEK -> now.minus(7, ChronoUnit.DAYS).toEpochMilli()
             TimeRange.MONTH -> now.minus(30, ChronoUnit.DAYS).toEpochMilli()
         }
-        return start to end
+        // Open-ended upper bound so newly logged records (bedtime ≥ now-at-load) are picked up
+        // by the active Room flow without needing the user to leave and return to the screen.
+        return start to Long.MAX_VALUE
     }
 
     private fun formatTargetTime(time: LocalTime): String =

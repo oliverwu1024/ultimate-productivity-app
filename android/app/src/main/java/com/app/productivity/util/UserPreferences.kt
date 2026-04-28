@@ -25,6 +25,8 @@ data class UserSettings(
     val lockoutForSleep: Boolean,
     val showPickupCountOnLockout: Boolean,
     val allowEndSessionFromLockout: Boolean,
+    /** Minutes the foreground watcher stays silent after "I need my phone". */
+    val lockoutGraceMinutes: Int,
     /** Encoded as `isoYear * 100 + weekOfYear` (e.g. 202617 for week 17 of 2026). */
     val lastPlanningPromptDismissedWeek: Int,
 )
@@ -41,6 +43,7 @@ class UserPreferences(private val context: Context) {
         val LOCKOUT_FOR_SLEEP = booleanPreferencesKey("lockout_for_sleep")
         val SHOW_PICKUP_COUNT_ON_LOCKOUT = booleanPreferencesKey("show_pickup_count_on_lockout")
         val ALLOW_END_SESSION_FROM_LOCKOUT = booleanPreferencesKey("allow_end_session_from_lockout")
+        val LOCKOUT_GRACE_MINUTES = intPreferencesKey("lockout_grace_minutes")
         val LAST_PLANNING_DISMISSED_WEEK = intPreferencesKey("last_planning_dismissed_week")
     }
 
@@ -54,6 +57,7 @@ class UserPreferences(private val context: Context) {
         lockoutForSleep = false,
         showPickupCountOnLockout = true,
         allowEndSessionFromLockout = true,
+        lockoutGraceMinutes = 5,
         lastPlanningPromptDismissedWeek = 0,
     )
 
@@ -68,6 +72,7 @@ class UserPreferences(private val context: Context) {
             lockoutForSleep = prefs[Keys.LOCKOUT_FOR_SLEEP] ?: defaults.lockoutForSleep,
             showPickupCountOnLockout = prefs[Keys.SHOW_PICKUP_COUNT_ON_LOCKOUT] ?: defaults.showPickupCountOnLockout,
             allowEndSessionFromLockout = prefs[Keys.ALLOW_END_SESSION_FROM_LOCKOUT] ?: defaults.allowEndSessionFromLockout,
+            lockoutGraceMinutes = prefs[Keys.LOCKOUT_GRACE_MINUTES] ?: defaults.lockoutGraceMinutes,
             lastPlanningPromptDismissedWeek = prefs[Keys.LAST_PLANNING_DISMISSED_WEEK] ?: defaults.lastPlanningPromptDismissedWeek,
         )
     }
@@ -110,8 +115,17 @@ class UserPreferences(private val context: Context) {
         context.userDataStore.edit { it[Keys.ALLOW_END_SESSION_FROM_LOCKOUT] = enabled }
     }
 
+    suspend fun setLockoutGraceMinutes(minutes: Int) {
+        context.userDataStore.edit { it[Keys.LOCKOUT_GRACE_MINUTES] = minutes.coerceIn(1, 10) }
+    }
+
     suspend fun setLastPlanningPromptDismissedWeek(encodedYearWeek: Int) {
         context.userDataStore.edit { it[Keys.LAST_PLANNING_DISMISSED_WEEK] = encodedYearWeek }
+    }
+
+    /** Wipe every preference back to defaults — used when deleting the account. */
+    suspend fun clearAll() {
+        context.userDataStore.edit { it.clear() }
     }
 
     private fun parseTime(value: String): LocalTime = try {
