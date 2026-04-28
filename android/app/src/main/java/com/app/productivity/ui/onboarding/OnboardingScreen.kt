@@ -177,7 +177,7 @@ private fun FocusPrefsStep(
         Spacer(Modifier.height(24.dp))
         StepperRow(label = "Work", value = work, suffix = "min", step = 5, range = 5..120, onChange = onWorkChange)
         Spacer(Modifier.height(12.dp))
-        StepperRow(label = "Break", value = breakMins, suffix = "min", step = 1, range = 1..60, onChange = onBreakChange)
+        StepperRow(label = "Rest", value = breakMins, suffix = "min", step = 1, range = 1..60, onChange = onBreakChange)
     }
 }
 

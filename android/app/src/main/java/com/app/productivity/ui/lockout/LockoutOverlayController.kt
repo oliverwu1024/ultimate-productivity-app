@@ -49,11 +49,21 @@ object LockoutOverlayController {
     private var owner: ViewTreeOwner? = null
     private var windowManager: WindowManager? = null
 
+    /**
+     * Timestamp in epoch millis until which the foreground-app watcher should NOT
+     * re-show the overlay. Set when the user taps "Yes, I need my phone" so they
+     * get a short window to actually use it before the gate snaps back into place.
+     */
+    @Volatile
+    private var graceUntilMillis: Long = 0L
+
     fun canShow(context: Context): Boolean = Settings.canDrawOverlays(context)
 
     fun isShown(): Boolean = overlayView != null
 
-    fun show(context: Context, mode: LockoutMode, sessionStartedAt: Long) {
+    fun isInGracePeriod(): Boolean = System.currentTimeMillis() < graceUntilMillis
+
+    fun show(context: Context, mode: LockoutMode, sessionStartedAt: Long, graceMinutes: Int = 5) {
         check(Looper.myLooper() == Looper.getMainLooper()) {
             "LockoutOverlayController.show must be called on the main thread"
         }
@@ -117,8 +127,22 @@ object LockoutOverlayController {
                         unlockCount = unlockCount,
                         showUnlockCount = true,
                         allowEndSession = true,
-                        onCancel = { hide() },
-                        onConfirm = { hide() },
+                        onCancel = {
+                            hide()
+                            // If the user has granted Device Admin, "Stay locked" actually
+                            // locks the screen. The next unlock fires ACTION_USER_PRESENT,
+                            // which re-shows this overlay — turning it into a hard loop.
+                            if (LockoutAdmin.isAdminActive(ctx)) {
+                                LockoutAdmin.lockNow(ctx)
+                            }
+                        },
+                        onConfirm = {
+                            // Give the user a short window to actually use the phone before
+                            // the foreground-app watcher snaps the overlay back over.
+                            graceUntilMillis = System.currentTimeMillis() +
+                                graceMinutes.coerceIn(1, 10) * 60_000L
+                            hide()
+                        },
                         onEndSession = {
                             hide()
                             ctx.startActivity(

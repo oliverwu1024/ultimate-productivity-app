@@ -18,11 +18,14 @@ import com.app.productivity.MainActivity
 import com.app.productivity.ui.lockout.LockoutMode
 import com.app.productivity.ui.lockout.LockoutOverlayController
 import com.app.productivity.util.LockoutNotifier
+import com.app.productivity.util.PhoneUsageTracker
 import com.app.productivity.util.UserPreferences
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -42,6 +45,7 @@ class FocusTrackingService : Service() {
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private lateinit var userPreferences: UserPreferences
+    private var foregroundWatcherJob: Job? = null
 
     private val userPresentReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -62,6 +66,7 @@ class FocusTrackingService : Service() {
                             context = appContext,
                             mode = LockoutMode.FOCUS,
                             sessionStartedAt = sessionStartTime.value,
+                            graceMinutes = settings.lockoutGraceMinutes,
                         )
                     }
                 } else {
@@ -110,8 +115,44 @@ class FocusTrackingService : Service() {
         // Pop the gate immediately so the user feels the session has begun.
         // We use the same overlay-with-notification-fallback path as the unlock receiver.
         showLockoutNow()
+        startForegroundWatcher()
 
         return START_STICKY
+    }
+
+    /**
+     * Periodically check the foreground app. If the user has navigated away from this
+     * app (or any system surface) during a focus session and isn't in the grace
+     * window from "I need my phone", snap the lockout overlay back into place.
+     */
+    private fun startForegroundWatcher() {
+        foregroundWatcherJob?.cancel()
+        foregroundWatcherJob = serviceScope.launch {
+            val tracker = PhoneUsageTracker(applicationContext)
+            val ownPackage = applicationContext.packageName
+            while (true) {
+                delay(3_000)
+                val settings = userPreferences.settings.first()
+                if (!settings.lockoutForFocus) continue
+                if (LockoutOverlayController.isShown()) continue
+                if (LockoutOverlayController.isInGracePeriod()) continue
+                val foreground = tracker.getForegroundPackage() ?: continue
+                if (foreground == ownPackage) continue
+                if (tracker.isSystemComponent(foreground)) continue
+
+                if (LockoutOverlayController.canShow(applicationContext)) {
+                    Log.d(TAG, "Foreground=$foreground — re-showing lockout overlay")
+                    withContext(Dispatchers.Main) {
+                        LockoutOverlayController.show(
+                            context = applicationContext,
+                            mode = LockoutMode.FOCUS,
+                            sessionStartedAt = sessionStartTime.value,
+                            graceMinutes = settings.lockoutGraceMinutes,
+                        )
+                    }
+                }
+            }
+        }
     }
 
     private fun showLockoutNow() {
@@ -129,6 +170,7 @@ class FocusTrackingService : Service() {
                         context = applicationContext,
                         mode = LockoutMode.FOCUS,
                         sessionStartedAt = sessionStartTime.value,
+                        graceMinutes = settings.lockoutGraceMinutes,
                     )
                 }
             } else {

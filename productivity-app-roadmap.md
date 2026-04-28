@@ -2013,6 +2013,23 @@ Not part of the v1 build — but worth knowing where you'd grow into AWS later:
 - **AWS WAF** on the ALB — block common attack patterns once the app is public.
 - **AWS Backup** — automated cross-region snapshots of RDS + ECR for disaster recovery.
 
+### 6.12 — Password Recovery (Forgot Password)
+
+Deferred to this phase because it needs production-grade email that doesn't exist in local dev. **In-app change-password ships earlier** (Settings → Change password); this section is the email-driven *reset* flow for users who can't log in.
+
+**Plan when AWS is in place:**
+
+- **Email transport: AWS SES.** ~$0.10 per 1,000 emails, deliverability is solid. Verify a sending domain via Route 53 records (already used for the ALB DNS), then submit the SES production-access request to leave the sandbox so you can send to any address.
+- **Schema migration:** new `password_reset_tokens` table with `id`, `user_id`, `token_hash` (sha256 of the raw token — never store the raw value), `expires_at` (1h after issue), `used_at`. Index on `(user_id, used_at)` so we can invalidate prior unused tokens when a new one is issued.
+- **Backend endpoints:**
+  - `POST /auth/password/forgot` — body `{ email }`. Always returns 200 even if the email isn't registered (avoids account enumeration). Generates a UUIDv4 token, stores its sha256, sends a templated email through SES with a deep link.
+  - `POST /auth/password/reset` — body `{ token, new_password }`. Hashes the token, looks it up, checks `expires_at` and `used_at`, validates the new password against the same strength rules used for register/change, updates `users.password_hash` (Argon2), marks token used.
+- **Secrets Manager additions:** `productivity-app/prod/email` holding `{ FROM_ADDRESS, REPLY_TO }`. SES IAM permission attached to the ECS task role.
+- **Mobile UI:**
+  - Login screen → "Forgot password?" link → email-entry screen → confirmation toast ("If that email is registered, a reset link is on the way").
+  - Deep link: register `productivity://reset-password?token=...` in the manifest. Tapping the email link opens a new password screen with the same live strength feedback used in register.
+- **Strength rules** are shared by `register`, `POST /auth/password` (in-app change), and `POST /auth/password/reset`. Encode once on the backend (a `validate_password_strength` helper) and once on the client (`PasswordStrength.kt`) so the user gets immediate feedback, but the server is the source of truth.
+
 ---
 
 ## Phase 7: Web Analytics Dashboard (Weeks 24–28)
@@ -2362,6 +2379,312 @@ Two clients, one backend, three deployment targets — a strong demonstration of
 
 ---
 
+## Phase 8: AI Integration (Weeks 29–31)
+
+Turns the data this app already collects (sleep, focus, pickups, checklist completion, calendar) into insights, summaries, and natural-language interactions powered by Claude. Backend-mediated so API keys never leave the server.
+
+### 8.1 — Stack
+
+| Layer | Tech | Why |
+|---|---|---|
+| Model | Anthropic Claude (Sonnet for narratives, Haiku for cheap classification, Opus for deep reasoning) | Long-context handling for "summarize my month" workflows; same vendor as the dev tooling |
+| Transport | Anthropic Messages API over `reqwest` (no mature Rust SDK yet) | Direct HTTP gives full control of cache breakpoints, streaming, tool definitions |
+| Where calls live | Backend (Rust/Axum) — never the mobile app | Keeps API key server-side; pre-fetch user data from Postgres; central rate limiting and caching |
+| Persistence | New `ai_insights` and `ai_conversations` tables | Cheaper to read cached output than regenerate; users can revisit history |
+| Cost control | Prompt caching (5-min TTL) + per-user daily token budget | Daily insight ~$0.005 with caching vs ~$0.025 without |
+| Secret | `productivity-app/prod/ai` in Secrets Manager → `ANTHROPIC_API_KEY` env on ECS | Same pattern as DB and JWT secrets |
+
+### 8.2 — Architecture
+
+```
+Mobile/Web → /ai/* endpoint → Rust handler
+                                  │
+                  ┌───────────────┴───────────────┐
+                  ▼                               ▼
+         Postgres (read user data)       Anthropic Messages API
+                                          (system prompt cached)
+                  │                               │
+                  └───────────────┬───────────────┘
+                                  ▼
+                       ai_insights / ai_conversations
+                                  ▼
+                       Response to client (SSE stream for chat)
+```
+
+### 8.3 — AI Service Module (Foundation)
+
+- New `src/services/ai.rs` typed wrapper: `messages(model, system, msgs, tools, cache_breakpoints) → Response`.
+- Token-bucket rate limiter per user (default 30 requests/day, configurable per feature).
+- Sampled logging (1-in-10) of prompts/responses for debugging — truncated, never full PII.
+- Schema: `ai_quota(user_id, day, tokens_used)` and the persistence tables below.
+
+```sql
+CREATE TABLE ai_insights (
+  id UUID PRIMARY KEY,
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL,                -- 'weekly' | 'anomaly' | 'session_debrief'
+  content TEXT NOT NULL,
+  source_data JSONB,                 -- aggregated stats sent to the model
+  generated_at TIMESTAMPTZ NOT NULL,
+  expires_at TIMESTAMPTZ              -- e.g. 24h after generation
+);
+CREATE INDEX ON ai_insights (user_id, kind, generated_at DESC);
+
+CREATE TABLE ai_conversations (
+  id UUID PRIMARY KEY,
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  title TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE ai_messages (
+  id UUID PRIMARY KEY,
+  conversation_id UUID REFERENCES ai_conversations(id) ON DELETE CASCADE,
+  role TEXT NOT NULL,                -- 'user' | 'assistant'
+  content TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+### 8.4 — Weekly Insight (highest-value feature, build first)
+
+- `POST /ai/weekly-insight` — cached 24h:
+  1. Pull last 7 days of: sleep records, focus sessions, pickup counts, checklist completion rate, calendar density.
+  2. Render a structured "data card" (Markdown table — Claude reads these well).
+  3. System prompt: *"You are a productivity coach. Given this user's week, write a 3-paragraph summary: what went well, what to adjust, one small experiment for next week. Reference specific numbers from the data card; do not invent figures."*
+  4. Validate any numerals in the response against source data programmatically before returning (anti-hallucination).
+  5. Persist to `ai_insights`, return to client.
+- Mobile UI: new "This week" card on the Dashboard showing the AI-generated text with a manual refresh (capped to 1/day per user).
+
+### 8.5 — Natural-Language Entry (uses tool calling)
+
+- `POST /ai/parse-event` body `{ text: "remind me to call mum tomorrow 6pm" }`:
+  1. Define a tool: `create_calendar_event(title, start_time, end_time, category)`.
+  2. Send text + tool spec to Claude.
+  3. Claude returns a tool call; backend validates args, returns parsed event for user confirmation.
+  4. On confirm, route through existing `/calendar` endpoint (no AI bypass of normal validation).
+- Mobile UI: floating "+ AI" button on Calendar/Checklist screens. Tap → text input → preview card → confirm.
+- Why it matters: typing "study for exam Tuesday 9–11" is faster than tapping through a form. Same pattern for checklist items.
+
+### 8.6 — Coach Chat (conversational)
+
+- `POST /ai/chat/start` → creates a conversation, returns ID.
+- `POST /ai/chat/{id}/message` → streams Claude's reply via SSE (token-by-token).
+- System prompt assembles: user profile snippet + last 30d aggregated stats + truncated message history. The profile + stats portion has a cache breakpoint so it costs near-zero on follow-up turns.
+- Mobile UI: "Coach" entry in Settings → opens a chat thread screen with streaming markdown rendering.
+- Use case: user asks *"Why has my focus dropped?"* and Claude has the data to answer specifically.
+
+### 8.7 — Session Debriefs
+
+- After completing a focus session, a 1-line optional prompt: "What did you work on?"
+- Stored alongside the session; weekly insight uses these as additional context.
+- Bonus: AI tags each debrief (e.g. "deep work" / "meetings" / "admin") via Haiku — passive category tracking without manual tagging.
+
+### 8.8 — Anomaly Detection (background job)
+
+- Daily scheduled task (EventBridge → Lambda invoking `/ai/anomaly-check`, or in-process tokio cron):
+  1. For each active user, fetch last 14 days.
+  2. Ask Claude (Haiku — cheap): *"Anything anomalous? Return JSON `{ alert: bool, reason: string }`."*
+  3. If alert → push notification via FCM (already wired in Phase 5.1).
+- Catches: 5+ nights of <6h sleep, focus minutes plummeting, 30+ pickups during a sleep session.
+
+### 8.9 — Privacy & UX
+
+- Master Settings switch: **"Enable AI features"** — defaults **off**. When toggled on, show a "Here's what gets sent" disclosure (last 30d aggregated stats; no raw notes unless separately enabled).
+- Per-feature toggles (insights / chat / parsing / anomaly) so users opt into pieces.
+- Debug "View last AI request" so curious users can audit.
+- Token budget meter visible to user ("12 of 30 daily AI requests used").
+- Server-side `validate_password_strength`-style validators for any data Claude writes back (no trust in raw model output — always parse + validate).
+
+### 8.10 — Cost Projection
+
+| Feature | tokens/call (cached) | $/call | $/user/month at 100 users |
+|---|---|---|---|
+| Weekly insight (1×/week) | 5K in + 500 out | $0.005 | $0.02 |
+| NL parse (5×/day) | 1K in + 100 out | $0.001 | $0.15 |
+| Chat (10 msg/week, 5K context) | 5K in + 1K out | $0.020 | $0.80 |
+| Anomaly detection (Haiku, daily) | 3K in + 50 out | $0.001 | $0.03 |
+
+Rough total: **~$1 per active user/month** with caching. Absorbable; or expose as a Pro-tier later.
+
+### 8.11 — Risks
+
+- **Hallucination on numbers** — Claude sometimes invents stats. Mitigation: instruct prompt to only cite numbers from the data card; programmatically validate numerals before returning.
+- **Token cost runaway** — strict per-user daily caps + prompt caching are non-negotiable. Alarm at 10× expected daily spend in CloudWatch.
+- **Cold start on chat** — first message of a session has no cache hit. Acceptable; subsequent messages are fast/cheap.
+- **Privacy regulatory creep** — if you ever target EU, GDPR adds requirements (data residency, right-to-erasure of AI logs). Out of scope for v1, but flag it in the Settings disclosure.
+
+---
+
+## Phase 9: Sleep Monitoring & Wearables (Weeks 32–35)
+
+Moves sleep tracking from "phone unlock counts + self-reported quality" to objective physiological data (heart rate, sleep stages, HRV) via wearables. **Additive, not replacement** — users without a wearable keep the existing manual flow exactly as it is today.
+
+### 9.1 — Backwards Compatibility (Read This First)
+
+The current sleep flow stays fully functional for users without a wearable:
+- Manual **Start Sleep / End Sleep** session — unchanged
+- Phone pickup tracking via `ACTION_USER_PRESENT` — unchanged
+- Self-reported quality (1–5) — unchanged
+- Manual log past sleep dialog — unchanged
+- Per-session target wake time (Phase 5 work) — unchanged
+
+What Phase 9 adds is **richer data on top** when a user connects a wearable. The same `sleep_records` row is unchanged; new linked rows (`sleep_stages`, `heart_rate_samples`, `hrv_samples`) are populated only when data exists. The UI conditionally renders the hypnogram and HR cards if those linked tables have rows for that record — otherwise it shows today's view unchanged.
+
+### 9.2 — Provider Selection
+
+| Provider | Auth | Data quality | Build effort | Phase priority |
+|---|---|---|---|---|
+| **Wear OS** (Pixel Watch, Galaxy Watch) | App-level (Health Services API) | Very good | Medium — companion app required | Build second |
+| **Fitbit** | OAuth 2.0 (web) | Very good | Low — pure REST API | **Build first** (no extra app to write; many users already have one) |
+| **Oura Ring** | OAuth 2.0 | Excellent | Low — REST API | Optional, after Wear OS |
+| **Garmin** | OAuth 2.0 (Health API has approval gates) | Good | Medium | Lower priority |
+| **Whoop** | OAuth 2.0 | Excellent (HRV-focused) | Low | Optional |
+| **Phone-only** (accelerometer + mic) | None | Mediocre | High to do well | Skip — fallback today is the existing pickup-based UX |
+
+Strategy: define your own internal sleep schema, write per-provider adapters. Trait-based abstraction so adding a new provider = adding a new file.
+
+### 9.3 — Stack Additions
+
+| Layer | Choice |
+|---|---|
+| Wear OS module | Compose for Wear, Health Services API, DataLayer (phone↔watch comm) |
+| Wear→Phone sync | DataLayer Client API (built-in, no extra setup) |
+| Web OAuth | New `/integrations/{provider}/connect` + `/callback` endpoints |
+| Token storage | Per-user encrypted via `pgcrypto`; encryption key in Secrets Manager |
+| HR sample storage | Vanilla Postgres with monthly partitions (start), revisit with TimescaleDB if volume grows |
+| Background pulls | EventBridge → Lambda invokes `/integrations/{provider}/sync` daily per user |
+
+### 9.4 — Schema Additions
+
+```sql
+-- One per connected device per user
+CREATE TABLE wearable_connections (
+  id UUID PRIMARY KEY,
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  provider TEXT NOT NULL,            -- 'wear_os' | 'fitbit' | 'oura' | 'whoop' | 'garmin'
+  external_user_id TEXT,
+  encrypted_tokens BYTEA,            -- pgcrypto-encrypted refresh tokens
+  scopes TEXT[],
+  last_synced_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Sleep stages within a sleep_records session
+CREATE TABLE sleep_stages (
+  id UUID PRIMARY KEY,
+  sleep_record_id UUID REFERENCES sleep_records(id) ON DELETE CASCADE,
+  stage TEXT NOT NULL,               -- 'awake' | 'light' | 'deep' | 'rem'
+  started_at TIMESTAMPTZ NOT NULL,
+  ended_at TIMESTAMPTZ NOT NULL
+);
+CREATE INDEX ON sleep_stages (sleep_record_id, started_at);
+
+-- High-volume HR samples — partition by day for performance
+CREATE TABLE heart_rate_samples (
+  id UUID DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  recorded_at TIMESTAMPTZ NOT NULL,
+  bpm SMALLINT NOT NULL,
+  source TEXT NOT NULL               -- 'wear_os' | 'fitbit' | ...
+) PARTITION BY RANGE (recorded_at);
+-- Auto-create monthly partitions via pg_partman or a startup script
+
+-- HRV (less frequent — once per night usually)
+CREATE TABLE hrv_samples (
+  id UUID PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  recorded_at TIMESTAMPTZ NOT NULL,
+  rmssd_ms DOUBLE PRECISION,
+  source TEXT NOT NULL
+);
+```
+
+### 9.5 — Backend Wearable Foundation
+
+- New `/integrations` route group.
+- `wearable_connections` table + `pgcrypto` utilities for token encryption (key in Secrets Manager `productivity-app/prod/wearable-tokens`).
+- Single normalized API: `GET /sleep/{id}/details` returns stages + HR samples regardless of source.
+- Adapter trait:
+  ```rust
+  #[async_trait]
+  trait WearableAdapter {
+      async fn fetch_sleep(&self, conn: &Connection, date: NaiveDate) -> Result<SleepImport>;
+      async fn refresh_token(&self, conn: &Connection) -> Result<()>;
+  }
+  ```
+- `SleepImport` is a normalized struct: `actual_bedtime`, `actual_wake_time`, `stages: Vec<Stage>`, `heart_rate_samples: Vec<HrSample>`, `hrv: Option<f64>`.
+
+### 9.6 — Fitbit Integration (build first — lowest effort)
+
+- OAuth 2.0 with PKCE. Redirect URI: `https://api.yourdomain.com/integrations/fitbit/callback`.
+- Tokens encrypted in `wearable_connections`. Refresh token has 8h expiry — backend retries with refresh on every 401.
+- Daily scheduled job (8am user-local time): fetch `/1.2/user/-/sleep/date/{date}.json` → normalize → upsert into `sleep_records` + `sleep_stages`.
+- Map Fitbit's stages (`wake`/`light`/`deep`/`rem`) directly.
+- Mobile UI: Settings → "Connect Fitbit" → opens browser OAuth → returns to app via deep link (`productivity://oauth/fitbit?code=...`).
+
+### 9.7 — Wear OS Companion App (the biggest sub-phase)
+
+- New Gradle module: `wear/`. Targets `wearos`, depends on Health Services + DataLayer.
+- `PassiveListenerService` subscribes to: `HEART_RATE_BPM`, `SLEEP_STAGE`, `RAW_ACCELEROMETER` (last is high-volume — only enable during the user's typical sleep window).
+- DataLayer: watch sends batched JSON to phone every ~5 min during sleep, every 30 min during day.
+- Phone-side: `WearableListenerService` receives, persists to Room, syncs to backend on next foreground/Wi-Fi.
+- Optional watch UI: a tile showing tonight's data (last HR, sleep duration so far). Nice but not required.
+- Manifest permissions on the watch: `BODY_SENSORS`, `ACTIVITY_RECOGNITION`.
+
+### 9.8 — Auto Sleep Detection (replaces the manual Start Sleep, optional)
+
+With HR + accel from the watch:
+- Low HR (<60% of daytime average) + minimal movement for >15 min → sleep started.
+- Reverse → wake.
+- Detection runs on the watch so the phone doesn't have to be charging.
+- Replaces "Start Sleep" tap with passive detection. **Manual override stays** — user can always force start/end.
+
+### 9.9 — Sleep Stage Chart & Insights
+
+- New "Tonight" view in Sleep tab when stages exist: hypnogram (timeline coloured by stage).
+- Stat cards: % deep, % REM, awakenings, avg HR, lowest HR, HRV (rmssd).
+- Compare to recommended targets (deep ≥18%, REM ≥20%).
+- Hooks into Phase 8 AI: insight prompt now includes stage data → *"Your deep sleep is 12% — below the 18% target. Common causes: alcohol within 3h of bed, late caffeine, room temp >22°C."*
+
+### 9.10 — Focus Session HR Tracking (bonus)
+
+- During a focus session, watch streams HR to phone.
+- After session: "Avg HR 72 bpm, peak 89 (at 0:34)".
+- Over time, HRV trends become a recovery indicator — AI can correlate "high HRV days = better focus".
+
+### 9.11 — Smart Alarms (nice-to-have)
+
+- Wake user during light sleep within a 30-min window before their target.
+- Watch knows the current stage → fires alarm at the right moment.
+- Same idea as Sleep Cycle / Garmin / Withings. Easy once stages flow in.
+
+### 9.12 — Cost & Storage
+
+| Item | Cost |
+|---|---|
+| Wear OS dev (your time) | The big one |
+| Storage growth | HR @ 1 sample/min during sleep ≈ 480 rows/night/user. 100 users × 365 nights ≈ 17M rows/year. `db.t4g.micro` handles fine with monthly partitions, ~$0/month extra |
+| Fitbit / Oura / Whoop / Garmin APIs | Free for personal use |
+| EventBridge + Lambda for nightly sync | < $1/month at this scale |
+
+### 9.13 — Risks
+
+- **Wear OS fragmentation** — Galaxy Watch (Tizen-derived older versions vs Wear OS 3+), Pixel Watch, generic Wear OS all have slightly different Health Services capabilities. Test on the watch you actually have first.
+- **Watch battery** — continuous HR + accel is the #1 drain. Use Health Services' "passive" mode and only sample at the rate you need.
+- **OAuth refresh expiry** — Fitbit refresh tokens last 8h; you must refresh on every fetch. Bake retry-on-401 into the adapter.
+- **Storage scaling** — at 1000+ users, HR samples become real. Pre-empt with TimescaleDB or move HR to ClickHouse / Redshift once volume warrants. Not a v1 problem.
+
+### 9.14 — Suggested Order of Attack
+
+1. **9.5 + 9.6 (Backend foundation + Fitbit)** — single endpoint group, real sleep stage data immediately, no Wear OS code yet.
+2. **9.9 (Hypnogram chart)** — visible payoff for the Fitbit work.
+3. **9.7 (Wear OS companion)** — when you have the time. Biggest commitment.
+4. **9.8 (Auto detection)** — built on top of Wear OS.
+5. **9.10 + 9.11 (HR during focus + smart alarms)** — polish.
+
+---
+
 ## Phase Summary
 
 | Phase | Weeks | What You'll Have |
@@ -2374,6 +2697,8 @@ Two clients, one backend, three deployment targets — a strong demonstration of
 | Phase 5: Polish | 14–19 | Notifications, theming, weekly reports, achievements, settings, pickup confirmation gate, **daily checklist + focus dropdown** |
 | Phase 6: AWS Deployment | 20–23 | Production app on AWS (ECS Fargate + RDS + ALB + CI/CD) and Google Play Store |
 | Phase 7: Web Analytics Dashboard | 24–28 | Rust/WASM analytics site at `app.your-domain.com` (Leptos + S3 + CloudFront) — full-stack Rust portfolio piece |
-| **Total** | **~28 weeks** | **Production app on AWS + Google Play + analytics website** |
+| Phase 8: AI Integration | 29–31 | Backend-mediated Claude integration: weekly insights, NL event parsing, coach chat, anomaly detection |
+| Phase 9: Sleep Monitoring & Wearables | 32–35 | Fitbit + Wear OS companion app, sleep stages + HR + HRV, hypnogram chart, optional auto sleep detection |
+| **Total** | **~35 weeks** | **Production app on AWS + Google Play + web dashboard + AI features + wearable integrations** |
 
-Assumes ~15–20 hours/week. Phase 7 is the "ambitious" extension — skip it if you'd rather ship the mobile app first and add the web frontend as a v2.
+Assumes ~15–20 hours/week. Phase 7 is the "ambitious" extension — skip it if you'd rather ship the mobile app first and add the web frontend as a v2. Phases 8 and 9 are post-launch additions; Phase 9 stays fully optional for users (the existing manual sleep flow is preserved).
