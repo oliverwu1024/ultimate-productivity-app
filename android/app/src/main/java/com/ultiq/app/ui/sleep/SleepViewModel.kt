@@ -58,6 +58,8 @@ data class SleepUiState(
     val targetWakeTime: LocalTime = LocalTime.of(6, 0),
     // Earned moment — populated when an achievement unlocks during this session.
     val celebratedAchievement: AchievementId? = null,
+    // First-visit explainer card.
+    val showSleepExplainer: Boolean = false,
 )
 
 class SleepViewModel(application: Application) : AndroidViewModel(application) {
@@ -83,12 +85,20 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
             _uiState.value = _uiState.value.copy(
                 targetBedtime = settings.targetBedtime,
                 targetWakeTime = settings.targetWakeTime,
+                showSleepExplainer = !settings.sleepExplainerSeen,
             )
             observeServiceState()
             loadRecords()
             sync()
         }
         observeAchievementEvents()
+    }
+
+    fun dismissSleepExplainer() {
+        viewModelScope.launch {
+            userPreferences.setSleepExplainerSeen(true)
+            _uiState.value = _uiState.value.copy(showSleepExplainer = false)
+        }
     }
 
     private fun observeAchievementEvents() {
