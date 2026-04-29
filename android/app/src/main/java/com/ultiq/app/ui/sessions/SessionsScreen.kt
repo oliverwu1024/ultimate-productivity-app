@@ -72,7 +72,9 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ultiq.app.data.local.entity.SessionEntity
-import com.ultiq.app.ui.common.EmptyState
+import com.ultiq.app.ui.common.AchievementCelebration
+import com.ultiq.app.ui.common.MascotEmptyState
+import com.ultiq.app.ui.copy.WarmCopy
 import com.ultiq.app.ui.theme.AnimatedAppear
 import androidx.compose.material.icons.filled.SelfImprovement
 import java.time.Instant
@@ -104,7 +106,7 @@ fun SessionsScreen(viewModel: SessionsViewModel = viewModel()) {
     }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Focus Timer") }) },
+        topBar = { TopAppBar(title = { Text("Focus") }) },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         LazyColumn(
@@ -158,16 +160,13 @@ fun SessionsScreen(viewModel: SessionsViewModel = viewModel()) {
 
             if (uiState.recentSessions.isEmpty() && uiState.timerState == TimerState.IDLE) {
                 item(key = "empty") {
-                    EmptyState(
-                        icon = Icons.Default.SelfImprovement,
-                        title = "Ready to focus?",
-                        body = "Tag a task, pick durations, and start your first focus block.",
-                    )
+                    val (title, body) = WarmCopy.sessionsEmpty()
+                    MascotEmptyState(title = title, body = body)
                 }
             } else if (uiState.recentSessions.isNotEmpty()) {
                 item(key = "recent-header") {
                     Text(
-                        "Past Sessions",
+                        "Recent sessions",
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier
@@ -203,6 +202,15 @@ fun SessionsScreen(viewModel: SessionsViewModel = viewModel()) {
             dismissButton = {
                 TextButton(onClick = { viewModel.dismissChecklistCompletion() }) { Text("No") }
             },
+        )
+    }
+
+    uiState.celebratedAchievement?.let { id ->
+        AchievementCelebration(
+            name = id.displayName,
+            description = id.description,
+            icon = id.icon,
+            onDismiss = { viewModel.dismissAchievementCelebration() },
         )
     }
 }
