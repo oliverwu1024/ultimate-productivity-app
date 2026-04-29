@@ -108,6 +108,11 @@ fun SleepScreen(viewModel: SleepViewModel = viewModel()) {
                 .padding(padding),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            if (uiState.showSleepExplainer) {
+                item(key = "explainer") {
+                    SleepExplainerCard(onDismiss = { viewModel.dismissSleepExplainer() })
+                }
+            }
             item(key = "session-control") {
                 SessionControl(
                     isActive = uiState.isSessionActive,
@@ -222,6 +227,50 @@ fun SleepScreen(viewModel: SleepViewModel = viewModel()) {
             icon = id.icon,
             onDismiss = { viewModel.dismissAchievementCelebration() },
         )
+    }
+}
+
+@Composable
+private fun SleepExplainerCard(onDismiss: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Default.Bedtime,
+                    null,
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    "How sleep tracking works",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            Text(
+                "When you tap Start Sleep, Ultiq runs as a background service so it can detect phone pickups overnight while your screen is locked. We only check screen state — nothing else about what you do on the phone.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                TextButton(onClick = onDismiss) {
+                    Text("Got it")
+                }
+            }
+        }
     }
 }
 

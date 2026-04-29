@@ -47,6 +47,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ultiq.app.ui.theme.MascotSleepingBook
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
@@ -121,11 +122,12 @@ fun OnboardingScreen(
 @Composable
 private fun WelcomeStep() {
     StepContainer {
-        BigIcon(Icons.Default.SelfImprovement)
-        Text("Welcome", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
+        MascotSleepingBook(size = 128.dp)
+        Spacer(Modifier.height(24.dp))
+        Text("Hi, I'm Ultiq", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(8.dp))
         Text(
-            "Track your sleep, focus deeply, and stay on top of your day — all in one place.",
+            "Your daily companion for sleep, focus, and the in-between. Let's get you set up — takes about a minute.",
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -142,10 +144,10 @@ private fun SleepTargetsStep(
 ) {
     StepContainer {
         BigIcon(Icons.Default.Bedtime)
-        Text("Sleep targets", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+        Text("When do you sleep best?", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(8.dp))
         Text(
-            "When do you want to wind down and wake up?",
+            "Pick the times you'd like to wind down and wake up. We'll quietly track how close you get.",
             style = MaterialTheme.typography.bodyMedium,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -166,10 +168,10 @@ private fun FocusPrefsStep(
 ) {
     StepContainer {
         BigIcon(Icons.Default.Timer)
-        Text("Focus blocks", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+        Text("How do you focus?", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(8.dp))
         Text(
-            "Set your default work and break lengths. You can always change them later.",
+            "Pick your default work + break lengths. Tweak them anytime — these are just starting points.",
             style = MaterialTheme.typography.bodyMedium,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -184,11 +186,12 @@ private fun FocusPrefsStep(
 @Composable
 private fun AllSetStep() {
     StepContainer {
-        BigIcon(Icons.Default.CheckCircle)
-        Text("All set!", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
+        MascotSleepingBook(size = 128.dp)
+        Spacer(Modifier.height(24.dp))
+        Text("Pillow's ready", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(8.dp))
         Text(
-            "You can change targets, defaults, and reminders anytime in Settings.",
+            "You're set up. Targets, reminders, and lockout settings are all in Settings whenever you want to adjust.",
             style = MaterialTheme.typography.bodyMedium,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -319,7 +322,7 @@ private fun BottomBar(step: Int, onBack: () -> Unit, onNext: () -> Unit) {
             Spacer(Modifier.width(80.dp))
         }
         Button(onClick = onNext) {
-            Text(if (step == STEP_COUNT - 1) "Get started" else "Continue")
+            Text(if (step == STEP_COUNT - 1) "Let's go" else "Continue")
         }
     }
 }
