@@ -20,5 +20,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "ProductivityApp"
+rootProject.name = "Ultiq"
 include(":app")
