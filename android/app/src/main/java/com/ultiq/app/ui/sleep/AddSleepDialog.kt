@@ -1,0 +1,295 @@
+package com.ultiq.app.ui.sleep
+
+import android.app.DatePickerDialog
+import android.app.TimePickerDialog
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.StarBorder
+import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import com.ultiq.app.data.remote.dto.CreateSleepRecordDto
+import java.time.Instant
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AddSleepDialog(
+    initialTargetBedtime: LocalTime = LocalTime.of(22, 0),
+    initialTargetWakeTime: LocalTime = LocalTime.of(6, 0),
+    onDismiss: () -> Unit,
+    onSave: (CreateSleepRecordDto) -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val context = LocalContext.current
+
+    var targetBedtime by remember { mutableStateOf(initialTargetBedtime) }
+    var targetWakeTime by remember { mutableStateOf(initialTargetWakeTime) }
+    var actualBedDate by remember { mutableStateOf(LocalDate.now().minusDays(1)) }
+    var actualBedTime by remember { mutableStateOf(LocalTime.of(22, 30)) }
+    var actualWakeDate by remember { mutableStateOf(LocalDate.now()) }
+    var actualWakeTime by remember { mutableStateOf(LocalTime.of(6, 30)) }
+    var qualityRating by remember { mutableIntStateOf(0) }
+    var phonePickups by remember { mutableIntStateOf(0) }
+    var totalPhoneMinutes by remember { mutableStateOf("") }
+    var notes by remember { mutableStateOf("") }
+    var validationError by remember { mutableStateOf<String?>(null) }
+
+    val timeFormat = DateTimeFormatter.ofPattern("hh:mm a")
+    val dateFormat = DateTimeFormatter.ofPattern("MMM dd, yyyy")
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .navigationBarsPadding()
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text("Log Sleep", style = MaterialTheme.typography.headlineSmall)
+
+            // Target bedtime
+            ClickableField(
+                label = "Target Bedtime",
+                value = targetBedtime.format(timeFormat),
+                onClick = {
+                    TimePickerDialog(context, { _, h, m ->
+                        targetBedtime = LocalTime.of(h, m)
+                    }, targetBedtime.hour, targetBedtime.minute, false).show()
+                }
+            )
+
+            // Target wake time
+            ClickableField(
+                label = "Target Wake Time",
+                value = targetWakeTime.format(timeFormat),
+                onClick = {
+                    TimePickerDialog(context, { _, h, m ->
+                        targetWakeTime = LocalTime.of(h, m)
+                    }, targetWakeTime.hour, targetWakeTime.minute, false).show()
+                }
+            )
+
+            // Actual bedtime
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                ClickableField(
+                    label = "Bed Date",
+                    value = actualBedDate.format(dateFormat),
+                    onClick = {
+                        DatePickerDialog(context, { _, y, m, d ->
+                            actualBedDate = LocalDate.of(y, m + 1, d)
+                        }, actualBedDate.year, actualBedDate.monthValue - 1, actualBedDate.dayOfMonth).show()
+                    },
+                    modifier = Modifier.weight(1f)
+                )
+                ClickableField(
+                    label = "Bed Time",
+                    value = actualBedTime.format(timeFormat),
+                    onClick = {
+                        TimePickerDialog(context, { _, h, m ->
+                            actualBedTime = LocalTime.of(h, m)
+                        }, actualBedTime.hour, actualBedTime.minute, false).show()
+                    },
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            // Actual wake time
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                ClickableField(
+                    label = "Wake Date",
+                    value = actualWakeDate.format(dateFormat),
+                    onClick = {
+                        DatePickerDialog(context, { _, y, m, d ->
+                            actualWakeDate = LocalDate.of(y, m + 1, d)
+                        }, actualWakeDate.year, actualWakeDate.monthValue - 1, actualWakeDate.dayOfMonth).show()
+                    },
+                    modifier = Modifier.weight(1f)
+                )
+                ClickableField(
+                    label = "Wake Time",
+                    value = actualWakeTime.format(timeFormat),
+                    onClick = {
+                        TimePickerDialog(context, { _, h, m ->
+                            actualWakeTime = LocalTime.of(h, m)
+                        }, actualWakeTime.hour, actualWakeTime.minute, false).show()
+                    },
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            // Quality rating
+            Text("Quality Rating", style = MaterialTheme.typography.labelLarge)
+            Row {
+                (1..5).forEach { star ->
+                    IconButton(onClick = { qualityRating = star }) {
+                        Icon(
+                            imageVector = if (star <= qualityRating) Icons.Filled.Star else Icons.Outlined.StarBorder,
+                            contentDescription = "Star $star",
+                            tint = if (star <= qualityRating) com.ultiq.app.ui.theme.QualityStar else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+                }
+            }
+
+            // Phone pickups stepper
+            Text("Phone Pickups", style = MaterialTheme.typography.labelLarge)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = { if (phonePickups > 0) phonePickups-- }) {
+                    Icon(Icons.Default.Remove, "Decrease")
+                }
+                Text(
+                    "$phonePickups",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.width(40.dp),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+                IconButton(onClick = { phonePickups++ }) {
+                    Icon(Icons.Default.Add, "Increase")
+                }
+            }
+
+            // Total phone minutes
+            OutlinedTextField(
+                value = totalPhoneMinutes,
+                onValueChange = { totalPhoneMinutes = it.filter { c -> c.isDigit() } },
+                label = { Text("Total Phone Minutes (optional)") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
+            // Notes
+            OutlinedTextField(
+                value = notes,
+                onValueChange = { notes = it },
+                label = { Text("Notes (optional)") },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 2,
+                maxLines = 4
+            )
+
+            // Validation error
+            if (validationError != null) {
+                Text(
+                    validationError!!,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+
+            // Buttons
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End)
+            ) {
+                OutlinedButton(onClick = onDismiss) { Text("Cancel") }
+                Button(onClick = {
+                    val actualBed = LocalDateTime.of(actualBedDate, actualBedTime)
+                    val actualWake = LocalDateTime.of(actualWakeDate, actualWakeTime)
+
+                    when {
+                        actualBed >= actualWake -> {
+                            validationError = "Bedtime must be before wake time"
+                        }
+                        qualityRating < 1 -> {
+                            validationError = "Please select a quality rating"
+                        }
+                        else -> {
+                            val zone = ZoneId.systemDefault()
+                            val dto = CreateSleepRecordDto(
+                                target_bedtime = String.format("%02d:%02d:00", targetBedtime.hour, targetBedtime.minute),
+                                target_wake_time = String.format("%02d:%02d:00", targetWakeTime.hour, targetWakeTime.minute),
+                                actual_bedtime = actualBed.atZone(zone).toInstant().toString(),
+                                actual_wake_time = actualWake.atZone(zone).toInstant().toString(),
+                                quality_rating = qualityRating,
+                                phone_pickups = phonePickups,
+                                total_phone_minutes = totalPhoneMinutes.toIntOrNull(),
+                                notes = notes.ifBlank { null }
+                            )
+                            onSave(dto)
+                        }
+                    }
+                }) { Text("Save") }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+    }
+}
+
+@Composable
+private fun ClickableField(
+    label: String,
+    value: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = {},
+        label = { Text(label) },
+        readOnly = true,
+        modifier = modifier,
+        interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+            .also { source ->
+                val isPressed = source.collectIsPressedAsState()
+                if (isPressed.value) onClick()
+            }
+    )
+}
+
+@Composable
+private fun androidx.compose.foundation.interaction.InteractionSource.collectIsPressedAsState(): androidx.compose.runtime.State<Boolean> {
+    val isPressed = remember { mutableStateOf(false) }
+    androidx.compose.runtime.LaunchedEffect(this) {
+        interactions.collect { interaction ->
+            when (interaction) {
+                is androidx.compose.foundation.interaction.PressInteraction.Press -> isPressed.value = true
+                is androidx.compose.foundation.interaction.PressInteraction.Release -> isPressed.value = false
+                is androidx.compose.foundation.interaction.PressInteraction.Cancel -> isPressed.value = false
+            }
+        }
+    }
+    return isPressed
+}
