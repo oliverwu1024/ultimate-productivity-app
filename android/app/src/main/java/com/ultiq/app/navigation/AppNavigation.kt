@@ -48,6 +48,7 @@ import com.ultiq.app.ui.sessions.SessionsScreen
 import com.ultiq.app.ui.settings.ChangePasswordScreen
 import com.ultiq.app.ui.settings.RemindersScreen
 import com.ultiq.app.ui.settings.SettingsScreen
+import com.ultiq.app.ui.settings.TermsScreen
 import com.ultiq.app.ui.sleep.SleepScreen
 import com.ultiq.app.util.NotificationHelper
 
@@ -65,6 +66,7 @@ sealed class Screen(val route: String) {
     data object Reminders : Screen("reminders")
     data object Reports : Screen("reports")
     data object ChangePassword : Screen("change_password")
+    data object Terms : Screen("terms")
 }
 
 data class BottomNavItem(
@@ -191,10 +193,14 @@ fun AppNavigation(
                     onNavigateToReminders = { navController.navigate(Screen.Reminders.route) },
                     onNavigateToReports = { navController.navigate(Screen.Reports.route) },
                     onNavigateToChangePassword = { navController.navigate(Screen.ChangePassword.route) },
+                    onNavigateToTerms = { navController.navigate(Screen.Terms.route) },
                     onLogout = { authViewModel.logout() },
                     onResetAccount = { authViewModel.resetAccount() },
                     onDeleteAccount = { authViewModel.deleteAccount() },
                 )
+            }
+            composable(Screen.Terms.route) {
+                TermsScreen(onBack = { navController.popBackStack() })
             }
             composable(Screen.Reminders.route) {
                 RemindersScreen(onBack = { navController.popBackStack() })
