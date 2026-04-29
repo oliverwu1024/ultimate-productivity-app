@@ -12,6 +12,8 @@ import com.ultiq.app.data.remote.RetrofitClient
 import com.ultiq.app.data.repository.ChecklistRepository
 import com.ultiq.app.data.repository.SessionRepository
 import com.ultiq.app.data.achievements.AchievementChecker
+import com.ultiq.app.data.achievements.AchievementEvents
+import com.ultiq.app.data.achievements.AchievementId
 import com.ultiq.app.service.FocusTrackingService
 import com.ultiq.app.service.SleepTrackingService
 import com.ultiq.app.util.PhoneUsageTracker
@@ -53,6 +55,7 @@ data class SessionsUiState(
     val openChecklistItems: List<ChecklistEntity> = emptyList(),
     val selectedChecklistItemId: String? = null,
     val completionPrompt: ChecklistCompletionPrompt? = null,
+    val celebratedAchievement: AchievementId? = null,
 )
 
 data class ChecklistCompletionPrompt(
@@ -95,6 +98,21 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
             observeTodayChecklist()
             sync()
         }
+        observeAchievementEvents()
+    }
+
+    private fun observeAchievementEvents() {
+        viewModelScope.launch {
+            AchievementEvents.newlyEarned.collect { earned ->
+                earned.firstOrNull()?.let { id ->
+                    _uiState.value = _uiState.value.copy(celebratedAchievement = id)
+                }
+            }
+        }
+    }
+
+    fun dismissAchievementCelebration() {
+        _uiState.value = _uiState.value.copy(celebratedAchievement = null)
     }
 
     private fun observeTodayChecklist() {

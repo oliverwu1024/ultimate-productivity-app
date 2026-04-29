@@ -90,6 +90,7 @@ class AchievementChecker(
             }
         }
 
+        AchievementEvents.emit(newlyEarned)
         return newlyEarned
     }
 

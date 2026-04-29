@@ -13,6 +13,8 @@ import com.ultiq.app.data.remote.dto.SleepStats
 import com.ultiq.app.data.remote.dto.toLocalStats
 import com.ultiq.app.data.repository.SleepRepository
 import com.ultiq.app.data.achievements.AchievementChecker
+import com.ultiq.app.data.achievements.AchievementEvents
+import com.ultiq.app.data.achievements.AchievementId
 import com.ultiq.app.service.FocusTrackingService
 import com.ultiq.app.service.PickupEvent
 import com.ultiq.app.service.SleepTrackingService
@@ -54,6 +56,8 @@ data class SleepUiState(
     // Defaults for the manual-log dialog only.
     val targetBedtime: LocalTime = LocalTime.of(22, 0),
     val targetWakeTime: LocalTime = LocalTime.of(6, 0),
+    // Earned moment — populated when an achievement unlocks during this session.
+    val celebratedAchievement: AchievementId? = null,
 )
 
 class SleepViewModel(application: Application) : AndroidViewModel(application) {
@@ -84,6 +88,21 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
             loadRecords()
             sync()
         }
+        observeAchievementEvents()
+    }
+
+    private fun observeAchievementEvents() {
+        viewModelScope.launch {
+            AchievementEvents.newlyEarned.collect { earned ->
+                earned.firstOrNull()?.let { id ->
+                    _uiState.value = _uiState.value.copy(celebratedAchievement = id)
+                }
+            }
+        }
+    }
+
+    fun dismissAchievementCelebration() {
+        _uiState.value = _uiState.value.copy(celebratedAchievement = null)
     }
 
     private fun observeServiceState() {

@@ -70,6 +70,8 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ultiq.app.data.local.entity.ChecklistEntity
+import com.ultiq.app.ui.common.MascotEmptyState
+import com.ultiq.app.ui.copy.WarmCopy
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -278,30 +280,8 @@ private fun SectionLabel(text: String) {
 
 @Composable
 private fun EmptyState() {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Icon(
-            Icons.Default.Checklist,
-            null,
-            modifier = Modifier.size(48.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(
-            "No items for this day",
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(
-            "Tap + to add something",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
+    val (title, body) = WarmCopy.checklistEmpty()
+    MascotEmptyState(title = title, body = body)
 }
 
 @Composable
