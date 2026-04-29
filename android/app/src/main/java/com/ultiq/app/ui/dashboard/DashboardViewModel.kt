@@ -1,11 +1,14 @@
 package com.ultiq.app.ui.dashboard
 
 import android.app.Application
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.ultiq.app.data.achievements.AchievementId
 import com.ultiq.app.data.local.AppDatabase
 import com.ultiq.app.data.local.entity.CalendarEventEntity
 import com.ultiq.app.data.local.entity.ChecklistEntity
+import com.ultiq.app.data.local.entity.SleepRecordEntity
 import com.ultiq.app.data.remote.RetrofitClient
 import com.ultiq.app.data.repository.CalendarRepository
 import com.ultiq.app.data.repository.ChecklistRepository
@@ -13,27 +16,34 @@ import com.ultiq.app.data.repository.SessionRepository
 import com.ultiq.app.data.repository.SleepRepository
 import com.ultiq.app.data.repository.SyncManager
 import com.ultiq.app.util.AlarmScheduler
+import com.ultiq.app.util.Comparisons
 import com.ultiq.app.util.TokenManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
-import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import kotlin.math.roundToInt
 
 data class SleepSummary(
     val duration: String,
+    val durationMinutes: Int,
     val quality: Int,
     val vsTarget: String,
+    val vsTargetMinutes: Int,
     val phonePickups: Int,
+    val vsLastWeek: String? = null,
+    val rankPhrase: String? = null,
 )
 
 data class FocusSummary(
     val totalMinutesToday: Int,
     val sessionsToday: Int,
     val currentStreak: Int,
+    val longestStreak: Int,
     val phonePickupsToday: Int,
+    val vsLastWeek: String? = null,
 )
 
 data class WeeklyHighlights(
@@ -42,6 +52,9 @@ data class WeeklyHighlights(
     val totalFocusHours: Double,
     val eventsCompleted: Int,
     val eventsTotal: Int,
+    val avgSleepDeltaMinutes: Int? = null,
+    val totalFocusDeltaHours: Double? = null,
+    val avgQualityDelta: Double? = null,
 )
 
 data class TodayChecklistSummary(
@@ -50,12 +63,22 @@ data class TodayChecklistSummary(
     val totalCount: Int,
 )
 
+data class AchievementBadge(
+    val id: String,
+    val name: String,
+    val icon: ImageVector,
+    val earnedAt: Long,
+)
+
 data class DashboardUiState(
     val lastNightSleep: SleepSummary? = null,
     val todayFocus: FocusSummary? = null,
     val upcomingEvents: List<CalendarEventEntity> = emptyList(),
     val weeklyHighlights: WeeklyHighlights? = null,
     val todayChecklist: TodayChecklistSummary? = null,
+    val achievementsEarnedCount: Int = 0,
+    val achievementsTotal: Int = AchievementId.entries.size,
+    val recentAchievements: List<AchievementBadge> = emptyList(),
     val isLoading: Boolean = false,
     val isSyncing: Boolean = false,
     val lastSyncTime: Long = 0L,
@@ -67,6 +90,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     private val db = AppDatabase.getInstance(application)
     private val sleepDao = db.sleepDao()
     private val sessionDao = db.sessionDao()
+    private val achievementDao = db.achievementDao()
     private val sleepRepo = SleepRepository(sleepDao, api)
     private val sessionRepo = SessionRepository(sessionDao, api)
     private val calendarRepo = CalendarRepository(db.calendarEventDao(), api, AlarmScheduler(application))
@@ -84,6 +108,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             _uiState.value = _uiState.value.copy(isLoading = false)
         }
         observeTodayChecklist()
+        observeAchievements()
     }
 
     private fun observeTodayChecklist() {
@@ -97,6 +122,27 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                         completedCount = all.count { it.completed },
                         totalCount = all.size,
                     ),
+                )
+            }
+        }
+    }
+
+    private fun observeAchievements() {
+        viewModelScope.launch {
+            achievementDao.getAll().collect { entities ->
+                val byId = AchievementId.entries.associateBy { it.name }
+                val badges = entities.mapNotNull { entity ->
+                    val def = byId[entity.id] ?: return@mapNotNull null
+                    AchievementBadge(
+                        id = entity.id,
+                        name = def.displayName,
+                        icon = def.icon,
+                        earnedAt = entity.earnedAt,
+                    )
+                }
+                _uiState.value = _uiState.value.copy(
+                    achievementsEarnedCount = badges.size,
+                    recentAchievements = badges.take(4),
                 )
             }
         }
@@ -116,35 +162,51 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         loadFocusSummary()
         loadUpcomingEvents()
         loadWeeklyHighlights()
-        // Today's checklist is observed via observeTodayChecklist() — flow keeps it live.
     }
 
     private suspend fun loadSleepSummary() {
         val now = System.currentTimeMillis()
-        val lookback = now - 48 * 3600_000L
-        val records = sleepDao.getRecordsBetween(lookback, now).firstOrNull() ?: emptyList()
-        val last = records.firstOrNull()
+        val twoDaysAgo = now - 48 * 3600_000L
+        val recent = sleepDao.getRecordsBetween(twoDaysAgo, now).firstOrNull() ?: emptyList()
+        val last = recent.firstOrNull()
+        if (last == null) {
+            _uiState.value = _uiState.value.copy(lastNightSleep = null)
+            return
+        }
+
+        val durationMs = last.actualWakeTime - last.actualBedtime
+        val durationMins = (durationMs / 60_000).toInt()
+        val targetMins = computeTargetMinutes(last)
+        val diffMins = durationMins - targetMins
+
+        // Comparison data: last 7 days excluding tonight, and last 30 days for ranking.
+        val weekAgo = now - 7 * 86_400_000L
+        val monthAgo = now - 30 * 86_400_000L
+        val past7 = sleepDao.getRecordsBetween(weekAgo, now).firstOrNull().orEmpty()
+            .filter { it.id != last.id }
+        val past30 = sleepDao.getRecordsBetween(monthAgo, now).firstOrNull().orEmpty()
+            .filter { it.id != last.id }
+
+        val past7Minutes = past7.map { ((it.actualWakeTime - it.actualBedtime) / 60_000).toInt() }
+        val vsLastWeek = Comparisons.vsLastWeekMinutes(durationMins, past7Minutes)
+
+        val past30Minutes = past30.map { ((it.actualWakeTime - it.actualBedtime) / 60_000.0) }
+        val rankPhrase = if (past30.size >= 4) {
+            val rank = Comparisons.rankAmong(durationMins.toDouble(), past30Minutes, largerIsBetter = true)
+            Comparisons.rankPhrase(rank, "this month")
+        } else null
+
         _uiState.value = _uiState.value.copy(
-            lastNightSleep = last?.let {
-                val durationMs = it.actualWakeTime - it.actualBedtime
-                val durationMins = (durationMs / 60_000).toInt()
-
-                // Target duration
-                val bedParts = it.targetBedtime.split(":")
-                val wakeParts = it.targetWakeTime.split(":")
-                val bedSecs = bedParts[0].toInt() * 3600 + bedParts[1].toInt() * 60
-                val wakeSecs = wakeParts[0].toInt() * 3600 + wakeParts[1].toInt() * 60
-                val targetSecs = if (wakeSecs >= bedSecs) wakeSecs - bedSecs else 86400 + wakeSecs - bedSecs
-                val targetMins = targetSecs / 60
-                val diffMins = durationMins - targetMins
-
-                SleepSummary(
-                    duration = formatDuration(durationMins),
-                    quality = it.qualityRating,
-                    vsTarget = if (diffMins >= 0) "+${formatDuration(diffMins)}" else "-${formatDuration(-diffMins)}",
-                    phonePickups = it.phonePickups
-                )
-            }
+            lastNightSleep = SleepSummary(
+                duration = formatDuration(durationMins),
+                durationMinutes = durationMins,
+                quality = last.qualityRating,
+                vsTarget = if (diffMins >= 0) "+${formatDuration(diffMins)}" else "-${formatDuration(-diffMins)}",
+                vsTargetMinutes = diffMins,
+                phonePickups = last.phonePickups,
+                vsLastWeek = vsLastWeek,
+                rankPhrase = rankPhrase,
+            )
         )
     }
 
@@ -155,16 +217,28 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
 
         val sessions = sessionDao.getSessionsBetween(todayStart, todayEnd).firstOrNull() ?: emptyList()
         val completed = sessions.filter { it.completed }
+        val totalMinutesToday = completed.sumOf { it.durationMinutes }
 
         val dates = sessionDao.getCompletedSessionDates(0, todayEnd)
         val streak = computeStreak(dates, todayStart)
+        val longestStreak = computeLongestStreak(dates)
+
+        // Last 7 days (excluding today) average for comparison.
+        val weekAgo = todayStart - 7 * 86_400_000L
+        val past7Minutes = sessionDao.getTotalFocusMinutes(weekAgo, todayStart - 1) ?: 0
+        val past7DailyAvg = past7Minutes / 7
+        val vsLastWeek = if (past7Minutes > 0) {
+            Comparisons.vsLastWeekMinutes(totalMinutesToday, listOf(past7DailyAvg))
+        } else null
 
         _uiState.value = _uiState.value.copy(
             todayFocus = FocusSummary(
-                totalMinutesToday = completed.sumOf { it.durationMinutes },
+                totalMinutesToday = totalMinutesToday,
                 sessionsToday = completed.size,
                 currentStreak = streak,
-                phonePickupsToday = completed.sumOf { it.phonePickups }
+                longestStreak = longestStreak,
+                phonePickupsToday = completed.sumOf { it.phonePickups },
+                vsLastWeek = vsLastWeek,
             )
         )
     }
@@ -181,18 +255,27 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     private suspend fun loadWeeklyHighlights() {
         val now = System.currentTimeMillis()
         val weekAgo = now - 7 * 86_400_000L
+        val twoWeeksAgo = now - 14 * 86_400_000L
         val today = LocalDate.now()
 
-        // Sleep
-        val sleepRecords = sleepDao.getRecordsBetween(weekAgo, now).firstOrNull() ?: emptyList()
-        val avgSleepMins = if (sleepRecords.isEmpty()) 0.0
-        else sleepRecords.map { (it.actualWakeTime - it.actualBedtime).toDouble() / 60_000 }.average()
-        val avgQuality = if (sleepRecords.isEmpty()) 0.0
-        else sleepRecords.map { it.qualityRating.toDouble() }.average()
+        // This week sleep
+        val sleepThis = sleepDao.getRecordsBetween(weekAgo, now).firstOrNull() ?: emptyList()
+        val sleepPrev = sleepDao.getRecordsBetween(twoWeeksAgo, weekAgo).firstOrNull() ?: emptyList()
+        val avgSleepThisMins = sleepThis.takeIf { it.isNotEmpty() }
+            ?.map { ((it.actualWakeTime - it.actualBedtime) / 60_000).toInt() }?.average() ?: 0.0
+        val avgSleepPrevMins = sleepPrev.takeIf { it.isNotEmpty() }
+            ?.map { ((it.actualWakeTime - it.actualBedtime) / 60_000).toInt() }?.average() ?: 0.0
+        val avgSleepDelta = if (sleepPrev.isNotEmpty()) (avgSleepThisMins - avgSleepPrevMins).roundToInt() else null
+
+        val avgQuality = if (sleepThis.isEmpty()) 0.0 else sleepThis.map { it.qualityRating.toDouble() }.average()
+        val avgQualityPrev = if (sleepPrev.isEmpty()) 0.0 else sleepPrev.map { it.qualityRating.toDouble() }.average()
+        val avgQualityDelta = if (sleepPrev.isNotEmpty()) avgQuality - avgQualityPrev else null
 
         // Sessions
-        val sessions = sessionDao.getSessionsBetween(weekAgo, now).firstOrNull() ?: emptyList()
-        val totalFocusMins = sessions.filter { it.completed }.sumOf { it.durationMinutes }
+        val totalFocusThis = sessionDao.getTotalFocusMinutes(weekAgo, now) ?: 0
+        val totalFocusPrev = sessionDao.getTotalFocusMinutes(twoWeeksAgo, weekAgo) ?: 0
+        val totalFocusHours = totalFocusThis / 60.0
+        val totalFocusDelta = if (totalFocusPrev > 0) (totalFocusThis - totalFocusPrev) / 60.0 else null
 
         // Events
         val events = calendarRepo.getEventsForRange(today.minusDays(7), today).firstOrNull() ?: emptyList()
@@ -200,11 +283,14 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
 
         _uiState.value = _uiState.value.copy(
             weeklyHighlights = WeeklyHighlights(
-                avgSleepDuration = if (sleepRecords.isEmpty()) "-" else formatDuration(avgSleepMins.toInt()),
+                avgSleepDuration = if (sleepThis.isEmpty()) "-" else formatDuration(avgSleepThisMins.toInt()),
                 avgSleepQuality = avgQuality,
-                totalFocusHours = totalFocusMins / 60.0,
+                totalFocusHours = totalFocusHours,
                 eventsCompleted = eventsCompleted,
-                eventsTotal = events.size
+                eventsTotal = events.size,
+                avgSleepDeltaMinutes = avgSleepDelta,
+                totalFocusDeltaHours = totalFocusDelta,
+                avgQualityDelta = avgQualityDelta,
             )
         )
     }
@@ -217,6 +303,15 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         } catch (_: Exception) { }
     }
 
+    private fun computeTargetMinutes(record: SleepRecordEntity): Int {
+        val bed = record.targetBedtime.split(":")
+        val wake = record.targetWakeTime.split(":")
+        val bedSecs = bed[0].toInt() * 3600 + bed[1].toInt() * 60
+        val wakeSecs = wake[0].toInt() * 3600 + wake[1].toInt() * 60
+        val targetSecs = if (wakeSecs >= bedSecs) wakeSecs - bedSecs else 86400 + wakeSecs - bedSecs
+        return targetSecs / 60
+    }
+
     private fun computeStreak(dateDayMillis: List<Long>, todayStartMillis: Long): Int {
         if (dateDayMillis.isEmpty()) return 0
         val todayDay = todayStartMillis / 86_400_000
@@ -227,6 +322,22 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             if (days[i - 1] - days[i] == 1L) streak++ else break
         }
         return streak
+    }
+
+    private fun computeLongestStreak(dateDayMillis: List<Long>): Int {
+        if (dateDayMillis.isEmpty()) return 0
+        val days = dateDayMillis.map { it / 86_400_000 }.toSortedSet().toList()
+        var longest = 1
+        var current = 1
+        for (i in 1 until days.size) {
+            if (days[i] - days[i - 1] == 1L) {
+                current++
+                longest = maxOf(longest, current)
+            } else {
+                current = 1
+            }
+        }
+        return longest
     }
 
     private fun formatDuration(minutes: Int): String {

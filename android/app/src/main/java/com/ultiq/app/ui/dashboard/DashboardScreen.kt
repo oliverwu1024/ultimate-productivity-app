@@ -20,8 +20,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Checklist
+import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Nightlight
@@ -51,6 +51,9 @@ import android.Manifest
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateIntAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -65,7 +68,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ultiq.app.data.local.entity.CalendarEventEntity
 import com.ultiq.app.ui.calendar.categoryColor
+import com.ultiq.app.ui.copy.WarmCopy
 import com.ultiq.app.ui.theme.AnimatedAppear
+import com.ultiq.app.util.Comparisons
 import java.time.Instant
 import java.time.LocalTime
 import java.time.ZoneId
@@ -128,10 +133,8 @@ fun DashboardScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 1. Greeting
             item { GreetingHeader() }
 
-            // 2. Sync indicator
             item {
                 SyncIndicator(
                     isSyncing = uiState.isSyncing,
@@ -140,21 +143,18 @@ fun DashboardScreen(
                 )
             }
 
-            // 3. Last Night's Sleep
             item {
                 AnimatedAppear(delayMillis = 50) {
                     SleepCard(sleep = uiState.lastNightSleep, onClick = onNavigateToSleep)
                 }
             }
 
-            // 4. Today's Focus
             item {
                 AnimatedAppear(delayMillis = 100) {
                     FocusCard(focus = uiState.todayFocus, onClick = onNavigateToSessions)
                 }
             }
 
-            // 4b. Today's Checklist
             item {
                 AnimatedAppear(delayMillis = 130) {
                     ChecklistCard(
@@ -164,10 +164,9 @@ fun DashboardScreen(
                 }
             }
 
-            // 5. Upcoming Events
             item {
                 Text(
-                    "Upcoming Events",
+                    "Coming up",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -175,7 +174,7 @@ fun DashboardScreen(
             if (uiState.upcomingEvents.isEmpty()) {
                 item {
                     Text(
-                        "No upcoming events",
+                        WarmCopy.upcomingEventsEmpty(),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -196,7 +195,6 @@ fun DashboardScreen(
                 }
             }
 
-            // 6. Quick Actions
             item {
                 QuickActionsRow(
                     onSleep = onNavigateToSleep,
@@ -205,7 +203,6 @@ fun DashboardScreen(
                 )
             }
 
-            // 7. Weekly Highlights
             item {
                 AnimatedAppear(delayMillis = 200) {
                     WeeklyHighlightsCard(
@@ -215,31 +212,40 @@ fun DashboardScreen(
                 }
             }
 
+            if (uiState.achievementsEarnedCount > 0) {
+                item {
+                    AnimatedAppear(delayMillis = 230) {
+                        AchievementsCard(
+                            earned = uiState.achievementsEarnedCount,
+                            total = uiState.achievementsTotal,
+                            recent = uiState.recentAchievements,
+                        )
+                    }
+                }
+            }
+
             item { Spacer(Modifier.height(8.dp)) }
         }
         }
     }
 }
 
-// ── Greeting ────────────────────────────────────────────────────────────
-
 @Composable
 private fun GreetingHeader() {
-    val hour = LocalTime.now().hour
-    val greeting = when (hour) {
-        in 5..11 -> "Good morning"
-        in 12..16 -> "Good afternoon"
-        in 17..20 -> "Good evening"
-        else -> "Good night"
+    val now = LocalTime.now()
+    Column {
+        Text(
+            WarmCopy.greeting(now),
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            WarmCopy.greetingSubtitle(now),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
-    Text(
-        greeting,
-        style = MaterialTheme.typography.headlineMedium,
-        fontWeight = FontWeight.Bold
-    )
 }
-
-// ── Sync indicator ──────────────────────────────────────────────────────
 
 @Composable
 private fun SyncIndicator(isSyncing: Boolean, lastSyncTime: Long, onRefresh: () -> Unit) {
@@ -268,8 +274,6 @@ private fun SyncIndicator(isSyncing: Boolean, lastSyncTime: Long, onRefresh: () 
     }
 }
 
-// ── Sleep card ──────────────────────────────────────────────────────────
-
 @Composable
 private fun SleepCard(sleep: SleepSummary?, onClick: () -> Unit) {
     Card(
@@ -279,12 +283,26 @@ private fun SleepCard(sleep: SleepSummary?, onClick: () -> Unit) {
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text("Last Night's Sleep", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                WarmCopy.sleepHeader(sleep?.quality, sleep?.vsTargetMinutes),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.SemiBold,
+            )
             Spacer(Modifier.height(8.dp))
             if (sleep != null) {
                 Text(sleep.duration, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+
+                if (sleep.rankPhrase != null) {
+                    Text(
+                        "✦ ${sleep.rankPhrase}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
+
                 Spacer(Modifier.height(4.dp))
-                // Quality stars
                 Row {
                     (1..5).forEach { star ->
                         Icon(
@@ -300,21 +318,28 @@ private fun SleepCard(sleep: SleepSummary?, onClick: () -> Unit) {
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    val vsColor = if (sleep.vsTarget.startsWith("+")) Color(0xFF4CAF50) else MaterialTheme.colorScheme.error
+                    val vsColor = if (sleep.vsTargetMinutes >= 0) Color(0xFF4CAF50) else MaterialTheme.colorScheme.error
                     Text("vs target: ${sleep.vsTarget}", style = MaterialTheme.typography.bodySmall, color = vsColor)
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.PhoneAndroid, null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(" ${sleep.phonePickups}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
+                if (sleep.vsLastWeek != null) {
+                    Text(
+                        sleep.vsLastWeek,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             } else {
-                Text("No sleep data yet", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                val (title, body) = WarmCopy.sleepEmpty()
+                Text(title, style = MaterialTheme.typography.bodyMedium)
+                Text(body, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
 }
-
-// ── Focus card ──────────────────────────────────────────────────────────
 
 @Composable
 private fun FocusCard(focus: FocusSummary?, onClick: () -> Unit) {
@@ -325,37 +350,81 @@ private fun FocusCard(focus: FocusSummary?, onClick: () -> Unit) {
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text("Today's Focus", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                WarmCopy.focusHeader(focus?.totalMinutesToday),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.SemiBold,
+            )
             Spacer(Modifier.height(8.dp))
-            val f = focus ?: FocusSummary(0, 0, 0, 0)
+            val f = focus ?: FocusSummary(0, 0, 0, 0, 0)
             val h = f.totalMinutesToday / 60
             val m = f.totalMinutesToday % 60
             val timeStr = if (h > 0) "${h}h ${m}m" else "${m}m"
             Text(timeStr, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+
+            if (f.vsLastWeek != null) {
+                Text(
+                    f.vsLastWeek,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
             Spacer(Modifier.height(4.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text("${f.sessionsToday} session${if (f.sessionsToday != 1) "s" else ""}", style = MaterialTheme.typography.bodySmall)
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.LocalFireDepartment, null, modifier = Modifier.size(16.dp), tint = Color(0xFFFF9800))
-                    Text(
-                        " ${f.currentStreak} day${if (f.currentStreak != 1) "s" else ""}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFFFF9800)
-                    )
+
+                val streakLine = WarmCopy.streakLine(f.currentStreak, f.longestStreak)
+                if (streakLine != null) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        val streakColor = if (f.currentStreak >= f.longestStreak && f.currentStreak >= 2) {
+                            Color(0xFFE85B5B)
+                        } else {
+                            Color(0xFFFF9800)
+                        }
+                        AnimatedStreakNumber(value = f.currentStreak, color = streakColor)
+                        Spacer(Modifier.width(4.dp))
+                        Icon(Icons.Default.LocalFireDepartment, null, modifier = Modifier.size(16.dp), tint = streakColor)
+                    }
                 }
+
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.PhoneAndroid, null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(" ${f.phonePickupsToday}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
+
+            if (f.currentStreak >= f.longestStreak && f.currentStreak >= 2) {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "Longest streak yet — keep it going",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Medium,
+                )
+            }
         }
     }
 }
 
-// ── Today's checklist card ──────────────────────────────────────────────
+@Composable
+private fun AnimatedStreakNumber(value: Int, color: Color) {
+    val animated by animateIntAsState(
+        targetValue = value,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "streak",
+    )
+    Text(
+        "$animated",
+        style = MaterialTheme.typography.bodySmall,
+        color = color,
+        fontWeight = FontWeight.SemiBold,
+    )
+}
 
 @Composable
 private fun ChecklistCard(summary: TodayChecklistSummary?, onClick: () -> Unit) {
@@ -379,7 +448,7 @@ private fun ChecklistCard(summary: TodayChecklistSummary?, onClick: () -> Unit) 
                     tint = MaterialTheme.colorScheme.primary,
                 )
                 Text(
-                    "Today's checklist",
+                    "Today's plan",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f),
@@ -394,8 +463,9 @@ private fun ChecklistCard(summary: TodayChecklistSummary?, onClick: () -> Unit) 
             }
 
             if (summary == null || summary.totalCount == 0) {
+                val (_, body) = WarmCopy.checklistEmpty()
                 Text(
-                    "Nothing planned for today — tap to add some",
+                    body,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -441,8 +511,6 @@ private fun ChecklistCard(summary: TodayChecklistSummary?, onClick: () -> Unit) 
     }
 }
 
-// ── Upcoming event item ─────────────────────────────────────────────────
-
 @Composable
 private fun UpcomingEventItem(event: CalendarEventEntity, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val zone = ZoneId.systemDefault()
@@ -460,7 +528,6 @@ private fun UpcomingEventItem(event: CalendarEventEntity, onClick: () -> Unit, m
             modifier = Modifier.padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Category color dot
             androidx.compose.foundation.Canvas(modifier = Modifier.size(10.dp)) {
                 drawCircle(color = dotColor)
             }
@@ -482,8 +549,6 @@ private fun UpcomingEventItem(event: CalendarEventEntity, onClick: () -> Unit, m
         }
     }
 }
-
-// ── Quick Actions ───────────────────────────────────────────────────────
 
 @Composable
 private fun QuickActionsRow(
@@ -514,8 +579,6 @@ private fun QuickActionButton(label: String, icon: ImageVector, onClick: () -> U
     }
 }
 
-// ── Weekly Highlights ───────────────────────────────────────────────────
-
 @Composable
 private fun WeeklyHighlightsCard(highlights: WeeklyHighlights?, onClick: () -> Unit) {
     Card(
@@ -525,23 +588,120 @@ private fun WeeklyHighlightsCard(highlights: WeeklyHighlights?, onClick: () -> U
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text("Weekly Highlights", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                "Your week so far",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.SemiBold,
+            )
             Spacer(Modifier.height(12.dp))
             val h = highlights
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                HighlightStat("Avg Sleep", h?.avgSleepDuration ?: "-")
-                HighlightStat("Sleep Quality", if (h != null && h.avgSleepQuality > 0) String.format("%.1f/5", h.avgSleepQuality) else "-")
-                HighlightStat("Focus", if (h != null) String.format("%.1fh", h.totalFocusHours) else "-")
-                HighlightStat("Events", if (h != null) "${h.eventsCompleted}/${h.eventsTotal}" else "-")
+                HighlightStat(
+                    label = "Avg sleep",
+                    value = h?.avgSleepDuration ?: "-",
+                    delta = h?.avgSleepDeltaMinutes?.let { Comparisons.formatMinuteDelta(it) },
+                    deltaPositive = (h?.avgSleepDeltaMinutes ?: 0) >= 0,
+                )
+                HighlightStat(
+                    label = "Quality",
+                    value = if (h != null && h.avgSleepQuality > 0) String.format("%.1f/5", h.avgSleepQuality) else "-",
+                    delta = h?.avgQualityDelta?.let {
+                        val sign = if (it > 0.05) "+" else if (it < -0.05) "−" else "±"
+                        "$sign${String.format("%.1f", kotlin.math.abs(it))}"
+                    },
+                    deltaPositive = (h?.avgQualityDelta ?: 0.0) >= 0.0,
+                )
+                HighlightStat(
+                    label = "Focus",
+                    value = if (h != null) String.format("%.1fh", h.totalFocusHours) else "-",
+                    delta = h?.totalFocusDeltaHours?.let {
+                        val sign = if (it > 0.05) "+" else if (it < -0.05) "−" else "±"
+                        "$sign${String.format("%.1f", kotlin.math.abs(it))}h"
+                    },
+                    deltaPositive = (h?.totalFocusDeltaHours ?: 0.0) >= 0.0,
+                )
+                HighlightStat(
+                    label = "Events",
+                    value = if (h != null) "${h.eventsCompleted}/${h.eventsTotal}" else "-",
+                    delta = null,
+                    deltaPositive = true,
+                )
             }
         }
     }
 }
 
 @Composable
-private fun HighlightStat(label: String, value: String) {
+private fun HighlightStat(label: String, value: String, delta: String?, deltaPositive: Boolean) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
         Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (delta != null) {
+            Text(
+                delta,
+                style = MaterialTheme.typography.labelSmall,
+                color = if (deltaPositive) Color(0xFF4CAF50) else MaterialTheme.colorScheme.error,
+                fontWeight = FontWeight.Medium,
+            )
+        }
+    }
+}
+
+@Composable
+private fun AchievementsCard(earned: Int, total: Int, recent: List<AchievementBadge>) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Filled.EmojiEvents,
+                    null,
+                    tint = Color(0xFFFFC83D),
+                    modifier = Modifier.size(20.dp),
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    "Achievements",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(
+                    "$earned / $total",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Spacer(Modifier.height(12.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                recent.take(4).forEach { badge ->
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            badge.icon,
+                            contentDescription = badge.name,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.size(22.dp),
+                        )
+                    }
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            val newest = recent.firstOrNull()
+            if (newest != null) {
+                Text(
+                    "Latest: ${newest.name}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
     }
 }
