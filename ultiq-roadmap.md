@@ -1665,7 +1665,7 @@ Add a "**Today's checklist**" card to the Dashboard between sleep and focus:
 
 ---
 
-## Phase 6: AWS Deployment (Weeks 20–23)
+## Phase 6: AWS Deployment + Marketing Site (Weeks 20–24)
 
 The full deployment runs on AWS. The architecture below is the standard production pattern: container behind ALB, database in private subnets, secrets out of source code, logs/metrics in CloudWatch, deploys via GitHub Actions.
 
@@ -1980,7 +1980,169 @@ Verify against the production URL with a release build before submitting to the 
 
 **AWS Free Tier:** new accounts get 12 months of free RDS db.t3.micro (750h/mo) and 750h/mo of ALB — first year can be ~$25/month cheaper.
 
-### 6.10 — Google Play Store Release
+### 6.10 — Marketing Landing Site
+
+A public, no-auth landing page introducing Ultiq — what it does, mascot + screenshots, Play Store CTA, terms + support. Goes live alongside the backend so you have something to share the moment you've shipped. The Phase 7 analytics dashboard will later live at the `app.` subdomain on the same project domain; this section locks in the apex.
+
+**Stack:**
+
+| Layer | Tech |
+|-------|------|
+| Framework | Next.js 14+ (App Router, static export) |
+| Styling | TailwindCSS |
+| Components | shadcn/ui (Radix + Tailwind primitives) |
+| Animations | framer-motion |
+| Hosting | AWS S3 + CloudFront + Route 53 + ACM |
+| CI/CD | GitHub Actions → S3 sync + CloudFront invalidation |
+
+**Why Next.js (not Leptos like the dashboard):** Marketing-page polish lives or dies on the React ecosystem — shadcn/ui + framer-motion + Tailwind together produce the "modern fancy" landing aesthetic with reasonable effort. Leptos's component/animation libraries aren't there yet for content sites. Phase 7's analytics dashboard stays Rust/Leptos because dashboards reward Rust's strengths (logic, charts, data) and ecosystem gaps matter less.
+
+**Why static export (not Vercel SSR):** No server-side data on this page; every section is content. `next build` with `output: 'export'` produces a `out/` directory of plain HTML/CSS/JS that drops into S3. Pure AWS deployment, no Vercel coupling.
+
+**Repo location:** `web-landing/` at the repo root, alongside `android/` and `backend/`. The Phase 7 Leptos dashboard goes in `web-dashboard/`.
+
+#### 6.10.1 — Page Structure
+
+One scrolling page, top to bottom:
+
+| Section | Content |
+|---------|---------|
+| Nav | Logo + name, "Get the app" button (anchors to Play Store CTA) |
+| Hero | Headline ("Your daily productivity companion"), 2-line subhead, mascot illustration, primary CTA |
+| What it does | 3–4 feature cards with icons (Sleep tracking, Focus sessions, Daily checklist, Insights) |
+| Screenshots | 3–4 phone mockups: dashboard, sleep, focus, calendar — frames generated with [Mockuphone](https://mockuphone.com/) or similar |
+| The mascot moment | One full-bleed section featuring the sleeping book with brand copy ("Sleep deeply, focus clearly, rest, repeat.") |
+| Play Store CTA | "Get it on Google Play" badge linking to the Play listing — gracefully shows "Coming soon" before the listing is live (build-time env var) |
+| Footer | Terms link, support email, copyright, GitHub link |
+
+**Brand assets to reuse from the Android app:**
+- Mascot vector — export `ic_launcher_foreground.xml` to SVG for the web
+- Brand palette: indigo `#2A1B6E`, red `#D9474C`, yellow `#FFC83D`, cream `#FFF4E6`, light blue `#A8C5E8`
+- Voice: warm, companion-style — mirror the tone in `WarmCopy.kt`
+
+#### 6.10.2 — Project Setup
+
+```
+web-landing/
+├── app/
+│   ├── layout.tsx          # Tailwind globals, metadata
+│   ├── page.tsx            # the single landing page
+│   └── terms/page.tsx      # mirror the in-app T&C, served at /terms
+├── components/
+│   ├── Nav.tsx
+│   ├── Hero.tsx
+│   ├── Features.tsx
+│   ├── Screenshots.tsx
+│   ├── MascotSection.tsx
+│   └── Footer.tsx
+├── public/
+│   ├── mascot.svg          # exported from the Android vector
+│   ├── icon-512.png        # favicon / open graph image
+│   └── screenshots/        # phone mockup PNGs
+├── tailwind.config.ts
+├── next.config.mjs         # output: 'export' for static
+└── package.json
+```
+
+**Setup commands:**
+```bash
+npx create-next-app@latest web-landing --typescript --tailwind --eslint --app
+cd web-landing
+npx shadcn-ui@latest init
+npm install framer-motion lucide-react
+```
+
+**`next.config.mjs`:**
+```js
+const nextConfig = {
+  output: 'export',
+  images: { unoptimized: true },  // S3 doesn't run the Next image server
+};
+export default nextConfig;
+```
+
+#### 6.10.3 — AWS Hosting
+
+The apex domain (`your-domain.com`) hosts the landing site. The dashboard subdomain `app.your-domain.com` is reserved for Phase 7. The API subdomain `api.your-domain.com` is already pointed at the ALB from 6.5.
+
+**S3 bucket:** `ultiq-landing-web`
+- Region: same as the rest of the stack
+- Block public access: ON (CloudFront fetches via OAC, not direct S3)
+- Versioning: optional, useful for quick rollbacks
+
+**CloudFront distribution:**
+- Origin: the S3 bucket via Origin Access Control (OAC)
+- Default root object: `index.html`
+- Custom error responses: `403` and `404` → return `/index.html` with status `200` (matches the Phase 7 dashboard config so future shared edge logic stays consistent)
+- Alternate domain: `your-domain.com` (and `www.your-domain.com` redirecting to apex)
+- TLS cert: ACM in `us-east-1` (CloudFront requirement)
+- Compression: gzip + brotli on
+- Default cache TTL: 1 day; `index.html` cache 0 so deploys go live immediately
+
+**Route 53:**
+- A/ALIAS record `your-domain.com → CloudFront distribution`
+- A/ALIAS record `www.your-domain.com → CloudFront distribution` (or 301 to apex via an S3 redirect bucket)
+
+#### 6.10.4 — GitHub Actions Deploy
+
+`.github/workflows/landing-deploy.yml` (path-filtered to `web-landing/**`):
+
+```yaml
+name: Deploy Landing
+
+on:
+  push:
+    branches: [main]
+    paths: ['web-landing/**']
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: web-landing/package-lock.json
+      - run: npm ci
+        working-directory: web-landing
+      - run: npm run build
+        working-directory: web-landing
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::<ACCOUNT_ID>:role/github-actions-deploy
+          aws-region: us-east-1
+      - run: |
+          aws s3 sync out/ s3://ultiq-landing-web/ \
+            --delete \
+            --cache-control "max-age=86400"
+        working-directory: web-landing
+      - run: |
+          aws s3 cp out/index.html s3://ultiq-landing-web/index.html \
+            --cache-control "max-age=0,no-cache" \
+            --content-type "text/html"
+        working-directory: web-landing
+      - run: aws cloudfront create-invalidation --distribution-id <DIST_ID> --paths "/*"
+```
+
+The OIDC role from 6.7 needs `s3:PutObject` and `s3:DeleteObject` on `ultiq-landing-web/*`, plus `cloudfront:CreateInvalidation` on the new distribution.
+
+#### 6.10.5 — Definition of Done
+
+- `your-domain.com` resolves to the landing page over HTTPS
+- Lighthouse score ≥ 90 on Performance, Accessibility, Best Practices
+- Mascot + screenshots + brand voice match the in-app feel
+- "Get it on Google Play" CTA points to the Play Store listing — or shows a "Coming soon" overlay until 6.11 is live
+- `/terms` route serves a static version of the in-app T&C
+- Push to `main` updates the live site within ~2 minutes
+
+---
+
+### 6.11 — Google Play Store Release
 
 **Generate signed AAB:**
 1. Android Studio → Build → Generate Signed Bundle/APK
@@ -2003,7 +2165,7 @@ Verify against the production URL with a release build before submitting to the 
 7. Upload AAB to Production track
 8. Submit for review
 
-### 6.11 — Optional: Deeper AWS Integration (Future)
+### 6.12 — Optional: Deeper AWS Integration (Future)
 
 Not part of the v1 build — but worth knowing where you'd grow into AWS later:
 
@@ -2015,7 +2177,7 @@ Not part of the v1 build — but worth knowing where you'd grow into AWS later:
 - **AWS WAF** on the ALB — block common attack patterns once the app is public.
 - **AWS Backup** — automated cross-region snapshots of RDS + ECR for disaster recovery.
 
-### 6.12 — Password Recovery (Forgot Password)
+### 6.13 — Password Recovery (Forgot Password)
 
 Deferred to this phase because it needs production-grade email that doesn't exist in local dev. **In-app change-password ships earlier** (Settings → Change password); this section is the email-driven *reset* flow for users who can't log in.
 
@@ -2034,9 +2196,9 @@ Deferred to this phase because it needs production-grade email that doesn't exis
 
 ---
 
-## Phase 7: Web Analytics Dashboard (Weeks 24–28)
+## Phase 7: Web Analytics Dashboard (Weeks 25–29)
 
-A Rust/WASM web app focused on analytics and visualization — explores the data the mobile app collects through richer, larger-screen charts. The same Rust/Axum backend serves both clients, so this is purely a new frontend.
+A Rust/WASM web app for analytics and visualization, served at `app.your-domain.com` while the marketing landing site from Phase 6 keeps the apex `your-domain.com`. Two distinct apps, one project domain. Builds on the same Rust/Axum backend the Android app uses — purely a new frontend.
 
 ### Stack
 
@@ -2070,10 +2232,10 @@ Browser → CloudFront → S3 (static SPA: index.html, *.wasm, *.js, *.css)
 
 ### 7.1 — Project Scaffold
 
-Add a `web/` Cargo project to the workspace:
+Add a `web-dashboard/` Cargo project to the workspace (sibling of `android/`, `backend/`, and the Phase 6 `web-landing/`):
 
 ```
-web/
+web-dashboard/
 ├── Cargo.toml
 ├── Trunk.toml
 ├── index.html              # Trunk entry: <link data-trunk rel="rust" /> + tailwind
@@ -2294,7 +2456,7 @@ name: Deploy web
 on:
   push:
     branches: [main]
-    paths: ['web/**']
+    paths: ['web-dashboard/**']
 
 permissions:
   id-token: write
@@ -2381,7 +2543,7 @@ Two clients, one backend, three deployment targets — a strong demonstration of
 
 ---
 
-## Phase 8: AI Integration (Weeks 29–31)
+## Phase 8: AI Integration (Weeks 30–32)
 
 Turns the data this app already collects (sleep, focus, pickups, checklist completion, calendar) into insights, summaries, and natural-language interactions powered by Claude. Backend-mediated so API keys never leave the server.
 
@@ -2518,7 +2680,7 @@ Rough total: **~$1 per active user/month** with caching. Absorbable; or expose a
 
 ---
 
-## Phase 9: Sleep Monitoring & Wearables (Weeks 32–35)
+## Phase 9: Sleep Monitoring & Wearables (Weeks 33–36)
 
 Moves sleep tracking from "phone unlock counts + self-reported quality" to objective physiological data (heart rate, sleep stages, HRV) via wearables. **Additive, not replacement** — users without a wearable keep the existing manual flow exactly as it is today.
 
@@ -2697,10 +2859,10 @@ With HR + accel from the watch:
 | Phase 3: Calendar | 9–11 | Full calendar: API + Android screen + recurring events |
 | Phase 4: Dashboard & Sync | 12–13 | Dashboard home screen, background sync across all features |
 | Phase 5: Polish | 14–19 | Notifications, theming, weekly reports, achievements, settings, pickup confirmation gate, **daily checklist + focus dropdown** |
-| Phase 6: AWS Deployment | 20–23 | Production app on AWS (ECS Fargate + RDS + ALB + CI/CD) and Google Play Store |
-| Phase 7: Web Analytics Dashboard | 24–28 | Rust/WASM analytics site at `app.your-domain.com` (Leptos + S3 + CloudFront) — full-stack Rust portfolio piece |
-| Phase 8: AI Integration | 29–31 | Backend-mediated Claude integration: weekly insights, NL event parsing, coach chat, anomaly detection |
-| Phase 9: Sleep Monitoring & Wearables | 32–35 | Fitbit + Wear OS companion app, sleep stages + HR + HRV, hypnogram chart, optional auto sleep detection |
-| **Total** | **~35 weeks** | **Production app on AWS + Google Play + web dashboard + AI features + wearable integrations** |
+| Phase 6: AWS Deployment + Marketing Site | 20–24 | Production app on AWS (ECS Fargate + RDS + ALB + CI/CD), Next.js marketing site at `your-domain.com`, Google Play Store listing |
+| Phase 7: Web Analytics Dashboard | 25–29 | Rust/WASM analytics site at `app.your-domain.com` (Leptos + S3 + CloudFront) — full-stack Rust portfolio piece |
+| Phase 8: AI Integration | 30–32 | Backend-mediated Claude integration: weekly insights, NL event parsing, coach chat, anomaly detection |
+| Phase 9: Sleep Monitoring & Wearables | 33–36 | Fitbit + Wear OS companion app, sleep stages + HR + HRV, hypnogram chart, optional auto sleep detection |
+| **Total** | **~36 weeks** | **Production app on AWS + Google Play + marketing site + Rust web dashboard + AI features + wearable integrations** |
 
 Assumes ~15–20 hours/week. Phase 7 is the "ambitious" extension — skip it if you'd rather ship the mobile app first and add the web frontend as a v2. Phases 8 and 9 are post-launch additions; Phase 9 stays fully optional for users (the existing manual sleep flow is preserved).
