@@ -67,7 +67,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ultiq.app.data.local.entity.SleepRecordEntity
 import com.ultiq.app.data.remote.dto.SleepStats
-import com.ultiq.app.ui.common.EmptyState
+import com.ultiq.app.ui.common.AchievementCelebration
+import com.ultiq.app.ui.common.MascotEmptyState
+import com.ultiq.app.ui.copy.WarmCopy
 import com.ultiq.app.ui.theme.AnimatedAppear
 import com.ultiq.app.ui.theme.QualityStar
 import kotlinx.coroutines.delay
@@ -95,7 +97,7 @@ fun SleepScreen(viewModel: SleepViewModel = viewModel()) {
     }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Sleep Tracker") }) },
+        topBar = { TopAppBar(title = { Text("Sleep") }) },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         val hasStats = uiState.stats != null && uiState.stats!!.totalRecords > 0
@@ -162,11 +164,8 @@ fun SleepScreen(viewModel: SleepViewModel = viewModel()) {
 
             if (uiState.records.isEmpty()) {
                 item(key = "empty") {
-                    EmptyState(
-                        icon = Icons.Default.Bedtime,
-                        title = "No sleep records yet",
-                        body = "Tap Start Sleep tonight and we'll track your rest automatically.",
-                    )
+                    val (title, body) = WarmCopy.sleepEmpty()
+                    MascotEmptyState(title = title, body = body)
                 }
             } else {
                 items(uiState.records, key = { it.id }) { record ->
@@ -212,6 +211,16 @@ fun SleepScreen(viewModel: SleepViewModel = viewModel()) {
             initialTargetWakeTime = uiState.targetWakeTime,
             onDismiss = { viewModel.hideManualLog() },
             onSave = { viewModel.addManualRecord(it) }
+        )
+    }
+
+    // Achievement earned celebration
+    uiState.celebratedAchievement?.let { id ->
+        AchievementCelebration(
+            name = id.displayName,
+            description = id.description,
+            icon = id.icon,
+            onDismiss = { viewModel.dismissAchievementCelebration() },
         )
     }
 }

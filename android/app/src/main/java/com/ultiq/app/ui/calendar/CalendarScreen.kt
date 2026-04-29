@@ -55,7 +55,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.material.icons.filled.EventAvailable
 import com.ultiq.app.data.local.entity.CalendarEventEntity
-import com.ultiq.app.ui.common.EmptyState
+import com.ultiq.app.ui.common.MascotEmptyState
+import com.ultiq.app.ui.copy.WarmCopy
 import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
@@ -120,11 +121,8 @@ fun CalendarScreen(viewModel: CalendarViewModel = viewModel()) {
             ) {
                 if (uiState.selectedDayEvents.isEmpty()) {
                     item {
-                        EmptyState(
-                            icon = Icons.Default.EventAvailable,
-                            title = "No events today",
-                            body = "Tap + to schedule something.",
-                        )
+                        val (title, body) = WarmCopy.calendarEmpty()
+                        MascotEmptyState(title = title, body = body)
                     }
                 }
                 items(uiState.selectedDayEvents, key = { "${it.id}_${it.startTime}" }) { event ->
