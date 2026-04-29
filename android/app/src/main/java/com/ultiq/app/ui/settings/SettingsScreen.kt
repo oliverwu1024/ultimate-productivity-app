@@ -85,11 +85,13 @@ fun SettingsScreen(
     onNavigateToReminders: () -> Unit,
     onNavigateToReports: () -> Unit,
     onNavigateToChangePassword: () -> Unit,
+    onNavigateToTerms: () -> Unit,
     onLogout: () -> Unit,
     onResetAccount: () -> Unit,
     onDeleteAccount: () -> Unit,
     viewModel: SettingsViewModel = viewModel(),
 ) {
+    val supportEmail = "support@ultiq.app"
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
 
@@ -399,9 +401,14 @@ fun SettingsScreen(
                         Icon(Icons.Default.Info, null, tint = MaterialTheme.colorScheme.primary)
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                "Productivity",
+                                "Ultiq",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Medium,
+                            )
+                            Text(
+                                "Your daily productivity companion",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                             Text(
                                 "Version ${uiState.versionName} (${uiState.versionCode})",
@@ -411,6 +418,28 @@ fun SettingsScreen(
                         }
                     }
                 }
+            }
+            item {
+                LinkRow(
+                    icon = Icons.Default.Info,
+                    title = "Terms & conditions",
+                    description = "What we collect, how we use it",
+                    onClick = onNavigateToTerms,
+                )
+            }
+            item {
+                LinkRow(
+                    icon = Icons.Default.Email,
+                    title = "Contact support",
+                    description = supportEmail,
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_SENDTO).apply {
+                            data = Uri.parse("mailto:$supportEmail")
+                            putExtra(Intent.EXTRA_SUBJECT, "Ultiq support")
+                        }
+                        runCatching { context.startActivity(intent) }
+                    },
+                )
             }
 
             item { Spacer(Modifier.height(8.dp)) }
