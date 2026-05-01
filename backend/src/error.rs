@@ -2,6 +2,7 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use serde_json::json;
 
+#[derive(Debug)]
 pub struct AppError {
     pub status: StatusCode,
     pub message: String,

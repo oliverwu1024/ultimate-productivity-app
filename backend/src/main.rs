@@ -23,7 +23,10 @@ async fn main() {
 
     sqlx::migrate!("src/migrations").run(&pool).await.expect("Failed to run migrations");
 
-    let state = AppState { pool, config };
+    let aws_config = aws_config::defaults(aws_config::BehaviorVersion::latest()).load().await;
+    let ses = aws_sdk_sesv2::Client::new(&aws_config);
+
+    let state = AppState { pool, config, ses };
 
     let cors = CorsLayer::new()
         .allow_origin(Any)

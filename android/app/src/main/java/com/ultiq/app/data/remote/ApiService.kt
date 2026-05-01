@@ -3,6 +3,8 @@ package com.ultiq.app.data.remote
 import com.ultiq.app.data.remote.dto.AuthResponse
 import com.ultiq.app.data.remote.dto.CalendarEventDto
 import com.ultiq.app.data.remote.dto.ChangePasswordRequest
+import com.ultiq.app.data.remote.dto.ForgotPasswordRequest
+import com.ultiq.app.data.remote.dto.ResetPasswordRequest
 import com.ultiq.app.data.remote.dto.ChecklistItemDto
 import com.ultiq.app.data.remote.dto.CreateCalendarEventDto
 import com.ultiq.app.data.remote.dto.CreateChecklistItemDto
@@ -43,6 +45,12 @@ interface ApiService {
 
     @POST("auth/password")
     suspend fun changePassword(@Body request: ChangePasswordRequest)
+
+    @POST("auth/password/forgot")
+    suspend fun forgotPassword(@Body request: ForgotPasswordRequest)
+
+    @POST("auth/password/reset")
+    suspend fun resetPassword(@Body request: ResetPasswordRequest)
 
     @POST("sleep")
     suspend fun createSleepRecord(@Body record: CreateSleepRecordDto): SleepRecordDto
