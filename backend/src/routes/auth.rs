@@ -308,7 +308,7 @@ fn sha256_hex(s: &str) -> String {
 }
 
 async fn send_reset_email(state: &AppState, to: &str, token: &str) -> Result<(), AppError> {
-    let link = format!("ultiq://reset-password?token={}", token);
+    let link = format!("https://ultiqapp.com/reset?token={}", token);
     let body_text = format!(
         "Hi,\n\nWe received a request to reset your Ultiq password. Tap the link below to choose a new password:\n\n{}\n\nThis link expires in 1 hour. If you didn't request a reset, you can safely ignore this email.\n\n— Ultiq",
         link
