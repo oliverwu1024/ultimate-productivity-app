@@ -28,9 +28,11 @@ import androidx.compose.ui.unit.dp
 fun ForgotPasswordScreen(
     uiState: AuthUiState,
     onSubmit: (String) -> Unit,
+    onPasteToken: (String) -> Unit,
     onBack: () -> Unit,
 ) {
     var email by remember { mutableStateOf("") }
+    var pastedLink by remember { mutableStateOf("") }
 
     Column(
         modifier = Modifier
@@ -72,6 +74,43 @@ fun ForgotPasswordScreen(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.primary,
             )
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Text(
+                text = "Reset link not opening the app?",
+                style = MaterialTheme.typography.titleSmall,
+            )
+            Text(
+                text = "Paste the full link from the email below and tap Continue.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedTextField(
+                value = pastedLink,
+                onValueChange = { pastedLink = it },
+                label = { Text("ultiq://reset-password?token=…") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Button(
+                onClick = {
+                    val token = extractToken(pastedLink)
+                    if (token != null) {
+                        onPasteToken(token)
+                    }
+                },
+                enabled = extractToken(pastedLink) != null,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Continue with pasted link")
+            }
         }
 
         if (uiState.error != null) {
@@ -106,4 +145,19 @@ fun ForgotPasswordScreen(
             Text("Back to login")
         }
     }
+}
+
+/**
+ * Pulls `token=...` out of an `ultiq://reset-password?token=...` URL or a raw token.
+ * Returns null when the input doesn't contain a usable token.
+ */
+private fun extractToken(input: String): String? {
+    val trimmed = input.trim()
+    if (trimmed.isEmpty()) return null
+    // If it looks like a URL with a token query param, pull it out.
+    val tokenParam = Regex("[?&]token=([^&\\s]+)").find(trimmed)?.groupValues?.getOrNull(1)
+    if (!tokenParam.isNullOrBlank()) return tokenParam
+    // Otherwise, accept a raw UUID-shaped token.
+    val uuidish = Regex("^[0-9a-fA-F-]{32,40}$")
+    return if (uuidish.matches(trimmed)) trimmed else null
 }
