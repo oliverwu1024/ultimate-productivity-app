@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Moon, Timer, ListChecks, Sparkles } from "lucide-react";
+import { Moon, Timer, ListChecks, Sparkles, Download } from "lucide-react";
 import Link from "next/link";
 
 const features = [
@@ -170,14 +170,39 @@ export default function Home() {
       <section id="get-the-app" className="mx-auto w-full max-w-4xl px-6 py-20 text-center">
         <h2 className="text-3xl font-bold tracking-tight md:text-4xl">Ready when you are.</h2>
         <p className="mx-auto mt-4 max-w-xl text-ultiq-indigo/70">
-          Ultiq is finishing review on Google Play. Drop your email if you&apos;d like a one-line note when it&apos;s live.
+          Direct APK download for Android — sideload it onto your phone today, no Play Store required.
         </p>
-        <div className="mt-10 inline-flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-ultiq-indigo/30 px-10 py-8">
-          <span className="rounded-full bg-ultiq-yellow/40 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-ultiq-indigo">
+
+        <div className="mt-10 flex flex-col items-center gap-4">
+          <a
+            href="/ultiq-latest.apk"
+            download
+            className="inline-flex items-center gap-3 rounded-full bg-ultiq-indigo px-8 py-4 text-base font-medium text-ultiq-cream shadow-lg shadow-ultiq-indigo/20 transition hover:translate-y-[-1px] hover:bg-ultiq-indigo/90"
+          >
+            <Download size={20} strokeWidth={2.2} />
+            Download APK · v1.0 · 14 MB
+          </a>
+          <span className="text-xs text-ultiq-indigo/50">Android 8.0+ (API 26)</span>
+        </div>
+
+        <details className="mx-auto mt-10 max-w-lg rounded-2xl border border-ultiq-indigo/15 bg-white/40 p-5 text-left text-sm text-ultiq-indigo/80">
+          <summary className="cursor-pointer font-medium text-ultiq-indigo">First time installing?</summary>
+          <ol className="mt-3 list-decimal space-y-2 pl-5 text-ultiq-indigo/70">
+            <li>Tap the downloaded <code className="rounded bg-ultiq-indigo/5 px-1.5 py-0.5">ultiq-latest.apk</code> in your Files or Downloads app.</li>
+            <li>If Android asks <em>&ldquo;allow installs from this source?&rdquo;</em>, tap <strong>Settings</strong> → toggle on <strong>Allow from this source</strong>, then go back.</li>
+            <li>Tap <strong>Install</strong>. The icon appears on your home screen / app drawer when it&apos;s done.</li>
+          </ol>
+          <p className="mt-3 text-xs text-ultiq-indigo/50">
+            That &ldquo;unknown source&rdquo; prompt is Android&apos;s standard one-time check for any APK installed outside the Play Store. Same APK as the Play Store build, just hosted here.
+          </p>
+        </details>
+
+        <div className="mx-auto mt-10 flex max-w-lg items-center justify-center gap-3 text-sm text-ultiq-indigo/60">
+          <span className="rounded-full bg-ultiq-yellow/30 px-2.5 py-1 text-xs font-semibold uppercase tracking-wider text-ultiq-indigo">
             Coming soon
           </span>
-          <span className="font-medium">Google Play listing in review</span>
-          <a href="mailto:hello@ultiqapp.com" className="text-sm text-ultiq-red underline-offset-4 hover:underline">
+          <span>also on Google Play —</span>
+          <a href="mailto:hello@ultiqapp.com" className="text-ultiq-red underline-offset-4 hover:underline">
             hello@ultiqapp.com
           </a>
         </div>

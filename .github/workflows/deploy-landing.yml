@@ -46,7 +46,8 @@ jobs:
           aws s3 sync out/ s3://${S3_BUCKET}/ \
             --delete \
             --cache-control "max-age=86400" \
-            --exclude "index.html" --exclude "*.html" --exclude "*.txt"
+            --exclude "index.html" --exclude "*.html" --exclude "*.txt" \
+            --exclude "*.apk"
 
       - name: Upload HTML/text files (no-cache)
         run: |
