@@ -1,65 +1,212 @@
-import Image from "next/image";
+"use client";
+
+import { motion } from "framer-motion";
+import { Moon, Timer, ListChecks, Sparkles } from "lucide-react";
+import Link from "next/link";
+
+const features = [
+  {
+    icon: Moon,
+    title: "Sleep tracking",
+    body: "Tap once to start a night. Wake up to a calm summary, not a quiz.",
+    bg: "bg-ultiq-blue/40",
+    iconColor: "text-ultiq-indigo",
+  },
+  {
+    icon: Timer,
+    title: "Focus sessions",
+    body: "Pomodoro timer that quietly notices each phone pickup, no shaming.",
+    bg: "bg-ultiq-red/15",
+    iconColor: "text-ultiq-red",
+  },
+  {
+    icon: ListChecks,
+    title: "Daily checklist",
+    body: "A short list of intentions for the day — drop into a focus session straight from a task.",
+    bg: "bg-ultiq-yellow/30",
+    iconColor: "text-ultiq-indigo",
+  },
+  {
+    icon: Sparkles,
+    title: "Weekly insight",
+    body: "On Sundays, a gentle reflection on how the week landed — sleep, focus, follow-through.",
+    bg: "bg-ultiq-indigo/10",
+    iconColor: "text-ultiq-indigo",
+  },
+];
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
+    <div className="flex flex-1 flex-col bg-ultiq-cream text-ultiq-indigo">
+      {/* Nav */}
+      <nav className="sticky top-0 z-30 backdrop-blur-md bg-ultiq-cream/80 border-b border-ultiq-indigo/10">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+          <Link href="/" className="flex items-center gap-2">
+            <span className="block size-8">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/mascot.svg" alt="Ultiq" />
+            </span>
+            <span className="text-xl font-semibold tracking-tight">Ultiq</span>
+          </Link>
           <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            href="#get-the-app"
+            className="rounded-full bg-ultiq-indigo px-4 py-2 text-sm font-medium text-ultiq-cream transition hover:bg-ultiq-indigo/90"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
+            Get the app
           </a>
         </div>
-      </main>
+      </nav>
+
+      {/* Hero */}
+      <section className="relative overflow-hidden">
+        <div className="mx-auto flex max-w-5xl flex-col items-center px-6 pt-16 pb-24 text-center md:pt-28 md:pb-32">
+          <motion.div
+            initial={{ opacity: 0, y: 12, rotate: -6 }}
+            animate={{ opacity: 1, y: 0, rotate: 0 }}
+            transition={{ duration: 0.7, ease: "easeOut" }}
+            className="mb-8 size-44 md:size-56"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/mascot.svg" alt="" className="drop-shadow-md" />
+          </motion.div>
+
+          <motion.h1
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15, duration: 0.6 }}
+            className="text-4xl font-bold tracking-tight md:text-6xl"
+          >
+            Your daily productivity companion.
+          </motion.h1>
+
+          <motion.p
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.6 }}
+            className="mt-6 max-w-xl text-lg text-ultiq-indigo/75 md:text-xl"
+          >
+            Sleep deeply. Focus clearly. Rest. Repeat.
+            <br />A calm Android app that quietly looks after the rhythm of your day.
+          </motion.p>
+
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5, duration: 0.6 }}
+            className="mt-10 flex flex-col items-center gap-3"
+          >
+            <a
+              href="#get-the-app"
+              className="rounded-full bg-ultiq-indigo px-8 py-3 text-base font-medium text-ultiq-cream shadow-lg shadow-ultiq-indigo/15 transition hover:translate-y-[-1px] hover:bg-ultiq-indigo/90"
+            >
+              Get the app
+            </a>
+            <p className="text-sm text-ultiq-indigo/60">Free · Android · Coming soon to Google Play</p>
+          </motion.div>
+        </div>
+
+        {/* Decorative blobs */}
+        <div aria-hidden className="pointer-events-none absolute -top-24 -left-24 size-72 rounded-full bg-ultiq-yellow/30 blur-3xl" />
+        <div aria-hidden className="pointer-events-none absolute -bottom-32 -right-24 size-96 rounded-full bg-ultiq-red/15 blur-3xl" />
+      </section>
+
+      {/* Features */}
+      <section className="mx-auto w-full max-w-6xl px-6 py-20">
+        <h2 className="text-center text-3xl font-bold tracking-tight md:text-4xl">
+          Four small things, woven into your day.
+        </h2>
+        <p className="mx-auto mt-4 max-w-2xl text-center text-ultiq-indigo/70">
+          Ultiq doesn&apos;t demand attention. It notices, encourages, and gets out of the way.
+        </p>
+
+        <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {features.map((f, i) => (
+            <motion.div
+              key={f.title}
+              initial={{ opacity: 0, y: 18 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-40px" }}
+              transition={{ delay: i * 0.08, duration: 0.45 }}
+              className={`rounded-3xl border border-ultiq-indigo/10 ${f.bg} p-6`}
+            >
+              <div className={`mb-5 inline-flex size-11 items-center justify-center rounded-2xl bg-ultiq-cream ${f.iconColor}`}>
+                <f.icon size={22} strokeWidth={2} />
+              </div>
+              <h3 className="text-lg font-semibold tracking-tight">{f.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-ultiq-indigo/70">{f.body}</p>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+
+      {/* Mascot moment */}
+      <section className="bg-ultiq-indigo text-ultiq-cream">
+        <div className="mx-auto flex max-w-5xl flex-col items-center px-6 py-24 text-center md:py-32">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="mb-8 size-40 md:size-52"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/mascot.svg" alt="" />
+          </motion.div>
+          <motion.blockquote
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2, duration: 0.6 }}
+            className="font-serif text-3xl italic md:text-5xl"
+          >
+            &ldquo;Sleep deeply, focus clearly, <br className="hidden md:inline" />
+            rest, repeat.&rdquo;
+          </motion.blockquote>
+          <p className="mt-6 text-ultiq-cream/60">— a sleeping book&apos;s daily wish for you</p>
+        </div>
+      </section>
+
+      {/* Get the app CTA */}
+      <section id="get-the-app" className="mx-auto w-full max-w-4xl px-6 py-20 text-center">
+        <h2 className="text-3xl font-bold tracking-tight md:text-4xl">Ready when you are.</h2>
+        <p className="mx-auto mt-4 max-w-xl text-ultiq-indigo/70">
+          Ultiq is finishing review on Google Play. Drop your email if you&apos;d like a one-line note when it&apos;s live.
+        </p>
+        <div className="mt-10 inline-flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-ultiq-indigo/30 px-10 py-8">
+          <span className="rounded-full bg-ultiq-yellow/40 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-ultiq-indigo">
+            Coming soon
+          </span>
+          <span className="font-medium">Google Play listing in review</span>
+          <a href="mailto:hello@ultiqapp.com" className="text-sm text-ultiq-red underline-offset-4 hover:underline">
+            hello@ultiqapp.com
+          </a>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="mt-auto border-t border-ultiq-indigo/10 bg-ultiq-cream">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 py-8 text-sm text-ultiq-indigo/70 md:flex-row">
+          <div className="flex items-center gap-3">
+            <span className="block size-6">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/mascot.svg" alt="" />
+            </span>
+            <span>© {new Date().getFullYear()} Ultiq</span>
+          </div>
+          <div className="flex items-center gap-6">
+            <Link href="/terms" className="hover:text-ultiq-indigo">Terms</Link>
+            <a href="mailto:hello@ultiqapp.com" className="hover:text-ultiq-indigo">Support</a>
+            <a
+              href="https://github.com/oliverwu1024/ultimate-productivity-app"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-ultiq-indigo"
+            >
+              GitHub
+            </a>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

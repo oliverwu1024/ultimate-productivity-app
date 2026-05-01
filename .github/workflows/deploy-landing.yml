@@ -1,0 +1,64 @@
+name: Deploy landing
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'web-landing/**'
+      - '.github/workflows/deploy-landing.yml'
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: ap-southeast-2
+  S3_BUCKET: ultiq-landing-web
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web-landing
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: web-landing/package-lock.json
+
+      - run: npm ci
+
+      - run: npm run build
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-deploy
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Sync assets to S3 (1-day cache)
+        run: |
+          aws s3 sync out/ s3://${S3_BUCKET}/ \
+            --delete \
+            --cache-control "max-age=86400" \
+            --exclude "index.html" --exclude "*.html" --exclude "*.txt"
+
+      - name: Upload HTML/text files (no-cache)
+        run: |
+          for f in $(find out/ -maxdepth 2 \( -name "*.html" -o -name "*.txt" \)); do
+            rel=${f#out/}
+            ct=$(case "$f" in *.html) echo "text/html";; *.txt) echo "text/plain";; esac)
+            aws s3 cp "$f" "s3://${S3_BUCKET}/$rel" \
+              --cache-control "max-age=0,no-cache" --content-type "$ct"
+          done
+
+      - name: Invalidate CloudFront cache
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id "${{ secrets.CLOUDFRONT_DIST_ID }}" \
+            --paths "/*"
