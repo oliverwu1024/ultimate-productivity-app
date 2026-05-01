@@ -6,10 +6,10 @@ import androidx.lifecycle.viewModelScope
 import com.ultiq.app.data.remote.RetrofitClient
 import com.ultiq.app.data.remote.dto.ChangePasswordRequest
 import com.ultiq.app.util.TokenManager
+import com.ultiq.app.util.toUserMessage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import retrofit2.HttpException
 
 data class ChangePasswordUiState(
     val isLoading: Boolean = false,
@@ -30,14 +30,10 @@ class ChangePasswordViewModel(application: Application) : AndroidViewModel(appli
             try {
                 api.changePassword(ChangePasswordRequest(current, newPassword))
                 _uiState.value = _uiState.value.copy(isLoading = false, isSuccess = true)
-            } catch (e: HttpException) {
-                val body = runCatching { e.response()?.errorBody()?.string() }.getOrNull()
-                val msg = body?.takeIf { it.isNotBlank() } ?: e.message()
-                _uiState.value = _uiState.value.copy(isLoading = false, error = msg)
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    error = e.message ?: "Failed to change password",
+                    error = e.toUserMessage("Couldn't change password. Try again."),
                 )
             }
         }

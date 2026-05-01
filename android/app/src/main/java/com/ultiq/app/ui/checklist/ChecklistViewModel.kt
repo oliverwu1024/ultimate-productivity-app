@@ -9,6 +9,7 @@ import com.ultiq.app.data.remote.RetrofitClient
 import com.ultiq.app.data.repository.ChecklistRepository
 import com.ultiq.app.util.TokenManager
 import com.ultiq.app.util.UserPreferences
+import com.ultiq.app.util.toUserMessage
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -141,7 +142,7 @@ class ChecklistViewModel(application: Application) : AndroidViewModel(applicatio
             result.onSuccess {
                 _uiState.value = _uiState.value.copy(showAddDialog = false, editingItem = null)
             }.onFailure {
-                _uiState.value = _uiState.value.copy(error = it.message)
+                _uiState.value = _uiState.value.copy(error = it.toUserMessage("Couldn't save task. Try again."))
             }
         }
     }

@@ -19,6 +19,7 @@ import com.ultiq.app.service.SleepTrackingService
 import com.ultiq.app.util.PhoneUsageTracker
 import com.ultiq.app.util.TokenManager
 import com.ultiq.app.util.UserPreferences
+import com.ultiq.app.util.toUserMessage
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -219,7 +220,7 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
             result.onSuccess { session ->
                 currentSessionId = session.id
             }.onFailure {
-                _uiState.value = _uiState.value.copy(error = it.message)
+                _uiState.value = _uiState.value.copy(error = it.toUserMessage("Couldn't start session. Try again."))
             }
         }
 
