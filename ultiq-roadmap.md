@@ -2194,6 +2194,101 @@ Deferred to this phase because it needs production-grade email that doesn't exis
   - Deep link: register `ultiq://reset-password?token=...` in the manifest. Tapping the email link opens a new password screen with the same live strength feedback used in register.
 - **Strength rules** are shared by `register`, `POST /auth/password` (in-app change), and `POST /auth/password/reset`. Encode once on the backend (a `validate_password_strength` helper) and once on the client (`PasswordStrength.kt`) so the user gets immediate feedback, but the server is the source of truth.
 
+### 6.14 — Direct APK Distribution + Play Internal Testing
+
+Two distribution channels alongside the Play Store production track in 6.11. Decided 2026-05-01 — we want both, not either/or:
+
+- **Direct APK** unblocks friends/early testers immediately (no Google approval needed) and gives a fallback for users who avoid Google's ecosystem.
+- **Play Internal Testing** auto-updates installed builds and reviews in hours instead of the 3–7 days that Production review takes — perfect for iterating on near-final builds.
+
+#### 6.14.1 — Signing keystore (prerequisite for both, and for 6.11)
+
+A single keystore is used for every release build forever. **Losing it means you cannot update the app on Play Store with the same package name** (you'd have to publish a new app from scratch, lose all existing users + reviews). Treat it like a credit card.
+
+```bash
+keytool -genkey -v -keystore ultiq-release.jks -alias ultiq \
+  -keyalg RSA -keysize 2048 -validity 10000
+```
+
+Two passwords (keystore + key alias) — save in a password manager. Plus a copy of the `.jks` file in cloud backup (encrypted upload to S3, or Google Drive with 2FA on). The keystore file lives **outside** the repo; never commit it.
+
+#### 6.14.2 — Gradle release signing
+
+Configure `android/app/build.gradle.kts` to sign release builds via a gitignored `keystore.properties`:
+
+```kotlin
+import java.util.Properties
+
+val keystoreProps = Properties().apply {
+    rootProject.file("keystore.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
+}
+
+android {
+    signingConfigs {
+        create("release") {
+            storeFile = file(keystoreProps.getProperty("storeFile") ?: "../ultiq-release.jks")
+            storePassword = keystoreProps.getProperty("storePassword")
+            keyAlias = keystoreProps.getProperty("keyAlias")
+            keyPassword = keystoreProps.getProperty("keyPassword")
+        }
+    }
+    buildTypes {
+        release {
+            signingConfig = signingConfigs.getByName("release")
+            // existing release config
+        }
+    }
+}
+```
+
+`keystore.properties` (at the repo root, gitignored):
+
+```
+storeFile=../ultiq-release.jks
+storePassword=<your-keystore-password>
+keyAlias=ultiq
+keyPassword=<your-key-password>
+```
+
+`.gitignore` at repo root must include both `ultiq-release.jks` and `keystore.properties`.
+
+#### 6.14.3 — Direct APK on landing site
+
+`./gradlew assembleRelease` produces `android/app/build/outputs/apk/release/app-release.apk`. Copy to `web-landing/public/ultiq-latest.apk`; Next.js's static-export pipeline picks it up automatically and CloudFront serves it at `https://ultiqapp.com/ultiq-latest.apk` over HTTPS.
+
+Landing-page integration:
+- A **Download APK** button next to (or replacing) the "Coming soon" Play CTA
+- A small expandable "Sideload installation" instructions block — first-time installers get an Android prompt to allow installs from this source; explain why it's needed
+- Optionally show the version-string from `versionName` so users can tell which build is live
+
+For ongoing releases: bump `versionCode` + `versionName` in `app/build.gradle.kts`, run `./gradlew assembleRelease`, copy the new APK to `web-landing/public/ultiq-latest.apk`, commit + push. The existing `deploy-landing.yml` CI workflow already deploys.
+
+#### 6.14.4 — Play Internal Testing track
+
+After 6.11 creates the Play Console account:
+
+1. Build a signed AAB: `./gradlew bundleRelease` (Play wants `.aab`, not `.apk`)
+2. Play Console → app → **Testing** → **Internal testing** → **Create new release**
+3. Upload the `.aab` from `android/app/build/outputs/bundle/release/app-release.aab`
+4. Add release notes
+5. Invite testers by email, or distribute a public opt-in URL (limit 100 testers)
+6. Submit — Google reviews internal builds in hours, not days
+
+Internal testing builds auto-update on testers' phones via the normal Play Store flow. Same keystore + same package name as Production; only the track differs.
+
+#### 6.14.5 — Definition of done
+
+- `./gradlew assembleRelease` produces a signed APK (verify: `apksigner verify --verbose path/to/apk`)
+- `https://ultiqapp.com/ultiq-latest.apk` returns 200 with `Content-Type: application/vnd.android.package-archive`
+- Landing page has a working **Download APK** button alongside the Play CTA
+- Play Console has an Internal Testing release in review, with at least one invited tester
+
+#### 6.14.6 — Risks
+
+- **Keystore loss is fatal.** Back it up immediately, in at least two places.
+- **Channel divergence:** if direct APK and Play track end up at different `versionCode`s, users get confused. Bump both with every release.
+- **"Install from unknown sources"** prompt scares some users. The landing copy should briefly say *"Android will ask you to allow installs from this source — that's a normal one-time prompt for any APK outside the Play Store."*
+
 ---
 
 ## Phase 7: Web Analytics Dashboard (Weeks 25–29)
@@ -2859,7 +2954,7 @@ With HR + accel from the watch:
 | Phase 3: Calendar | 9–11 | Full calendar: API + Android screen + recurring events |
 | Phase 4: Dashboard & Sync | 12–13 | Dashboard home screen, background sync across all features |
 | Phase 5: Polish | 14–19 | Notifications, theming, weekly reports, achievements, settings, pickup confirmation gate, **daily checklist + focus dropdown** |
-| Phase 6: AWS Deployment + Marketing Site | 20–24 | Production app on AWS (ECS Fargate + RDS + ALB + CI/CD), Next.js marketing site at `your-domain.com`, Google Play Store listing |
+| Phase 6: AWS Deployment + Marketing Site | 20–24 | Production app on AWS (ECS Fargate + RDS + ALB + CI/CD), Next.js marketing site at `your-domain.com`, Google Play Store listing, **direct-APK download + Play Internal Testing track (6.14)** |
 | Phase 7: Web Analytics Dashboard | 25–29 | Rust/WASM analytics site at `app.your-domain.com` (Leptos + S3 + CloudFront) — full-stack Rust portfolio piece |
 | Phase 8: AI Integration | 30–32 | Backend-mediated Claude integration: weekly insights, NL event parsing, coach chat, anomaly detection |
 | Phase 9: Sleep Monitoring & Wearables | 33–36 | Fitbit + Wear OS companion app, sleep stages + HR + HRV, hypnogram chart, optional auto sleep detection |
