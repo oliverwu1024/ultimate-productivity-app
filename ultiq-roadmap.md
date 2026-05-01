@@ -2205,28 +2205,32 @@ Two distribution channels alongside the Play Store production track in 6.11. Dec
 
 A single keystore is used for every release build forever. **Losing it means you cannot update the app on Play Store with the same package name** (you'd have to publish a new app from scratch, lose all existing users + reviews). Treat it like a credit card.
 
+Generate it inside `android/` (gitignored):
+
 ```bash
+cd android
 keytool -genkey -v -keystore ultiq-release.jks -alias ultiq \
   -keyalg RSA -keysize 2048 -validity 10000
 ```
 
-Two passwords (keystore + key alias) — save in a password manager. Plus a copy of the `.jks` file in cloud backup (encrypted upload to S3, or Google Drive with 2FA on). The keystore file lives **outside** the repo; never commit it.
+Two passwords (keystore + key alias) — save in a password manager. Plus a copy of the `.jks` file in cloud backup (encrypted upload to S3, or Google Drive with 2FA on). The keystore file lives in `android/ultiq-release.jks` (gitignored); never commit it.
 
 #### 6.14.2 — Gradle release signing
 
-Configure `android/app/build.gradle.kts` to sign release builds via a gitignored `keystore.properties`:
+`android/app/build.gradle.kts` loads a gitignored `android/keystore.properties` and wires it as the release signing config. Skipped silently when the file is absent (CI / fresh checkouts), so `assembleDebug` still works without it:
 
 ```kotlin
 import java.util.Properties
 
 val keystoreProps = Properties().apply {
-    rootProject.file("keystore.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
+    rootProject.file("keystore.properties").takeIf { it.exists() }
+        ?.inputStream()?.use { load(it) }
 }
 
 android {
     signingConfigs {
         create("release") {
-            storeFile = file(keystoreProps.getProperty("storeFile") ?: "../ultiq-release.jks")
+            keystoreProps.getProperty("storeFile")?.let { storeFile = rootProject.file(it) }
             storePassword = keystoreProps.getProperty("storePassword")
             keyAlias = keystoreProps.getProperty("keyAlias")
             keyPassword = keystoreProps.getProperty("keyPassword")
@@ -2234,23 +2238,23 @@ android {
     }
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("release")
+            signingConfig = if (keystoreProps.isNotEmpty()) signingConfigs.getByName("release") else null
             // existing release config
         }
     }
 }
 ```
 
-`keystore.properties` (at the repo root, gitignored):
+`android/keystore.properties` (gitignored — copy from `keystore.properties.example`):
 
 ```
-storeFile=../ultiq-release.jks
+storeFile=ultiq-release.jks
 storePassword=<your-keystore-password>
 keyAlias=ultiq
 keyPassword=<your-key-password>
 ```
 
-`.gitignore` at repo root must include both `ultiq-release.jks` and `keystore.properties`.
+Repo-root `.gitignore` excludes `android/ultiq-release.jks` and `android/keystore.properties`.
 
 #### 6.14.3 — Direct APK on landing site
 
