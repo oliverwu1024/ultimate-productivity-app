@@ -1,5 +1,6 @@
 package com.ultiq.app.data.remote
 
+import com.ultiq.app.BuildConfig
 import com.ultiq.app.util.TokenManager
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -7,8 +8,6 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 object RetrofitClient {
-    private const val BASE_URL = "http://192.168.1.119:8080/"
-
     private var apiService: ApiService? = null
 
     fun create(tokenManager: TokenManager): ApiService {
@@ -28,7 +27,7 @@ object RetrofitClient {
             .build()
 
         return Retrofit.Builder()
-            .baseUrl(BASE_URL)
+            .baseUrl(BuildConfig.API_BASE_URL)
             .client(client)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
