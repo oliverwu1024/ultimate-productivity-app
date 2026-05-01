@@ -10,6 +10,7 @@ import com.ultiq.app.data.remote.dto.LoginRequest
 import com.ultiq.app.data.remote.dto.RegisterRequest
 import com.ultiq.app.util.TokenManager
 import com.ultiq.app.util.UserPreferences
+import com.ultiq.app.util.toUserMessage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -97,7 +98,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    error = e.message ?: "Login failed"
+                    error = e.toUserMessage("Login failed. Try again."),
                 )
             }
         }
@@ -119,7 +120,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    error = e.message ?: "Registration failed"
+                    error = e.toUserMessage("Registration failed. Try again."),
                 )
             }
         }
@@ -150,7 +151,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    error = e.message ?: "Failed to delete account",
+                    error = e.toUserMessage("Couldn't delete account. Try again."),
                 )
             }
         }
@@ -166,7 +167,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    error = e.message ?: "Failed to reset account",
+                    error = e.toUserMessage("Couldn't reset account. Try again."),
                 )
             }
         }

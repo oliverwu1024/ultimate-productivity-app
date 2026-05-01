@@ -8,6 +8,7 @@ import com.ultiq.app.data.remote.RetrofitClient
 import com.ultiq.app.data.remote.dto.CreateChecklistItemDto
 import com.ultiq.app.data.repository.ChecklistRepository
 import com.ultiq.app.util.TokenManager
+import com.ultiq.app.util.toUserMessage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -95,7 +96,7 @@ class WeeklyPlannerViewModel(application: Application) : AndroidViewModel(applic
             val result = repository.bulkCreate(flat)
             _uiState.value = result.fold(
                 onSuccess = { _uiState.value.copy(isSaving = false, finished = true) },
-                onFailure = { _uiState.value.copy(isSaving = false, error = it.message) },
+                onFailure = { _uiState.value.copy(isSaving = false, error = it.toUserMessage("Couldn't save plan. Try again.")) },
             )
         }
     }
