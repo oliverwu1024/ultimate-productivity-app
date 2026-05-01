@@ -35,7 +35,8 @@ import androidx.compose.ui.unit.dp
 fun LoginScreen(
     uiState: AuthUiState,
     onLogin: (String, String) -> Unit,
-    onNavigateToRegister: () -> Unit
+    onNavigateToRegister: () -> Unit,
+    onNavigateToForgotPassword: () -> Unit,
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -110,7 +111,11 @@ fun LoginScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        TextButton(onClick = onNavigateToForgotPassword) {
+            Text("Forgot password?")
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
 
         TextButton(onClick = onNavigateToRegister) {
             Text("Don't have an account? Register")

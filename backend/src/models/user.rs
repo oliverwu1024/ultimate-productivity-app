@@ -28,6 +28,17 @@ pub struct ChangePassword {
     pub new_password: String,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct ForgotPassword {
+    pub email: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ResetPassword {
+    pub token: String,
+    pub new_password: String,
+}
+
 #[derive(Debug, Serialize)]
 pub struct UserResponse {
     pub id: Uuid,

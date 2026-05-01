@@ -31,13 +31,18 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import androidx.navigation.navDeepLink
 import com.ultiq.app.ui.auth.AuthViewModel
+import com.ultiq.app.ui.auth.ForgotPasswordScreen
 import com.ultiq.app.ui.auth.LoginScreen
 import com.ultiq.app.ui.auth.RegisterScreen
+import com.ultiq.app.ui.auth.ResetPasswordScreen
 import com.ultiq.app.ui.calendar.CalendarScreen
 import com.ultiq.app.ui.checklist.ChecklistScreen
 import com.ultiq.app.ui.checklist.WeeklyPlannerScreen
@@ -56,6 +61,10 @@ sealed class Screen(val route: String) {
     data object Onboarding : Screen("onboarding")
     data object Login : Screen("login")
     data object Register : Screen("register")
+    data object ForgotPassword : Screen("forgot_password")
+    data object ResetPassword : Screen("reset_password?token={token}") {
+        fun route(token: String) = "reset_password?token=$token"
+    }
     data object Dashboard : Screen("dashboard")
     data object Checklist : Screen("checklist")
     data object WeeklyPlanner : Screen("weekly_planner")
@@ -153,7 +162,12 @@ fun AppNavigation(
                     onLogin = { email, password -> authViewModel.login(email, password) },
                     onNavigateToRegister = {
                         navController.navigate(Screen.Register.route)
-                    }
+                    },
+                    onNavigateToForgotPassword = {
+                        authViewModel.consumeForgotPasswordSent()
+                        authViewModel.clearError()
+                        navController.navigate(Screen.ForgotPassword.route)
+                    },
                 )
             }
             composable(Screen.Register.route) {
@@ -163,6 +177,41 @@ fun AppNavigation(
                     onNavigateToLogin = {
                         navController.popBackStack()
                     }
+                )
+            }
+            composable(Screen.ForgotPassword.route) {
+                ForgotPasswordScreen(
+                    uiState = uiState,
+                    onSubmit = { email -> authViewModel.forgotPassword(email) },
+                    onBack = {
+                        authViewModel.consumeForgotPasswordSent()
+                        authViewModel.clearError()
+                        navController.popBackStack()
+                    },
+                )
+            }
+            composable(
+                route = Screen.ResetPassword.route,
+                arguments = listOf(navArgument("token") {
+                    type = NavType.StringType
+                    defaultValue = ""
+                }),
+                deepLinks = listOf(navDeepLink {
+                    uriPattern = "ultiq://reset-password?token={token}"
+                }),
+            ) { entry ->
+                val token = entry.arguments?.getString("token").orEmpty()
+                ResetPasswordScreen(
+                    uiState = uiState,
+                    token = token,
+                    onSubmit = { t, p -> authViewModel.resetPassword(t, p) },
+                    onDoneNavigateBack = {
+                        authViewModel.consumeResetPasswordSuccess()
+                        authViewModel.clearError()
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    },
                 )
             }
             composable(Screen.Dashboard.route) {
