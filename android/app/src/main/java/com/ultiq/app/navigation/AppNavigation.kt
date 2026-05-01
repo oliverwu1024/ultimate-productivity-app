@@ -284,13 +284,24 @@ fun AppNavigation(
     // Auth state transitions
     LaunchedEffect(uiState.isLoggedIn, uiState.onboardingCompleted) {
         if (!uiState.onboardingCompleted) return@LaunchedEffect
+        val current = navController.currentDestination?.route
+
+        // Reset-password deep links can land on the user at any time (logged in or not).
+        // Don't clobber that destination — the user explicitly navigated to it.
+        if (current == Screen.ResetPassword.route) return@LaunchedEffect
+
         if (uiState.isLoggedIn) {
             navController.navigate(Screen.Dashboard.route) {
                 popUpTo(Screen.Login.route) { inclusive = true }
             }
         } else {
-            val current = navController.currentDestination?.route
-            if (current != Screen.Login.route && current != Screen.Register.route) {
+            val allowedUnauthRoutes = setOf(
+                Screen.Login.route,
+                Screen.Register.route,
+                Screen.ForgotPassword.route,
+                Screen.ResetPassword.route,
+            )
+            if (current !in allowedUnauthRoutes) {
                 navController.navigate(Screen.Login.route) {
                     popUpTo(0) { inclusive = true }
                 }
