@@ -9,12 +9,17 @@ use uuid::Uuid;
 use crate::config::AppState;
 use crate::error::AppError;
 use crate::middleware::auth::Claims;
-use crate::models::user::{AuthResponse, ChangePassword, CreateUser, LoginUser, User, UserResponse};
+use crate::models::user::{
+    AuthResponse, ChangePassword, CreateUser, ForgotPassword, LoginUser, ResetPassword, User,
+    UserResponse,
+};
 
 use argon2::{
     password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
     Argon2,
 };
+use aws_sdk_sesv2::types::{Body, Content, Destination, EmailContent, Message};
+use sha2::{Digest, Sha256};
 
 pub fn router() -> Router<AppState> {
     Router::new()
@@ -24,6 +29,8 @@ pub fn router() -> Router<AppState> {
         .route("/auth/me", delete(delete_account))
         .route("/auth/reset", post(reset_account))
         .route("/auth/password", post(change_password))
+        .route("/auth/password/forgot", post(forgot_password))
+        .route("/auth/password/reset", post(reset_password))
 }
 
 async fn register(
@@ -194,6 +201,164 @@ async fn change_password(
         .await?;
 
     Ok(StatusCode::NO_CONTENT)
+}
+
+async fn forgot_password(
+    State(state): State<AppState>,
+    Json(input): Json<ForgotPassword>,
+) -> Result<StatusCode, AppError> {
+    // Always 200 — never reveal whether the email is registered (account-enumeration defence).
+    let user = sqlx::query_as::<_, User>("SELECT * FROM users WHERE email = $1")
+        .bind(&input.email)
+        .fetch_optional(&state.pool)
+        .await?;
+
+    if let Some(user) = user {
+        // Invalidate any prior unused tokens so only the freshest works.
+        sqlx::query(
+            "UPDATE password_reset_tokens SET used_at = now() \
+             WHERE user_id = $1 AND used_at IS NULL",
+        )
+        .bind(user.id)
+        .execute(&state.pool)
+        .await?;
+
+        // Generate a fresh token, store its sha256 (never the raw value).
+        let raw = Uuid::new_v4().to_string();
+        let hash = sha256_hex(&raw);
+        let expires_at = Utc::now() + chrono::Duration::hours(1);
+
+        sqlx::query(
+            "INSERT INTO password_reset_tokens (user_id, token_hash, expires_at) \
+             VALUES ($1, $2, $3)",
+        )
+        .bind(user.id)
+        .bind(&hash)
+        .bind(expires_at)
+        .execute(&state.pool)
+        .await?;
+
+        if let Err(e) = send_reset_email(&state, &user.email, &raw).await {
+            tracing::error!("Failed to send password reset email: {:?}", e);
+            // Still 200 — user can retry. Don't leak SES errors to the client.
+        }
+    }
+
+    Ok(StatusCode::OK)
+}
+
+async fn reset_password(
+    State(state): State<AppState>,
+    Json(input): Json<ResetPassword>,
+) -> Result<StatusCode, AppError> {
+    let token_hash = sha256_hex(&input.token);
+
+    // Same generic error for every failure mode — don't help attackers distinguish.
+    let invalid = || AppError::new(StatusCode::BAD_REQUEST, "Invalid or expired reset link");
+
+    let row = sqlx::query_as::<_, ResetTokenRow>(
+        "SELECT id, user_id, expires_at, used_at \
+         FROM password_reset_tokens WHERE token_hash = $1",
+    )
+    .bind(&token_hash)
+    .fetch_optional(&state.pool)
+    .await?
+    .ok_or_else(invalid)?;
+
+    if row.used_at.is_some() || row.expires_at < Utc::now() {
+        return Err(invalid());
+    }
+
+    validate_password_strength(&input.new_password)?;
+
+    let salt = SaltString::generate(&mut OsRng);
+    let new_hash = Argon2::default()
+        .hash_password(input.new_password.as_bytes(), &salt)
+        .map_err(|_| {
+            AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "Failed to hash password")
+        })?
+        .to_string();
+
+    let mut tx = state.pool.begin().await?;
+    sqlx::query("UPDATE users SET password_hash = $1 WHERE id = $2")
+        .bind(&new_hash)
+        .bind(row.user_id)
+        .execute(&mut *tx)
+        .await?;
+    sqlx::query("UPDATE password_reset_tokens SET used_at = now() WHERE id = $1")
+        .bind(row.id)
+        .execute(&mut *tx)
+        .await?;
+    tx.commit().await?;
+
+    Ok(StatusCode::OK)
+}
+
+#[derive(sqlx::FromRow)]
+struct ResetTokenRow {
+    id: Uuid,
+    user_id: Uuid,
+    expires_at: chrono::DateTime<Utc>,
+    used_at: Option<chrono::DateTime<Utc>>,
+}
+
+fn sha256_hex(s: &str) -> String {
+    let digest = Sha256::digest(s.as_bytes());
+    digest.iter().map(|b| format!("{:02x}", b)).collect()
+}
+
+async fn send_reset_email(state: &AppState, to: &str, token: &str) -> Result<(), AppError> {
+    let link = format!("ultiq://reset-password?token={}", token);
+    let body_text = format!(
+        "Hi,\n\nWe received a request to reset your Ultiq password. Tap the link below to choose a new password:\n\n{}\n\nThis link expires in 1 hour. If you didn't request a reset, you can safely ignore this email.\n\n— Ultiq",
+        link
+    );
+    let body_html = format!(
+        "<div style=\"font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#2A1B6E;line-height:1.55;\">\
+         <p>Hi,</p>\
+         <p>We received a request to reset your Ultiq password. Tap the button below to choose a new password:</p>\
+         <p style=\"margin:24px 0\"><a href=\"{link}\" style=\"display:inline-block;padding:12px 28px;background:#2A1B6E;color:#FFF4E6;border-radius:24px;text-decoration:none;font-weight:600;\">Reset password</a></p>\
+         <p style=\"font-size:14px;color:#2A1B6Eaa\">If the button doesn't open the app, copy this link into Ultiq:<br><code style=\"background:#FFF4E6;padding:4px 8px;border-radius:4px;\">{link}</code></p>\
+         <p style=\"font-size:14px;color:#2A1B6Eaa\">This link expires in 1 hour. If you didn't request a reset, you can safely ignore this email.</p>\
+         <p style=\"margin-top:32px;color:#2A1B6E\">— Ultiq</p></div>",
+        link = link
+    );
+
+    let subject = Content::builder()
+        .data("Reset your Ultiq password")
+        .build()
+        .map_err(|_| {
+            AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "Failed to build email subject")
+        })?;
+    let text = Content::builder().data(body_text).build().map_err(|_| {
+        AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "Failed to build email text")
+    })?;
+    let html = Content::builder().data(body_html).build().map_err(|_| {
+        AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "Failed to build email html")
+    })?;
+
+    let message = Message::builder()
+        .subject(subject)
+        .body(Body::builder().text(text).html(html).build())
+        .build();
+
+    let destination = Destination::builder().to_addresses(to).build();
+
+    state
+        .ses
+        .send_email()
+        .from_email_address(&state.config.from_address)
+        .reply_to_addresses(&state.config.reply_to)
+        .destination(destination)
+        .content(EmailContent::builder().simple(message).build())
+        .send()
+        .await
+        .map_err(|e| {
+            tracing::error!("SES send_email failed: {:?}", e);
+            AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "Failed to send email")
+        })?;
+
+    Ok(())
 }
 
 fn validate_password_strength(password: &str) -> Result<(), AppError> {

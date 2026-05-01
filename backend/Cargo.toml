@@ -17,3 +17,6 @@ chrono = { version = "0.4", features = ["serde"] }
 tower-http = { version = "0.5", features = ["cors"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+aws-config = { version = "1", features = ["behavior-version-latest"] }
+aws-sdk-sesv2 = "1"
+sha2 = "0.10"
