@@ -183,6 +183,11 @@ fun AppNavigation(
                 ForgotPasswordScreen(
                     uiState = uiState,
                     onSubmit = { email -> authViewModel.forgotPassword(email) },
+                    onPasteToken = { token ->
+                        authViewModel.consumeForgotPasswordSent()
+                        authViewModel.clearError()
+                        navController.navigate(Screen.ResetPassword.route(token))
+                    },
                     onBack = {
                         authViewModel.consumeForgotPasswordSent()
                         authViewModel.clearError()
