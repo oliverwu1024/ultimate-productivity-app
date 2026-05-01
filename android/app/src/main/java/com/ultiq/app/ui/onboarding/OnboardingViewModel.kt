@@ -26,7 +26,9 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
     val uiState: kotlinx.coroutines.flow.StateFlow<OnboardingUiState> = _uiState
 
     fun setStep(step: Int) {
-        _uiState.value = _uiState.value.copy(step = step.coerceIn(0, 3))
+        // Keep in sync with STEP_COUNT in OnboardingScreen.kt (currently 5: welcome,
+        // sleep, focus, permissions, all-set).
+        _uiState.value = _uiState.value.copy(step = step.coerceIn(0, 4))
     }
 
     fun next() = setStep(_uiState.value.step + 1)
