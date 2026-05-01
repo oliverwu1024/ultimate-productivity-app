@@ -38,6 +38,12 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="ultiq" android:host="reset-password" />
             </intent-filter>
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="ultiqapp.com" android:pathPrefix="/reset" />
+            </intent-filter>
         </activity>
 
         <activity
