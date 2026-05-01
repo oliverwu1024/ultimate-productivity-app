@@ -201,9 +201,10 @@ fun AppNavigation(
                     type = NavType.StringType
                     defaultValue = ""
                 }),
-                deepLinks = listOf(navDeepLink {
-                    uriPattern = "ultiq://reset-password?token={token}"
-                }),
+                deepLinks = listOf(
+                    navDeepLink { uriPattern = "ultiq://reset-password?token={token}" },
+                    navDeepLink { uriPattern = "https://ultiqapp.com/reset?token={token}" },
+                ),
             ) { entry ->
                 val token = entry.arguments?.getString("token").orEmpty()
                 ResetPasswordScreen(

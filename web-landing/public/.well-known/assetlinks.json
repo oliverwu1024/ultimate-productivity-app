@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.ultiq.app",
+      "sha256_cert_fingerprints": [
+        "B7:C0:CD:19:D3:59:65:7F:06:02:92:3C:96:A8:05:36:2F:92:D5:25:88:EC:CB:D9:7B:20:FB:9C:47:12:E3:C9"
+      ]
+    }
+  }
+]
