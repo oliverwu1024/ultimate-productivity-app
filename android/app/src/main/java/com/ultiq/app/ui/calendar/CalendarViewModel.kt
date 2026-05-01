@@ -10,6 +10,7 @@ import com.ultiq.app.data.remote.dto.CreateCalendarEventDto
 import com.ultiq.app.data.repository.CalendarRepository
 import com.ultiq.app.util.AlarmScheduler
 import com.ultiq.app.util.TokenManager
+import com.ultiq.app.util.toUserMessage
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -84,7 +85,7 @@ class CalendarViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
             repository.createEvent(dto, userId)
-                .onFailure { _uiState.value = _uiState.value.copy(error = it.message) }
+                .onFailure { _uiState.value = _uiState.value.copy(error = it.toUserMessage("Couldn't save event. Try again.")) }
             _uiState.value = _uiState.value.copy(isLoading = false, showAddDialog = false, editingEvent = null)
         }
     }
@@ -93,7 +94,7 @@ class CalendarViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
             repository.updateEvent(id, dto, userId)
-                .onFailure { _uiState.value = _uiState.value.copy(error = it.message) }
+                .onFailure { _uiState.value = _uiState.value.copy(error = it.toUserMessage("Couldn't update event. Try again.")) }
             _uiState.value = _uiState.value.copy(isLoading = false, showAddDialog = false, editingEvent = null)
         }
     }
