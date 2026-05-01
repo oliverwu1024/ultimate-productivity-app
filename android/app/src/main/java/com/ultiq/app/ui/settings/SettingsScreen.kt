@@ -660,6 +660,12 @@ private fun OverlayPermissionCard(
                 ) {
                     Text("Grant permission")
                 }
+                Text(
+                    "If the toggle is grayed out (\"Restricted setting\"), tap the ⋮ menu " +
+                        "in App info → Allow restricted settings → come back and turn it on.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.85f),
+                )
             }
         }
     }
