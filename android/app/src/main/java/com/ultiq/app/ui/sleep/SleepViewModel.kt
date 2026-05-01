@@ -20,6 +20,7 @@ import com.ultiq.app.service.PickupEvent
 import com.ultiq.app.service.SleepTrackingService
 import com.ultiq.app.util.TokenManager
 import com.ultiq.app.util.UserPreferences
+import com.ultiq.app.util.toUserMessage
 import java.time.LocalTime
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -200,7 +201,7 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
             val result = repository.createSleepRecord(dto, userId)
             _uiState.value = _uiState.value.copy(
                 isLoading = false,
-                error = result.exceptionOrNull()?.message
+                error = result.exceptionOrNull()?.toUserMessage("Couldn't save sleep. Try again.")
             )
         }
     }
@@ -223,7 +224,7 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
             val result = repository.createSleepRecord(record, userId)
             _uiState.value = _uiState.value.copy(
                 isLoading = false,
-                error = result.exceptionOrNull()?.message
+                error = result.exceptionOrNull()?.toUserMessage("Couldn't save sleep. Try again.")
             )
         }
     }
