@@ -1,11 +1,21 @@
 package com.ultiq.app.ui.onboarding
 
+import android.Manifest
+import android.app.AlarmManager
 import android.app.TimePickerDialog
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,16 +30,25 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.Bedtime
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Insights
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.PhonelinkLock
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.SelfImprovement
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -37,21 +56,30 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.core.app.NotificationManagerCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ultiq.app.ui.theme.MascotSleepingBook
+import com.ultiq.app.util.PhoneUsageTracker
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
-private const val STEP_COUNT = 4
+private const val STEP_COUNT = 5
 
 @Composable
 fun OnboardingScreen(
@@ -110,6 +138,7 @@ fun OnboardingScreen(
                         onWorkChange = viewModel::setWorkDuration,
                         onBreakChange = viewModel::setBreakDuration,
                     )
+                    3 -> PermissionsStep()
                     else -> AllSetStep()
                 }
             }
@@ -181,6 +210,191 @@ private fun FocusPrefsStep(
         Spacer(Modifier.height(12.dp))
         StepperRow(label = "Rest", value = breakMins, suffix = "min", step = 1, range = 1..60, onChange = onBreakChange)
     }
+}
+
+@Composable
+private fun PermissionsStep() {
+    val context = LocalContext.current
+    var refreshKey by remember { mutableIntStateOf(0) }
+
+    // Refresh permission states each time the activity resumes (user returning from Settings).
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) refreshKey++
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+    }
+
+    val notificationsGranted = remember(refreshKey) {
+        NotificationManagerCompat.from(context).areNotificationsEnabled()
+    }
+    val overlayGranted = remember(refreshKey) { Settings.canDrawOverlays(context) }
+    val usageGranted = remember(refreshKey) { PhoneUsageTracker(context).hasPermission() }
+    val exactAlarmGranted = remember(refreshKey) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            (context.getSystemService(Context.ALARM_SERVICE) as AlarmManager).canScheduleExactAlarms()
+        } else true
+    }
+
+    val notificationLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { refreshKey++ }
+
+    StepContainer {
+        BigIcon(Icons.Default.Insights)
+        Text(
+            "A few permissions",
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            "All optional — Ultiq just works better with them on. Tap any row to grant.",
+            style = MaterialTheme.typography.bodyMedium,
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(24.dp))
+
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            PermissionRow(
+                icon = Icons.Default.Notifications,
+                label = "Reminders",
+                description = "Bedtime nudges, focus prompts, weekly summaries",
+                granted = notificationsGranted,
+                onGrant = {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        notificationLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    } else {
+                        openAppNotificationSettings(context)
+                    }
+                },
+            )
+            PermissionRow(
+                icon = Icons.Default.Insights,
+                label = "Phone usage",
+                description = "Lets Ultiq count phone pickups during sleep + focus",
+                granted = usageGranted,
+                onGrant = { PhoneUsageTracker(context).openPermissionSettings() },
+            )
+            PermissionRow(
+                icon = Icons.Default.PhonelinkLock,
+                label = "Display over other apps",
+                description = "Lets the lockout take over the screen during focus sessions",
+                granted = overlayGranted,
+                onGrant = { openOverlaySettings(context) },
+                hint = "If the toggle is grayed out (\"Restricted setting\"), tap the ⋮ menu in App info → Allow restricted settings.",
+            )
+            PermissionRow(
+                icon = Icons.Default.Alarm,
+                label = "Exact alarms",
+                description = "So reminders fire at the right minute, not 15 min later",
+                granted = exactAlarmGranted,
+                onGrant = { openExactAlarmSettings(context) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun PermissionRow(
+    icon: ImageVector,
+    label: String,
+    description: String,
+    granted: Boolean,
+    onGrant: () -> Unit,
+    hint: String? = null,
+) {
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = if (granted) {
+                MaterialTheme.colorScheme.surfaceVariant
+            } else {
+                MaterialTheme.colorScheme.surface
+            },
+        ),
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = !granted, onClick = onGrant),
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .background(
+                            if (granted) MaterialTheme.colorScheme.primaryContainer
+                            else MaterialTheme.colorScheme.secondaryContainer,
+                            CircleShape,
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        icon,
+                        null,
+                        modifier = Modifier.size(20.dp),
+                        tint = if (granted) MaterialTheme.colorScheme.onPrimaryContainer
+                            else MaterialTheme.colorScheme.onSecondaryContainer,
+                    )
+                }
+                Spacer(Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(label, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
+                    Text(
+                        description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Icon(
+                    if (granted) Icons.Default.Check else Icons.Default.ChevronRight,
+                    contentDescription = if (granted) "Granted" else "Tap to grant",
+                    tint = if (granted) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (!granted && hint != null) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    hint,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
+                )
+            }
+        }
+    }
+}
+
+private fun openAppNotificationSettings(context: Context) {
+    val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+        .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    context.startActivity(intent)
+}
+
+private fun openOverlaySettings(context: Context) {
+    val intent = Intent(
+        Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+        Uri.parse("package:${context.packageName}"),
+    ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    context.startActivity(intent)
+}
+
+private fun openExactAlarmSettings(context: Context) {
+    val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
+            .setData(Uri.parse("package:${context.packageName}"))
+    } else {
+        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+            .setData(Uri.parse("package:${context.packageName}"))
+    }
+    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    context.startActivity(intent)
 }
 
 @Composable
