@@ -7,6 +7,13 @@ android/.idea/
 android/captures/
 android/*.iml
 
+# Android release signing (NEVER commit — losing the keystore = cannot update on Play Store)
+android/ultiq-release.jks
+android/keystore.properties
+
+# Built APKs deployed via S3 sync (not via git — too large)
+web-landing/public/*.apk
+
 # Rust
 backend/target/
 
