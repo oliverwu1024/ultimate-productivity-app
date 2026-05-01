@@ -6,8 +6,10 @@ import androidx.lifecycle.viewModelScope
 import com.ultiq.app.data.local.AppDatabase
 import com.ultiq.app.data.remote.ApiService
 import com.ultiq.app.data.remote.RetrofitClient
+import com.ultiq.app.data.remote.dto.ForgotPasswordRequest
 import com.ultiq.app.data.remote.dto.LoginRequest
 import com.ultiq.app.data.remote.dto.RegisterRequest
+import com.ultiq.app.data.remote.dto.ResetPasswordRequest
 import com.ultiq.app.util.TokenManager
 import com.ultiq.app.util.UserPreferences
 import com.ultiq.app.util.toUserMessage
@@ -26,6 +28,8 @@ data class AuthUiState(
     val isCheckingAuth: Boolean = true,
     val onboardingCompleted: Boolean = true, // default true to avoid flicker — overwritten once loaded
     val isCheckingOnboarding: Boolean = true,
+    val forgotPasswordEmailSent: Boolean = false,
+    val resetPasswordSuccess: Boolean = false,
 )
 
 class AuthViewModel(application: Application) : AndroidViewModel(application) {
@@ -187,5 +191,57 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
 
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
+    }
+
+    fun forgotPassword(email: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                isLoading = true,
+                error = null,
+                forgotPasswordEmailSent = false,
+            )
+            try {
+                api.forgotPassword(ForgotPasswordRequest(email))
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    forgotPasswordEmailSent = true,
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = e.toUserMessage("Couldn't send reset email. Try again."),
+                )
+            }
+        }
+    }
+
+    fun resetPassword(token: String, newPassword: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                isLoading = true,
+                error = null,
+                resetPasswordSuccess = false,
+            )
+            try {
+                api.resetPassword(ResetPasswordRequest(token, newPassword))
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    resetPasswordSuccess = true,
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = e.toUserMessage("Couldn't reset password. The link may have expired."),
+                )
+            }
+        }
+    }
+
+    fun consumeForgotPasswordSent() {
+        _uiState.value = _uiState.value.copy(forgotPasswordEmailSent = false)
+    }
+
+    fun consumeResetPasswordSuccess() {
+        _uiState.value = _uiState.value.copy(resetPasswordSuccess = false)
     }
 }
