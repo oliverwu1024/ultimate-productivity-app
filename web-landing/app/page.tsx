@@ -175,7 +175,7 @@ export default function Home() {
 
         <div className="mt-10 flex flex-col items-center gap-4">
           <a
-            href="/ultiq-latest.apk"
+            href="/ultiq.1.0.apk"
             download
             className="inline-flex items-center gap-3 rounded-full bg-ultiq-indigo px-8 py-4 text-base font-medium text-ultiq-cream shadow-lg shadow-ultiq-indigo/20 transition hover:translate-y-[-1px] hover:bg-ultiq-indigo/90"
           >
@@ -188,7 +188,7 @@ export default function Home() {
         <details className="mx-auto mt-10 max-w-lg rounded-2xl border border-ultiq-indigo/15 bg-white/40 p-5 text-left text-sm text-ultiq-indigo/80">
           <summary className="cursor-pointer font-medium text-ultiq-indigo">First time installing?</summary>
           <ol className="mt-3 list-decimal space-y-2 pl-5 text-ultiq-indigo/70">
-            <li>Tap the downloaded <code className="rounded bg-ultiq-indigo/5 px-1.5 py-0.5">ultiq-latest.apk</code> in your Files or Downloads app.</li>
+            <li>Tap the downloaded <code className="rounded bg-ultiq-indigo/5 px-1.5 py-0.5">ultiq.1.0.apk</code> in your Files or Downloads app.</li>
             <li>If Android asks <em>&ldquo;allow installs from this source?&rdquo;</em>, tap <strong>Settings</strong> → toggle on <strong>Allow from this source</strong>, then go back.</li>
             <li>Tap <strong>Install</strong>. The icon appears on your home screen / app drawer when it&apos;s done.</li>
           </ol>
@@ -202,8 +202,8 @@ export default function Home() {
             Coming soon
           </span>
           <span>also on Google Play —</span>
-          <a href="mailto:hello@ultiqapp.com" className="text-ultiq-red underline-offset-4 hover:underline">
-            hello@ultiqapp.com
+          <a href="mailto:support@ultiqapp.com" className="text-ultiq-red underline-offset-4 hover:underline">
+            support@ultiqapp.com
           </a>
         </div>
       </section>
@@ -220,7 +220,7 @@ export default function Home() {
           </div>
           <div className="flex items-center gap-6">
             <Link href="/terms" className="hover:text-ultiq-indigo">Terms</Link>
-            <a href="mailto:hello@ultiqapp.com" className="hover:text-ultiq-indigo">Support</a>
+            <a href="mailto:support@ultiqapp.com" className="hover:text-ultiq-indigo">Support</a>
             <a
               href="https://github.com/oliverwu1024/ultimate-productivity-app"
               target="_blank"
