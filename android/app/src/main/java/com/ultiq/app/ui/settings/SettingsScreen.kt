@@ -91,7 +91,7 @@ fun SettingsScreen(
     onDeleteAccount: () -> Unit,
     viewModel: SettingsViewModel = viewModel(),
 ) {
-    val supportEmail = "support@ultiq.app"
+    val supportEmail = "support@ultiqapp.com"
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
 
