@@ -43,11 +43,12 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     fun setWorkDuration(minutes: Int) {
-        _uiState.value = _uiState.value.copy(workDuration = minutes.coerceIn(5, 120))
+        _uiState.value = _uiState.value.copy(workDuration = minutes.coerceIn(5, 240))
     }
 
     fun setBreakDuration(minutes: Int) {
-        _uiState.value = _uiState.value.copy(breakDuration = minutes.coerceIn(1, 60))
+        // 0 = no break by default
+        _uiState.value = _uiState.value.copy(breakDuration = minutes.coerceIn(0, 60))
     }
 
     fun finish() {

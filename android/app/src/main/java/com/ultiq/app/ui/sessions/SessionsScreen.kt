@@ -507,7 +507,7 @@ private fun DurationPicker(
                 Icon(Icons.Default.Remove, "Decrease", modifier = Modifier.size(16.dp))
             }
             Text(
-                "${value}m",
+                if (value == 0) "off" else "${value}m",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.width(48.dp),
