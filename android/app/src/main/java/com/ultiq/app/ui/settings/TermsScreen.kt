@@ -80,7 +80,7 @@ fun TermsScreen(onBack: () -> Unit) {
             )
             section(
                 heading = "6. Contact",
-                body = "Questions, bugs, or feedback? Reach us at support@ultiq.app.",
+                body = "Questions, bugs, or feedback? Reach us at support@ultiqapp.com.",
             )
             section(
                 heading = "7. Changes",
