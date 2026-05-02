@@ -16,7 +16,7 @@ impl Config {
             from_address: env::var("FROM_ADDRESS")
                 .unwrap_or_else(|_| "no-reply@mail.ultiqapp.com".to_string()),
             reply_to: env::var("REPLY_TO")
-                .unwrap_or_else(|_| "hello@ultiqapp.com".to_string()),
+                .unwrap_or_else(|_| "support@ultiqapp.com".to_string()),
         }
     }
 }
