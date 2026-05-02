@@ -2142,28 +2142,30 @@ The OIDC role from 6.7 needs `s3:PutObject` and `s3:DeleteObject` on `ultiq-land
 
 ---
 
-### 6.11 — Google Play Store Release
+### 6.11 — Google Play Store Release (Production)
 
-**Generate signed AAB:**
-1. Android Studio → Build → Generate Signed Bundle/APK
-2. Create a new keystore (back it up — you need this for all future updates)
-3. Build release AAB pointed at `https://api.your-domain.com`
+> **Order:** do this AFTER 6.14c (Internal Testing) — promote a validated build, don't push straight to Production. The Play Console account itself is created during 6.14c; this section just covers the Production-track submission.
 
-**Google Play Console:**
-1. Create Google Play Developer account ($25 one-time)
-2. Create new app
-3. Fill in store listing:
-   - App name: "Ultiq"
-   - Short description (80 chars)
-   - Full description
-   - Screenshots: at least 2 phone screenshots per screen (dashboard, sleep, sessions, calendar)
-   - App icon: 512x512 PNG
-   - Feature graphic: 1024x500
-4. Content rating questionnaire
-5. Privacy policy (required — host it on **S3 + CloudFront** to keep it on AWS, or GitHub Pages)
-6. Set pricing: Free
-7. Upload AAB to Production track
-8. Submit for review
+**Promote AAB from Internal Testing → Production:**
+1. In Play Console → app → **Production** → **Create new release**
+2. Choose "Use library" → pick the AAB already uploaded to Internal Testing in 6.14c (no need to rebuild)
+3. Or upload a fresh `bundleRelease` AAB if iterating
+
+**Store listing** (one-time):
+- App name: `Ultiq`
+- Short description (80 chars)
+- Full description
+- Screenshots: at least 2 phone screenshots per screen (dashboard, sleep, sessions, calendar) — taken during 6.14c soak-testing
+- App icon: 512×512 PNG (export from `web-landing/public/mascot.svg` or `app/icon.svg`)
+- Feature graphic: 1024×500
+
+**Required compliance:**
+- Content rating questionnaire
+- Privacy policy URL (required — point at `https://ultiqapp.com/terms` or a dedicated `/privacy` page on the landing site)
+- Pricing: Free
+- Data Safety form: declare what user data is collected (email + auth credentials + sleep / focus / calendar / checklist records — all server-stored, not shared)
+
+**Submit for review:** Google Production-track review takes ~3–7 days. Approval triggers global Play Store availability.
 
 ### 6.12 — Optional: Deeper AWS Integration (Future)
 
@@ -2267,24 +2269,30 @@ Landing-page integration:
 
 For ongoing releases: bump `versionCode` + `versionName` in `app/build.gradle.kts`, run `./gradlew assembleRelease`, copy the new APK to `web-landing/public/ultiq-latest.apk`, commit + push. The existing `deploy-landing.yml` CI workflow already deploys.
 
-#### 6.14.4 — Play Internal Testing track
+#### 6.14.4 — Play Console signup + Internal Testing track
 
-After 6.11 creates the Play Console account:
+> **Order:** this section is the FIRST Play Console step. The $25 signup is done here; Production (6.11) reuses the same account afterward.
 
-1. Build a signed AAB: `./gradlew bundleRelease` (Play wants `.aab`, not `.apk`)
-2. Play Console → app → **Testing** → **Internal testing** → **Create new release**
-3. Upload the `.aab` from `android/app/build/outputs/bundle/release/app-release.aab`
-4. Add release notes
-5. Invite testers by email, or distribute a public opt-in URL (limit 100 testers)
-6. Submit — Google reviews internal builds in hours, not days
+1. Sign up at https://play.google.com/console — $25 USD one-time fee
+2. Create new app:
+   - App name: `Ultiq`
+   - Default language: English (Australia)
+   - App or game: App
+   - Free or paid: Free
+3. Build a signed AAB: `./gradlew bundleRelease` (Play wants `.aab`, not `.apk`)
+4. Play Console → app → **Testing** → **Internal testing** → **Create new release**
+5. Upload the `.aab` from `android/app/build/outputs/bundle/release/app-release.aab`
+6. Add release notes
+7. Invite testers by email, or distribute a public opt-in URL (limit 100 testers)
+8. Submit — Google reviews internal builds in hours, not days
 
-Internal testing builds auto-update on testers' phones via the normal Play Store flow. Same keystore + same package name as Production; only the track differs.
+Internal testing builds auto-update on testers' phones via the normal Play Store flow. Same keystore + same package name as Production; only the track differs. Validate here for a few days, fix any issues, then promote the same AAB to Production via 6.11.
 
 #### 6.14.5 — Definition of done
 
 - `./gradlew assembleRelease` produces a signed APK (verify: `apksigner verify --verbose path/to/apk`)
-- `https://ultiqapp.com/ultiq-latest.apk` returns 200 with `Content-Type: application/vnd.android.package-archive`
-- Landing page has a working **Download APK** button alongside the Play CTA
+- `https://ultiqapp.com/ultiq.<version>.apk` returns 200 with `Content-Type: application/vnd.android.package-archive` (e.g. `ultiq.1.0.apk`)
+- Landing page has a working **Download APK** button (versioned URL) alongside the Play CTA
 - Play Console has an Internal Testing release in review, with at least one invited tester
 
 #### 6.14.6 — Risks
