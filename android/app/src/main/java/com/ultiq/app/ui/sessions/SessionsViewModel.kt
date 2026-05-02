@@ -180,11 +180,12 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun updateWorkDuration(minutes: Int) {
-        _uiState.value = _uiState.value.copy(workDuration = minutes.coerceIn(5, 60))
+        _uiState.value = _uiState.value.copy(workDuration = minutes.coerceIn(5, 240))
     }
 
     fun updateBreakDuration(minutes: Int) {
-        _uiState.value = _uiState.value.copy(breakDuration = minutes.coerceIn(1, 30))
+        // 0 = no break (timer chains straight back into another work block on phase rollover).
+        _uiState.value = _uiState.value.copy(breakDuration = minutes.coerceIn(0, 60))
     }
 
     fun startSession() {
@@ -373,13 +374,26 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
     private fun onTimerFinished() {
         val state = _uiState.value
         if (state.currentPhase == Phase.WORK) {
-            _uiState.value = state.copy(
-                currentPhase = Phase.BREAK,
-                timerState = TimerState.BREAK,
-                completedPomodoros = state.completedPomodoros + 1,
-                timeRemainingSeconds = state.breakDuration * 60,
-                totalTimeSeconds = state.breakDuration * 60,
-            )
+            // Always credit the completed pomodoro before deciding what's next.
+            val completed = state.completedPomodoros + 1
+            if (state.breakDuration <= 0) {
+                // No break configured — chain straight into another work block.
+                _uiState.value = state.copy(
+                    currentPhase = Phase.WORK,
+                    timerState = TimerState.RUNNING,
+                    completedPomodoros = completed,
+                    timeRemainingSeconds = state.workDuration * 60,
+                    totalTimeSeconds = state.workDuration * 60,
+                )
+            } else {
+                _uiState.value = state.copy(
+                    currentPhase = Phase.BREAK,
+                    timerState = TimerState.BREAK,
+                    completedPomodoros = completed,
+                    timeRemainingSeconds = state.breakDuration * 60,
+                    totalTimeSeconds = state.breakDuration * 60,
+                )
+            }
             startTimer()
         } else {
             _uiState.value = state.copy(

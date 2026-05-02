@@ -175,7 +175,7 @@ fun SettingsScreen(
                     value = user.defaultWorkDuration,
                     suffix = "min",
                     step = 5,
-                    range = 5..120,
+                    range = 5..240,
                     onValueChange = viewModel::setDefaultWorkDuration,
                 )
             }
@@ -183,11 +183,11 @@ fun SettingsScreen(
                 StepperCard(
                     icon = Icons.Default.Timer,
                     title = "Rest duration",
-                    description = "Length of rest between work blocks",
+                    description = "Length of rest between work blocks (0 = no break)",
                     value = user.defaultBreakDuration,
                     suffix = "min",
                     step = 1,
-                    range = 1..60,
+                    range = 0..60,
                     onValueChange = viewModel::setDefaultBreakDuration,
                 )
             }
