@@ -1,11 +1,14 @@
 use std::env;
 
+use crate::email::EmailClient;
+
 #[derive(Clone)]
 pub struct Config {
     pub database_url: String,
     pub jwt_secret: String,
     pub from_address: String,
     pub reply_to: String,
+    pub resend_api_key: String,
 }
 
 impl Config {
@@ -17,6 +20,7 @@ impl Config {
                 .unwrap_or_else(|_| "no-reply@mail.ultiqapp.com".to_string()),
             reply_to: env::var("REPLY_TO")
                 .unwrap_or_else(|_| "support@ultiqapp.com".to_string()),
+            resend_api_key: env::var("RESEND_API_KEY").expect("RESEND_API_KEY must be set"),
         }
     }
 }
@@ -25,5 +29,5 @@ impl Config {
 pub struct AppState {
     pub pool: sqlx::PgPool,
     pub config: Config,
-    pub ses: aws_sdk_sesv2::Client,
+    pub email: EmailClient,
 }
