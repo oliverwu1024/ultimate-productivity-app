@@ -17,11 +17,13 @@ import com.ultiq.app.data.remote.dto.SessionStatsDto
 import com.ultiq.app.data.remote.dto.SleepRecordDto
 import com.ultiq.app.data.remote.dto.SleepStatsDto
 import com.ultiq.app.data.remote.dto.UpdateChecklistItemDto
+import com.ultiq.app.data.remote.dto.UpdateProfileRequest
 import com.ultiq.app.data.remote.dto.UpdateSessionDto
 import com.ultiq.app.data.remote.dto.UserResponse
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
+import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
@@ -36,6 +38,9 @@ interface ApiService {
 
     @GET("auth/me")
     suspend fun getMe(): UserResponse
+
+    @PATCH("auth/me")
+    suspend fun updateProfile(@Body request: UpdateProfileRequest): UserResponse
 
     @DELETE("auth/me")
     suspend fun deleteAccount()

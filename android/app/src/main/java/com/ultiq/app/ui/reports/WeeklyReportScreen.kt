@@ -171,9 +171,18 @@ private fun SleepSection(state: WeeklyReportUiState) {
             pairs = listOf(
                 "Avg duration" to formatDuration(state.avgSleepDurationMinutes.toInt()),
                 "Avg quality" to if (state.avgSleepQuality > 0) "%.1f / 5".format(state.avgSleepQuality) else "-",
+                "Sleep debt" to if (state.sleepDebtMinutes > 0) formatDuration(state.sleepDebtMinutes) else "0m",
+                "Extra rest" to if (state.sleepExtraMinutes > 0) formatDuration(state.sleepExtraMinutes) else "0m",
                 "Best night" to (state.bestNight?.let { "${it.date.dayOfWeek.name.take(3)} (${it.qualityRating}★)" } ?: "-"),
                 "Worst night" to (state.worstNight?.let { "${it.date.dayOfWeek.name.take(3)} (${it.qualityRating}★)" } ?: "-"),
             ),
+        )
+
+        Spacer(Modifier.height(8.dp))
+        Text(
+            "Target: ${formatDuration(state.sleepTargetMinutes)}/night · debt = nights below, extra = nights above",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
         Spacer(Modifier.height(8.dp))

@@ -140,10 +140,23 @@ fun SettingsScreen(
             item { SectionHeader("Appearance") }
             item { ThemeCard(current = uiState.themeMode, onSelect = viewModel::setThemeMode) }
 
+            item { SectionHeader("Sleep goal") }
+            item {
+                DurationStepperCard(
+                    icon = Icons.Default.Bedtime,
+                    title = "Optimal nightly sleep",
+                    description = "Falling short adds to sleep debt; sleeping longer goes into extra rest",
+                    valueMinutes = user.sleepTargetMinutes,
+                    stepMinutes = 15,
+                    range = 300..720,
+                    onValueChange = viewModel::setSleepTargetMinutes,
+                )
+            }
+
             item {
                 val durationMins = targetDurationMinutes(user.targetBedtime, user.targetWakeTime)
                 SectionHeaderWithSuffix(
-                    title = "Sleep targets",
+                    title = "Sleep schedule",
                     suffix = "Duration: ${formatDuration(durationMins)}",
                 )
             }
@@ -595,6 +608,51 @@ private fun StepperCard(
                 IconButton(
                     onClick = { onValueChange((value + step).coerceAtMost(range.last)) },
                     enabled = value < range.last,
+                ) { Icon(Icons.Default.Add, "Increase") }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DurationStepperCard(
+    icon: ImageVector,
+    title: String,
+    description: String,
+    valueMinutes: Int,
+    stepMinutes: Int,
+    range: IntRange,
+    onValueChange: (Int) -> Unit,
+) {
+    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Icon(icon, null, tint = MaterialTheme.colorScheme.primary)
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
+                    Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+            ) {
+                IconButton(
+                    onClick = { onValueChange((valueMinutes - stepMinutes).coerceAtLeast(range.first)) },
+                    enabled = valueMinutes > range.first,
+                ) { Icon(Icons.Default.Remove, "Decrease") }
+                Text(
+                    formatDuration(valueMinutes),
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp)
+                        .width(96.dp),
+                    textAlign = TextAlign.Center,
+                )
+                IconButton(
+                    onClick = { onValueChange((valueMinutes + stepMinutes).coerceAtMost(range.last)) },
+                    enabled = valueMinutes < range.last,
                 ) { Icon(Icons.Default.Add, "Increase") }
             }
         }

@@ -234,9 +234,10 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
         recordsJob = viewModelScope.launch {
             val (start, end) = getRange(_uiState.value.selectedTimeRange)
             repository.getSleepRecordsBetween(start, end).collect { records ->
+                val target = userPreferences.snapshot().sleepTargetMinutes
                 _uiState.value = _uiState.value.copy(
                     records = records,
-                    stats = records.toLocalStats()
+                    stats = records.toLocalStats(target)
                 )
             }
         }

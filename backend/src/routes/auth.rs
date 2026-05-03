@@ -1,6 +1,6 @@
 use axum::extract::State;
 use axum::http::StatusCode;
-use axum::routing::{delete, get, post};
+use axum::routing::{delete, get, patch, post};
 use axum::{Json, Router};
 use chrono::Utc;
 use jsonwebtoken::{encode, EncodingKey, Header};
@@ -10,8 +10,8 @@ use crate::config::AppState;
 use crate::error::AppError;
 use crate::middleware::auth::Claims;
 use crate::models::user::{
-    AuthResponse, ChangePassword, CreateUser, ForgotPassword, LoginUser, ResetPassword, User,
-    UserResponse,
+    AuthResponse, ChangePassword, CreateUser, ForgotPassword, LoginUser, ResetPassword,
+    UpdateProfile, User, UserResponse,
 };
 
 use argon2::{
@@ -25,6 +25,7 @@ pub fn router() -> Router<AppState> {
         .route("/auth/register", post(register))
         .route("/auth/login", post(login))
         .route("/auth/me", get(me))
+        .route("/auth/me", patch(update_profile))
         .route("/auth/me", delete(delete_account))
         .route("/auth/reset", post(reset_account))
         .route("/auth/password", post(change_password))
@@ -113,6 +114,37 @@ async fn me(
         .fetch_optional(&state.pool)
         .await?
         .ok_or_else(|| AppError::new(StatusCode::UNAUTHORIZED, "User not found"))?;
+
+    Ok(Json(user.into()))
+}
+
+async fn update_profile(
+    State(state): State<AppState>,
+    claims: Claims,
+    Json(input): Json<UpdateProfile>,
+) -> Result<Json<UserResponse>, AppError> {
+    let user_id = parse_user_id(&claims)?;
+
+    if let Some(target) = input.sleep_target_minutes {
+        if !(180..=900).contains(&target) {
+            return Err(AppError::new(
+                StatusCode::BAD_REQUEST,
+                "sleep_target_minutes must be between 180 and 900 (3h–15h)",
+            ));
+        }
+    }
+
+    let user = sqlx::query_as::<_, User>(
+        "UPDATE users
+         SET sleep_target_minutes = COALESCE($1, sleep_target_minutes)
+         WHERE id = $2
+         RETURNING *",
+    )
+    .bind(input.sleep_target_minutes)
+    .bind(user_id)
+    .fetch_optional(&state.pool)
+    .await?
+    .ok_or_else(|| AppError::new(StatusCode::UNAUTHORIZED, "User not found"))?;
 
     Ok(Json(user.into()))
 }

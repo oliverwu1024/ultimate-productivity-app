@@ -628,7 +628,61 @@ private fun WeeklyHighlightsCard(highlights: WeeklyHighlights?, onClick: () -> U
                     deltaPositive = true,
                 )
             }
+            if (h != null) {
+                Spacer(Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    SleepBalanceTile(
+                        label = "Sleep debt",
+                        minutes = h.sleepDebtMinutes,
+                        positiveIsGood = false,
+                        modifier = Modifier.weight(1f),
+                    )
+                    SleepBalanceTile(
+                        label = "Extra rest",
+                        minutes = h.sleepExtraMinutes,
+                        positiveIsGood = true,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
         }
+    }
+}
+
+@Composable
+private fun SleepBalanceTile(
+    label: String,
+    minutes: Int,
+    positiveIsGood: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val active = minutes > 0
+    val accent = when {
+        !active -> MaterialTheme.colorScheme.onSurfaceVariant
+        positiveIsGood -> Color(0xFF4CAF50)
+        else -> MaterialTheme.colorScheme.error
+    }
+    Column(
+        modifier = modifier
+            .background(
+                MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
+                RoundedCornerShape(12.dp),
+            )
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+    ) {
+        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(2.dp))
+        val h = minutes / 60
+        val m = minutes % 60
+        val display = when {
+            !active -> "0m"
+            h > 0 -> "${h}h ${m}m"
+            else -> "${m}m"
+        }
+        Text(display, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = accent)
     }
 }
 
