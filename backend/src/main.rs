@@ -1,11 +1,13 @@
 mod config;
 mod db;
+mod email;
 mod error;
 mod middleware;
 mod models;
 mod routes;
 
 use config::{AppState, Config};
+use email::EmailClient;
 use tower_http::cors::{Any, CorsLayer};
 use tracing_subscriber::EnvFilter;
 
@@ -23,10 +25,9 @@ async fn main() {
 
     sqlx::migrate!("src/migrations").run(&pool).await.expect("Failed to run migrations");
 
-    let aws_config = aws_config::defaults(aws_config::BehaviorVersion::latest()).load().await;
-    let ses = aws_sdk_sesv2::Client::new(&aws_config);
+    let email = EmailClient::new(config.resend_api_key.clone());
 
-    let state = AppState { pool, config, ses };
+    let state = AppState { pool, config, email };
 
     let cors = CorsLayer::new()
         .allow_origin(Any)
