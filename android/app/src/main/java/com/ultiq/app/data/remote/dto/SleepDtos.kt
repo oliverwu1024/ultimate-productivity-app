@@ -34,7 +34,9 @@ data class SleepStatsDto(
     val avg_duration_minutes: Double,
     val avg_quality: Double,
     val total_records: Long,
-    val sleep_debt_minutes: Double,
+    val debt_minutes: Double,
+    val extra_minutes: Double,
+    val sleep_target_minutes: Int,
     val avg_phone_pickups: Double,
     val best_quality_day: String?,
     val worst_quality_day: String?
@@ -44,7 +46,9 @@ data class SleepStats(
     val avgDurationMinutes: Double = 0.0,
     val avgQuality: Double = 0.0,
     val totalRecords: Long = 0,
-    val sleepDebtMinutes: Double = 0.0,
+    val debtMinutes: Double = 0.0,
+    val extraMinutes: Double = 0.0,
+    val sleepTargetMinutes: Int = 480,
     val avgPhonePickups: Double = 0.0,
     val bestQualityDay: String? = null,
     val worstQualityDay: String? = null
@@ -86,21 +90,25 @@ fun SleepStatsDto.toStats(): SleepStats {
         avgDurationMinutes = avg_duration_minutes,
         avgQuality = avg_quality,
         totalRecords = total_records,
-        sleepDebtMinutes = sleep_debt_minutes,
+        debtMinutes = debt_minutes,
+        extraMinutes = extra_minutes,
+        sleepTargetMinutes = sleep_target_minutes,
         avgPhonePickups = avg_phone_pickups,
         bestQualityDay = best_quality_day,
         worstQualityDay = worst_quality_day
     )
 }
 
-fun List<SleepRecordEntity>.toLocalStats(): SleepStats {
-    if (isEmpty()) return SleepStats()
+fun List<SleepRecordEntity>.toLocalStats(targetMinutes: Int): SleepStats {
+    if (isEmpty()) return SleepStats(sleepTargetMinutes = targetMinutes)
 
     val count = size.toDouble()
+    val targetMins = targetMinutes.toDouble()
     var totalDurationMins = 0.0
     var totalQuality = 0.0
     var totalPickups = 0.0
-    var totalDebtMins = 0.0
+    var debtMins = 0.0
+    var extraMins = 0.0
     var best: Pair<Int, String>? = null
     var worst: Pair<Int, String>? = null
 
@@ -110,12 +118,9 @@ fun List<SleepRecordEntity>.toLocalStats(): SleepStats {
         totalQuality += r.qualityRating
         totalPickups += r.phonePickups
 
-        val parts = r.targetBedtime.split(":")
-        val bedSecs = parts[0].toInt() * 3600 + parts[1].toInt() * 60
-        val wakeParts = r.targetWakeTime.split(":")
-        val wakeSecs = wakeParts[0].toInt() * 3600 + wakeParts[1].toInt() * 60
-        val targetSecs = if (wakeSecs >= bedSecs) wakeSecs - bedSecs else 86400 + wakeSecs - bedSecs
-        totalDebtMins += targetSecs.toDouble() / 60 - actualMins
+        // Asymmetric: undersleeping accrues debt; oversleeping fills the "extra" bucket.
+        val delta = actualMins - targetMins
+        if (delta < 0.0) debtMins += -delta else extraMins += delta
 
         val day = Instant.ofEpochMilli(r.actualBedtime)
             .atZone(ZoneId.systemDefault()).toLocalDate().toString()
@@ -127,7 +132,9 @@ fun List<SleepRecordEntity>.toLocalStats(): SleepStats {
         avgDurationMinutes = totalDurationMins / count,
         avgQuality = totalQuality / count,
         totalRecords = size.toLong(),
-        sleepDebtMinutes = totalDebtMins / count,
+        debtMinutes = debtMins,
+        extraMinutes = extraMins,
+        sleepTargetMinutes = targetMinutes,
         avgPhonePickups = totalPickups / count,
         bestQualityDay = best?.second,
         worstQualityDay = worst?.second

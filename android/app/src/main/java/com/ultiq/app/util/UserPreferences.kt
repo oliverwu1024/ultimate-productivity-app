@@ -31,6 +31,8 @@ data class UserSettings(
     val lastPlanningPromptDismissedWeek: Int,
     /** Has the user dismissed the "what sleep tracking does" explainer? */
     val sleepExplainerSeen: Boolean,
+    /** Optimal nightly sleep target in minutes. Drives debt + extra calculations. */
+    val sleepTargetMinutes: Int,
 )
 
 class UserPreferences(private val context: Context) {
@@ -48,6 +50,7 @@ class UserPreferences(private val context: Context) {
         val LOCKOUT_GRACE_MINUTES = intPreferencesKey("lockout_grace_minutes")
         val LAST_PLANNING_DISMISSED_WEEK = intPreferencesKey("last_planning_dismissed_week")
         val SLEEP_EXPLAINER_SEEN = booleanPreferencesKey("sleep_explainer_seen")
+        val SLEEP_TARGET_MINUTES = intPreferencesKey("sleep_target_minutes")
     }
 
     private val defaults = UserSettings(
@@ -63,6 +66,7 @@ class UserPreferences(private val context: Context) {
         lockoutGraceMinutes = 5,
         lastPlanningPromptDismissedWeek = 0,
         sleepExplainerSeen = false,
+        sleepTargetMinutes = 480,
     )
 
     val settings: Flow<UserSettings> = context.userDataStore.data.map { prefs ->
@@ -79,6 +83,7 @@ class UserPreferences(private val context: Context) {
             lockoutGraceMinutes = prefs[Keys.LOCKOUT_GRACE_MINUTES] ?: defaults.lockoutGraceMinutes,
             lastPlanningPromptDismissedWeek = prefs[Keys.LAST_PLANNING_DISMISSED_WEEK] ?: defaults.lastPlanningPromptDismissedWeek,
             sleepExplainerSeen = prefs[Keys.SLEEP_EXPLAINER_SEEN] ?: defaults.sleepExplainerSeen,
+            sleepTargetMinutes = prefs[Keys.SLEEP_TARGET_MINUTES] ?: defaults.sleepTargetMinutes,
         )
     }
 
@@ -130,6 +135,10 @@ class UserPreferences(private val context: Context) {
 
     suspend fun setSleepExplainerSeen(seen: Boolean) {
         context.userDataStore.edit { it[Keys.SLEEP_EXPLAINER_SEEN] = seen }
+    }
+
+    suspend fun setSleepTargetMinutes(minutes: Int) {
+        context.userDataStore.edit { it[Keys.SLEEP_TARGET_MINUTES] = minutes.coerceIn(180, 900) }
     }
 
     /** Wipe every preference back to defaults — used when deleting the account. */
