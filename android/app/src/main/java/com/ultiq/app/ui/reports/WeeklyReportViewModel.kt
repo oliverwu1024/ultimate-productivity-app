@@ -64,6 +64,9 @@ data class WeeklyReportUiState(
     val worstNight: SleepDaySummary? = null,
     val avgPhonePickupsPerNight: Double = 0.0,
     val phonePickupsTrend: Double = 0.0, // pos = got worse, neg = improved
+    val sleepDebtMinutes: Int = 0,
+    val sleepExtraMinutes: Int = 0,
+    val sleepTargetMinutes: Int = 480,
     // Focus
     val focusByDay: List<FocusDaySummary> = emptyList(),
     val totalFocusMinutes: Int = 0,
@@ -170,6 +173,15 @@ class WeeklyReportViewModel(application: Application) : AndroidViewModel(applica
             val priorAvgPickups = priorSleep.map { it.phonePickups.toDouble() }.average().orZero()
             val pickupsTrend = avgPickupsNight - priorAvgPickups
 
+            // Asymmetric balance: shortfalls accrue debt, surpluses go to "extra".
+            val target = settings.sleepTargetMinutes
+            var debtAcc = 0
+            var extraAcc = 0
+            for (n in nightsWithData) {
+                val delta = (n.durationMinutes ?: 0) - target
+                if (delta < 0) debtAcc += -delta else extraAcc += delta
+            }
+
             val totalSessionPickups = weekSessions.sumOf { it.phonePickups }
             val avgPickupsSession =
                 if (weekSessions.isEmpty()) 0.0
@@ -196,6 +208,9 @@ class WeeklyReportViewModel(application: Application) : AndroidViewModel(applica
                 worstNight = worst,
                 avgPhonePickupsPerNight = avgPickupsNight,
                 phonePickupsTrend = pickupsTrend,
+                sleepDebtMinutes = debtAcc,
+                sleepExtraMinutes = extraAcc,
+                sleepTargetMinutes = settings.sleepTargetMinutes,
                 focusByDay = focusByDay,
                 totalFocusMinutes = weekSessions.sumOf { it.durationMinutes },
                 sessionsCompleted = weekSessions.size,

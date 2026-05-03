@@ -13,7 +13,12 @@ data class LoginRequest(
 data class UserResponse(
     val id: String,
     val email: String,
-    val created_at: String
+    val created_at: String,
+    val sleep_target_minutes: Int = 480,
+)
+
+data class UpdateProfileRequest(
+    val sleep_target_minutes: Int? = null,
 )
 
 data class AuthResponse(

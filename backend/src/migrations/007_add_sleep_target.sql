@@ -1,0 +1,2 @@
+ALTER TABLE users
+    ADD COLUMN sleep_target_minutes INTEGER NOT NULL DEFAULT 480;
