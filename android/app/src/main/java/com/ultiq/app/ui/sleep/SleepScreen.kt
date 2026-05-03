@@ -400,13 +400,21 @@ private fun StatsRow(stats: SleepStats) {
             StatCard("Avg Quality", String.format("%.1f / 5", stats.avgQuality))
         }
         item {
-            val debtHours = (stats.sleepDebtMinutes / 60).toInt()
-            val debtMins = (kotlin.math.abs(stats.sleepDebtMinutes) % 60).toInt()
-            val sign = if (stats.sleepDebtMinutes >= 0) "-" else "+"
+            val debtH = (stats.debtMinutes / 60).toInt()
+            val debtM = (stats.debtMinutes % 60).toInt()
             StatCard(
-                "Avg Debt / session",
-                "${sign}${kotlin.math.abs(debtHours)}h ${debtMins}m",
-                valueColor = if (stats.sleepDebtMinutes > 0) MaterialTheme.colorScheme.error else Color(0xFF4CAF50)
+                "Sleep debt",
+                if (stats.debtMinutes > 0) "${debtH}h ${debtM}m" else "0h 0m",
+                valueColor = if (stats.debtMinutes > 0) MaterialTheme.colorScheme.error else Color(0xFF4CAF50)
+            )
+        }
+        item {
+            val extraH = (stats.extraMinutes / 60).toInt()
+            val extraM = (stats.extraMinutes % 60).toInt()
+            StatCard(
+                "Extra rest",
+                if (stats.extraMinutes > 0) "${extraH}h ${extraM}m" else "0h 0m",
+                valueColor = Color(0xFF4CAF50)
             )
         }
         item {

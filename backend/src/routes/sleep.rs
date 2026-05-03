@@ -2,7 +2,7 @@ use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::routing::{get, post};
 use axum::{Json, Router};
-use chrono::{NaiveDate, Timelike, Utc};
+use chrono::{Datelike, NaiveDate, Utc};
 use uuid::Uuid;
 
 use crate::config::AppState;
@@ -224,6 +224,14 @@ async fn stats(
 
     let (start, end) = match range {
         "week" => (now - chrono::Duration::days(7), now),
+        "calendar_week" => {
+            // Current ISO week: Monday 00:00 UTC → now
+            let today = now.date_naive();
+            let days_since_monday = today.weekday().num_days_from_monday() as i64;
+            let monday = today - chrono::Duration::days(days_since_monday);
+            let s = monday.and_hms_opt(0, 0, 0).unwrap().and_utc();
+            (s, now)
+        }
         "custom" => {
             let s = params
                 .start
@@ -242,6 +250,15 @@ async fn stats(
         _ => (now - chrono::Duration::days(30), now),
     };
 
+    // Fetch the user's personal sleep target — applied uniformly across all records in the window.
+    let target_minutes: i32 = sqlx::query_scalar(
+        "SELECT sleep_target_minutes FROM users WHERE id = $1",
+    )
+    .bind(user_id)
+    .fetch_optional(&state.pool)
+    .await?
+    .ok_or_else(|| AppError::new(StatusCode::UNAUTHORIZED, "User not found"))?;
+
     let records = sqlx::query_as::<_, SleepRecord>(
         "SELECT * FROM sleep_records
          WHERE user_id = $1 AND actual_bedtime BETWEEN $2 AND $3
@@ -258,7 +275,9 @@ async fn stats(
             avg_duration_minutes: 0.0,
             avg_quality: 0.0,
             total_records: 0,
-            sleep_debt_minutes: 0.0,
+            debt_minutes: 0.0,
+            extra_minutes: 0.0,
+            sleep_target_minutes: target_minutes,
             avg_phone_pickups: 0.0,
             best_quality_day: None,
             worst_quality_day: None,
@@ -266,10 +285,12 @@ async fn stats(
     }
 
     let count = records.len() as f64;
+    let target_mins = target_minutes as f64;
     let mut total_duration_mins = 0.0;
     let mut total_quality = 0.0;
     let mut total_pickups = 0.0;
-    let mut total_debt_mins = 0.0;
+    let mut debt_mins = 0.0;
+    let mut extra_mins = 0.0;
     let mut best: Option<(i16, String)> = None;
     let mut worst: Option<(i16, String)> = None;
 
@@ -279,16 +300,14 @@ async fn stats(
         total_quality += r.quality_rating as f64;
         total_pickups += r.phone_pickups as f64;
 
-        // Target duration: handle midnight crossing
-        let wake_secs = r.target_wake_time.num_seconds_from_midnight() as i64;
-        let bed_secs = r.target_bedtime.num_seconds_from_midnight() as i64;
-        let target_secs = if wake_secs >= bed_secs {
-            wake_secs - bed_secs
+        // Asymmetric: undersleeping accrues debt; oversleeping fills the "extra" bucket.
+        // The two never cancel — they're separate metrics.
+        let delta = actual_mins - target_mins;
+        if delta < 0.0 {
+            debt_mins += -delta;
         } else {
-            86400 + wake_secs - bed_secs
-        };
-        let target_mins = target_secs as f64 / 60.0;
-        total_debt_mins += target_mins - actual_mins;
+            extra_mins += delta;
+        }
 
         let day = r.actual_bedtime.format("%Y-%m-%d").to_string();
         match &best {
@@ -307,7 +326,9 @@ async fn stats(
         avg_duration_minutes: total_duration_mins / count,
         avg_quality: total_quality / count,
         total_records: records.len() as i64,
-        sleep_debt_minutes: total_debt_mins / count,
+        debt_minutes: debt_mins,
+        extra_minutes: extra_mins,
+        sleep_target_minutes: target_minutes,
         avg_phone_pickups: total_pickups / count,
         best_quality_day: best.map(|(_, d)| d),
         worst_quality_day: worst.map(|(_, d)| d),

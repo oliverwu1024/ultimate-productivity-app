@@ -18,6 +18,7 @@ import com.ultiq.app.data.repository.SyncManager
 import com.ultiq.app.util.AlarmScheduler
 import com.ultiq.app.util.Comparisons
 import com.ultiq.app.util.TokenManager
+import com.ultiq.app.util.UserPreferences
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.firstOrNull
@@ -52,6 +53,9 @@ data class WeeklyHighlights(
     val totalFocusHours: Double,
     val eventsCompleted: Int,
     val eventsTotal: Int,
+    val sleepDebtMinutes: Int = 0,
+    val sleepExtraMinutes: Int = 0,
+    val sleepTargetMinutes: Int = 480,
     val avgSleepDeltaMinutes: Int? = null,
     val totalFocusDeltaHours: Double? = null,
     val avgQualityDelta: Double? = null,
@@ -96,6 +100,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     private val calendarRepo = CalendarRepository(db.calendarEventDao(), api, AlarmScheduler(application))
     private val checklistRepo = ChecklistRepository(db.checklistDao(), api)
     private val syncManager = SyncManager(sleepRepo, sessionRepo, calendarRepo)
+    private val userPreferences = UserPreferences(application)
 
     private val _uiState = MutableStateFlow(DashboardUiState())
     val uiState: StateFlow<DashboardUiState> = _uiState
@@ -271,6 +276,16 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         val avgQualityPrev = if (sleepPrev.isEmpty()) 0.0 else sleepPrev.map { it.qualityRating.toDouble() }.average()
         val avgQualityDelta = if (sleepPrev.isNotEmpty()) avgQuality - avgQualityPrev else null
 
+        // Asymmetric balance over rolling 7-day window.
+        val sleepTarget = userPreferences.snapshot().sleepTargetMinutes
+        var sleepDebt = 0
+        var sleepExtra = 0
+        for (r in sleepThis) {
+            val mins = ((r.actualWakeTime - r.actualBedtime) / 60_000).toInt()
+            val delta = mins - sleepTarget
+            if (delta < 0) sleepDebt += -delta else sleepExtra += delta
+        }
+
         // Sessions
         val totalFocusThis = sessionDao.getTotalFocusMinutes(weekAgo, now) ?: 0
         val totalFocusPrev = sessionDao.getTotalFocusMinutes(twoWeeksAgo, weekAgo) ?: 0
@@ -288,6 +303,9 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                 totalFocusHours = totalFocusHours,
                 eventsCompleted = eventsCompleted,
                 eventsTotal = events.size,
+                sleepDebtMinutes = sleepDebt,
+                sleepExtraMinutes = sleepExtra,
+                sleepTargetMinutes = sleepTarget,
                 avgSleepDeltaMinutes = avgSleepDelta,
                 totalFocusDeltaHours = totalFocusDelta,
                 avgQualityDelta = avgQualityDelta,

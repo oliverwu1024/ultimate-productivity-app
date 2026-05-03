@@ -5,6 +5,8 @@ import android.provider.Settings
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.ultiq.app.BuildConfig
+import com.ultiq.app.data.remote.RetrofitClient
+import com.ultiq.app.data.remote.dto.UpdateProfileRequest
 import com.ultiq.app.ui.lockout.LockoutAdmin
 import com.ultiq.app.ui.theme.ThemeMode
 import com.ultiq.app.util.ReminderPreferences
@@ -33,6 +35,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     private val userPreferences = UserPreferences(application)
     private val reminderPreferences = ReminderPreferences(application)
     private val tokenManager = TokenManager(application)
+    private val api = RetrofitClient.create(tokenManager)
 
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState: StateFlow<SettingsUiState> = _uiState
@@ -108,5 +111,13 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     fun setLockoutGraceMinutes(minutes: Int) = viewModelScope.launch {
         userPreferences.setLockoutGraceMinutes(minutes)
+    }
+
+    fun setSleepTargetMinutes(minutes: Int) = viewModelScope.launch {
+        // Local cache first for instant UI, then sync to backend in background.
+        userPreferences.setSleepTargetMinutes(minutes)
+        runCatching {
+            api.updateProfile(UpdateProfileRequest(sleep_target_minutes = minutes))
+        }
     }
 }
