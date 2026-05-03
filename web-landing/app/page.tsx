@@ -219,16 +219,9 @@ export default function Home() {
             <span>© {new Date().getFullYear()} Ultiq</span>
           </div>
           <div className="flex items-center gap-6">
+            <Link href="/privacy" className="hover:text-ultiq-indigo">Privacy</Link>
             <Link href="/terms" className="hover:text-ultiq-indigo">Terms</Link>
             <a href="mailto:support@ultiqapp.com" className="hover:text-ultiq-indigo">Support</a>
-            <a
-              href="https://github.com/oliverwu1024/ultimate-productivity-app"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-ultiq-indigo"
-            >
-              GitHub
-            </a>
           </div>
         </div>
       </footer>
