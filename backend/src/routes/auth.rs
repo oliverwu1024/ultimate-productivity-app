@@ -18,7 +18,6 @@ use argon2::{
     password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
     Argon2,
 };
-use aws_sdk_sesv2::types::{Body, Content, Destination, EmailContent, Message};
 use sha2::{Digest, Sha256};
 
 pub fn router() -> Router<AppState> {
@@ -324,41 +323,17 @@ async fn send_reset_email(state: &AppState, to: &str, token: &str) -> Result<(),
         link = link
     );
 
-    let subject = Content::builder()
-        .data("Reset your Ultiq password")
-        .build()
-        .map_err(|_| {
-            AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "Failed to build email subject")
-        })?;
-    let text = Content::builder().data(body_text).build().map_err(|_| {
-        AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "Failed to build email text")
-    })?;
-    let html = Content::builder().data(body_html).build().map_err(|_| {
-        AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "Failed to build email html")
-    })?;
-
-    let message = Message::builder()
-        .subject(subject)
-        .body(Body::builder().text(text).html(html).build())
-        .build();
-
-    let destination = Destination::builder().to_addresses(to).build();
-
     state
-        .ses
-        .send_email()
-        .from_email_address(&state.config.from_address)
-        .reply_to_addresses(&state.config.reply_to)
-        .destination(destination)
-        .content(EmailContent::builder().simple(message).build())
-        .send()
+        .email
+        .send(
+            &state.config.from_address,
+            &state.config.reply_to,
+            to,
+            "Reset your Ultiq password",
+            &body_text,
+            &body_html,
+        )
         .await
-        .map_err(|e| {
-            tracing::error!("SES send_email failed: {:?}", e);
-            AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "Failed to send email")
-        })?;
-
-    Ok(())
 }
 
 fn validate_password_strength(password: &str) -> Result<(), AppError> {
