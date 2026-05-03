@@ -2185,12 +2185,12 @@ Deferred to this phase because it needs production-grade email that doesn't exis
 
 **Plan when AWS is in place:**
 
-- **Email transport: AWS SES.** ~$0.10 per 1,000 emails, deliverability is solid. Verify a sending domain via Route 53 records (already used for the ALB DNS), then submit the SES production-access request to leave the sandbox so you can send to any address.
+- **Email transport: Resend (Pro).** Originally planned for AWS SES, but AWS Trust & Safety rejected production-access on 2026-05-03 with no actionable feedback. Switched to Resend on Pro plan ($20/mo, unlimited domains, 50k emails/mo). Verify `mail.ultiqapp.com` via Route 53 (Resend supplies SPF/DKIM/return-path records). Backend hits `https://api.resend.com/emails` directly via `reqwest` — see `backend/src/email.rs`.
 - **Schema migration:** new `password_reset_tokens` table with `id`, `user_id`, `token_hash` (sha256 of the raw token — never store the raw value), `expires_at` (1h after issue), `used_at`. Index on `(user_id, used_at)` so we can invalidate prior unused tokens when a new one is issued.
 - **Backend endpoints:**
-  - `POST /auth/password/forgot` — body `{ email }`. Always returns 200 even if the email isn't registered (avoids account enumeration). Generates a UUIDv4 token, stores its sha256, sends a templated email through SES with a deep link.
+  - `POST /auth/password/forgot` — body `{ email }`. Always returns 200 even if the email isn't registered (avoids account enumeration). Generates a UUIDv4 token, stores its sha256, sends a templated email through Resend with a deep link.
   - `POST /auth/password/reset` — body `{ token, new_password }`. Hashes the token, looks it up, checks `expires_at` and `used_at`, validates the new password against the same strength rules used for register/change, updates `users.password_hash` (Argon2), marks token used.
-- **Secrets Manager additions:** `ultiq/prod/email` holding `{ FROM_ADDRESS, REPLY_TO }`. SES IAM permission attached to the ECS task role.
+- **Secrets Manager additions:** `ultiq/prod/email` holding `{ FROM_ADDRESS, REPLY_TO, RESEND_API_KEY }`. No SES IAM policy needed on the ECS task role — Resend authenticates by bearer token instead.
 - **Mobile UI:**
   - Login screen → "Forgot password?" link → email-entry screen → confirmation toast ("If that email is registered, a reset link is on the way").
   - Deep link: register `ultiq://reset-password?token=...` in the manifest. Tapping the email link opens a new password screen with the same live strength feedback used in register.
@@ -2507,7 +2507,7 @@ Each chart shows a one-sentence interpretation: "r=0.62, p<0.05 — significant 
   - Achievement progress (from Phase 5.3)
 - "Print" button → browser-native PDF export, no PDF library needed
 
-Email delivery deferred (would need backend SES integration — see Phase 6.11).
+Email delivery deferred (would reuse the Resend integration from Phase 6.13 — same `EmailClient`, different template).
 
 ### 7.10 — Backend Changes
 
