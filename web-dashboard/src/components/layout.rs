@@ -37,6 +37,9 @@ pub fn AppShell(children: Children) -> impl IntoView {
                     <A href="/calendar" attr:class="px-3 py-2 rounded hover:bg-white/10">
                         "Calendar"
                     </A>
+                    <A href="/sleep" attr:class="px-3 py-2 rounded hover:bg-white/10">
+                        "Sleep"
+                    </A>
                     <Show when=move || auth.user.get().map(|u| u.is_admin).unwrap_or(false)>
                         <A href="/admin" attr:class="px-3 py-2 rounded hover:bg-white/10">
                             "Admin"
