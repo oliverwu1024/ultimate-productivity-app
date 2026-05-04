@@ -1,0 +1,82 @@
+name: Deploy web dashboard
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'web-dashboard/**'
+      - '.github/workflows/deploy-web.yml'
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: ap-southeast-2
+  S3_BUCKET: ultiq-web
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web-dashboard
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Cache cargo registry + target
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            web-dashboard/target
+          key: web-dashboard-${{ runner.os }}-cargo-${{ hashFiles('web-dashboard/Cargo.lock') }}
+          restore-keys: |
+            web-dashboard-${{ runner.os }}-cargo-
+
+      - name: Install Trunk
+        run: cargo install --locked --version 0.21.14 trunk
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: web-dashboard/package-lock.json
+
+      - run: npm ci
+
+      - name: Build (release, prod API)
+        env:
+          API_BASE_URL: https://api.ultiqapp.com
+        run: trunk build --release
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-deploy
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Sync hashed assets to S3 (1-year immutable cache)
+        run: |
+          aws s3 sync dist/ s3://${S3_BUCKET}/ \
+            --delete \
+            --cache-control "public, max-age=31536000, immutable" \
+            --exclude "index.html"
+
+      - name: Upload index.html (short cache)
+        run: |
+          aws s3 cp dist/index.html s3://${S3_BUCKET}/index.html \
+            --cache-control "public, max-age=0, no-cache" \
+            --content-type "text/html"
+
+      - name: Invalidate CloudFront cache
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id "${{ secrets.CLOUDFRONT_WEB_DIST_ID }}" \
+            --paths "/" "/index.html"
