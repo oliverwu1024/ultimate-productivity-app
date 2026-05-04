@@ -2,6 +2,7 @@ use leptos::prelude::*;
 use leptos_router::components::A;
 use leptos_router::hooks::use_navigate;
 
+use crate::api::sse::use_sse;
 use crate::auth::{use_auth, AuthContext};
 
 #[component]
@@ -43,6 +44,7 @@ pub fn AppShell(children: Children) -> impl IntoView {
                     <div class="opacity-80 break-words">
                         {move || auth.user.get().map(|u| u.email).unwrap_or_else(|| "—".into())}
                     </div>
+                    <ConnectionIndicator />
                     <button
                         on:click=on_signout
                         class="mt-2 text-ultiq-yellow hover:underline cursor-pointer"
@@ -54,6 +56,31 @@ pub fn AppShell(children: Children) -> impl IntoView {
             <main class="flex-1 overflow-auto">
                 {children()}
             </main>
+        </div>
+    }
+}
+
+#[component]
+fn ConnectionIndicator() -> impl IntoView {
+    let sse = use_sse();
+    let dot_class = move || {
+        if sse.connected.get() {
+            "w-1.5 h-1.5 rounded-full bg-emerald-400"
+        } else {
+            "w-1.5 h-1.5 rounded-full bg-white/30"
+        }
+    };
+    let label = move || {
+        if sse.connected.get() {
+            "Realtime sync"
+        } else {
+            "Offline"
+        }
+    };
+    view! {
+        <div class="mt-3 flex items-center gap-2 opacity-70">
+            <span class=dot_class />
+            <span class="text-[10px] uppercase tracking-wider">{label}</span>
         </div>
     }
 }

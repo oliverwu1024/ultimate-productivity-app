@@ -6,6 +6,7 @@ use crate::api::calendar::{
     create_event, delete_event, list_events, update_event, CalendarEvent, CreateCalendarEvent,
     EventCategory, EventPriority,
 };
+use crate::api::sse::{use_sse, SyncEvent};
 use crate::components::layout::AppShell;
 
 #[derive(Clone)]
@@ -101,6 +102,18 @@ pub fn CalendarPage() -> impl IntoView {
     Effect::new(move |_| {
         let _ = current_month.get();
         refresh();
+    });
+
+    // Realtime: refresh the month when a calendar event arrives over SSE.
+    let sse = use_sse();
+    Effect::new(move |_| {
+        if let Some(ev) = sse.last_event.get() {
+            match ev {
+                SyncEvent::CalendarCreated(_)
+                | SyncEvent::CalendarUpdated(_)
+                | SyncEvent::CalendarDeleted(_) => refresh(),
+            }
+        }
     });
 
     let goto_prev = move |_| current_month.update(|m| *m = prev_month(*m));

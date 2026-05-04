@@ -5,6 +5,7 @@ pub mod checklist;
 pub mod phone_pickups;
 pub mod sessions;
 pub mod sleep;
+pub mod sync;
 
 use axum::{routing::get, Router};
 use crate::config::AppState;
@@ -23,4 +24,5 @@ pub fn all_routes() -> Router<AppState> {
         .merge(calendar::router())
         .merge(checklist::router())
         .merge(admin::router())
+        .merge(sync::router())
 }

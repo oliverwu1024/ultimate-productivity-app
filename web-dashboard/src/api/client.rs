@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::auth::AuthContext;
 
-fn api_base_url() -> &'static str {
+pub fn api_base_url() -> &'static str {
     option_env!("API_BASE_URL").unwrap_or("https://api.ultiqapp.com")
 }
 
