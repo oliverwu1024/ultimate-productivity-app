@@ -1,0 +1,46 @@
+use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
+use serde::Deserialize;
+
+use crate::api::client::{get, ApiError};
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct SleepRecord {
+    pub id: String,
+    pub user_id: String,
+    pub target_bedtime: NaiveTime,
+    pub target_wake_time: NaiveTime,
+    pub actual_bedtime: DateTime<Utc>,
+    pub actual_wake_time: DateTime<Utc>,
+    pub quality_rating: i16,
+    pub phone_pickups: i32,
+    pub total_phone_minutes: Option<i32>,
+    pub notes: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct SleepStats {
+    pub avg_duration_minutes: f64,
+    pub avg_quality: f64,
+    pub total_records: i64,
+    pub debt_minutes: f64,
+    pub extra_minutes: f64,
+    pub sleep_target_minutes: i32,
+    pub avg_phone_pickups: f64,
+    pub best_quality_day: Option<String>,
+    pub worst_quality_day: Option<String>,
+}
+
+pub async fn list_records(
+    start: NaiveDate,
+    end: NaiveDate,
+) -> Result<Vec<SleepRecord>, ApiError> {
+    let path = format!("/sleep?start={}&end={}", start, end);
+    get(&path).await
+}
+
+pub async fn fetch_stats(range: &str) -> Result<SleepStats, ApiError> {
+    let path = format!("/sleep/stats?range={}", range);
+    get(&path).await
+}
