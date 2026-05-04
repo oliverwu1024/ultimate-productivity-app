@@ -2,12 +2,14 @@ mod config;
 mod db;
 mod email;
 mod error;
+mod event_bus;
 mod middleware;
 mod models;
 mod routes;
 
 use config::{AppState, Config};
 use email::EmailClient;
+use event_bus::EventBus;
 use tower_http::cors::{Any, CorsLayer};
 use tracing_subscriber::EnvFilter;
 
@@ -26,8 +28,9 @@ async fn main() {
     sqlx::migrate!("src/migrations").run(&pool).await.expect("Failed to run migrations");
 
     let email = EmailClient::new(config.resend_api_key.clone());
+    let events = EventBus::new();
 
-    let state = AppState { pool, config, email };
+    let state = AppState { pool, config, email, events };
 
     let cors = CorsLayer::new()
         .allow_origin(Any)
