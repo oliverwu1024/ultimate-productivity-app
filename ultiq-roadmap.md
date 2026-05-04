@@ -2650,11 +2650,206 @@ Two clients, one backend, three deployment targets — a strong demonstration of
 
 ---
 
-## Phase 8: AI Integration (Weeks 30–32)
+## Phase 8: Alarm & Missions (Weeks 30–34)
+
+The differentiator vs the system clock alarm: **dismiss missions** that force you out of bed. Users can't just tap snooze and roll over — they have to solve a math problem, shake the phone vigorously, or photograph a registered location (e.g. the bathroom sink). MVP ships three mission types; more (typing, squat, barcode) added later. Inspired by the Alarmy app.
+
+### 8.1 — Stack
+
+| Layer | Tech | Why |
+|---|---|---|
+| Scheduling | `AlarmManager.setAlarmClock()` | Only Android API that bypasses doze with sub-minute precision and survives battery optimization (Android 12+) |
+| Permissions | `SCHEDULE_EXACT_ALARM` (12+), `USE_FULL_SCREEN_INTENT` (14+), `POST_NOTIFICATIONS` (13+), `RECEIVE_BOOT_COMPLETED`, `WAKE_LOCK`, `CAMERA` | Each must be granted; full-screen intent on 14+ requires user-granted special permission |
+| Trigger flow | Broadcast receiver → foreground service → full-screen Activity | Ensures alarm rings even if app is killed; Activity opens over lock screen via `FLAG_SHOW_WHEN_LOCKED` + `FLAG_TURN_SCREEN_ON` |
+| Boot resilience | `BOOT_COMPLETED` receiver re-schedules from local Room DB | AlarmManager schedules are wiped on reboot |
+| Sound | `MediaPlayer` + `AudioAttributes(USAGE_ALARM)` | Bypasses ringer mute via the alarm channel |
+| Missions | Math (in-process), Shake (`SensorManager` accelerometer, reuses `PickupDetector`), Photo (CameraX + perceptual hash) | Sensor reuse: shake mission delegates to existing pickup-detection code from Phase 5 |
+| Local storage | Room DB `alarms` table (mirror of backend) | Authoritative for "what to schedule on boot" — no network needed |
+| Backend sync | Rust/Axum CRUD `/alarms`, event log `/alarms/{id}/events` | Same shape as `/sleep` and `/sessions` — alarm config + dismiss telemetry to AWS |
+| Reference photo storage | Device-local URI in v1, S3 later | Privacy + zero S3 cost for v1 |
+
+### 8.2 — Architecture
+
+```
+            [User edits alarm]
+                   │
+                   ▼
+       Room DB (local)  ◄──sync──►  Postgres (alarms)
+                   │
+                   ▼
+          AlarmManager.setAlarmClock(triggerTime)
+                   │
+        ╔══════════ trigger time ═══════════╗
+        ▼
+   AlarmReceiver (BroadcastReceiver)
+        │
+        ▼
+   AlarmRingService (foreground service)
+        │
+        ▼
+   AlarmActivity (full-screen, over lock)
+        │  hosts MissionFragment
+        ▼
+   Mission complete? → dismiss
+        │  log event ───► POST /alarms/{id}/events
+        │  active sleep session? → end it
+        ▼
+   Service stops, screen returns to lock
+```
+
+Boot path: `BootReceiver` → query Room → `AlarmManager.setAlarmClock(...)` for each enabled alarm whose next trigger is in the future.
+
+### 8.3 — Permissions Foundation (build first)
+
+Walk users through a setup flow on first alarm creation:
+
+1. `POST_NOTIFICATIONS` (Android 13+) — standard runtime grant.
+2. `SCHEDULE_EXACT_ALARM` (Android 12+) — check `AlarmManager.canScheduleExactAlarms()`; if false, deep-link to `Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM` so user can grant it.
+3. `USE_FULL_SCREEN_INTENT` (Android 14+) — check `NotificationManager.canUseFullScreenIntent()`; deep-link to `Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT` if denied.
+4. `CAMERA` — only requested when user picks a photo mission.
+5. `RECEIVE_BOOT_COMPLETED` — manifest declaration, no runtime prompt.
+6. Battery optimization exemption — show a "make alarms reliable on this phone" prompt that opens battery settings, since OEMs (Xiaomi, Huawei, OnePlus) aggressively kill background services.
+
+State stored in Settings; show a banner on the Alarms screen if any required grant is missing, with a "Fix" button that re-runs the relevant step.
+
+### 8.4 — Schema (backend)
+
+```sql
+CREATE TABLE alarms (
+  id UUID PRIMARY KEY,
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  label TEXT,
+  trigger_time_local TIME NOT NULL,         -- HH:MM in user's local timezone
+  days_of_week SMALLINT NOT NULL,           -- bitmask: bit 0 = Sun … bit 6 = Sat (0 = one-shot tomorrow)
+  enabled BOOLEAN NOT NULL DEFAULT TRUE,
+  sound_uri TEXT,                           -- system ringtone URI or 'default'
+  volume_pct SMALLINT NOT NULL DEFAULT 80,
+  volume_escalates BOOLEAN NOT NULL DEFAULT TRUE,  -- ramp 30% → volume_pct over 30s
+  vibration BOOLEAN NOT NULL DEFAULT TRUE,
+  snooze_minutes SMALLINT NOT NULL DEFAULT 9,
+  snooze_max INTEGER NOT NULL DEFAULT 3,
+  mission_kind TEXT NOT NULL,               -- 'none' | 'math' | 'shake' | 'photo'
+  mission_config JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX ON alarms (user_id, enabled);
+
+CREATE TABLE alarm_events (
+  id UUID PRIMARY KEY,
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  alarm_id UUID REFERENCES alarms(id) ON DELETE SET NULL,
+  fired_at TIMESTAMPTZ NOT NULL,
+  dismissed_at TIMESTAMPTZ,
+  dismiss_method TEXT,                      -- 'mission' | 'snooze' | 'force' | 'abandoned'
+  snooze_count SMALLINT NOT NULL DEFAULT 0,
+  mission_kind TEXT,
+  mission_attempts SMALLINT NOT NULL DEFAULT 0,
+  mission_duration_ms INTEGER,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX ON alarm_events (user_id, fired_at DESC);
+```
+
+`mission_config` examples:
+- Math: `{ "difficulty": "medium", "count": 3 }` — 3 problems, 2-digit ops
+- Shake: `{ "shakes_required": 30, "intensity": "medium" }`
+- Photo: `{ "reference_uri": "file:///data/...", "phash": "0xabc123…", "tolerance": 12 }`
+
+### 8.5 — Alarm Core (Wk 30)
+
+**Service module:** `AlarmScheduler.kt` — wraps `AlarmManager`. Methods: `schedule(alarm)`, `cancel(alarmId)`, `rescheduleAll()` (called from `BootReceiver` and on app start). Calculates next trigger from `trigger_time_local` + `days_of_week` in the device's local timezone.
+
+**Receiver chain:**
+- `AlarmReceiver : BroadcastReceiver` — gets the trigger intent, hands off to `AlarmRingService`, acquires a partial wake lock.
+- `AlarmRingService : Service` — promoted to foreground via `startForeground()` with a high-importance notification carrying a `fullScreenIntent` to `AlarmActivity`. Plays sound, handles vibration, owns dismiss/snooze state.
+- `AlarmActivity` — windowFlags `FLAG_SHOW_WHEN_LOCKED`, `FLAG_TURN_SCREEN_ON`, `FLAG_KEEP_SCREEN_ON`. Hosts a single `MissionFragment` chosen from `alarm.mission_kind`. Emits `onMissionComplete` → service stops, sleep-session integration runs (§8.10), event logged.
+
+**Boot path:** `BootReceiver` listens for `BOOT_COMPLETED`, `LOCKED_BOOT_COMPLETED` (direct boot), and `MY_PACKAGE_REPLACED`. Calls `AlarmScheduler.rescheduleAll()` synchronously within ~5s (Android allows ~10s before killing the receiver).
+
+### 8.6 — Alarm CRUD UI + Backend Sync (Wk 31)
+
+- New Settings entry → "Alarms & Missions" → list screen. (Defer adding a top-level nav tab until v2 — Settings is fine for MVP.)
+- List screen: each alarm shows time, days-of-week chip row, mission icon, master enable toggle. Long-press → delete (`AlertDialog` confirmation per existing destructive-action pattern).
+- Edit screen: time picker, days-of-week chips, mission picker (Math / Shake / Photo / None), mission-specific config sub-screen, snooze settings, volume slider, vibration toggle, sound picker (system ringtone chooser).
+- Rust endpoints: `GET /alarms`, `POST /alarms`, `PUT /alarms/:id`, `DELETE /alarms/:id`, `POST /alarms/:id/events`. (Axum 0.7 path-param syntax: `:id`, not `{id}`.)
+- Sync logic: identical to existing sleep/pomodoro pattern — Room is authoritative locally, backend is authoritative across devices, reconcile on app start + after each edit.
+
+### 8.7 — Math Mission (Wk 32)
+
+- Three difficulty tiers in `mission_config.difficulty`: easy (single-digit, 1 op), medium (2-digit, 2 ops, possible parens), hard (3-digit, 3 ops, order-of-ops gotchas).
+- Generator runs in-process — no need to bake problems server-side.
+- UI: large operation centred, numeric keypad below, dismiss button locked until `mission_config.count` problems answered correctly in a row (default 3).
+- Wrong answer flashes red, generates a new problem, does NOT decrement the count (avoids infinite loops; user has to keep trying).
+
+### 8.8 — Shake Mission (Wk 32)
+
+- Reuses the existing `PickupDetector` accelerometer code from Phase 5 — same `Sensor.TYPE_LINEAR_ACCELERATION` listener, different threshold logic.
+- Counts a "shake" when magnitude exceeds threshold (configurable: 12 / 18 / 25 m/s²) within a 200ms window.
+- UI: progress bar fills as shakes accumulate; visual + haptic feedback on each registered shake. `mission_config.shakes_required` (default 30) → dismiss enabled.
+- Anti-cheat: require shakes spaced ≥150ms apart so users can't just rest the phone on a vibrating surface (washing machine, etc.).
+
+### 8.9 — Photo Mission (Wk 33)
+
+- **Setup phase** (alarm creation): user takes a reference photo (e.g. bathroom sink) using a CameraX preview. Compute perceptual hash (pHash 64-bit) from a 32×32 grayscale-DCT downsample; store the hash + the photo URI in `mission_config`.
+- **Dismiss phase** (alarm firing): launch CameraX preview; capture frame, compute pHash, compare to reference via Hamming distance.
+- Threshold: ≤12 bits different → match (tolerates lighting/angle variation; rejects when the live frame is too different to plausibly be the same place).
+- UI: side-by-side small thumbnail of the reference photo + live camera feed; capture button below; "match score" feedback after each attempt.
+- Privacy: reference photo stays on-device in v1 (`Context.getFilesDir()/alarm_refs/{alarm_id}.jpg`). Not synced to S3. Hash + URI go to backend.
+- Anti-frustration escape: after 5 failed photo attempts in a single firing, offer a fallback math mission so the user can still get to work.
+
+### 8.10 — Sleep Session Integration & Polish (Wk 34)
+
+- **Auto-end sleep session:** on alarm dismiss (mission OR snooze), check if a sleep session is active → call existing `SleepRepository.endSession()`. Avoids the user having to manually tap "End Sleep" after waking.
+- **Suggested alarm time:** when creating a new alarm, prefill with `bedtime + sleep_goal` from existing Settings → Sleep goal preference (e.g. user goal 8h, last bedtime 23:00 → suggest 07:00).
+- **Mission event logging:** every firing posts a row to `alarm_events` on dismiss, capturing snooze count, mission attempts, mission duration. Future analytics: "you snooze 4× on average on Mondays".
+- **DND handling:** `AudioAttributes(USAGE_ALARM)` bypasses ringer-mute. `NotificationChannel.IMPORTANCE_HIGH` + `setBypassDnd(true)` (requires `ACCESS_NOTIFICATION_POLICY` for full DND override; otherwise relies on alarm-channel exemption).
+- **Doze handling:** `setAlarmClock` (used in §8.5) is the only API guaranteed to fire exactly during doze. Verified via `adb shell dumpsys deviceidle force-idle`.
+- **Pickup-detection conflict:** while the alarm is ringing, suspend `PickupDetector` so the dismiss interaction doesn't register as a pickup event polluting the sleep session.
+- **Edge cases:**
+  - Phone dies mid-ring → sleep session left open. On next app start, prompt user to confirm wake time.
+  - Mission abandonment (user force-quits the activity) → service stays alive 60s then logs `dismiss_method = 'abandoned'`, finishes itself.
+  - Snooze stack: snooze schedules a one-shot trigger via `setAlarmClock` for `now + snooze_minutes`; capped at `snooze_max` per firing.
+  - Alarm edit while ringing → defer apply until current firing ends.
+
+### 8.11 — Cost & Storage
+
+| Item | Cost |
+|---|---|
+| External APIs | None — all on-device |
+| Storage (`alarms`) | Tens of rows/user. Negligible on `db.t4g.micro` |
+| Storage (`alarm_events`) | 1–3 rows/user/day → ~365–1000 rows/year/user, negligible |
+| Reference photos on S3 | $0 in v1 (device-local). If moved to S3 later: 100KB JPEG × 100 users × few alarms each ≈ pennies/month |
+| Wake lock + service battery cost | Brief — service only runs while alarm rings; partial wake lock for ≤30s after dismiss |
+
+### 8.12 — Risks
+
+- **OEM background killing** (Xiaomi/Huawei/OnePlus, etc.) — most common cause of "alarm didn't fire". Mitigation: detect manufacturer, show a per-OEM doc link in Settings ("How to make alarms reliable on Xiaomi" etc.). Reference: dontkillmyapp.com.
+- **Exact-alarm permission revocation** — Android 14+ users can revoke `SCHEDULE_EXACT_ALARM`. App must listen for `ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED` and surface a banner if lost.
+- **Boot-receiver flakiness** — receiver has ~10s before being killed; do scheduling synchronously, defer all non-essential work.
+- **Photo-mission false negatives** — low light at 6am makes pHash matching harder. Tune threshold conservatively (≤12 bits); offer 5-attempt fallback to math mission.
+- **Photo-mission false positives** — user could photograph a printed photo of the reference. Acceptable for v1 (this is a personal alarm, not a security device).
+- **Shake-mission cheat with vibrating object** — anti-cheat enforces minimum interval between shakes (§8.8).
+- **Lock-out scenarios** — math mission with too-hard difficulty + no escape = user can be late for work. Always provide a "force dismiss" after 3 minutes of failed attempts (logged with `dismiss_method = 'force'` for honest stats).
+- **DND override on stricter OEMs** — Samsung One UI 6+ has additional DND gating beyond stock Android. Test on a Galaxy device before release.
+
+### 8.13 — Suggested Order of Attack
+
+1. **8.3 Permissions + 8.4 Schema** — foundational chrome out of the way.
+2. **8.5 Alarm Core** — schedule + ring + dismiss with NO mission first (just a "swipe to dismiss"). This proves the pipeline end-to-end.
+3. **8.7 Math Mission** — cheapest mission, validates the mission-fragment plumbing.
+4. **8.6 CRUD UI + sync** — once core works, build the editing experience.
+5. **8.8 Shake Mission** — fastest of the remaining two (sensor code is reused).
+6. **8.9 Photo Mission** — biggest scope; do last when the rest is stable.
+7. **8.10 Polish** — sleep session integration, OEM-specific battery handling, edge cases.
+
+---
+
+## Phase 9: AI Integration (Weeks 35–37)
 
 Turns the data this app already collects (sleep, focus, pickups, checklist completion, calendar) into insights, summaries, and natural-language interactions powered by Claude. Backend-mediated so API keys never leave the server.
 
-### 8.1 — Stack
+### 9.1 — Stack
 
 | Layer | Tech | Why |
 |---|---|---|
@@ -2665,7 +2860,7 @@ Turns the data this app already collects (sleep, focus, pickups, checklist compl
 | Cost control | Prompt caching (5-min TTL) + per-user daily token budget | Daily insight ~$0.005 with caching vs ~$0.025 without |
 | Secret | `ultiq/prod/ai` in Secrets Manager → `ANTHROPIC_API_KEY` env on ECS | Same pattern as DB and JWT secrets |
 
-### 8.2 — Architecture
+### 9.2 — Architecture
 
 ```
 Mobile/Web → /ai/* endpoint → Rust handler
@@ -2682,7 +2877,7 @@ Mobile/Web → /ai/* endpoint → Rust handler
                        Response to client (SSE stream for chat)
 ```
 
-### 8.3 — AI Service Module (Foundation)
+### 9.3 — AI Service Module (Foundation)
 
 - New `src/services/ai.rs` typed wrapper: `messages(model, system, msgs, tools, cache_breakpoints) → Response`.
 - Token-bucket rate limiter per user (default 30 requests/day, configurable per feature).
@@ -2717,7 +2912,7 @@ CREATE TABLE ai_messages (
 );
 ```
 
-### 8.4 — Weekly Insight (highest-value feature, build first)
+### 9.4 — Weekly Insight (highest-value feature, build first)
 
 - `POST /ai/weekly-insight` — cached 24h:
   1. Pull last 7 days of: sleep records, focus sessions, pickup counts, checklist completion rate, calendar density.
@@ -2727,7 +2922,7 @@ CREATE TABLE ai_messages (
   5. Persist to `ai_insights`, return to client.
 - Mobile UI: new "This week" card on the Dashboard showing the AI-generated text with a manual refresh (capped to 1/day per user).
 
-### 8.5 — Natural-Language Entry (uses tool calling)
+### 9.5 — Natural-Language Entry (uses tool calling)
 
 - `POST /ai/parse-event` body `{ text: "remind me to call mum tomorrow 6pm" }`:
   1. Define a tool: `create_calendar_event(title, start_time, end_time, category)`.
@@ -2737,7 +2932,7 @@ CREATE TABLE ai_messages (
 - Mobile UI: floating "+ AI" button on Calendar/Checklist screens. Tap → text input → preview card → confirm.
 - Why it matters: typing "study for exam Tuesday 9–11" is faster than tapping through a form. Same pattern for checklist items.
 
-### 8.6 — Coach Chat (conversational)
+### 9.6 — Coach Chat (conversational)
 
 - `POST /ai/chat/start` → creates a conversation, returns ID.
 - `POST /ai/chat/{id}/message` → streams Claude's reply via SSE (token-by-token).
@@ -2745,13 +2940,13 @@ CREATE TABLE ai_messages (
 - Mobile UI: "Coach" entry in Settings → opens a chat thread screen with streaming markdown rendering.
 - Use case: user asks *"Why has my focus dropped?"* and Claude has the data to answer specifically.
 
-### 8.7 — Session Debriefs
+### 9.7 — Session Debriefs
 
 - After completing a focus session, a 1-line optional prompt: "What did you work on?"
 - Stored alongside the session; weekly insight uses these as additional context.
 - Bonus: AI tags each debrief (e.g. "deep work" / "meetings" / "admin") via Haiku — passive category tracking without manual tagging.
 
-### 8.8 — Anomaly Detection (background job)
+### 9.8 — Anomaly Detection (background job)
 
 - Daily scheduled task (EventBridge → Lambda invoking `/ai/anomaly-check`, or in-process tokio cron):
   1. For each active user, fetch last 14 days.
@@ -2759,7 +2954,7 @@ CREATE TABLE ai_messages (
   3. If alert → push notification via FCM (already wired in Phase 5.1).
 - Catches: 5+ nights of <6h sleep, focus minutes plummeting, 30+ pickups during a sleep session.
 
-### 8.9 — Privacy & UX
+### 9.9 — Privacy & UX
 
 - Master Settings switch: **"Enable AI features"** — defaults **off**. When toggled on, show a "Here's what gets sent" disclosure (last 30d aggregated stats; no raw notes unless separately enabled).
 - Per-feature toggles (insights / chat / parsing / anomaly) so users opt into pieces.
@@ -2767,7 +2962,7 @@ CREATE TABLE ai_messages (
 - Token budget meter visible to user ("12 of 30 daily AI requests used").
 - Server-side `validate_password_strength`-style validators for any data Claude writes back (no trust in raw model output — always parse + validate).
 
-### 8.10 — Cost Projection
+### 9.10 — Cost Projection
 
 | Feature | tokens/call (cached) | $/call | $/user/month at 100 users |
 |---|---|---|---|
@@ -2778,7 +2973,7 @@ CREATE TABLE ai_messages (
 
 Rough total: **~$1 per active user/month** with caching. Absorbable; or expose as a Pro-tier later.
 
-### 8.11 — Risks
+### 9.11 — Risks
 
 - **Hallucination on numbers** — Claude sometimes invents stats. Mitigation: instruct prompt to only cite numbers from the data card; programmatically validate numerals before returning.
 - **Token cost runaway** — strict per-user daily caps + prompt caching are non-negotiable. Alarm at 10× expected daily spend in CloudWatch.
@@ -2787,11 +2982,11 @@ Rough total: **~$1 per active user/month** with caching. Absorbable; or expose a
 
 ---
 
-## Phase 9: Sleep Monitoring & Wearables (Weeks 33–36)
+## Phase 10: Sleep Monitoring & Wearables (Weeks 38–41)
 
 Moves sleep tracking from "phone unlock counts + self-reported quality" to objective physiological data (heart rate, sleep stages, HRV) via wearables. **Additive, not replacement** — users without a wearable keep the existing manual flow exactly as it is today.
 
-### 9.1 — Backwards Compatibility (Read This First)
+### 10.1 — Backwards Compatibility (Read This First)
 
 The current sleep flow stays fully functional for users without a wearable:
 - Manual **Start Sleep / End Sleep** session — unchanged
@@ -2800,9 +2995,9 @@ The current sleep flow stays fully functional for users without a wearable:
 - Manual log past sleep dialog — unchanged
 - Per-session target wake time (Phase 5 work) — unchanged
 
-What Phase 9 adds is **richer data on top** when a user connects a wearable. The same `sleep_records` row is unchanged; new linked rows (`sleep_stages`, `heart_rate_samples`, `hrv_samples`) are populated only when data exists. The UI conditionally renders the hypnogram and HR cards if those linked tables have rows for that record — otherwise it shows today's view unchanged.
+What Phase 10 adds is **richer data on top** when a user connects a wearable. The same `sleep_records` row is unchanged; new linked rows (`sleep_stages`, `heart_rate_samples`, `hrv_samples`) are populated only when data exists. The UI conditionally renders the hypnogram and HR cards if those linked tables have rows for that record — otherwise it shows today's view unchanged.
 
-### 9.2 — Provider Selection
+### 10.2 — Provider Selection
 
 | Provider | Auth | Data quality | Build effort | Phase priority |
 |---|---|---|---|---|
@@ -2815,7 +3010,7 @@ What Phase 9 adds is **richer data on top** when a user connects a wearable. The
 
 Strategy: define your own internal sleep schema, write per-provider adapters. Trait-based abstraction so adding a new provider = adding a new file.
 
-### 9.3 — Stack Additions
+### 10.3 — Stack Additions
 
 | Layer | Choice |
 |---|---|
@@ -2826,7 +3021,7 @@ Strategy: define your own internal sleep schema, write per-provider adapters. Tr
 | HR sample storage | Vanilla Postgres with monthly partitions (start), revisit with TimescaleDB if volume grows |
 | Background pulls | EventBridge → Lambda invokes `/integrations/{provider}/sync` daily per user |
 
-### 9.4 — Schema Additions
+### 10.4 — Schema Additions
 
 ```sql
 -- One per connected device per user
@@ -2871,7 +3066,7 @@ CREATE TABLE hrv_samples (
 );
 ```
 
-### 9.5 — Backend Wearable Foundation
+### 10.5 — Backend Wearable Foundation
 
 - New `/integrations` route group.
 - `wearable_connections` table + `pgcrypto` utilities for token encryption (key in Secrets Manager `ultiq/prod/wearable-tokens`).
@@ -2886,7 +3081,7 @@ CREATE TABLE hrv_samples (
   ```
 - `SleepImport` is a normalized struct: `actual_bedtime`, `actual_wake_time`, `stages: Vec<Stage>`, `heart_rate_samples: Vec<HrSample>`, `hrv: Option<f64>`.
 
-### 9.6 — Fitbit Integration (build first — lowest effort)
+### 10.6 — Fitbit Integration (build first — lowest effort)
 
 - OAuth 2.0 with PKCE. Redirect URI: `https://api.yourdomain.com/integrations/fitbit/callback`.
 - Tokens encrypted in `wearable_connections`. Refresh token has 8h expiry — backend retries with refresh on every 401.
@@ -2894,7 +3089,7 @@ CREATE TABLE hrv_samples (
 - Map Fitbit's stages (`wake`/`light`/`deep`/`rem`) directly.
 - Mobile UI: Settings → "Connect Fitbit" → opens browser OAuth → returns to app via deep link (`ultiq://oauth/fitbit?code=...`).
 
-### 9.7 — Wear OS Companion App (the biggest sub-phase)
+### 10.7 — Wear OS Companion App (the biggest sub-phase)
 
 - New Gradle module: `wear/`. Targets `wearos`, depends on Health Services + DataLayer.
 - `PassiveListenerService` subscribes to: `HEART_RATE_BPM`, `SLEEP_STAGE`, `RAW_ACCELEROMETER` (last is high-volume — only enable during the user's typical sleep window).
@@ -2903,7 +3098,7 @@ CREATE TABLE hrv_samples (
 - Optional watch UI: a tile showing tonight's data (last HR, sleep duration so far). Nice but not required.
 - Manifest permissions on the watch: `BODY_SENSORS`, `ACTIVITY_RECOGNITION`.
 
-### 9.8 — Auto Sleep Detection (replaces the manual Start Sleep, optional)
+### 10.8 — Auto Sleep Detection (replaces the manual Start Sleep, optional)
 
 With HR + accel from the watch:
 - Low HR (<60% of daytime average) + minimal movement for >15 min → sleep started.
@@ -2911,26 +3106,26 @@ With HR + accel from the watch:
 - Detection runs on the watch so the phone doesn't have to be charging.
 - Replaces "Start Sleep" tap with passive detection. **Manual override stays** — user can always force start/end.
 
-### 9.9 — Sleep Stage Chart & Insights
+### 10.9 — Sleep Stage Chart & Insights
 
 - New "Tonight" view in Sleep tab when stages exist: hypnogram (timeline coloured by stage).
 - Stat cards: % deep, % REM, awakenings, avg HR, lowest HR, HRV (rmssd).
 - Compare to recommended targets (deep ≥18%, REM ≥20%).
-- Hooks into Phase 8 AI: insight prompt now includes stage data → *"Your deep sleep is 12% — below the 18% target. Common causes: alcohol within 3h of bed, late caffeine, room temp >22°C."*
+- Hooks into Phase 9 AI: insight prompt now includes stage data → *"Your deep sleep is 12% — below the 18% target. Common causes: alcohol within 3h of bed, late caffeine, room temp >22°C."*
 
-### 9.10 — Focus Session HR Tracking (bonus)
+### 10.10 — Focus Session HR Tracking (bonus)
 
 - During a focus session, watch streams HR to phone.
 - After session: "Avg HR 72 bpm, peak 89 (at 0:34)".
 - Over time, HRV trends become a recovery indicator — AI can correlate "high HRV days = better focus".
 
-### 9.11 — Smart Alarms (nice-to-have)
+### 10.11 — Stage-Aware Wake (extends Phase 8 alarms)
 
-- Wake user during light sleep within a 30-min window before their target.
-- Watch knows the current stage → fires alarm at the right moment.
+- Wake user during light sleep within a 30-min window before their Phase 8 alarm time.
+- Watch knows the current stage → fires the existing Phase 8 alarm pipeline at the right moment (so all the mission/dismiss machinery is reused).
 - Same idea as Sleep Cycle / Garmin / Withings. Easy once stages flow in.
 
-### 9.12 — Cost & Storage
+### 10.12 — Cost & Storage
 
 | Item | Cost |
 |---|---|
@@ -2939,14 +3134,14 @@ With HR + accel from the watch:
 | Fitbit / Oura / Whoop / Garmin APIs | Free for personal use |
 | EventBridge + Lambda for nightly sync | < $1/month at this scale |
 
-### 9.13 — Risks
+### 10.13 — Risks
 
 - **Wear OS fragmentation** — Galaxy Watch (Tizen-derived older versions vs Wear OS 3+), Pixel Watch, generic Wear OS all have slightly different Health Services capabilities. Test on the watch you actually have first.
 - **Watch battery** — continuous HR + accel is the #1 drain. Use Health Services' "passive" mode and only sample at the rate you need.
 - **OAuth refresh expiry** — Fitbit refresh tokens last 8h; you must refresh on every fetch. Bake retry-on-401 into the adapter.
 - **Storage scaling** — at 1000+ users, HR samples become real. Pre-empt with TimescaleDB or move HR to ClickHouse / Redshift once volume warrants. Not a v1 problem.
 
-### 9.14 — Suggested Order of Attack
+### 10.14 — Suggested Order of Attack
 
 1. **9.5 + 9.6 (Backend foundation + Fitbit)** — single endpoint group, real sleep stage data immediately, no Wear OS code yet.
 2. **9.9 (Hypnogram chart)** — visible payoff for the Fitbit work.
@@ -2968,8 +3163,9 @@ With HR + accel from the watch:
 | Phase 5: Polish | 14–19 | Notifications, theming, weekly reports, achievements, settings, pickup confirmation gate, **daily checklist + focus dropdown** |
 | Phase 6: AWS Deployment + Marketing Site | 20–24 | Production app on AWS (ECS Fargate + RDS + ALB + CI/CD), Next.js marketing site at `your-domain.com`, Google Play Store listing, **direct-APK download + Play Internal Testing track (6.14)** |
 | Phase 7: Web Analytics Dashboard | 25–29 | Rust/WASM analytics site at `app.your-domain.com` (Leptos + S3 + CloudFront) — full-stack Rust portfolio piece |
-| Phase 8: AI Integration | 30–32 | Backend-mediated Claude integration: weekly insights, NL event parsing, coach chat, anomaly detection |
-| Phase 9: Sleep Monitoring & Wearables | 33–36 | Fitbit + Wear OS companion app, sleep stages + HR + HRV, hypnogram chart, optional auto sleep detection |
-| **Total** | **~36 weeks** | **Production app on AWS + Google Play + marketing site + Rust web dashboard + AI features + wearable integrations** |
+| Phase 8: Alarm & Missions | 30–34 | Alarmy-style alarm system: math/shake/photo dismiss missions, full-screen ring activity, boot-resilient scheduling, sleep-session auto-end on dismiss |
+| Phase 9: AI Integration | 35–37 | Backend-mediated Claude integration: weekly insights, NL event parsing, coach chat, anomaly detection |
+| Phase 10: Sleep Monitoring & Wearables | 38–41 | Fitbit + Wear OS companion app, sleep stages + HR + HRV, hypnogram chart, optional auto sleep detection, stage-aware wake on Phase 8 alarms |
+| **Total** | **~41 weeks** | **Production app on AWS + Google Play + marketing site + Rust web dashboard + alarm/missions + AI features + wearable integrations** |
 
-Assumes ~15–20 hours/week. Phase 7 is the "ambitious" extension — skip it if you'd rather ship the mobile app first and add the web frontend as a v2. Phases 8 and 9 are post-launch additions; Phase 9 stays fully optional for users (the existing manual sleep flow is preserved).
+Assumes ~15–20 hours/week. Phase 7 is the "ambitious" extension — skip it if you'd rather ship the mobile app first and add the web frontend as a v2. Phases 8, 9, and 10 are post-launch additions; Phase 10 stays fully optional for users (the existing manual sleep flow is preserved).
