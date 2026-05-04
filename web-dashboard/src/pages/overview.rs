@@ -6,7 +6,6 @@ use leptos_router::components::A;
 use crate::api::calendar::{list_events, CalendarEvent};
 use crate::api::checklist::{list_for_range, ChecklistItem};
 use crate::api::sse::use_sse;
-use crate::auth::use_auth;
 use crate::components::layout::AppShell;
 
 const ONBOARDING_KEY: &str = "ultiq_onboarding_dismissed";
@@ -35,7 +34,6 @@ fn greeting(d: chrono::DateTime<Local>) -> &'static str {
 
 #[component]
 pub fn OverviewPage() -> impl IntoView {
-    let auth = use_auth();
     let now = Local::now();
     let today = now.date_naive();
 
@@ -91,8 +89,7 @@ pub fn OverviewPage() -> impl IntoView {
                 <header class="flex items-center justify-between mb-6">
                     <div>
                         <h1 class="text-3xl font-bold text-ultiq-indigo">
-                            {format!("{}, ", greeting(now))}
-                            {move || auth.user.get().map(|u| u.email.split('@').next().unwrap_or("there").to_string()).unwrap_or_default()}
+                            {greeting(now)}
                         </h1>
                         <p class="text-sm text-ultiq-indigo/60 mt-1">{header_date.clone()}</p>
                     </div>
