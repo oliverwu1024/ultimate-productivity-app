@@ -48,12 +48,20 @@ export default function Home() {
             </span>
             <span className="text-xl font-semibold tracking-tight">Ultiq</span>
           </Link>
-          <a
-            href="#get-the-app"
-            className="rounded-full bg-ultiq-indigo px-4 py-2 text-sm font-medium text-ultiq-cream transition hover:bg-ultiq-indigo/90"
-          >
-            Get the app
-          </a>
+          <div className="flex items-center gap-2 sm:gap-4">
+            <a
+              href="https://app.ultiqapp.com"
+              className="text-sm font-medium text-ultiq-indigo/80 transition hover:text-ultiq-indigo"
+            >
+              Sign in
+            </a>
+            <a
+              href="#get-the-app"
+              className="rounded-full bg-ultiq-indigo px-4 py-2 text-sm font-medium text-ultiq-cream transition hover:bg-ultiq-indigo/90"
+            >
+              Get the app
+            </a>
+          </div>
         </div>
       </nav>
 
@@ -219,6 +227,7 @@ export default function Home() {
             <span>© {new Date().getFullYear()} Ultiq</span>
           </div>
           <div className="flex items-center gap-6">
+            <a href="https://app.ultiqapp.com" className="hover:text-ultiq-indigo">Dashboard</a>
             <Link href="/privacy" className="hover:text-ultiq-indigo">Privacy</Link>
             <Link href="/terms" className="hover:text-ultiq-indigo">Terms</Link>
             <a href="mailto:support@ultiqapp.com" className="hover:text-ultiq-indigo">Support</a>
