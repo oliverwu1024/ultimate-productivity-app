@@ -1,7 +1,10 @@
-use chrono::{Datelike, Duration, Local, NaiveDate};
+use chrono::{Datelike, Duration, Local, NaiveDate, TimeZone, Utc};
 use leptos::either::EitherOf3;
 use leptos::prelude::*;
 
+use crate::api::calendar::{
+    create_event as create_calendar_event, CreateCalendarEvent, EventCategory, EventPriority,
+};
 use crate::api::checklist::{
     complete_item, create_item, delete_item, list_for_range, update_item, ChecklistItem,
     CreateChecklistItem, Priority, UpdateChecklistItem,
@@ -399,6 +402,7 @@ fn ItemDialog(
     );
     let submitting = RwSignal::new(false);
     let dialog_error = RwSignal::new(None::<String>);
+    let scheduled_msg = RwSignal::new(None::<String>);
 
     let item_id_store = StoredValue::new(item_id);
 
@@ -463,6 +467,71 @@ fn ItemDialog(
             };
             match res {
                 Ok(_) => on_saved(),
+                Err(e) => {
+                    dialog_error.set(Some(e.message));
+                    submitting.set(false);
+                }
+            }
+        });
+    };
+
+    let on_schedule = move |_| {
+        if submitting.get_untracked() { return; }
+        let t = title.get_untracked();
+        if t.trim().is_empty() {
+            dialog_error.set(Some("Add a title before scheduling".into()));
+            return;
+        }
+        let dd = due_date.get_untracked();
+        let est = match estimated_minutes_str.get_untracked().trim().parse::<i64>().ok() {
+            Some(n) if n > 0 => n,
+            _ => 60,
+        };
+        // Default time slot: 9:00 AM local, lasting `est` minutes (or 1h fallback).
+        let start_local = match Local
+            .with_ymd_and_hms(dd.year(), dd.month(), dd.day(), 9, 0, 0)
+            .single()
+        {
+            Some(d) => d,
+            None => {
+                dialog_error.set(Some("Could not compute a start time".into()));
+                return;
+            }
+        };
+        let start_utc = start_local.with_timezone(&Utc);
+        let end_utc = start_utc + chrono::Duration::minutes(est);
+
+        let priority_for_event = match priority.get_untracked() {
+            Priority::High => EventPriority::High,
+            Priority::Medium => EventPriority::Medium,
+            Priority::Low => EventPriority::Low,
+        };
+        let desc = description.get_untracked();
+        let body = CreateCalendarEvent {
+            title: t.clone(),
+            description: if desc.trim().is_empty() { None } else { Some(desc) },
+            start_time: start_utc,
+            end_time: end_utc,
+            category: EventCategory::Other,
+            priority: priority_for_event,
+            is_recurring: false,
+            recurrence_rule: None,
+            color: None,
+        };
+
+        submitting.set(true);
+        dialog_error.set(None);
+        scheduled_msg.set(None);
+        wasm_bindgen_futures::spawn_local(async move {
+            match create_calendar_event(&body).await {
+                Ok(_) => {
+                    let when = start_local.format("%a, %b %d at %H:%M").to_string();
+                    scheduled_msg.set(Some(format!(
+                        "Scheduled for {} — open Calendar to fine-tune.",
+                        when
+                    )));
+                    submitting.set(false);
+                }
                 Err(e) => {
                     dialog_error.set(Some(e.message));
                     submitting.set(false);
@@ -581,17 +650,34 @@ fn ItemDialog(
                     </p>
                 </Show>
 
-                <div class="flex justify-between gap-2 pt-2">
-                    <Show when=move || is_edit>
+                <Show when=move || scheduled_msg.get().is_some()>
+                    <p class="text-sm text-emerald-700 bg-emerald-500/10 px-3 py-2 rounded">
+                        {move || scheduled_msg.get().unwrap_or_default()}
+                    </p>
+                </Show>
+
+                <div class="flex flex-wrap justify-between gap-2 pt-2">
+                    <div class="flex gap-2">
+                        <Show when=move || is_edit>
+                            <button
+                                type="button"
+                                on:click=on_delete
+                                class="px-3 py-2 text-ultiq-red hover:bg-ultiq-red/5 rounded-lg cursor-pointer"
+                                prop:disabled=move || submitting.get()
+                            >
+                                "Delete"
+                            </button>
+                        </Show>
                         <button
                             type="button"
-                            on:click=on_delete
-                            class="px-3 py-2 text-ultiq-red hover:bg-ultiq-red/5 rounded-lg cursor-pointer"
+                            on:click=on_schedule
+                            class="px-3 py-2 text-ultiq-indigo hover:bg-ultiq-indigo/5 rounded-lg cursor-pointer border border-ultiq-indigo/20"
                             prop:disabled=move || submitting.get()
+                            title="Create a calendar event from this todo"
                         >
-                            "Delete"
+                            "Schedule…"
                         </button>
-                    </Show>
+                    </div>
                     <div class="flex gap-2 ml-auto">
                         <button
                             type="button"
