@@ -7,6 +7,7 @@ use uuid::Uuid;
 
 use crate::config::AppState;
 use crate::error::AppError;
+use crate::event_bus::SyncEvent;
 use crate::middleware::auth::Claims;
 use crate::models::checklist::{ChecklistItem, CreateChecklistItem, UpdateChecklistItem};
 
@@ -74,6 +75,10 @@ async fn create(
     .bind(input.priority)
     .fetch_one(&state.pool)
     .await?;
+
+    state
+        .events
+        .publish(user_id, SyncEvent::ChecklistCreated(item.clone()));
 
     Ok((StatusCode::CREATED, Json(item)))
 }
@@ -233,6 +238,10 @@ async fn update(
     .fetch_one(&state.pool)
     .await?;
 
+    state
+        .events
+        .publish(user_id, SyncEvent::ChecklistUpdated(item.clone()));
+
     Ok(Json(item))
 }
 
@@ -255,6 +264,10 @@ async fn complete(
     .await?
     .ok_or_else(|| AppError::new(StatusCode::NOT_FOUND, "Checklist item not found"))?;
 
+    state
+        .events
+        .publish(user_id, SyncEvent::ChecklistUpdated(item.clone()));
+
     Ok(Json(item))
 }
 
@@ -274,6 +287,10 @@ async fn remove(
     if result.rows_affected() == 0 {
         return Err(AppError::new(StatusCode::NOT_FOUND, "Checklist item not found"));
     }
+
+    state
+        .events
+        .publish(user_id, SyncEvent::ChecklistDeleted { id });
 
     Ok(StatusCode::NO_CONTENT)
 }
@@ -321,5 +338,12 @@ async fn bulk_create(
     }
 
     tx.commit().await?;
+
+    for item in &created {
+        state
+            .events
+            .publish(user_id, SyncEvent::ChecklistCreated(item.clone()));
+    }
+
     Ok((StatusCode::CREATED, Json(created)))
 }
