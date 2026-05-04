@@ -112,6 +112,7 @@ pub fn CalendarPage() -> impl IntoView {
                 SyncEvent::CalendarCreated(_)
                 | SyncEvent::CalendarUpdated(_)
                 | SyncEvent::CalendarDeleted(_) => refresh(),
+                _ => {}
             }
         }
     });

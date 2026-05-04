@@ -6,6 +6,7 @@ use web_sys::{EventSource, MessageEvent};
 
 use crate::api::client::api_base_url;
 use crate::api::calendar::CalendarEvent;
+use crate::api::checklist::ChecklistItem;
 use crate::auth::AuthContext;
 
 #[derive(Debug, Clone, Deserialize)]
@@ -14,11 +15,15 @@ pub enum SyncEvent {
     CalendarCreated(CalendarEvent),
     CalendarUpdated(CalendarEvent),
     #[serde(rename = "CalendarDeleted")]
-    CalendarDeleted(CalendarDeletedPayload),
+    CalendarDeleted(IdPayload),
+    ChecklistCreated(ChecklistItem),
+    ChecklistUpdated(ChecklistItem),
+    #[serde(rename = "ChecklistDeleted")]
+    ChecklistDeleted(IdPayload),
 }
 
 #[derive(Debug, Clone, Deserialize)]
-pub struct CalendarDeletedPayload {
+pub struct IdPayload {
     pub id: String,
 }
 

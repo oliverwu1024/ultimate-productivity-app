@@ -31,6 +31,9 @@ pub fn AppShell(children: Children) -> impl IntoView {
                     <A href="/" attr:class="px-3 py-2 rounded hover:bg-white/10">
                         "Overview"
                     </A>
+                    <A href="/checklist" attr:class="px-3 py-2 rounded hover:bg-white/10">
+                        "Checklist"
+                    </A>
                     <A href="/calendar" attr:class="px-3 py-2 rounded hover:bg-white/10">
                         "Calendar"
                     </A>
