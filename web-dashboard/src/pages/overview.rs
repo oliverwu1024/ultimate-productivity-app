@@ -1,38 +1,253 @@
+use chrono::{Datelike, Local, Timelike};
+use gloo_storage::{LocalStorage, Storage};
 use leptos::prelude::*;
 use leptos_router::components::A;
 
+use crate::api::calendar::{list_events, CalendarEvent};
+use crate::api::checklist::{list_for_range, ChecklistItem};
+use crate::api::sse::use_sse;
 use crate::auth::use_auth;
 use crate::components::layout::AppShell;
+
+const ONBOARDING_KEY: &str = "ultiq_onboarding_dismissed";
+
+fn weekday_label(w: chrono::Weekday) -> &'static str {
+    match w {
+        chrono::Weekday::Mon => "Monday",
+        chrono::Weekday::Tue => "Tuesday",
+        chrono::Weekday::Wed => "Wednesday",
+        chrono::Weekday::Thu => "Thursday",
+        chrono::Weekday::Fri => "Friday",
+        chrono::Weekday::Sat => "Saturday",
+        chrono::Weekday::Sun => "Sunday",
+    }
+}
+
+const MONTH_NAMES: [&str; 12] = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December",
+];
+
+fn greeting(d: chrono::DateTime<Local>) -> &'static str {
+    let h = d.hour();
+    if h < 12 { "Good morning" } else if h < 18 { "Good afternoon" } else { "Good evening" }
+}
 
 #[component]
 pub fn OverviewPage() -> impl IntoView {
     let auth = use_auth();
+    let now = Local::now();
+    let today = now.date_naive();
+
+    let events: RwSignal<Vec<CalendarEvent>> = RwSignal::new(Vec::new());
+    let items: RwSignal<Vec<ChecklistItem>> = RwSignal::new(Vec::new());
+
+    let onboarding_dismissed = RwSignal::new(
+        LocalStorage::get::<String>(ONBOARDING_KEY).is_ok(),
+    );
+
+    let dismiss_onboarding = move |_| {
+        let _ = LocalStorage::set(ONBOARDING_KEY, "1");
+        onboarding_dismissed.set(true);
+    };
+
+    let refresh = move || {
+        wasm_bindgen_futures::spawn_local(async move {
+            if let Ok(list) = list_events(today, today).await {
+                events.set(list);
+            }
+        });
+        wasm_bindgen_futures::spawn_local(async move {
+            if let Ok(list) = list_for_range(today, today).await {
+                items.set(list);
+            }
+        });
+    };
+
+    Effect::new(move |prev: Option<()>| {
+        if prev.is_none() {
+            refresh();
+        }
+        ()
+    });
+
+    let sse = use_sse();
+    Effect::new(move |_| {
+        if let Some(_ev) = sse.last_event.get() {
+            refresh();
+        }
+    });
+
+    let header_date = format!(
+        "{}, {} {}",
+        weekday_label(today.weekday()),
+        today.day(),
+        MONTH_NAMES[(today.month() - 1) as usize],
+    );
 
     view! {
         <AppShell>
-            <div class="p-8">
-                <header class="flex items-center justify-between mb-8">
-                    <h1 class="text-3xl font-bold text-ultiq-indigo">"Overview"</h1>
-                    <div class="text-sm text-ultiq-indigo/60">
-                        {move || auth.user.get().map(|u| u.email).unwrap_or_default()}
+            <div class="p-8 max-w-5xl mx-auto">
+                <header class="flex items-center justify-between mb-6">
+                    <div>
+                        <h1 class="text-3xl font-bold text-ultiq-indigo">
+                            {format!("{}, ", greeting(now))}
+                            {move || auth.user.get().map(|u| u.email.split('@').next().unwrap_or("there").to_string()).unwrap_or_default()}
+                        </h1>
+                        <p class="text-sm text-ultiq-indigo/60 mt-1">{header_date.clone()}</p>
                     </div>
                 </header>
 
-                <p class="text-ultiq-indigo/70 mb-6">
-                    "Analytics pages are under construction. Calendar editing and the admin section are live."
-                </p>
+                <Show when=move || !onboarding_dismissed.get()>
+                    <div class="bg-ultiq-yellow/15 border border-ultiq-yellow/40 text-ultiq-indigo rounded-2xl p-4 mb-6 flex items-start gap-3">
+                        <div class="flex-1 text-sm leading-relaxed">
+                            <p class="font-medium">"Calendar vs Checklist — quick guide"</p>
+                            <p class="mt-1 text-ultiq-indigo/70">
+                                <strong>"Calendar"</strong>" = time slots (lectures, gym, study blocks). "
+                                <strong>"Checklist"</strong>" = todos with a due date but no specific time."
+                            </p>
+                        </div>
+                        <button
+                            on:click=dismiss_onboarding
+                            class="text-ultiq-indigo/50 hover:text-ultiq-indigo px-2 cursor-pointer"
+                            aria-label="Dismiss"
+                        >
+                            "✕"
+                        </button>
+                    </div>
+                </Show>
 
-                <div class="flex gap-3">
-                    <A href="/calendar" attr:class="inline-block px-4 py-2 bg-ultiq-indigo text-ultiq-cream rounded-lg font-medium hover:opacity-90">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <TodayChecklistCard items=items />
+                    <TodayEventsCard events=events />
+                </div>
+
+                <div class="mt-6 flex flex-wrap gap-3">
+                    <A href="/checklist" attr:class="px-4 py-2 bg-ultiq-indigo text-ultiq-cream rounded-lg font-medium hover:opacity-90">
+                        "Open checklist"
+                    </A>
+                    <A href="/calendar" attr:class="px-4 py-2 bg-white text-ultiq-indigo rounded-lg font-medium border border-ultiq-indigo/20 hover:bg-ultiq-indigo/5">
                         "Open calendar"
                     </A>
-                    <Show when=move || auth.user.get().map(|u| u.is_admin).unwrap_or(false)>
-                        <A href="/admin" attr:class="inline-block px-4 py-2 bg-white text-ultiq-indigo rounded-lg font-medium hover:bg-ultiq-indigo/5 border border-ultiq-indigo/20">
-                            "Open admin"
-                        </A>
-                    </Show>
                 </div>
             </div>
         </AppShell>
+    }
+}
+
+#[component]
+fn TodayChecklistCard(items: RwSignal<Vec<ChecklistItem>>) -> impl IntoView {
+    view! {
+        <section class="bg-white rounded-2xl shadow p-6 flex flex-col">
+            <header class="flex items-center justify-between mb-3">
+                <h2 class="text-lg font-semibold text-ultiq-indigo">"Today's checklist"</h2>
+                <A href="/checklist" attr:class="text-sm text-ultiq-indigo/60 hover:text-ultiq-indigo">
+                    "View all →"
+                </A>
+            </header>
+            {move || {
+                let all = items.get();
+                if all.is_empty() {
+                    view! {
+                        <p class="text-sm text-ultiq-indigo/50">
+                            "No items for today. Add one from the Checklist tab."
+                        </p>
+                    }.into_any()
+                } else {
+                    let total = all.len();
+                    let done = all.iter().filter(|i| i.completed).count();
+                    let pct = (done as f64 / total as f64) * 100.0;
+                    let mut open: Vec<&ChecklistItem> = all.iter().filter(|i| !i.completed).collect();
+                    open.sort_by_key(|i| -i.priority);
+                    let preview: Vec<String> = open.iter().take(4).map(|i| i.title.clone()).collect();
+                    let more = open.len().saturating_sub(4);
+                    view! {
+                        <div class="space-y-3">
+                            <div>
+                                <div class="flex items-center justify-between text-sm text-ultiq-indigo/70 mb-1.5">
+                                    <span>{format!("{} of {} done", done, total)}</span>
+                                </div>
+                                <div class="h-2 bg-ultiq-indigo/10 rounded-full overflow-hidden">
+                                    <div
+                                        class="h-full bg-ultiq-indigo transition-all"
+                                        style:width=format!("{}%", pct)
+                                    />
+                                </div>
+                            </div>
+                            <ul class="space-y-1.5">
+                                {preview.into_iter().map(|t| view! {
+                                    <li class="text-sm text-ultiq-indigo flex items-center gap-2">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-ultiq-indigo/40" />
+                                        {t}
+                                    </li>
+                                }).collect_view()}
+                            </ul>
+                            <Show when=move || { more > 0 }>
+                                <p class="text-xs text-ultiq-indigo/50">
+                                    {format!("+ {} more open", more)}
+                                </p>
+                            </Show>
+                        </div>
+                    }.into_any()
+                }
+            }}
+        </section>
+    }
+}
+
+#[component]
+fn TodayEventsCard(events: RwSignal<Vec<CalendarEvent>>) -> impl IntoView {
+    let today = Local::now().date_naive();
+
+    view! {
+        <section class="bg-white rounded-2xl shadow p-6 flex flex-col">
+            <header class="flex items-center justify-between mb-3">
+                <h2 class="text-lg font-semibold text-ultiq-indigo">"Today's events"</h2>
+                <A href="/calendar" attr:class="text-sm text-ultiq-indigo/60 hover:text-ultiq-indigo">
+                    "Open calendar →"
+                </A>
+            </header>
+            {move || {
+                let mut today_events: Vec<CalendarEvent> = events.get()
+                    .into_iter()
+                    .filter(|e| e.start_time.with_timezone(&Local).date_naive() == today)
+                    .collect();
+                today_events.sort_by_key(|e| e.start_time);
+
+                if today_events.is_empty() {
+                    view! {
+                        <p class="text-sm text-ultiq-indigo/50">
+                            "No events scheduled for today."
+                        </p>
+                    }.into_any()
+                } else {
+                    view! {
+                        <ul class="space-y-2">
+                            {today_events.into_iter().take(5).map(|e| {
+                                let start = e.start_time.with_timezone(&Local).format("%H:%M").to_string();
+                                let end = e.end_time.with_timezone(&Local).format("%H:%M").to_string();
+                                let color = e.color.clone();
+                                view! {
+                                    <li class="flex items-start gap-3">
+                                        <span
+                                            class="w-1 self-stretch rounded-full"
+                                            style:background-color=color
+                                        />
+                                        <div class="flex-1 min-w-0">
+                                            <div class="font-medium text-ultiq-indigo">{e.title.clone()}</div>
+                                            <div class="text-xs text-ultiq-indigo/60">
+                                                {format!("{} – {}", start, end)}
+                                                " · "
+                                                {e.category.label()}
+                                            </div>
+                                        </div>
+                                    </li>
+                                }
+                            }).collect_view()}
+                        </ul>
+                    }.into_any()
+                }
+            }}
+        </section>
     }
 }
