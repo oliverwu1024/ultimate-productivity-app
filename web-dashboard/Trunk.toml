@@ -1,0 +1,11 @@
+[build]
+target = "index.html"
+release = false
+
+[serve]
+address = "127.0.0.1"
+port = 8081
+open = false
+
+[watch]
+ignore = ["dist", "node_modules", "target"]
