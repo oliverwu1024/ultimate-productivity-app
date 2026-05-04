@@ -267,14 +267,8 @@ fn DayCell(
     events: Vec<CalendarEvent>,
     on_click: impl Fn() + Send + Sync + 'static,
 ) -> impl IntoView {
-    let mut seen_categories: Vec<EventCategory> = Vec::new();
-    for e in &events {
-        if !seen_categories.contains(&e.category) {
-            seen_categories.push(e.category);
-        }
-    }
-    let dots: Vec<EventCategory> = seen_categories.into_iter().take(3).collect();
-    let dots_for_show = dots.clone();
+    let count = events.len();
+    let label = format!("{} {}", count, if count == 1 { "event" } else { "events" });
 
     let bg_class = if is_selected {
         "bg-ultiq-indigo/10 ring-2 ring-ultiq-indigo"
@@ -295,18 +289,13 @@ fn DayCell(
             class=format!("min-h-20 p-2 text-left flex flex-col gap-1 cursor-pointer transition-colors {}", bg_class)
         >
             <span class=format!("text-sm {}", text_class)>{day.day().to_string()}</span>
-            <Show when=move || !dots_for_show.is_empty()>
-                <div class="flex gap-0.5 flex-wrap">
-                    {dots.iter().map(|cat| {
-                        let color = cat.color();
-                        view! {
-                            <span
-                                class="w-1.5 h-1.5 rounded-full"
-                                style:background-color=color
-                            />
-                        }
-                    }).collect_view()}
-                </div>
+            <Show when=move || { count > 0 }>
+                <span
+                    class="text-[10px] leading-none px-1.5 py-0.5 rounded-full bg-ultiq-indigo/10 text-ultiq-indigo font-medium self-start"
+                    title=label.clone()
+                >
+                    {count}
+                </span>
             </Show>
         </button>
     }
