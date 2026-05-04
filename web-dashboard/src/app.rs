@@ -9,6 +9,7 @@ use crate::pages::calendar::CalendarPage;
 use crate::pages::checklist::ChecklistPage;
 use crate::pages::login::LoginPage;
 use crate::pages::overview::OverviewPage;
+use crate::pages::sleep::SleepPage;
 
 #[component]
 pub fn App() -> impl IntoView {
@@ -34,6 +35,7 @@ pub fn App() -> impl IntoView {
                 <Route path=path!("/") view=OverviewPage />
                 <Route path=path!("/calendar") view=CalendarPage />
                 <Route path=path!("/checklist") view=ChecklistPage />
+                <Route path=path!("/sleep") view=SleepPage />
                 <Route path=path!("/admin") view=AdminPage />
             </Routes>
         </Router>
