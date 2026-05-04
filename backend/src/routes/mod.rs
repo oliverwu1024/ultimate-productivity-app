@@ -1,3 +1,4 @@
+pub mod admin;
 pub mod auth;
 pub mod calendar;
 pub mod checklist;
@@ -21,4 +22,5 @@ pub fn all_routes() -> Router<AppState> {
         .merge(sessions::router())
         .merge(calendar::router())
         .merge(checklist::router())
+        .merge(admin::router())
 }

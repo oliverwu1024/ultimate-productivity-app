@@ -2409,15 +2409,17 @@ web-dashboard/
 
 Routes (`leptos_router`):
 
-| Path             | Page                |
-|------------------|---------------------|
-| `/login`         | `LoginPage`         |
-| `/`              | `OverviewPage`      |
-| `/sleep`         | `SleepAnalytics`    |
-| `/focus`         | `FocusAnalytics`    |
-| `/calendar`      | `CalendarAnalytics` |
-| `/correlations`  | `CorrelationsPage`  |
-| `/reports`       | `ReportsPage`       |
+| Path             | Page                | Notes                                          |
+|------------------|---------------------|------------------------------------------------|
+| `/login`         | `LoginPage`         | shared auth with Android (same JWT, same user) |
+| `/`              | `OverviewPage`      | KPIs + headline charts                         |
+| `/sleep`         | `SleepAnalytics`    | read-only                                      |
+| `/focus`         | `FocusAnalytics`    | read-only                                      |
+| `/calendar`      | `CalendarPage`      | **editable** month grid + analytics            |
+| `/checklist`     | `ChecklistPage`     | **editable** list + weekly planner             |
+| `/correlations`  | `CorrelationsPage`  | read-only                                      |
+| `/reports`       | `ReportsPage`       | read-only                                      |
+| `/admin`         | `AdminPage`         | gated by `users.is_admin`; total users + signups |
 
 App shell:
 - **Sidebar** (left): logo, nav links, user menu at bottom — collapsible on mobile
@@ -2478,13 +2480,50 @@ Filters: date range, quality threshold.
 
 Filters: date range, tag, completed-only toggle.
 
-### 7.7 — Calendar Analytics
+### 7.7 — Calendar (Edit + Analytics)
+
+The calendar page is **editable** on the web — full CRUD on `calendar_events`, mirroring the Android UX. Backend already exposes `POST/GET/PUT/DELETE /calendar` from Phase 3; the dashboard just consumes them.
+
+#### Editing UI (top half of the page)
+
+- **Month grid** — 6×7 month view, current and selected day highlighted, dots per event category (matches Android).
+- **Month navigation** — `← April 2026 →` arrows.
+- **Selected day events list** — each event row shows time range, title, category chip, priority indicator. Tap → edit dialog.
+- **Add Event dialog (modal):**
+  - Title (required), description, start date+time, end date+time
+  - Category (Study / Project / Exercise / Personal / Other), priority (High / Medium / Low), color
+  - Recurring toggle + frequency picker (Daily / Weekly / Monthly)
+  - Save / Cancel — same validation rules as Android
+- **Edit dialog** — same form pre-filled, plus a **Delete** button with confirmation.
+
+Optimistic UI: on save, mutate the local Leptos signal immediately, then `PUT/POST/DELETE` in the background. Roll back on error.
+
+#### Analytics (bottom half)
 
 1. **Time by category** — donut (Study / Project / Exercise / Personal / Other)
 2. **Events per day** — bar chart
 3. **Category trend over time** — stacked area
 4. **Priority distribution** — donut
 5. **Day-of-week pattern** — heatmap by category × day
+
+### 7.7b — Checklist (Edit)
+
+A pure editing page — no analytics — mirroring the Android Checklist + Weekly Planner from Phase 5.6. Backend already exposes `POST/GET/PUT/DELETE /checklist`, `POST /checklist/:id/complete`, and `POST /checklist/bulk` from Phase 5.6.1.
+
+**Layout:**
+
+1. **Date selector** at top — `← Today (Mon, Apr 27) →`
+2. **Progress bar** — "3 of 7 done"
+3. **Open items list** — checkbox + title + priority chip + estimated minutes; check it → `POST /checklist/:id/complete`
+4. **Completed items** (collapsed by default) — strikethrough
+5. **Add item dialog** — title, due date, priority (Low / Med / High), optional estimated minutes, optional description
+6. **Edit / delete** on existing items
+
+**Weekly Planner sub-route** `/checklist/plan`:
+- 7-day vertical list, each day a column with an inline-editable list
+- "Save week" → `POST /checklist/bulk` to commit all rows at once
+
+Optimistic UI same as Calendar.
 
 ### 7.8 — Cross-Feature Correlations
 
@@ -2509,9 +2548,24 @@ Each chart shows a one-sentence interpretation: "r=0.62, p<0.05 — significant 
 
 Email delivery deferred (would reuse the Resend integration from Phase 6.13 — same `EmailClient`, different template).
 
+### 7.9b — Admin Page
+
+A single page only visible to users where `users.is_admin = true`. Sidebar item is conditionally rendered based on the `is_admin` field returned by `/auth/me`; a server-side guard on `/admin/*` enforces it regardless.
+
+**Sidebar:** the **Admin** entry is hidden from non-admins.
+
+**Page contents:**
+
+1. **Headline KPI** — single big card: **Total registered users** (count of rows in `users`).
+2. **Signups over time** — line chart of daily new-user count for the last 90 days, plus 7-day and 30-day deltas.
+
+That's it for v1 — no per-user lookup, no aggregate sleep/focus stats. Aggregate operational stats can be added later as needed.
+
+**Privacy note:** the admin page exposes only counts and aggregate signup timestamps — never email addresses, never per-user records. This keeps the Play Store **Data Safety** declaration accurate (data is collected and server-stored, but not "shared" or accessed by the developer at the row level).
+
 ### 7.10 — Backend Changes
 
-Minimal — same JSON endpoints, two additions:
+Minimal — same JSON endpoints, three additions:
 
 **1. CORS layer for the web origin** (`backend/src/main.rs`):
 ```rust
@@ -2526,7 +2580,36 @@ let cors = CorsLayer::new()
 let app = Router::new().merge(routes).layer(cors);
 ```
 
-**2. (Optional) Aggregation endpoints** — only add if client-side aggregation gets slow:
+**2. Admin endpoint + flag.**
+
+Migration `008_add_admin_flag.sql`:
+```sql
+ALTER TABLE users
+ADD COLUMN is_admin BOOLEAN NOT NULL DEFAULT FALSE;
+```
+
+Bootstrap your own row once via psql/RDS Query Editor (no UI for this — admin status is an out-of-band flip):
+```sql
+UPDATE users SET is_admin = TRUE WHERE email = '[scrubbed-email]';
+```
+
+Code changes:
+- `User` model gains `pub is_admin: bool`.
+- `GET /auth/me` response includes `is_admin` (so the dashboard can decide whether to show the Admin sidebar item).
+- New `RequireAdmin` extractor — wraps the existing JWT `AuthUser`, fetches the user row, returns 403 if `is_admin` is false. Cleaner than a permission flag check inside each handler.
+- `routes/admin.rs`:
+  - `GET /admin/stats` →
+    ```json
+    {
+      "total_users": 42,
+      "signups_last_7d": 3,
+      "signups_last_30d": 12,
+      "signups_by_day": [{"date": "2026-04-05", "count": 1}, ...]   // last 90 days
+    }
+    ```
+  - All routes mounted under `Router::new().route("/stats", get(admin_stats)).route_layer(RequireAdmin)` then merged into the main app under `/admin`.
+
+**3. (Optional) Aggregation endpoints** — only add if client-side aggregation gets slow:
 - `GET /analytics/sleep-trends?days=N`
 - `GET /analytics/focus-by-tag?range=...`
 - `GET /analytics/correlations?range=...`
