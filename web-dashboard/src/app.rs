@@ -2,7 +2,8 @@ use leptos::prelude::*;
 use leptos_router::components::{Route, Router, Routes};
 use leptos_router::path;
 
-use crate::auth::provide_auth;
+use crate::api::sse;
+use crate::auth::{provide_auth, use_auth, AuthContext};
 use crate::pages::admin::AdminPage;
 use crate::pages::calendar::CalendarPage;
 use crate::pages::login::LoginPage;
@@ -11,6 +12,19 @@ use crate::pages::overview::OverviewPage;
 #[component]
 pub fn App() -> impl IntoView {
     provide_auth();
+    sse::provide_sse();
+
+    let auth = use_auth();
+    Effect::new(move |_| {
+        // Open the SSE channel as soon as we have a token + a hydrated user.
+        // Close it if we lose either (e.g., logout, 401 on /auth/me).
+        let signed_in = auth.user.get().is_some() && AuthContext::token().is_some();
+        if signed_in {
+            sse::connect_for_current_user();
+        } else {
+            sse::disconnect();
+        }
+    });
 
     view! {
         <Router>

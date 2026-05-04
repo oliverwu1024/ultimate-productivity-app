@@ -1,6 +1,7 @@
 use std::env;
 
 use crate::email::EmailClient;
+use crate::event_bus::EventBus;
 
 #[derive(Clone)]
 pub struct Config {
@@ -30,4 +31,5 @@ pub struct AppState {
     pub pool: sqlx::PgPool,
     pub config: Config,
     pub email: EmailClient,
+    pub events: EventBus,
 }

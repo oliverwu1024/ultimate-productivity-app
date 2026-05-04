@@ -7,6 +7,7 @@ use uuid::Uuid;
 
 use crate::config::AppState;
 use crate::error::AppError;
+use crate::event_bus::SyncEvent;
 use crate::middleware::auth::Claims;
 use crate::models::calendar::{CalendarEvent, CreateCalendarEvent, EventCategory};
 
@@ -93,6 +94,10 @@ async fn create(
     .bind(color)
     .fetch_one(&state.pool)
     .await?;
+
+    state
+        .events
+        .publish(user_id, SyncEvent::CalendarCreated(event.clone()));
 
     Ok((StatusCode::CREATED, Json(event)))
 }
@@ -239,6 +244,10 @@ async fn update(
     .await?
     .ok_or_else(|| AppError::new(StatusCode::NOT_FOUND, "Calendar event not found"))?;
 
+    state
+        .events
+        .publish(user_id, SyncEvent::CalendarUpdated(event.clone()));
+
     Ok(Json(event))
 }
 
@@ -261,6 +270,10 @@ async fn remove(
             "Calendar event not found",
         ));
     }
+
+    state
+        .events
+        .publish(user_id, SyncEvent::CalendarDeleted { id });
 
     Ok(StatusCode::NO_CONTENT)
 }
