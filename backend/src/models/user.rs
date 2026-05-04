@@ -9,6 +9,7 @@ pub struct User {
     pub password_hash: String,
     pub created_at: DateTime<Utc>,
     pub sleep_target_minutes: i32,
+    pub is_admin: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -51,6 +52,7 @@ pub struct UserResponse {
     pub email: String,
     pub created_at: DateTime<Utc>,
     pub sleep_target_minutes: i32,
+    pub is_admin: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -66,6 +68,7 @@ impl From<User> for UserResponse {
             email: user.email,
             created_at: user.created_at,
             sleep_target_minutes: user.sleep_target_minutes,
+            is_admin: user.is_admin,
         }
     }
 }
