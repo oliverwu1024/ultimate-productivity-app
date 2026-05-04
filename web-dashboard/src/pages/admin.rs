@@ -1,53 +1,47 @@
 use leptos::either::Either;
 use leptos::prelude::*;
-use leptos_router::hooks::use_navigate;
 
 use crate::api::admin::{fetch_stats, AdminStats, SignupCount};
-use crate::auth::{use_auth, AuthContext};
+use crate::auth::use_auth;
+use crate::components::layout::AppShell;
 
 #[component]
 pub fn AdminPage() -> impl IntoView {
     let auth = use_auth();
-    let navigate = use_navigate();
-
-    Effect::new(move |_| {
-        if AuthContext::token().is_none() {
-            navigate("/login", Default::default());
-        }
-    });
-
     let stats = LocalResource::new(|| async move { fetch_stats().await });
 
     view! {
-        <div class="min-h-screen p-8 bg-ultiq-cream">
-            <header class="flex items-center justify-between mb-8">
-                <div>
-                    <h1 class="text-3xl font-bold text-ultiq-indigo">"Admin"</h1>
-                    <p class="text-sm text-ultiq-indigo/60 mt-1">
-                        "Aggregate stats only — no per-user data is exposed."
-                    </p>
-                </div>
-                <div class="text-sm text-ultiq-indigo/60">
-                    {move || auth.user.get().map(|u| u.email).unwrap_or_default()}
-                </div>
-            </header>
+        <AppShell>
+            <div class="p-8">
+                <header class="flex items-center justify-between mb-8">
+                    <div>
+                        <h1 class="text-3xl font-bold text-ultiq-indigo">"Admin"</h1>
+                        <p class="text-sm text-ultiq-indigo/60 mt-1">
+                            "Aggregate stats only — no per-user data is exposed."
+                        </p>
+                    </div>
+                    <div class="text-sm text-ultiq-indigo/60">
+                        {move || auth.user.get().map(|u| u.email).unwrap_or_default()}
+                    </div>
+                </header>
 
-            <Suspense fallback=|| view! {
-                <p class="text-ultiq-indigo/60">"Loading…"</p>
-            }>
-                {move || stats.get().map(|res| match res.take() {
-                    Ok(s) => Either::Left(view! { <AdminBody stats=s /> }),
-                    Err(e) => Either::Right(view! {
-                        <div class="bg-ultiq-red/5 text-ultiq-red rounded-lg p-4">
-                            <p class="font-medium">"Failed to load stats"</p>
-                            <p class="text-sm mt-1">
-                                {format!("HTTP {}: {}", e.status, e.message)}
-                            </p>
-                        </div>
-                    }),
-                })}
-            </Suspense>
-        </div>
+                <Suspense fallback=|| view! {
+                    <p class="text-ultiq-indigo/60">"Loading…"</p>
+                }>
+                    {move || stats.get().map(|res| match res.take() {
+                        Ok(s) => Either::Left(view! { <AdminBody stats=s /> }),
+                        Err(e) => Either::Right(view! {
+                            <div class="bg-ultiq-red/5 text-ultiq-red rounded-lg p-4">
+                                <p class="font-medium">"Failed to load stats"</p>
+                                <p class="text-sm mt-1">
+                                    {format!("HTTP {}: {}", e.status, e.message)}
+                                </p>
+                            </div>
+                        }),
+                    })}
+                </Suspense>
+            </div>
+        </AppShell>
     }
 }
 
