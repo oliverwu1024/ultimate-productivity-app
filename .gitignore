@@ -16,6 +16,9 @@ web-landing/public/*.apk
 
 # Rust
 backend/target/
+web-dashboard/target/
+web-dashboard/dist/
+web-dashboard/node_modules/
 
 # Environment
 .env
