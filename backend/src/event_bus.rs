@@ -6,6 +6,7 @@ use tokio::sync::broadcast;
 use uuid::Uuid;
 
 use crate::models::calendar::CalendarEvent;
+use crate::models::checklist::ChecklistItem;
 
 /// One per-user channel, multiplexed across all that user's connected clients.
 /// Single-task in-process for now. Swap for Redis pub/sub when ECS desired_count > 1.
@@ -17,6 +18,9 @@ pub enum SyncEvent {
     CalendarCreated(CalendarEvent),
     CalendarUpdated(CalendarEvent),
     CalendarDeleted { id: Uuid },
+    ChecklistCreated(ChecklistItem),
+    ChecklistUpdated(ChecklistItem),
+    ChecklistDeleted { id: Uuid },
 }
 
 #[derive(Clone, Default)]
