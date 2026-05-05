@@ -1,6 +1,6 @@
 {
-  "versionCode": 8,
-  "versionName": "1.7",
-  "url": "https://ultiqapp.com/ultiq.1.7.apk",
-  "releaseNotes": "Status bar icons now adapt to light/dark theme. More reliable update checks (re-runs on every app foreground)."
+  "versionCode": 9,
+  "versionName": "1.8",
+  "url": "https://ultiqapp.com/ultiq.1.8.apk",
+  "releaseNotes": "Security hardening: encrypted token storage, encrypted local database, login-level revocation, calendar default time now matches the current moment."
 }
