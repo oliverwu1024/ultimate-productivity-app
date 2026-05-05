@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Legacy Auto Backup rules (Android <= 11). Defense in depth — the
+     application has android:allowBackup="false" so these rules are unused
+     unless that is later flipped on. Even if backup is enabled, exclude the
+     auth token store and the Room database. -->
+<full-backup-content>
+    <exclude domain="file" path="datastore/auth_prefs.preferences_pb" />
+    <exclude domain="database" path="productivity_db" />
+</full-backup-content>
