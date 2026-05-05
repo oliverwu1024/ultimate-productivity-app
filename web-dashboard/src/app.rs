@@ -7,6 +7,7 @@ use crate::auth::{provide_auth, use_auth, AuthContext};
 use crate::pages::admin::AdminPage;
 use crate::pages::calendar::CalendarPage;
 use crate::pages::checklist::ChecklistPage;
+use crate::pages::focus::FocusPage;
 use crate::pages::login::LoginPage;
 use crate::pages::overview::OverviewPage;
 use crate::pages::sleep::SleepPage;
@@ -36,6 +37,7 @@ pub fn App() -> impl IntoView {
                 <Route path=path!("/calendar") view=CalendarPage />
                 <Route path=path!("/checklist") view=ChecklistPage />
                 <Route path=path!("/sleep") view=SleepPage />
+                <Route path=path!("/focus") view=FocusPage />
                 <Route path=path!("/admin") view=AdminPage />
             </Routes>
         </Router>
