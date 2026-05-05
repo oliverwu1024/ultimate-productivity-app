@@ -6,6 +6,7 @@ use leptos_router::hooks::{use_navigate, use_query_map};
 use serde::Serialize;
 
 use crate::api::client::{api_base_url, ApiError};
+use crate::components::theme_corner::ThemeCorner;
 
 #[derive(Serialize)]
 struct ResetRequest<'a> {
@@ -85,6 +86,7 @@ pub fn ResetPasswordPage() -> impl IntoView {
 
     view! {
         <Title text="Reset password — Ultiq" />
+        <ThemeCorner />
         <div class="min-h-screen flex items-center justify-center bg-ultiq-cream px-4">
             <div class="bg-white rounded-2xl shadow-lg p-8 w-full max-w-sm space-y-4">
                 <h1 class="text-2xl font-bold text-ultiq-indigo text-center">"Choose a new password"</h1>
