@@ -147,6 +147,21 @@ class SessionRepository(
             }
 
             val serverSessions = apiService.getSessions(null, null, null)
+            val serverIds = serverSessions.map { it.id }.toSet()
+
+            // Reconcile: drop local synced rows in the pulled window that no longer
+            // exist on the server.
+            val now = System.currentTimeMillis()
+            val day = 24L * 60L * 60L * 1000L
+            val rangeStart = now - 30L * day
+            val rangeEnd = now
+            val localSyncedIds = sessionDao.getSyncedIdsInRange(rangeStart, rangeEnd)
+            for (id in localSyncedIds) {
+                if (id !in serverIds) {
+                    sessionDao.deleteById(id)
+                }
+            }
+
             sessionDao.insertAll(serverSessions.map { it.toEntity() })
         } catch (_: Exception) {
             // offline, skip sync

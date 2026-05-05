@@ -37,4 +37,7 @@ interface SleepDao {
 
     @Query("UPDATE sleep_records SET isSynced = 1 WHERE id = :id")
     suspend fun markSynced(id: String)
+
+    @Query("SELECT id FROM sleep_records WHERE isSynced = 1 AND actualBedtime BETWEEN :start AND :end")
+    suspend fun getSyncedIdsInRange(start: Long, end: Long): List<String>
 }
