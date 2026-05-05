@@ -26,7 +26,10 @@ impl IntoResponse for AppError {
 
 impl From<sqlx::Error> for AppError {
     fn from(err: sqlx::Error) -> Self {
-        tracing::error!("Database error: {:?}", err);
+        // Display, not Debug — the Debug impl can include bound parameter
+        // previews (user emails, sleep notes, etc.) which would persist in
+        // CloudWatch with default retention.
+        tracing::error!("Database error: {}", err);
         AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "Internal server error")
     }
 }

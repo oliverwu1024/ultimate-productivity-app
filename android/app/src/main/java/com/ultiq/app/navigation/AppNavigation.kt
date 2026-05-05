@@ -211,7 +211,10 @@ fun AppNavigation(
                     navDeepLink { uriPattern = "https://ultiqapp.com/reset?token={token}" },
                 ),
             ) { entry ->
-                val token = entry.arguments?.getString("token").orEmpty()
+                val rawToken = entry.arguments?.getString("token").orEmpty()
+                // Sanity-bound: legitimate tokens are short UUIDs. Reject anything outside
+                // [16, 256] chars to keep oversized deep-link payloads off the screen.
+                val token = if (rawToken.length in 16..256) rawToken else ""
                 ResetPasswordScreen(
                     uiState = uiState,
                     token = token,

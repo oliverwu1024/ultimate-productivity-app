@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12+ backup/restore rules. allowBackup is false so these are
+     belt-and-braces. Cloud backup and device-to-device transfer both exclude
+     auth tokens and the local productivity DB. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="file" path="datastore/auth_prefs.preferences_pb" />
+        <exclude domain="database" path="productivity_db" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="file" path="datastore/auth_prefs.preferences_pb" />
+        <exclude domain="database" path="productivity_db" />
+    </device-transfer>
+</data-extraction-rules>

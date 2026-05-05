@@ -33,6 +33,34 @@ async fn create(
 ) -> Result<(StatusCode, Json<PhonePickup>), AppError> {
     let user_id = parse_user_id(&claims)?;
 
+    // Verify any referenced sleep_record / session belongs to the caller
+    // before allowing the FK insert. Without this, a malicious client can
+    // attach pickups to another user's records.
+    if let Some(sleep_id) = input.sleep_record_id {
+        let owns: Option<(Uuid,)> = sqlx::query_as(
+            "SELECT id FROM sleep_records WHERE id = $1 AND user_id = $2",
+        )
+        .bind(sleep_id)
+        .bind(user_id)
+        .fetch_optional(&state.pool)
+        .await?;
+        if owns.is_none() {
+            return Err(AppError::new(StatusCode::FORBIDDEN, "Invalid sleep_record_id"));
+        }
+    }
+    if let Some(session_id) = input.session_id {
+        let owns: Option<(Uuid,)> = sqlx::query_as(
+            "SELECT id FROM productivity_sessions WHERE id = $1 AND user_id = $2",
+        )
+        .bind(session_id)
+        .bind(user_id)
+        .fetch_optional(&state.pool)
+        .await?;
+        if owns.is_none() {
+            return Err(AppError::new(StatusCode::FORBIDDEN, "Invalid session_id"));
+        }
+    }
+
     let pickup = sqlx::query_as::<_, PhonePickup>(
         "INSERT INTO phone_pickups
             (user_id, sleep_record_id, session_id, picked_up_at, duration_seconds, app_category)

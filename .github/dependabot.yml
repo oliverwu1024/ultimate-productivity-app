@@ -1,0 +1,36 @@
+version: 2
+updates:
+  # Keep workflow action SHAs (pinned to defeat tag-hijack supply-chain
+  # attacks) updated. Dependabot recognises the `# v1.2.3` comment next to
+  # each pinned SHA and bumps both together when a new release ships.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: "cargo"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: "cargo"
+    directory: "/web-dashboard"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: "gradle"
+    directory: "/android"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: "npm"
+    directory: "/web-landing"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
