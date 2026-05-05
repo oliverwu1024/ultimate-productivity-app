@@ -16,6 +16,7 @@ import com.ultiq.app.util.AlarmScheduler
 import com.ultiq.app.util.NotificationHelper
 import com.ultiq.app.util.ReminderPreferences
 import com.ultiq.app.util.TokenManager
+import com.ultiq.app.util.UpdateChecker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -33,6 +34,7 @@ class UltiqApp : Application() {
         scheduleSyncWork()
         applyReminderSchedules()
         wireRealtimeSync()
+        UpdateChecker.checkOnce()
     }
 
     private fun scheduleSyncWork() {

@@ -145,7 +145,7 @@ pub fn ReportsPage() -> impl IntoView {
     view! {
         <Title text="Reports — Ultiq" />
         <AppShell>
-            <div class="p-8 max-w-4xl mx-auto print:p-0 print:max-w-none">
+            <div class="p-4 md:p-8 max-w-4xl mx-auto print:p-0 print:max-w-none">
                 <header class="flex items-center justify-between mb-6 flex-wrap gap-3 print:hidden">
                     <h1 class="text-3xl font-bold text-ultiq-indigo">"Reports"</h1>
                     <div class="flex items-center gap-2 flex-wrap">
