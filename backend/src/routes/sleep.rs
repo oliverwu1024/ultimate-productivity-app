@@ -7,6 +7,7 @@ use uuid::Uuid;
 
 use crate::config::AppState;
 use crate::error::AppError;
+use crate::event_bus::SyncEvent;
 use crate::middleware::auth::Claims;
 use crate::models::sleep::{CreateSleepRecord, SleepRecord, SleepStats};
 
@@ -81,6 +82,10 @@ async fn create(
     .bind(&input.notes)
     .fetch_one(&state.pool)
     .await?;
+
+    state
+        .events
+        .publish(user_id, SyncEvent::SleepCreated(record.clone()));
 
     Ok((StatusCode::CREATED, Json(record)))
 }
@@ -189,6 +194,10 @@ async fn update(
     .await?
     .ok_or_else(|| AppError::new(StatusCode::NOT_FOUND, "Sleep record not found"))?;
 
+    state
+        .events
+        .publish(user_id, SyncEvent::SleepUpdated(record.clone()));
+
     Ok(Json(record))
 }
 
@@ -208,6 +217,10 @@ async fn remove(
     if result.rows_affected() == 0 {
         return Err(AppError::new(StatusCode::NOT_FOUND, "Sleep record not found"));
     }
+
+    state
+        .events
+        .publish(user_id, SyncEvent::SleepDeleted { id });
 
     Ok(StatusCode::NO_CONTENT)
 }

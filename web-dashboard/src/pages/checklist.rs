@@ -1,6 +1,7 @@
 use chrono::{Datelike, Duration, Local, NaiveDate, TimeZone, Utc};
 use leptos::either::EitherOf3;
 use leptos::prelude::*;
+use leptos_meta::Title;
 
 use crate::api::calendar::{
     create_event as create_calendar_event, CreateCalendarEvent, EventCategory, EventPriority,
@@ -132,6 +133,7 @@ pub fn ChecklistPage() -> impl IntoView {
     };
 
     view! {
+        <Title text="Checklist — Ultiq" />
         <AppShell>
             <div class="p-8 max-w-4xl mx-auto">
                 <header class="flex items-center justify-between mb-6">

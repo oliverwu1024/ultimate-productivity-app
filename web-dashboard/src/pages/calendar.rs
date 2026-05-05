@@ -1,6 +1,9 @@
+use std::collections::HashMap;
+
 use chrono::{DateTime, Datelike, Duration, Local, NaiveDate, NaiveDateTime, TimeZone, Utc};
 use leptos::either::EitherOf3;
 use leptos::prelude::*;
+use leptos_meta::Title;
 
 use crate::api::calendar::{
     create_event, delete_event, list_events, update_event, CalendarEvent, CreateCalendarEvent,
@@ -130,6 +133,7 @@ pub fn CalendarPage() -> impl IntoView {
     };
 
     view! {
+        <Title text="Calendar — Ultiq" />
         <AppShell>
             <div class="p-8 max-w-6xl mx-auto">
                 <header class="flex items-center justify-between mb-6">
@@ -221,6 +225,33 @@ pub fn CalendarPage() -> impl IntoView {
                         selected_day=selected_day
                         on_edit=move |e: CalendarEvent| dialog.set(DialogState::Edit(e))
                     />
+                </section>
+
+                <section class="mt-10">
+                    <h2 class="text-lg font-semibold text-ultiq-indigo mb-4">
+                        {move || {
+                            let m = current_month.get();
+                            format!("Analytics — {} {}", MONTH_NAMES[(m.month() - 1) as usize], m.year())
+                        }}
+                    </h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-white rounded-2xl shadow p-6">
+                            <h3 class="text-base font-semibold text-ultiq-indigo mb-4">"Time by category"</h3>
+                            <CategoryDonut events=events />
+                        </div>
+                        <div class="bg-white rounded-2xl shadow p-6">
+                            <h3 class="text-base font-semibold text-ultiq-indigo mb-4">"Events per day"</h3>
+                            <EventsPerDayBar events=events current_month=current_month />
+                        </div>
+                        <div class="bg-white rounded-2xl shadow p-6">
+                            <h3 class="text-base font-semibold text-ultiq-indigo mb-4">"Priority distribution"</h3>
+                            <PriorityBars events=events />
+                        </div>
+                        <div class="bg-white rounded-2xl shadow p-6">
+                            <h3 class="text-base font-semibold text-ultiq-indigo mb-4">"By day of week"</h3>
+                            <DayOfWeekBar events=events />
+                        </div>
+                    </div>
                 </section>
 
                 {move || match dialog.get() {
@@ -611,5 +642,256 @@ fn EventDialog(
                 </div>
             </form>
         </div>
+    }
+}
+
+// ─── Analytics components ───────────────────────────────────────────────
+
+#[component]
+fn CategoryDonut(events: RwSignal<Vec<CalendarEvent>>) -> impl IntoView {
+    view! {
+        {move || {
+            let evs = events.get();
+            if evs.is_empty() {
+                return view! {
+                    <p class="text-sm text-ultiq-indigo/50 py-6 text-center">
+                        "No events this month."
+                    </p>
+                }.into_any();
+            }
+            let mut by_cat: HashMap<EventCategory, i64> = HashMap::new();
+            for e in &evs {
+                let dur = (e.end_time - e.start_time).num_minutes().max(0);
+                *by_cat.entry(e.category).or_insert(0) += dur;
+            }
+            let total: i64 = by_cat.values().sum();
+            if total == 0 {
+                return view! {
+                    <p class="text-sm text-ultiq-indigo/50 py-6 text-center">
+                        "All events have zero duration."
+                    </p>
+                }.into_any();
+            }
+
+            // Donut: fixed circumference, each slice is a stroke-dasharray segment.
+            // Circle radius 36, circumference = 2π·36 ≈ 226.19.
+            let circumference: f64 = 2.0 * std::f64::consts::PI * 36.0;
+            let mut offset = 0.0_f64;
+            let mut slices = Vec::new();
+            let mut legend = Vec::new();
+            // Stable ordering by category enum order so the donut doesn't flip on every render.
+            for cat in EventCategory::ALL {
+                let mins = *by_cat.get(&cat).unwrap_or(&0);
+                if mins == 0 { continue; }
+                let frac = mins as f64 / total as f64;
+                let len = frac * circumference;
+                let color = cat.color();
+                let dash = format!("{} {}", len, circumference - len);
+                let off = -offset;
+                slices.push(view! {
+                    <circle
+                        cx=50 cy=50 r=36
+                        fill="none"
+                        stroke=color
+                        stroke-width=12
+                        stroke-dasharray=dash
+                        stroke-dashoffset=off
+                        transform="rotate(-90 50 50)"
+                    />
+                });
+                offset += len;
+                let pct = (frac * 100.0).round() as i64;
+                legend.push(view! {
+                    <li class="flex items-center justify-between gap-2 text-sm">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <span
+                                class="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                                style:background-color=color
+                            />
+                            <span class="truncate text-ultiq-indigo">{cat.label()}</span>
+                        </div>
+                        <span class="text-ultiq-indigo/60 text-xs">
+                            {format!("{} · {}%", format_duration(mins), pct)}
+                        </span>
+                    </li>
+                });
+            }
+
+            view! {
+                <div class="flex items-center gap-6">
+                    <svg viewBox="0 0 100 100" class="w-32 h-32 flex-shrink-0">
+                        {slices}
+                        <text
+                            x=50 y=52
+                            text-anchor="middle"
+                            font-size="11"
+                            font-weight="600"
+                            fill="#2A1B6E"
+                        >
+                            {format_duration(total)}
+                        </text>
+                    </svg>
+                    <ul class="flex-1 space-y-1.5 min-w-0">{legend}</ul>
+                </div>
+            }.into_any()
+        }}
+    }
+}
+
+#[component]
+fn EventsPerDayBar(
+    events: RwSignal<Vec<CalendarEvent>>,
+    current_month: RwSignal<NaiveDate>,
+) -> impl IntoView {
+    view! {
+        {move || {
+            let evs = events.get();
+            let month = current_month.get();
+            let days_in_month = next_month(month).signed_duration_since(month).num_days() as usize;
+
+            let mut counts = vec![0_i64; days_in_month];
+            for e in &evs {
+                let local_date = e.start_time.with_timezone(&Local).date_naive();
+                if local_date.year() == month.year() && local_date.month() == month.month() {
+                    let idx = (local_date.day() - 1) as usize;
+                    if idx < counts.len() {
+                        counts[idx] += 1;
+                    }
+                }
+            }
+            let max = counts.iter().copied().max().unwrap_or(0);
+            if max == 0 {
+                return view! {
+                    <p class="text-sm text-ultiq-indigo/50 py-6 text-center">
+                        "No events this month."
+                    </p>
+                }.into_any();
+            }
+            view! {
+                <div class="flex items-end gap-px h-32">
+                    {counts.into_iter().enumerate().map(|(i, c)| {
+                        let pct = (c as f64 / max as f64) * 100.0;
+                        let title = format!("Day {}: {} event{}", i + 1, c, if c == 1 { "" } else { "s" });
+                        view! {
+                            <div
+                                class="flex-1 bg-ultiq-indigo/70 rounded-t hover:bg-ultiq-indigo transition-colors"
+                                style:height=format!("{}%", if c == 0 { 0.0 } else { pct.max(4.0) })
+                                title=title
+                            />
+                        }
+                    }).collect_view()}
+                </div>
+            }.into_any()
+        }}
+    }
+}
+
+#[component]
+fn PriorityBars(events: RwSignal<Vec<CalendarEvent>>) -> impl IntoView {
+    view! {
+        {move || {
+            let evs = events.get();
+            if evs.is_empty() {
+                return view! {
+                    <p class="text-sm text-ultiq-indigo/50 py-6 text-center">
+                        "No events this month."
+                    </p>
+                }.into_any();
+            }
+            let mut counts: HashMap<EventPriority, i64> = HashMap::new();
+            for e in &evs {
+                *counts.entry(e.priority).or_insert(0) += 1;
+            }
+            let max = counts.values().copied().max().unwrap_or(0).max(1);
+            view! {
+                <ul class="space-y-3">
+                    {EventPriority::ALL.iter().map(|p| {
+                        let c = *counts.get(p).unwrap_or(&0);
+                        let pct = (c as f64 / max as f64) * 100.0;
+                        let color = match p {
+                            EventPriority::High => "#D9474C",
+                            EventPriority::Medium => "#FFC83D",
+                            EventPriority::Low => "#A8C5E8",
+                        };
+                        view! {
+                            <li>
+                                <div class="flex items-center justify-between text-sm mb-1">
+                                    <span class="font-medium text-ultiq-indigo">{p.label()}</span>
+                                    <span class="text-ultiq-indigo/60 text-xs">
+                                        {format!("{} event{}", c, if c == 1 { "" } else { "s" })}
+                                    </span>
+                                </div>
+                                <div class="h-2 bg-ultiq-indigo/10 rounded-full overflow-hidden">
+                                    <div
+                                        class="h-full rounded-full"
+                                        style:width=format!("{}%", pct)
+                                        style:background-color=color
+                                    />
+                                </div>
+                            </li>
+                        }
+                    }).collect_view()}
+                </ul>
+            }.into_any()
+        }}
+    }
+}
+
+#[component]
+fn DayOfWeekBar(events: RwSignal<Vec<CalendarEvent>>) -> impl IntoView {
+    let dow_labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    view! {
+        {move || {
+            let evs = events.get();
+            if evs.is_empty() {
+                return view! {
+                    <p class="text-sm text-ultiq-indigo/50 py-6 text-center">
+                        "No events this month."
+                    </p>
+                }.into_any();
+            }
+            let mut counts: [i64; 7] = [0; 7];
+            for e in &evs {
+                let local_date = e.start_time.with_timezone(&Local).date_naive();
+                let dow = local_date.weekday().num_days_from_monday() as usize;
+                if dow < 7 {
+                    counts[dow] += 1;
+                }
+            }
+            let max = *counts.iter().max().unwrap_or(&0).max(&1);
+            view! {
+                <div class="flex items-end justify-around gap-2 h-28">
+                    {(0..7).map(|i| {
+                        let c = counts[i];
+                        let pct = (c as f64 / max as f64) * 100.0;
+                        view! {
+                            <div class="flex flex-col items-center justify-end h-full flex-1 gap-1">
+                                <span class="text-xs text-ultiq-indigo/60 font-medium">{c}</span>
+                                <div
+                                    class="w-full rounded-t bg-ultiq-indigo/70"
+                                    style:height=format!("{}%", if c == 0 { 0.0 } else { pct.max(4.0) })
+                                />
+                                <span class="text-xs text-ultiq-indigo/70 mt-1">{dow_labels[i]}</span>
+                            </div>
+                        }
+                    }).collect_view()}
+                </div>
+            }.into_any()
+        }}
+    }
+}
+
+fn format_duration(minutes: i64) -> String {
+    if minutes <= 0 {
+        return "0m".to_string();
+    }
+    let h = minutes / 60;
+    let m = minutes % 60;
+    if h == 0 {
+        format!("{}m", m)
+    } else if m == 0 {
+        format!("{}h", h)
+    } else {
+        format!("{}h {}m", h, m)
     }
 }

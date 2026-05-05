@@ -7,6 +7,7 @@ use uuid::Uuid;
 
 use crate::config::AppState;
 use crate::error::AppError;
+use crate::event_bus::SyncEvent;
 use crate::middleware::auth::Claims;
 use crate::models::session::{
     CreateSession, ProductivitySession, SessionStats, TagStat, UpdateSession,
@@ -77,6 +78,10 @@ async fn create(
     .bind(input.checklist_item_id)
     .fetch_one(&state.pool)
     .await?;
+
+    state
+        .events
+        .publish(user_id, SyncEvent::SessionCreated(session.clone()));
 
     Ok((StatusCode::CREATED, Json(session)))
 }
@@ -222,6 +227,10 @@ async fn update(
     .fetch_one(&state.pool)
     .await?;
 
+    state
+        .events
+        .publish(user_id, SyncEvent::SessionUpdated(session.clone()));
+
     Ok(Json(session))
 }
 
@@ -241,6 +250,10 @@ async fn remove(
     if result.rows_affected() == 0 {
         return Err(AppError::new(StatusCode::NOT_FOUND, "Session not found"));
     }
+
+    state
+        .events
+        .publish(user_id, SyncEvent::SessionDeleted { id });
 
     Ok(StatusCode::NO_CONTENT)
 }
