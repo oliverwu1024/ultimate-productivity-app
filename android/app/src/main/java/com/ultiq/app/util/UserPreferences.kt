@@ -33,6 +33,8 @@ data class UserSettings(
     val sleepExplainerSeen: Boolean,
     /** Optimal nightly sleep target in minutes. Drives debt + extra calculations. */
     val sleepTargetMinutes: Int,
+    /** Has the user dismissed the "Ultiq is also on the web" hint on the dashboard? */
+    val webDashboardHintSeen: Boolean,
 )
 
 class UserPreferences(private val context: Context) {
@@ -51,6 +53,7 @@ class UserPreferences(private val context: Context) {
         val LAST_PLANNING_DISMISSED_WEEK = intPreferencesKey("last_planning_dismissed_week")
         val SLEEP_EXPLAINER_SEEN = booleanPreferencesKey("sleep_explainer_seen")
         val SLEEP_TARGET_MINUTES = intPreferencesKey("sleep_target_minutes")
+        val WEB_DASHBOARD_HINT_SEEN = booleanPreferencesKey("web_dashboard_hint_seen")
     }
 
     private val defaults = UserSettings(
@@ -67,6 +70,7 @@ class UserPreferences(private val context: Context) {
         lastPlanningPromptDismissedWeek = 0,
         sleepExplainerSeen = false,
         sleepTargetMinutes = 480,
+        webDashboardHintSeen = false,
     )
 
     val settings: Flow<UserSettings> = context.userDataStore.data.map { prefs ->
@@ -84,6 +88,7 @@ class UserPreferences(private val context: Context) {
             lastPlanningPromptDismissedWeek = prefs[Keys.LAST_PLANNING_DISMISSED_WEEK] ?: defaults.lastPlanningPromptDismissedWeek,
             sleepExplainerSeen = prefs[Keys.SLEEP_EXPLAINER_SEEN] ?: defaults.sleepExplainerSeen,
             sleepTargetMinutes = prefs[Keys.SLEEP_TARGET_MINUTES] ?: defaults.sleepTargetMinutes,
+            webDashboardHintSeen = prefs[Keys.WEB_DASHBOARD_HINT_SEEN] ?: defaults.webDashboardHintSeen,
         )
     }
 
@@ -139,6 +144,10 @@ class UserPreferences(private val context: Context) {
 
     suspend fun setSleepTargetMinutes(minutes: Int) {
         context.userDataStore.edit { it[Keys.SLEEP_TARGET_MINUTES] = minutes.coerceIn(180, 900) }
+    }
+
+    suspend fun setWebDashboardHintSeen(seen: Boolean) {
+        context.userDataStore.edit { it[Keys.WEB_DASHBOARD_HINT_SEEN] = seen }
     }
 
     /** Wipe every preference back to defaults — used when deleting the account. */
