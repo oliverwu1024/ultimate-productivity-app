@@ -15,10 +15,11 @@ PROFILE="${AWS_PROFILE:-ultiq}"
 POLICY_NAME="ultiq-security-headers"
 
 # CSP — locks scripts/iframes/etc. to same-origin only. The dashboard's
-# pre-paint dark-mode script is inline; allow it via its sha256 hash. The
-# WASM loader needs 'wasm-unsafe-eval'. connect-src allows the API + SSE.
+# pre-paint dark-mode script lives in /preinit.js (served from the same
+# origin), so script-src is plain 'self' + 'wasm-unsafe-eval' for the WASM
+# loader. connect-src allows the API + SSE.
 CSP="default-src 'self'; \
-script-src 'self' 'wasm-unsafe-eval' 'sha256-+ES26zrRzjpKsa56KEU9Lq9lQrb393O2K6uj2Wi4RX0='; \
+script-src 'self' 'wasm-unsafe-eval'; \
 style-src 'self' 'unsafe-inline'; \
 img-src 'self' data:; \
 connect-src 'self' https://api.ultiqapp.com; \

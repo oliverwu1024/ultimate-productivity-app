@@ -39,6 +39,16 @@
 -dontwarn org.bouncycastle.**
 -dontwarn org.openjsse.**
 
+# --- Tink (used by androidx.security.crypto) ---------------------------------
+# Tink references errorprone annotations that aren't on the runtime classpath.
+-dontwarn com.google.errorprone.annotations.**
+
+# --- SQLCipher --------------------------------------------------------------
+# SupportOpenHelperFactory + native bindings need their classes preserved.
+-keep class net.zetetic.database.sqlcipher.** { *; }
+-keep class net.sqlcipher.** { *; }
+-dontwarn net.zetetic.database.**
+
 # --- Compose / Kotlinx coroutines --------------------------------------------
 -keepclasseswithmembernames class * {
     native <methods>;

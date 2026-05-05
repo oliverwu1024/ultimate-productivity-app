@@ -203,6 +203,16 @@ async fn update(
             "title must not be empty",
         ));
     }
+    crate::routes::validation::cap_chars(
+        &input.title,
+        crate::routes::validation::MAX_TITLE_CHARS,
+        "title",
+    )?;
+    crate::routes::validation::cap_chars_opt(
+        &input.description,
+        crate::routes::validation::MAX_DESCRIPTION_CHARS,
+        "description",
+    )?;
     if input.start_time >= input.end_time {
         return Err(AppError::new(
             StatusCode::BAD_REQUEST,

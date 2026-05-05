@@ -16,6 +16,8 @@ import com.ultiq.app.data.local.entity.CalendarEventEntity
 import com.ultiq.app.data.local.entity.ChecklistEntity
 import com.ultiq.app.data.local.entity.SessionEntity
 import com.ultiq.app.data.local.entity.SleepRecordEntity
+import com.ultiq.app.util.DatabaseSecurity
+import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 
 @Database(
     entities = [
@@ -130,20 +132,40 @@ abstract class AppDatabase : RoomDatabase() {
 
         fun getInstance(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
-                Room.databaseBuilder(
-                    context.applicationContext,
-                    AppDatabase::class.java,
-                    "productivity_db"
-                )
-                    .addMigrations(
-                        MIGRATION_1_2,
-                        MIGRATION_2_3,
-                        MIGRATION_3_4,
-                        MIGRATION_4_5,
-                    )
-                    .build()
-                    .also { INSTANCE = it }
+                INSTANCE ?: build(context).also { INSTANCE = it }
             }
+        }
+
+        private fun build(context: Context): AppDatabase {
+            // One-shot legacy migration: pre-SQLCipher installs had a plain
+            // Room DB; drop it on first launch so SQLCipher creates a fresh
+            // encrypted file. SyncManager refetches data from the backend.
+            DatabaseSecurity.dropLegacyDbIfNeeded(context.applicationContext)
+
+            // SQLCipher native lib must be loaded once per process before any
+            // DB operation goes through SupportOpenHelperFactory.
+            System.loadLibrary("sqlcipher")
+            val passphrase = DatabaseSecurity.getOrCreatePassphrase(context.applicationContext)
+            val factory = SupportOpenHelperFactory(passphrase)
+
+            return Room.databaseBuilder(
+                context.applicationContext,
+                AppDatabase::class.java,
+                "productivity_db"
+            )
+                .openHelperFactory(factory)
+                .addMigrations(
+                    MIGRATION_1_2,
+                    MIGRATION_2_3,
+                    MIGRATION_3_4,
+                    MIGRATION_4_5,
+                )
+                // Legacy DB has been dropped if it existed; if Room can't
+                // open the file (corrupt / version mismatch from a prior
+                // build), fall back to a fresh encrypted DB rather than
+                // crashing the app.
+                .fallbackToDestructiveMigration()
+                .build()
         }
     }
 }

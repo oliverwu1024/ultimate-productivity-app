@@ -10,6 +10,7 @@ use crate::error::AppError;
 use crate::event_bus::SyncEvent;
 use crate::middleware::auth::Claims;
 use crate::models::checklist::{ChecklistItem, CreateChecklistItem, UpdateChecklistItem};
+use crate::routes::validation::{cap_chars, cap_chars_opt, MAX_DESCRIPTION_CHARS, MAX_TITLE_CHARS};
 
 pub fn router() -> Router<AppState> {
     Router::new()
@@ -37,12 +38,16 @@ fn parse_user_id(claims: &Claims) -> Result<Uuid, AppError> {
         .map_err(|_| AppError::new(StatusCode::UNAUTHORIZED, "Invalid token"))
 }
 
-fn validate_input(title: &str, priority: i16) -> Result<(), AppError> {
+fn validate_input(title: &str, description: Option<&str>, priority: i16) -> Result<(), AppError> {
     if title.trim().is_empty() {
         return Err(AppError::new(
             StatusCode::BAD_REQUEST,
             "title must not be empty",
         ));
+    }
+    cap_chars(title, MAX_TITLE_CHARS, "title")?;
+    if let Some(d) = description {
+        cap_chars(d, MAX_DESCRIPTION_CHARS, "description")?;
     }
     if !(0..=2).contains(&priority) {
         return Err(AppError::new(
@@ -59,7 +64,7 @@ async fn create(
     Json(input): Json<CreateChecklistItem>,
 ) -> Result<(StatusCode, Json<ChecklistItem>), AppError> {
     let user_id = parse_user_id(&claims)?;
-    validate_input(&input.title, input.priority)?;
+    validate_input(&input.title, input.description.as_deref(), input.priority)?;
 
     let item = sqlx::query_as::<_, ChecklistItem>(
         "INSERT INTO checklist_items
@@ -200,10 +205,12 @@ async fn update(
             "title must not be empty",
         ));
     }
+    cap_chars(&title, MAX_TITLE_CHARS, "title")?;
     let description = match input.description {
         Some(s) => Some(s),
         None => existing.description,
     };
+    cap_chars_opt(&description, MAX_DESCRIPTION_CHARS, "description")?;
     let due_date = input.due_date.unwrap_or(existing.due_date);
     let estimated_minutes = match input.estimated_minutes {
         Some(m) => Some(m),
@@ -313,7 +320,7 @@ async fn bulk_create(
     }
 
     for item in &items {
-        validate_input(&item.title, item.priority)?;
+        validate_input(&item.title, item.description.as_deref(), item.priority)?;
     }
 
     let mut tx = state.pool.begin().await?;

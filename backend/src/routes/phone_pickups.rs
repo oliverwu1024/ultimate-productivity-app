@@ -60,6 +60,11 @@ async fn create(
             return Err(AppError::new(StatusCode::FORBIDDEN, "Invalid session_id"));
         }
     }
+    crate::routes::validation::cap_chars_opt(
+        &input.app_category,
+        crate::routes::validation::MAX_TITLE_CHARS,
+        "app_category",
+    )?;
 
     let pickup = sqlx::query_as::<_, PhonePickup>(
         "INSERT INTO phone_pickups
