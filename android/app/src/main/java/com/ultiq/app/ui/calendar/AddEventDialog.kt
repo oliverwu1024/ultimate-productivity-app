@@ -86,12 +86,18 @@ fun AddEventDialog(
     val initStart = editingEvent?.let { Instant.ofEpochMilli(it.startTime).atZone(zone).toLocalDateTime() }
     val initEnd = editingEvent?.let { Instant.ofEpochMilli(it.endTime).atZone(zone).toLocalDateTime() }
 
+    // Default new events to "now → now + 1h" on the chosen day. If now+1h
+    // rolls past midnight, the end date follows so the form shows the
+    // correct next-day end (user can still adjust).
+    val defaultNow = java.time.LocalDateTime.of(initialDate, LocalTime.now().withSecond(0).withNano(0))
+    val defaultEnd = defaultNow.plusHours(1)
+
     var title by remember { mutableStateOf(editingEvent?.title ?: "") }
     var description by remember { mutableStateOf(editingEvent?.description ?: "") }
-    var startDate by remember { mutableStateOf(initStart?.toLocalDate() ?: initialDate) }
-    var startTime by remember { mutableStateOf(initStart?.toLocalTime() ?: LocalTime.of(9, 0)) }
-    var endDate by remember { mutableStateOf(initEnd?.toLocalDate() ?: initialDate) }
-    var endTime by remember { mutableStateOf(initEnd?.toLocalTime() ?: LocalTime.of(10, 0)) }
+    var startDate by remember { mutableStateOf(initStart?.toLocalDate() ?: defaultNow.toLocalDate()) }
+    var startTime by remember { mutableStateOf(initStart?.toLocalTime() ?: defaultNow.toLocalTime()) }
+    var endDate by remember { mutableStateOf(initEnd?.toLocalDate() ?: defaultEnd.toLocalDate()) }
+    var endTime by remember { mutableStateOf(initEnd?.toLocalTime() ?: defaultEnd.toLocalTime()) }
     var category by remember { mutableStateOf(editingEvent?.category ?: "study") }
     var priority by remember { mutableStateOf(editingEvent?.priority ?: "medium") }
     var selectedColor by remember { mutableStateOf(editingEvent?.color ?: "#4A90D9") }

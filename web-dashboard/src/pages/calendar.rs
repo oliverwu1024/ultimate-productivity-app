@@ -68,13 +68,16 @@ fn input_to_dt(s: &str) -> Option<DateTime<Utc>> {
 }
 
 fn default_start_for(day: NaiveDate) -> String {
-    let dt = day.and_hms_opt(9, 0, 0).unwrap();
+    let now_time = Local::now().time();
+    let dt = day.and_time(now_time);
     dt.format("%Y-%m-%dT%H:%M").to_string()
 }
 
 fn default_end_for(day: NaiveDate) -> String {
-    let dt = day.and_hms_opt(10, 0, 0).unwrap();
-    dt.format("%Y-%m-%dT%H:%M").to_string()
+    let now_time = Local::now().time();
+    let start = day.and_time(now_time);
+    let end = start + chrono::Duration::hours(1);
+    end.format("%Y-%m-%dT%H:%M").to_string()
 }
 
 #[component]
