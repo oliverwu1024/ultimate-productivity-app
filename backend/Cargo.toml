@@ -15,7 +15,7 @@ dotenvy = "0.15"
 uuid = { version = "1", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 tower-http = { version = "0.5", features = ["cors", "limit", "set-header"] }
-tower = "0.4"
+tower = "0.5"
 tower_governor = "0.4"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
