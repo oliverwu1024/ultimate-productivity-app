@@ -47,4 +47,7 @@ interface CalendarEventDao {
 
     @Query("UPDATE calendar_events SET isSynced = 1 WHERE id = :id")
     suspend fun markSynced(id: String)
+
+    @Query("SELECT id FROM calendar_events WHERE isSynced = 1 AND startTime BETWEEN :start AND :end")
+    suspend fun getSyncedIdsInRange(start: Long, end: Long): List<String>
 }

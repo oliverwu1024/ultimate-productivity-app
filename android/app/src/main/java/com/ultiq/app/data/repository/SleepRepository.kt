@@ -115,6 +115,21 @@ class SleepRepository(
             }
 
             val serverRecords = apiService.getSleepRecords(null, null)
+            val serverIds = serverRecords.map { it.id }.toSet()
+
+            // Reconcile: drop local synced rows in the pulled window that no longer
+            // exist on the server (deleted from web or another device).
+            val now = System.currentTimeMillis()
+            val day = 24L * 60L * 60L * 1000L
+            val rangeStart = now - 30L * day
+            val rangeEnd = now
+            val localSyncedIds = sleepDao.getSyncedIdsInRange(rangeStart, rangeEnd)
+            for (id in localSyncedIds) {
+                if (id !in serverIds) {
+                    sleepDao.deleteById(id)
+                }
+            }
+
             sleepDao.insertAll(serverRecords.map { it.toEntity() })
         } catch (_: Exception) {
             // offline, skip sync
