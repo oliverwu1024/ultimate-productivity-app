@@ -4,6 +4,8 @@ import android.util.Log
 import com.ultiq.app.BuildConfig
 import com.ultiq.app.data.local.dao.CalendarEventDao
 import com.ultiq.app.data.local.dao.ChecklistDao
+import com.ultiq.app.data.local.dao.SessionDao
+import com.ultiq.app.data.local.dao.SleepDao
 import com.ultiq.app.data.remote.dto.SyncEvent
 import com.ultiq.app.data.remote.dto.parseSyncEvent
 import com.ultiq.app.data.remote.dto.toEntity
@@ -37,6 +39,8 @@ class SyncEventClient(
     private val tokenManager: TokenManager,
     private val calendarDao: CalendarEventDao,
     private val checklistDao: ChecklistDao,
+    private val sleepDao: SleepDao,
+    private val sessionDao: SessionDao,
     private val alarmScheduler: AlarmScheduler? = null,
 ) {
     private val scope = CoroutineScope(Dispatchers.IO)
@@ -157,6 +161,34 @@ class SyncEventClient(
                 is SyncEvent.ChecklistDeleted -> {
                     Log.d(TAG, "applyEvent: ChecklistDeleted id=${event.id}")
                     checklistDao.deleteById(event.id)
+                }
+                is SyncEvent.SleepCreated -> {
+                    val entity = event.record.toEntity()
+                    Log.d(TAG, "applyEvent: SleepCreated id=${entity.id}")
+                    sleepDao.insert(entity)
+                }
+                is SyncEvent.SleepUpdated -> {
+                    val entity = event.record.toEntity()
+                    Log.d(TAG, "applyEvent: SleepUpdated id=${entity.id}")
+                    sleepDao.insert(entity)
+                }
+                is SyncEvent.SleepDeleted -> {
+                    Log.d(TAG, "applyEvent: SleepDeleted id=${event.id}")
+                    sleepDao.deleteById(event.id)
+                }
+                is SyncEvent.SessionCreated -> {
+                    val entity = event.session.toEntity()
+                    Log.d(TAG, "applyEvent: SessionCreated id=${entity.id}")
+                    sessionDao.insert(entity)
+                }
+                is SyncEvent.SessionUpdated -> {
+                    val entity = event.session.toEntity()
+                    Log.d(TAG, "applyEvent: SessionUpdated id=${entity.id}")
+                    sessionDao.insert(entity)
+                }
+                is SyncEvent.SessionDeleted -> {
+                    Log.d(TAG, "applyEvent: SessionDeleted id=${event.id}")
+                    sessionDao.deleteById(event.id)
                 }
             }
         } catch (e: Exception) {

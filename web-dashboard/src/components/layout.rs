@@ -1,6 +1,6 @@
 use leptos::prelude::*;
 use leptos_router::components::A;
-use leptos_router::hooks::use_navigate;
+use leptos_router::hooks::{use_location, use_navigate};
 
 use crate::api::sse::use_sse;
 use crate::auth::{use_auth, AuthContext};
@@ -28,31 +28,15 @@ pub fn AppShell(children: Children) -> impl IntoView {
             <aside class="w-56 bg-ultiq-indigo text-ultiq-cream p-6 flex flex-col gap-2 print:hidden">
                 <div class="text-xl font-bold mb-6">"Ultiq"</div>
                 <nav class="flex flex-col gap-1 text-sm">
-                    <A href="/" attr:class="px-3 py-2 rounded hover:bg-white/10">
-                        "Overview"
-                    </A>
-                    <A href="/checklist" attr:class="px-3 py-2 rounded hover:bg-white/10">
-                        "Checklist"
-                    </A>
-                    <A href="/calendar" attr:class="px-3 py-2 rounded hover:bg-white/10">
-                        "Calendar"
-                    </A>
-                    <A href="/sleep" attr:class="px-3 py-2 rounded hover:bg-white/10">
-                        "Sleep"
-                    </A>
-                    <A href="/focus" attr:class="px-3 py-2 rounded hover:bg-white/10">
-                        "Focus"
-                    </A>
-                    <A href="/correlations" attr:class="px-3 py-2 rounded hover:bg-white/10">
-                        "Correlations"
-                    </A>
-                    <A href="/reports" attr:class="px-3 py-2 rounded hover:bg-white/10">
-                        "Reports"
-                    </A>
+                    <NavLink href="/" label="Overview" />
+                    <NavLink href="/checklist" label="Checklist" />
+                    <NavLink href="/calendar" label="Calendar" />
+                    <NavLink href="/sleep" label="Sleep" />
+                    <NavLink href="/focus" label="Focus" />
+                    <NavLink href="/correlations" label="Correlations" />
+                    <NavLink href="/reports" label="Reports" />
                     <Show when=move || auth.user.get().map(|u| u.is_admin).unwrap_or(false)>
-                        <A href="/admin" attr:class="px-3 py-2 rounded hover:bg-white/10">
-                            "Admin"
-                        </A>
+                        <NavLink href="/admin" label="Admin" />
                     </Show>
                 </nav>
                 <div class="mt-auto pt-6 border-t border-white/20 text-xs">
@@ -72,6 +56,31 @@ pub fn AppShell(children: Children) -> impl IntoView {
                 {children()}
             </main>
         </div>
+    }
+}
+
+#[component]
+fn NavLink(href: &'static str, label: &'static str) -> impl IntoView {
+    let location = use_location();
+    let is_active = move || {
+        let path = location.pathname.get();
+        if href == "/" {
+            path == "/"
+        } else {
+            path == href || path.starts_with(&format!("{}/", href))
+        }
+    };
+    let class = move || {
+        if is_active() {
+            "px-3 py-2 rounded bg-white/15 text-ultiq-cream font-medium"
+        } else {
+            "px-3 py-2 rounded text-ultiq-cream/80 hover:bg-white/10"
+        }
+    };
+    view! {
+        <A href=href attr:class=class>
+            {label}
+        </A>
     }
 }
 

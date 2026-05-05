@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::api::client::{delete, get, post, put, ApiError};
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "lowercase")]
 pub enum EventCategory {
     Study,
@@ -64,7 +64,7 @@ impl EventCategory {
     }
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "lowercase")]
 pub enum EventPriority {
     High,

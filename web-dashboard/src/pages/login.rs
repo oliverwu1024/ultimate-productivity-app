@@ -1,4 +1,5 @@
 use leptos::prelude::*;
+use leptos_meta::Title;
 use leptos_router::hooks::use_navigate;
 
 use crate::api::auth::login;
@@ -39,6 +40,7 @@ pub fn LoginPage() -> impl IntoView {
     };
 
     view! {
+        <Title text="Sign in — Ultiq" />
         <div class="min-h-screen flex items-center justify-center bg-ultiq-cream px-4">
             <form
                 on:submit=on_submit
