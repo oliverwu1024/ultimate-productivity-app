@@ -130,24 +130,24 @@ fn open_event_source(stream: SseStream, ticket: String) {
     source.set_onmessage(Some(on_message.as_ref().unchecked_ref()));
 
     let connected_for_err = stream.connected;
-    // The single-use ticket is spent the moment the stream opens, so a
-    // browser-side EventSource auto-reconnect would fail. Stop the auto-
-    // reconnect by closing the source ourselves on first error, then
-    // re-run the full ticket-fetch + open flow after a short delay.
+    // The single-use ticket is spent the moment the stream opens. The
+    // browser's built-in EventSource auto-retry would fire `on_error`
+    // repeatedly during the 5-second backoff and each fire would schedule
+    // a fresh reconnect — a storm of POST /sync/ticket requests that
+    // tripped the global rate limit. Close the source SYNCHRONOUSLY here
+    // so auto-retry stops, and use CURRENT.take() as a debounce: only
+    // the first on_error after a connection schedules the next attempt.
     let on_error = Closure::<dyn FnMut(_)>::new(move |_ev: web_sys::Event| {
         connected_for_err.set(false);
+        let prior = CURRENT.with(|cell| cell.borrow_mut().take());
+        let Some(conn) = prior else {
+            // A previous on_error already started the reconnect path —
+            // drop this duplicate fire.
+            return;
+        };
+        conn._source.close();
         wasm_bindgen_futures::spawn_local(async move {
             gloo_timers::future::TimeoutFuture::new(5_000).await;
-            CURRENT.with(|cell| {
-                if let Some(conn) = cell.borrow_mut().take() {
-                    conn._source.close();
-                }
-            });
-            // Re-fetch a ticket and re-open. Capturing a fresh stream
-            // signal handle inside this async path requires the caller's
-            // — but the reactive context is still fine because this
-            // closure was constructed on the main thread inside
-            // connect_for_current_user.
             let Some(ticket) = fetch_ticket().await else { return };
             open_event_source(stream, ticket);
         });
