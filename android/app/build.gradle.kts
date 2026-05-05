@@ -113,5 +113,5 @@ dependencies {
     implementation("androidx.work:work-runtime-ktx:2.9.1")
 
     // Vico charting
-    implementation("com.patrykandpatrick.vico:compose-m3:2.0.0-beta.3")
+    implementation("com.patrykandpatrick.vico:compose-m3:3.2.0-next.3")
 }
