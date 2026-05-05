@@ -275,7 +275,7 @@ fn ScatterChart(
             let cx = x_for(x);
             let cy = y_for(y);
             view! {
-                <circle cx=cx cy=cy r=3.5 fill="#2A1B6E" fill-opacity="0.7">
+                <circle cx=cx cy=cy r=3.5 fill="currentColor" fill-opacity="0.7">
                     <title>{format!("x={:.1}, y={:.0}", x / x_unit_divisor, y)}</title>
                 </circle>
             }
@@ -306,7 +306,7 @@ fn ScatterChart(
                     x=x_for(xv) y=h - 12.0
                     text-anchor="middle"
                     font-size="10"
-                    fill="#2A1B6E"
+                    fill="currentColor"
                     opacity="0.6"
                 >
                     {format!("{:.1}", xv / x_unit_divisor)}
@@ -325,7 +325,7 @@ fn ScatterChart(
                     x=pad_l - 6.0 y=y_for(yv) + 3.0
                     text-anchor="end"
                     font-size="10"
-                    fill="#2A1B6E"
+                    fill="currentColor"
                     opacity="0.6"
                 >
                     {format!("{:.0}", yv)}
@@ -336,12 +336,12 @@ fn ScatterChart(
 
     view! {
         <div class="overflow-x-auto">
-            <svg viewBox=format!("0 0 {} {}", w, h) class="w-full h-auto" preserveAspectRatio="xMidYMid meet">
+            <svg viewBox=format!("0 0 {} {}", w, h) class="w-full h-auto text-ultiq-indigo" preserveAspectRatio="xMidYMid meet">
                 // Plot frame
                 <rect
                     x=pad_l y=pad_t width=plot_w height=plot_h
-                    fill="#FFF4E6" fill-opacity="0.4"
-                    stroke="#2A1B6E" stroke-opacity="0.1" stroke-width="1"
+                    fill="currentColor" fill-opacity="0.04"
+                    stroke="currentColor" stroke-opacity="0.15" stroke-width="1"
                 />
                 {y_tick_labels}
                 {x_tick_labels}
@@ -350,13 +350,13 @@ fn ScatterChart(
                 // Axis labels
                 <text
                     x=pad_l + plot_w / 2.0 y=h - 2.0
-                    text-anchor="middle" font-size="11" fill="#2A1B6E" opacity="0.7"
+                    text-anchor="middle" font-size="11" fill="currentColor" opacity="0.7"
                 >
                     {x_label}
                 </text>
                 <text
                     transform=format!("translate({}, {}) rotate(-90)", 12.0, pad_t + plot_h / 2.0)
-                    text-anchor="middle" font-size="11" fill="#2A1B6E" opacity="0.7"
+                    text-anchor="middle" font-size="11" fill="currentColor" opacity="0.7"
                 >
                     {y_label}
                 </text>

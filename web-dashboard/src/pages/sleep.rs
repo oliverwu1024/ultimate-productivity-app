@@ -353,13 +353,13 @@ fn DurationChart(
                     <g>
                         <line
                             x1=pad_l y1=y x2=pad_l + plot_w y2=y
-                            stroke="#2A1B6E" stroke-opacity="0.06" stroke-width="1"
+                            stroke="currentColor" stroke-opacity="0.06" stroke-width="1"
                         />
                         <text
                             x=pad_l - 8.0 y=y + 4.0
                             text-anchor="end"
                             font-size="10"
-                            fill="#2A1B6E"
+                            fill="currentColor"
                             opacity="0.5"
                         >
                             {format!("{}h", m / 60)}
@@ -372,7 +372,7 @@ fn DurationChart(
                 <div class="overflow-x-auto">
                     <svg
                         viewBox=format!("0 0 {} {}", w, h)
-                        class="w-full h-auto"
+                        class="w-full h-auto text-ultiq-indigo"
                         preserveAspectRatio="xMidYMid meet"
                     >
                         {tick_lines}
@@ -380,11 +380,11 @@ fn DurationChart(
                         // Target line
                         <line
                             x1=pad_l y1=target_y x2=pad_l + plot_w y2=target_y
-                            stroke="#2A1B6E" stroke-opacity="0.5" stroke-width="1.5" stroke-dasharray="4 4"
+                            stroke="currentColor" stroke-opacity="0.5" stroke-width="1.5" stroke-dasharray="4 4"
                         />
                         <text
                             x=pad_l + plot_w - 4.0 y=target_y - 6.0
-                            text-anchor="end" font-size="10" fill="#2A1B6E" opacity="0.7"
+                            text-anchor="end" font-size="10" fill="currentColor" opacity="0.7"
                         >
                             {format!("target {}", format_minutes(target_min))}
                         </text>
