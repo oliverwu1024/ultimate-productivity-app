@@ -1,6 +1,6 @@
 {
-  "versionCode": 7,
-  "versionName": "1.6",
-  "url": "https://ultiqapp.com/ultiq.1.6.apk",
-  "releaseNotes": "Web-dashboard discovery: Settings link + first-launch banner. Sleep dialog hardened. Realtime sync for sleep + focus."
+  "versionCode": 8,
+  "versionName": "1.7",
+  "url": "https://ultiqapp.com/ultiq.1.7.apk",
+  "releaseNotes": "Status bar icons now adapt to light/dark theme. More reliable update checks (re-runs on every app foreground)."
 }
