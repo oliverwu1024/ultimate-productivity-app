@@ -63,6 +63,11 @@ async fn create(
             "phone_pickups must be >= 0",
         ));
     }
+    crate::routes::validation::cap_chars_opt(
+        &input.notes,
+        crate::routes::validation::MAX_NOTES_CHARS,
+        "notes",
+    )?;
 
     let record = sqlx::query_as::<_, SleepRecord>(
         "INSERT INTO sleep_records
@@ -170,6 +175,11 @@ async fn update(
             "phone_pickups must be >= 0",
         ));
     }
+    crate::routes::validation::cap_chars_opt(
+        &input.notes,
+        crate::routes::validation::MAX_NOTES_CHARS,
+        "notes",
+    )?;
 
     let record = sqlx::query_as::<_, SleepRecord>(
         "UPDATE sleep_records

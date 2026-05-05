@@ -105,7 +105,7 @@ async fn register(
     })?;
 
     // Generate JWT
-    let token = create_token(&user.id, &state.config.jwt_secret)?;
+    let token = create_token(&user.id, user.token_version, &state.config.jwt_secret)?;
 
     Ok(Json(AuthResponse {
         token,
@@ -133,13 +133,44 @@ async fn login(
         .verify_password(input.password.as_bytes(), &parsed_hash)
         .map_err(|_| AppError::new(StatusCode::UNAUTHORIZED, "Invalid email or password"))?;
 
+    // Transparent rehash: if the stored hash uses weaker params than the
+    // current `argon2_hasher()`, upgrade it on this successful login. The
+    // user's password isn't changing, just the cost factor moving forward.
+    if let Some(new_hash) = rehash_if_outdated(&parsed_hash, input.password.as_bytes()) {
+        sqlx::query("UPDATE users SET password_hash = $1 WHERE id = $2")
+            .bind(&new_hash)
+            .bind(user.id)
+            .execute(&state.pool)
+            .await
+            .ok(); // best-effort — never block login on this
+    }
+
     // Generate JWT
-    let token = create_token(&user.id, &state.config.jwt_secret)?;
+    let token = create_token(&user.id, user.token_version, &state.config.jwt_secret)?;
 
     Ok(Json(AuthResponse {
         token,
         user: user.into(),
     }))
+}
+
+/// If the stored hash's cost params don't match what we now use, return a
+/// freshly-computed hash to write back. Otherwise None.
+fn rehash_if_outdated(parsed: &PasswordHash, password: &[u8]) -> Option<String> {
+    use argon2::Params as ArgonParams;
+    let current = ArgonParams::new(64 * 1024, 3, 1, None).ok()?;
+    let stored_m = parsed.params.get_decimal("m")?;
+    let stored_t = parsed.params.get_decimal("t")?;
+    let stored_p = parsed.params.get_decimal("p")?;
+    if stored_m as u32 == current.m_cost()
+        && stored_t as u32 == current.t_cost()
+        && stored_p as u32 == current.p_cost()
+    {
+        return None;
+    }
+    let salt = SaltString::generate(&mut OsRng);
+    let new_hash = argon2_hasher().hash_password(password, &salt).ok()?;
+    Some(new_hash.to_string())
 }
 
 async fn me(
@@ -231,7 +262,7 @@ async fn change_password(
     State(state): State<AppState>,
     claims: Claims,
     Json(input): Json<ChangePassword>,
-) -> Result<StatusCode, AppError> {
+) -> Result<Json<AuthResponse>, AppError> {
     let user_id = parse_user_id(&claims)?;
 
     // Look up current hash
@@ -264,13 +295,21 @@ async fn change_password(
         .map_err(|_| AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "Failed to hash password"))?
         .to_string();
 
-    sqlx::query("UPDATE users SET password_hash = $1 WHERE id = $2")
-        .bind(&new_hash)
-        .bind(user_id)
-        .execute(&state.pool)
-        .await?;
+    // Bump token_version so any other device's token (or this device's, if
+    // the client doesn't honour the new token in the response) stops working.
+    let updated = sqlx::query_as::<_, User>(
+        "UPDATE users
+         SET password_hash = $1, token_version = token_version + 1
+         WHERE id = $2
+         RETURNING *",
+    )
+    .bind(&new_hash)
+    .bind(user_id)
+    .fetch_one(&state.pool)
+    .await?;
 
-    Ok(StatusCode::NO_CONTENT)
+    let token = create_token(&updated.id, updated.token_version, &state.config.jwt_secret)?;
+    Ok(Json(AuthResponse { token, user: updated.into() }))
 }
 
 async fn forgot_password(
@@ -360,11 +399,17 @@ async fn reset_password(
         .to_string();
 
     let mut tx = state.pool.begin().await?;
-    sqlx::query("UPDATE users SET password_hash = $1 WHERE id = $2")
-        .bind(&new_hash)
-        .bind(row.user_id)
-        .execute(&mut *tx)
-        .await?;
+    // Reset bumps token_version too — any device still holding a session
+    // token from before the reset must re-authenticate.
+    sqlx::query(
+        "UPDATE users
+         SET password_hash = $1, token_version = token_version + 1
+         WHERE id = $2",
+    )
+    .bind(&new_hash)
+    .bind(row.user_id)
+    .execute(&mut *tx)
+    .await?;
     sqlx::query("UPDATE password_reset_tokens SET used_at = now() WHERE id = $1")
         .bind(row.id)
         .execute(&mut *tx)
@@ -454,7 +499,7 @@ fn parse_user_id(claims: &Claims) -> Result<Uuid, AppError> {
         .map_err(|_| AppError::new(StatusCode::UNAUTHORIZED, "Invalid token"))
 }
 
-fn create_token(user_id: &Uuid, jwt_secret: &str) -> Result<String, AppError> {
+fn create_token(user_id: &Uuid, token_version: i32, jwt_secret: &str) -> Result<String, AppError> {
     let now = Utc::now();
     let exp = now
         .checked_add_signed(chrono::Duration::days(TOKEN_LIFETIME_DAYS))
@@ -467,6 +512,7 @@ fn create_token(user_id: &Uuid, jwt_secret: &str) -> Result<String, AppError> {
         iat: now.timestamp() as usize,
         iss: JWT_ISSUER.to_string(),
         aud: JWT_AUDIENCE.to_string(),
+        tv: token_version,
     };
 
     encode(

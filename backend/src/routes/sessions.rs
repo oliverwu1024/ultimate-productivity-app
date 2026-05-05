@@ -52,6 +52,11 @@ async fn create(
             "tag must not be empty",
         ));
     }
+    crate::routes::validation::cap_chars(
+        &input.tag,
+        crate::routes::validation::MAX_TITLE_CHARS,
+        "tag",
+    )?;
     if input.work_duration <= 0 {
         return Err(AppError::new(
             StatusCode::BAD_REQUEST,
