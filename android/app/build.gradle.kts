@@ -99,7 +99,7 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp-sse:4.12.0")
 
     // DataStore
-    implementation("androidx.datastore:datastore-preferences:1.1.1")
+    implementation("androidx.datastore:datastore-preferences:1.2.1")
 
     // Lifecycle / ViewModel
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
