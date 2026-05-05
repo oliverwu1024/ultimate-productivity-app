@@ -24,6 +24,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -50,10 +51,16 @@ fun EndSleepDialog(
     onSave: (qualityRating: Int, notes: String?) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    // Reject the Hidden state via gesture so swipe-down can't lose the session.
+    // Combined with `onDismissRequest = {}` below, the only exits are Save / Cancel.
+    val sheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true,
+        confirmValueChange = { it != SheetValue.Hidden },
+    )
     var qualityRating by remember { mutableIntStateOf(0) }
     var notes by remember { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
+    var showDiscardConfirm by remember { mutableStateOf(false) }
 
     val hours = durationMinutes / 60
     val mins = durationMinutes % 60
@@ -63,8 +70,10 @@ fun EndSleepDialog(
     val zone = ZoneId.systemDefault()
 
     ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState
+        // Tapping the scrim or pressing back is ignored — the user must explicitly
+        // Save or Cancel. Prevents losing a session by fumbling on a dizzy wake-up.
+        onDismissRequest = {},
+        sheetState = sheetState,
     ) {
         Column(
             modifier = Modifier
@@ -169,7 +178,7 @@ fun EndSleepDialog(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End)
             ) {
-                OutlinedButton(onClick = onDismiss) { Text("Cancel") }
+                OutlinedButton(onClick = { showDiscardConfirm = true }) { Text("Cancel") }
                 Button(onClick = {
                     if (qualityRating < 1) {
                         error = "Please rate your sleep quality"
@@ -181,5 +190,24 @@ fun EndSleepDialog(
 
             Spacer(modifier = Modifier.height(16.dp))
         }
+    }
+
+    if (showDiscardConfirm) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showDiscardConfirm = false },
+            title = { Text("Discard sleep session?") },
+            text = {
+                Text("You'll lose the duration and pickup data we tracked. This can't be undone.")
+            },
+            confirmButton = {
+                Button(onClick = {
+                    showDiscardConfirm = false
+                    onDismiss()
+                }) { Text("Discard") }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = { showDiscardConfirm = false }) { Text("Keep") }
+            },
+        )
     }
 }

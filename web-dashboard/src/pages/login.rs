@@ -1,5 +1,6 @@
 use leptos::prelude::*;
 use leptos_meta::Title;
+use leptos_router::components::A;
 use leptos_router::hooks::use_navigate;
 
 use crate::api::auth::login;
@@ -88,6 +89,13 @@ pub fn LoginPage() -> impl IntoView {
                 >
                     {move || if submitting.get() { "Signing in…" } else { "Sign in" }}
                 </button>
+
+                <A
+                    href="/forgot-password"
+                    attr:class="block text-center text-sm text-ultiq-indigo/60 hover:text-ultiq-indigo pt-1"
+                >
+                    "Forgot password?"
+                </A>
             </form>
         </div>
     }

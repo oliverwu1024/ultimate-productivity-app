@@ -104,7 +104,7 @@ pub fn FocusPage() -> impl IntoView {
     view! {
         <Title text="Focus — Ultiq" />
         <AppShell>
-            <div class="p-8 max-w-5xl mx-auto">
+            <div class="p-4 md:p-8 max-w-5xl mx-auto">
                 <header class="flex items-center justify-between mb-6 flex-wrap gap-3">
                     <h1 class="text-3xl font-bold text-ultiq-indigo">"Focus"</h1>
                     <RangeToggle range=range />

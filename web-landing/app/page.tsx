@@ -1,8 +1,61 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Moon, Timer, ListChecks, Sparkles, Download } from "lucide-react";
+import { Moon, Sun, Timer, ListChecks, Sparkles, Download, MonitorCog } from "lucide-react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
+
+type Theme = "light" | "dark" | "system";
+
+function readStoredTheme(): Theme {
+  if (typeof window === "undefined") return "system";
+  const v = window.localStorage.getItem("ultiq_theme");
+  return v === "light" || v === "dark" ? v : "system";
+}
+
+function systemPrefersDark(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.matchMedia("(prefers-color-scheme: dark)").matches;
+}
+
+function applyTheme(t: Theme) {
+  const dark = t === "dark" || (t === "system" && systemPrefersDark());
+  document.documentElement.classList.toggle("dark", dark);
+}
+
+function ThemeToggle() {
+  const [theme, setTheme] = useState<Theme>("system");
+
+  useEffect(() => {
+    setTheme(readStoredTheme());
+  }, []);
+
+  const cycle = () => {
+    const next: Theme = theme === "light" ? "dark" : theme === "dark" ? "system" : "light";
+    setTheme(next);
+    applyTheme(next);
+    if (next === "system") {
+      window.localStorage.removeItem("ultiq_theme");
+    } else {
+      window.localStorage.setItem("ultiq_theme", next);
+    }
+  };
+
+  const Icon = theme === "light" ? Sun : theme === "dark" ? Moon : MonitorCog;
+  const label = theme === "light" ? "Light" : theme === "dark" ? "Dark" : "System";
+
+  return (
+    <button
+      onClick={cycle}
+      title="Cycle theme"
+      aria-label="Toggle theme"
+      className="rounded-full p-2 text-ultiq-indigo/70 transition hover:bg-ultiq-indigo/5 hover:text-ultiq-indigo"
+    >
+      <Icon size={18} aria-hidden="true" />
+      <span className="sr-only">{label}</span>
+    </button>
+  );
+}
 
 const features = [
   {
@@ -49,6 +102,7 @@ export default function Home() {
             <span className="text-xl font-semibold tracking-tight">Ultiq</span>
           </Link>
           <div className="flex items-center gap-2 sm:gap-4">
+            <ThemeToggle />
             <a
               href="https://app.ultiqapp.com"
               className="text-sm font-medium text-ultiq-indigo/80 transition hover:text-ultiq-indigo"
@@ -183,12 +237,12 @@ export default function Home() {
 
         <div className="mt-10 flex flex-col items-center gap-4">
           <a
-            href="/ultiq.1.4.apk"
+            href="/ultiq.1.5.apk"
             download
             className="inline-flex items-center gap-3 rounded-full bg-ultiq-indigo px-8 py-4 text-base font-medium text-ultiq-cream shadow-lg shadow-ultiq-indigo/20 transition hover:translate-y-[-1px] hover:bg-ultiq-indigo/90"
           >
             <Download size={20} strokeWidth={2.2} />
-            Download APK · v1.4 · 14 MB
+            Download APK · v1.5 · 14 MB
           </a>
           <span className="text-xs text-ultiq-indigo/50">Android 8.0+ (API 26)</span>
         </div>
@@ -196,7 +250,7 @@ export default function Home() {
         <details className="mx-auto mt-10 max-w-lg rounded-2xl border border-ultiq-indigo/15 bg-white/40 p-5 text-left text-sm text-ultiq-indigo/80">
           <summary className="cursor-pointer font-medium text-ultiq-indigo">First time installing?</summary>
           <ol className="mt-3 list-decimal space-y-2 pl-5 text-ultiq-indigo/70">
-            <li>Tap the downloaded <code className="rounded bg-ultiq-indigo/5 px-1.5 py-0.5">ultiq.1.4.apk</code> in your Files or Downloads app.</li>
+            <li>Tap the downloaded <code className="rounded bg-ultiq-indigo/5 px-1.5 py-0.5">ultiq.1.5.apk</code> in your Files or Downloads app.</li>
             <li>If Android asks <em>&ldquo;allow installs from this source?&rdquo;</em>, tap <strong>Settings</strong> → toggle on <strong>Allow from this source</strong>, then go back.</li>
             <li>Tap <strong>Install</strong>. The icon appears on your home screen / app drawer when it&apos;s done.</li>
           </ol>
