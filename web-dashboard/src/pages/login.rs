@@ -5,6 +5,7 @@ use leptos_router::hooks::use_navigate;
 
 use crate::api::auth::login;
 use crate::auth::use_auth;
+use crate::components::theme_corner::ThemeCorner;
 
 #[component]
 pub fn LoginPage() -> impl IntoView {
@@ -42,6 +43,7 @@ pub fn LoginPage() -> impl IntoView {
 
     view! {
         <Title text="Sign in — Ultiq" />
+        <ThemeCorner />
         <div class="min-h-screen flex items-center justify-center bg-ultiq-cream px-4">
             <form
                 on:submit=on_submit
