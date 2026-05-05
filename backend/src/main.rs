@@ -70,18 +70,19 @@ async fn main() {
         .allow_headers([header::AUTHORIZATION, header::CONTENT_TYPE, header::ACCEPT]);
 
     // Per-IP rate limit. Two tiers:
-    //   - Global 40 rps / burst 80 covers normal app traffic. A single
-    //     dashboard load fans out into ~8-10 parallel data fetches plus
-    //     an SSE ticket exchange, and any reconnect can briefly add more
-    //     — burst 80 absorbs that without 429s.
-    //   - Auth endpoints get a stricter 1 rps / burst 5 to slow brute force,
-    //     drain attempts on Resend's email quota via `forgot-password`, and
-    //     account-creation floods.
+    //   - Global 200 rps / burst 500: effectively no limit for a single
+    //     interactive user (rapid tab-hopping in the dashboard fans out
+    //     into many parallel fetches per second). Still bounded enough
+    //     that a runaway client or abuse-from-one-IP can't fully DoS the
+    //     backend or burn through downstream quotas.
+    //   - Auth endpoints stay strict at 1 rps / burst 5 — that's where
+    //     real abuse surfaces are (brute-force, account flood, draining
+    //     Resend's email quota via `forgot-password`).
     // ECS sits behind an ALB, so we read X-Forwarded-For for the real client IP.
     let global_governor = Arc::new(
         GovernorConfigBuilder::default()
-            .per_second(40)
-            .burst_size(80)
+            .per_second(200)
+            .burst_size(500)
             .use_headers()
             .finish()
             .expect("valid governor config"),
