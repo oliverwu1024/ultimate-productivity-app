@@ -21,9 +21,10 @@ body {
 /* Surfaces */
 .dark .bg-white { background-color: #1E293B; }                /* slate-800 */
 .dark .bg-ultiq-cream { background-color: #0F172A; }          /* slate-900 */
-.dark .bg-ultiq-cream\/70 { background-color: rgb(15 23 42 / 0.6); }
+.dark .bg-ultiq-cream\/70 { background-color: rgb(51 65 85 / 0.4); }
 .dark .bg-ultiq-cream\/50,
-.dark .bg-ultiq-cream\/40 { background-color: rgb(15 23 42 / 0.5); }
+.dark .bg-ultiq-cream\/40 { background-color: rgb(51 65 85 / 0.25); }
+.dark .hover\:bg-ultiq-cream\/70:hover { background-color: rgb(51 65 85 / 0.5); }
 
 /* Hover / soft fills (the indigo/* alpha variants) */
 .dark .bg-ultiq-indigo\/5  { background-color: rgb(51 65 85 / 0.5); }   /* slate-700 alpha */
@@ -45,6 +46,8 @@ body {
 .dark .border-ultiq-indigo\/20,
 .dark .border-ultiq-indigo\/15,
 .dark .border-ultiq-indigo\/10 { border-color: rgb(51 65 85); }   /* slate-700 */
+.dark .border-ultiq-indigo\/40 { border-color: rgb(148 163 184); } /* slate-400 — visible on dark */
+.dark .hover\:border-ultiq-indigo:hover { border-color: rgb(241 245 249); } /* slate-100 on hover */
 
 /* Brand-indigo accents kept saturated so they pop on dark bg */
 .dark .bg-ultiq-indigo  { background-color: #6366F1; }     /* indigo-500 */

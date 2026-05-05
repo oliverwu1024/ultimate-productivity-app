@@ -719,14 +719,14 @@ fn CategoryDonut(events: RwSignal<Vec<CalendarEvent>>) -> impl IntoView {
 
             view! {
                 <div class="flex items-center gap-6">
-                    <svg viewBox="0 0 100 100" class="w-32 h-32 flex-shrink-0">
+                    <svg viewBox="0 0 100 100" class="w-32 h-32 flex-shrink-0 text-ultiq-indigo">
                         {slices}
                         <text
                             x=50 y=52
                             text-anchor="middle"
                             font-size="11"
                             font-weight="600"
-                            fill="#2A1B6E"
+                            fill="currentColor"
                         >
                             {format_duration(total)}
                         </text>
