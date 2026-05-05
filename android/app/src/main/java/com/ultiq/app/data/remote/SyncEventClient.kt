@@ -47,6 +47,7 @@ class SyncEventClient(
     private var eventSource: EventSource? = null
     private var reconnectJob: Job? = null
     @Volatile private var wantConnected = false
+    @Volatile private var reconnectAttempt = 0
 
     private val client: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
@@ -64,6 +65,7 @@ class SyncEventClient(
 
     fun disconnect() {
         wantConnected = false
+        reconnectAttempt = 0
         reconnectJob?.cancel()
         eventSource?.cancel()
         eventSource = null
@@ -87,7 +89,8 @@ class SyncEventClient(
 
     private val listener = object : EventSourceListener() {
         override fun onOpen(eventSource: EventSource, response: Response) {
-            Log.d(TAG, "SSE connected: ${response.code}")
+            reconnectAttempt = 0
+            if (BuildConfig.DEBUG) Log.d(TAG, "SSE connected: ${response.code}")
         }
 
         override fun onEvent(
@@ -96,13 +99,12 @@ class SyncEventClient(
             type: String?,
             data: String,
         ) {
-            Log.d(TAG, "SSE recv: ${data.take(160)}${if (data.length > 160) "…" else ""}")
             val event = parseSyncEvent(data)
             if (event == null) {
-                Log.w(TAG, "SSE parse failed for: ${data.take(200)}")
+                if (BuildConfig.DEBUG) Log.w(TAG, "SSE parse failed (len=${data.length})")
                 return
             }
-            Log.d(TAG, "SSE parsed: ${event.javaClass.simpleName}")
+            if (BuildConfig.DEBUG) Log.d(TAG, "SSE parsed: ${event.javaClass.simpleName}")
             scope.launch { applyEvent(event) }
         }
 
@@ -111,19 +113,29 @@ class SyncEventClient(
             t: Throwable?,
             response: Response?,
         ) {
-            Log.w(TAG, "SSE failure: code=${response?.code} ${t?.message}")
-            // Reconnect with backoff if the user is still meant to be connected.
-            if (wantConnected) {
-                reconnectJob?.cancel()
-                reconnectJob = scope.launch {
-                    delay(5_000)
-                    doConnect()
-                }
+            val code = response?.code
+            if (BuildConfig.DEBUG) Log.w(TAG, "SSE failure: code=$code")
+            // Auth failure: don't loop. Drop the token and let the UI route to login.
+            if (code == 401 || code == 403) {
+                wantConnected = false
+                reconnectAttempt = 0
+                scope.launch { tokenManager.clearToken() }
+                return
+            }
+            if (!wantConnected) return
+            // Exponential backoff: 5s, 10s, 20s, 40s, 60s cap.
+            val attempt = (reconnectAttempt + 1).coerceAtMost(8)
+            reconnectAttempt = attempt
+            val delayMs = (5_000L * (1L shl (attempt - 1))).coerceAtMost(60_000L)
+            reconnectJob?.cancel()
+            reconnectJob = scope.launch {
+                delay(delayMs)
+                doConnect()
             }
         }
 
         override fun onClosed(eventSource: EventSource) {
-            Log.d(TAG, "SSE closed")
+            if (BuildConfig.DEBUG) Log.d(TAG, "SSE closed")
         }
     }
 
@@ -132,67 +144,31 @@ class SyncEventClient(
             when (event) {
                 is SyncEvent.CalendarCreated -> {
                     val entity = event.event.toEntity()
-                    Log.d(TAG, "applyEvent: CalendarCreated id=${entity.id} title='${entity.title}' startTime=${entity.startTime}")
                     calendarDao.insert(entity)
                     alarmScheduler?.scheduleEventReminder(entity)
                 }
                 is SyncEvent.CalendarUpdated -> {
                     val entity = event.event.toEntity()
-                    Log.d(TAG, "applyEvent: CalendarUpdated id=${entity.id}")
                     calendarDao.insert(entity)
                     alarmScheduler?.cancelEventReminder(entity.id)
                     alarmScheduler?.scheduleEventReminder(entity)
                 }
                 is SyncEvent.CalendarDeleted -> {
-                    Log.d(TAG, "applyEvent: CalendarDeleted id=${event.id}")
                     calendarDao.deleteById(event.id)
                     alarmScheduler?.cancelEventReminder(event.id)
                 }
-                is SyncEvent.ChecklistCreated -> {
-                    val entity = event.item.toEntity()
-                    Log.d(TAG, "applyEvent: ChecklistCreated id=${entity.id}")
-                    checklistDao.insert(entity)
-                }
-                is SyncEvent.ChecklistUpdated -> {
-                    val entity = event.item.toEntity()
-                    Log.d(TAG, "applyEvent: ChecklistUpdated id=${entity.id}")
-                    checklistDao.insert(entity)
-                }
-                is SyncEvent.ChecklistDeleted -> {
-                    Log.d(TAG, "applyEvent: ChecklistDeleted id=${event.id}")
-                    checklistDao.deleteById(event.id)
-                }
-                is SyncEvent.SleepCreated -> {
-                    val entity = event.record.toEntity()
-                    Log.d(TAG, "applyEvent: SleepCreated id=${entity.id}")
-                    sleepDao.insert(entity)
-                }
-                is SyncEvent.SleepUpdated -> {
-                    val entity = event.record.toEntity()
-                    Log.d(TAG, "applyEvent: SleepUpdated id=${entity.id}")
-                    sleepDao.insert(entity)
-                }
-                is SyncEvent.SleepDeleted -> {
-                    Log.d(TAG, "applyEvent: SleepDeleted id=${event.id}")
-                    sleepDao.deleteById(event.id)
-                }
-                is SyncEvent.SessionCreated -> {
-                    val entity = event.session.toEntity()
-                    Log.d(TAG, "applyEvent: SessionCreated id=${entity.id}")
-                    sessionDao.insert(entity)
-                }
-                is SyncEvent.SessionUpdated -> {
-                    val entity = event.session.toEntity()
-                    Log.d(TAG, "applyEvent: SessionUpdated id=${entity.id}")
-                    sessionDao.insert(entity)
-                }
-                is SyncEvent.SessionDeleted -> {
-                    Log.d(TAG, "applyEvent: SessionDeleted id=${event.id}")
-                    sessionDao.deleteById(event.id)
-                }
+                is SyncEvent.ChecklistCreated -> checklistDao.insert(event.item.toEntity())
+                is SyncEvent.ChecklistUpdated -> checklistDao.insert(event.item.toEntity())
+                is SyncEvent.ChecklistDeleted -> checklistDao.deleteById(event.id)
+                is SyncEvent.SleepCreated -> sleepDao.insert(event.record.toEntity())
+                is SyncEvent.SleepUpdated -> sleepDao.insert(event.record.toEntity())
+                is SyncEvent.SleepDeleted -> sleepDao.deleteById(event.id)
+                is SyncEvent.SessionCreated -> sessionDao.insert(event.session.toEntity())
+                is SyncEvent.SessionUpdated -> sessionDao.insert(event.session.toEntity())
+                is SyncEvent.SessionDeleted -> sessionDao.deleteById(event.id)
             }
         } catch (e: Exception) {
-            Log.e(TAG, "applyEvent failed for ${event.javaClass.simpleName}", e)
+            if (BuildConfig.DEBUG) Log.e(TAG, "applyEvent failed for ${event.javaClass.simpleName}", e)
         }
     }
 

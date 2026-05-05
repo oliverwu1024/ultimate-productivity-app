@@ -3,10 +3,11 @@ use axum::http::StatusCode;
 use axum::routing::{delete, get, patch, post};
 use axum::{Json, Router};
 use chrono::Utc;
-use jsonwebtoken::{encode, EncodingKey, Header};
+use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
+use subtle::ConstantTimeEq;
 use uuid::Uuid;
 
-use crate::config::AppState;
+use crate::config::{AppState, JWT_AUDIENCE, JWT_ISSUER};
 use crate::error::AppError;
 use crate::middleware::auth::Claims;
 use crate::models::user::{
@@ -16,9 +17,46 @@ use crate::models::user::{
 
 use argon2::{
     password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
-    Argon2,
+    Algorithm as ArgonAlgo, Argon2, Params, Version,
 };
 use sha2::{Digest, Sha256};
+
+/// JWT lifetime. 30 days is a balance between session pain on phone churn
+/// and the blast radius of a stolen token (revocation requires JWT_SECRET
+/// rotation, which logs everyone out — see backlog item for token versioning).
+const TOKEN_LIFETIME_DAYS: i64 = 30;
+
+/// Argon2id parameters tuned for productivity-app login load. Slightly above
+/// OWASP minimum: m=64 MiB, t=3, p=1. Bumped from `Argon2::default()`.
+fn argon2_hasher() -> Argon2<'static> {
+    let params = Params::new(64 * 1024, 3, 1, None).expect("valid argon2 params");
+    Argon2::new(ArgonAlgo::Argon2id, Version::V0x13, params)
+}
+
+/// Lowercase + trim email so `Foo@x.com` and ` foo@x.com ` collapse to the
+/// same canonical form before insert/lookup.
+fn normalize_email(email: &str) -> String {
+    email.trim().to_ascii_lowercase()
+}
+
+/// Lightweight email shape check. Not a full RFC validator — just defensive
+/// against obvious garbage. The unique-index on the column is the source of truth.
+fn looks_like_email(email: &str) -> bool {
+    let bytes = email.as_bytes();
+    if !(3..=254).contains(&bytes.len()) {
+        return false;
+    }
+    let at = match email.find('@') {
+        Some(i) => i,
+        None => return false,
+    };
+    let (local, rest) = email.split_at(at);
+    let domain = &rest[1..];
+    !local.is_empty()
+        && !domain.is_empty()
+        && domain.contains('.')
+        && !email.contains(' ')
+}
 
 pub fn router() -> Router<AppState> {
     Router::new()
@@ -37,8 +75,8 @@ async fn register(
     State(state): State<AppState>,
     Json(input): Json<CreateUser>,
 ) -> Result<Json<AuthResponse>, AppError> {
-    // Validate email
-    if input.email.is_empty() || !input.email.contains('@') {
+    let email = normalize_email(&input.email);
+    if !looks_like_email(&email) {
         return Err(AppError::new(StatusCode::BAD_REQUEST, "Invalid email"));
     }
 
@@ -46,7 +84,7 @@ async fn register(
 
     // Hash password
     let salt = SaltString::generate(&mut OsRng);
-    let password_hash = Argon2::default()
+    let password_hash = argon2_hasher()
         .hash_password(input.password.as_bytes(), &salt)
         .map_err(|_| AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "Failed to hash password"))?
         .to_string();
@@ -55,7 +93,7 @@ async fn register(
     let user = sqlx::query_as::<_, User>(
         "INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING *",
     )
-    .bind(&input.email)
+    .bind(&email)
     .bind(&password_hash)
     .fetch_one(&state.pool)
     .await
@@ -79,9 +117,10 @@ async fn login(
     State(state): State<AppState>,
     Json(input): Json<LoginUser>,
 ) -> Result<Json<AuthResponse>, AppError> {
+    let email = normalize_email(&input.email);
     // Find user by email
     let user = sqlx::query_as::<_, User>("SELECT * FROM users WHERE email = $1")
-        .bind(&input.email)
+        .bind(&email)
         .fetch_optional(&state.pool)
         .await?
         .ok_or_else(|| AppError::new(StatusCode::UNAUTHORIZED, "Invalid email or password"))?;
@@ -90,7 +129,7 @@ async fn login(
     let parsed_hash = PasswordHash::new(&user.password_hash)
         .map_err(|_| AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "Internal server error"))?;
 
-    Argon2::default()
+    argon2_hasher()
         .verify_password(input.password.as_bytes(), &parsed_hash)
         .map_err(|_| AppError::new(StatusCode::UNAUTHORIZED, "Invalid email or password"))?;
 
@@ -205,7 +244,7 @@ async fn change_password(
     // Verify current password
     let parsed_hash = PasswordHash::new(&user.password_hash)
         .map_err(|_| AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "Internal server error"))?;
-    Argon2::default()
+    argon2_hasher()
         .verify_password(input.current_password.as_bytes(), &parsed_hash)
         .map_err(|_| AppError::new(StatusCode::UNAUTHORIZED, "Current password is incorrect"))?;
 
@@ -220,7 +259,7 @@ async fn change_password(
 
     // Hash and store
     let salt = SaltString::generate(&mut OsRng);
-    let new_hash = Argon2::default()
+    let new_hash = argon2_hasher()
         .hash_password(input.new_password.as_bytes(), &salt)
         .map_err(|_| AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "Failed to hash password"))?
         .to_string();
@@ -238,9 +277,10 @@ async fn forgot_password(
     State(state): State<AppState>,
     Json(input): Json<ForgotPassword>,
 ) -> Result<StatusCode, AppError> {
+    let email = normalize_email(&input.email);
     // Always 200 — never reveal whether the email is registered (account-enumeration defence).
     let user = sqlx::query_as::<_, User>("SELECT * FROM users WHERE email = $1")
-        .bind(&input.email)
+        .bind(&email)
         .fetch_optional(&state.pool)
         .await?;
 
@@ -287,23 +327,32 @@ async fn reset_password(
     // Same generic error for every failure mode — don't help attackers distinguish.
     let invalid = || AppError::new(StatusCode::BAD_REQUEST, "Invalid or expired reset link");
 
-    let row = sqlx::query_as::<_, ResetTokenRow>(
-        "SELECT id, user_id, expires_at, used_at \
-         FROM password_reset_tokens WHERE token_hash = $1",
+    // Pull recent unused tokens and constant-time compare in app code, so DB
+    // string comparison can't leak per-byte timing on the token hash.
+    let rows = sqlx::query_as::<_, ResetTokenRow>(
+        "SELECT id, user_id, token_hash, expires_at, used_at \
+         FROM password_reset_tokens \
+         WHERE used_at IS NULL AND expires_at > now() \
+         ORDER BY expires_at DESC LIMIT 1000",
     )
-    .bind(&token_hash)
-    .fetch_optional(&state.pool)
-    .await?
-    .ok_or_else(invalid)?;
+    .fetch_all(&state.pool)
+    .await?;
 
-    if row.used_at.is_some() || row.expires_at < Utc::now() {
-        return Err(invalid());
+    let candidate = token_hash.as_bytes();
+    let mut matched: Option<&ResetTokenRow> = None;
+    for row in &rows {
+        // ConstantTimeEq returns Choice (0/1) — compare across all rows to avoid
+        // an early-return timing channel that would let attackers learn order.
+        if row.token_hash.as_bytes().ct_eq(candidate).into() {
+            matched = Some(row);
+        }
     }
+    let row = matched.ok_or_else(invalid)?;
 
     validate_password_strength(&input.new_password)?;
 
     let salt = SaltString::generate(&mut OsRng);
-    let new_hash = Argon2::default()
+    let new_hash = argon2_hasher()
         .hash_password(input.new_password.as_bytes(), &salt)
         .map_err(|_| {
             AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "Failed to hash password")
@@ -329,7 +378,10 @@ async fn reset_password(
 struct ResetTokenRow {
     id: Uuid,
     user_id: Uuid,
+    token_hash: String,
+    #[allow(dead_code)]
     expires_at: chrono::DateTime<Utc>,
+    #[allow(dead_code)]
     used_at: Option<chrono::DateTime<Utc>>,
 }
 
@@ -339,7 +391,9 @@ fn sha256_hex(s: &str) -> String {
 }
 
 async fn send_reset_email(state: &AppState, to: &str, token: &str) -> Result<(), AppError> {
-    let link = format!("https://ultiqapp.com/reset?token={}", token);
+    // Dashboard immediately scrubs ?token from window.history.replaceState so it
+    // doesn't linger in browser history or get sent as a Referer.
+    let link = format!("{}?token={}", state.config.reset_link_base, token);
     let body_text = format!(
         "Hi,\n\nWe received a request to reset your Ultiq password. Tap the link below to choose a new password:\n\n{}\n\nThis link expires in 1 hour. If you didn't request a reset, you can safely ignore this email.\n\n— Ultiq",
         link
@@ -401,18 +455,22 @@ fn parse_user_id(claims: &Claims) -> Result<Uuid, AppError> {
 }
 
 fn create_token(user_id: &Uuid, jwt_secret: &str) -> Result<String, AppError> {
-    let expiry = Utc::now()
-        .checked_add_signed(chrono::Duration::days(365))
+    let now = Utc::now();
+    let exp = now
+        .checked_add_signed(chrono::Duration::days(TOKEN_LIFETIME_DAYS))
         .expect("valid timestamp")
         .timestamp() as usize;
 
     let claims = Claims {
         sub: user_id.to_string(),
-        exp: expiry,
+        exp,
+        iat: now.timestamp() as usize,
+        iss: JWT_ISSUER.to_string(),
+        aud: JWT_AUDIENCE.to_string(),
     };
 
     encode(
-        &Header::default(),
+        &Header::new(Algorithm::HS256),
         &claims,
         &EncodingKey::from_secret(jwt_secret.as_bytes()),
     )

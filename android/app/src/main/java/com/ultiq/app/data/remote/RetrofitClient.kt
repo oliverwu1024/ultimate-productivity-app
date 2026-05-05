@@ -17,14 +17,19 @@ object RetrofitClient {
     }
 
     private fun buildApiService(tokenManager: TokenManager): ApiService {
-        val logging = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
+        val builder = OkHttpClient.Builder()
+            .addInterceptor(AuthInterceptor(tokenManager))
+
+        if (BuildConfig.DEBUG) {
+            val logging = HttpLoggingInterceptor().apply {
+                level = HttpLoggingInterceptor.Level.HEADERS
+                redactHeader("Authorization")
+                redactHeader("Cookie")
+            }
+            builder.addInterceptor(logging)
         }
 
-        val client = OkHttpClient.Builder()
-            .addInterceptor(AuthInterceptor(tokenManager))
-            .addInterceptor(logging)
-            .build()
+        val client = builder.build()
 
         return Retrofit.Builder()
             .baseUrl(BuildConfig.API_BASE_URL)

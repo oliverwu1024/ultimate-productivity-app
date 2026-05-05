@@ -1,5 +1,6 @@
--- Bootstrap the developer's account as the first admin. RDS sits in a private subnet
--- with no public access, so an ad-hoc UPDATE would need ECS exec or a bastion —
--- doing it inside a migration is simpler and runs once on the next task boot.
--- No-op if the row doesn't exist yet (e.g. fresh dev DB before register).
-UPDATE users SET is_admin = TRUE WHERE email = '[scrubbed-email]';
+-- Admin bootstrap is performed out-of-band via a one-shot SQL command
+-- (ECS exec into the task or psql via bastion). The previous version of
+-- this migration hard-coded an email address into the source tree, which
+-- would become public when the repo is published. Keeping the file as a
+-- no-op preserves migration ordering / version numbering across envs.
+SELECT 1;
