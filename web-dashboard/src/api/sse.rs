@@ -93,14 +93,17 @@ pub fn connect_for_current_user() {
     if AuthContext::token().is_none() {
         return;
     }
+    // Capture the SSE context signals NOW, while we're still inside the
+    // reactive owner. `expect_context` would not be reliable from inside
+    // the spawned future.
+    let stream = use_sse();
     wasm_bindgen_futures::spawn_local(async move {
         let Some(ticket) = fetch_ticket().await else { return };
-        open_event_source(ticket);
+        open_event_source(stream, ticket);
     });
 }
 
-fn open_event_source(ticket: String) {
-    let stream = use_sse();
+fn open_event_source(stream: SseStream, ticket: String) {
     let url = format!("{}/sync/events?ticket={}", api_base_url(), ticket);
 
     let source = match EventSource::new(&url) {
@@ -127,15 +130,26 @@ fn open_event_source(ticket: String) {
     source.set_onmessage(Some(on_message.as_ref().unchecked_ref()));
 
     let connected_for_err = stream.connected;
+    // The single-use ticket is spent the moment the stream opens, so a
+    // browser-side EventSource auto-reconnect would fail. Stop the auto-
+    // reconnect by closing the source ourselves on first error, then
+    // re-run the full ticket-fetch + open flow after a short delay.
     let on_error = Closure::<dyn FnMut(_)>::new(move |_ev: web_sys::Event| {
         connected_for_err.set(false);
-        // EventSource will auto-reconnect, but a single-use ticket is now spent.
-        // Schedule a fresh ticket exchange after a short delay so the next
-        // reconnect uses a valid one.
         wasm_bindgen_futures::spawn_local(async move {
             gloo_timers::future::TimeoutFuture::new(5_000).await;
-            disconnect();
-            connect_for_current_user();
+            CURRENT.with(|cell| {
+                if let Some(conn) = cell.borrow_mut().take() {
+                    conn._source.close();
+                }
+            });
+            // Re-fetch a ticket and re-open. Capturing a fresh stream
+            // signal handle inside this async path requires the caller's
+            // — but the reactive context is still fine because this
+            // closure was constructed on the main thread inside
+            // connect_for_current_user.
+            let Some(ticket) = fetch_ticket().await else { return };
+            open_event_source(stream, ticket);
         });
     });
     source.set_onerror(Some(on_error.as_ref().unchecked_ref()));
