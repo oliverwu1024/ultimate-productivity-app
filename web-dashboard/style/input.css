@@ -10,6 +10,60 @@ body {
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
+/* Tell the browser to use matching UA defaults for native form controls,
+   scrollbars, autofill chrome, native pickers. */
+:root { color-scheme: light; }
+:root.dark { color-scheme: dark; }
+
+/* Form controls — explicit bg + text so inputs don't inherit `text-slate-100`
+   (from the body in dark mode) onto a native-white input bg. Tailwind's
+   `bg-white` override handled the inputs that already had that class; this
+   catches the rest. */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="search"],
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"],
+input[type="month"],
+input[type="week"],
+input[type="tel"],
+input[type="url"],
+textarea,
+select {
+  background-color: #ffffff;
+  color: #2A1B6E; /* ultiq-indigo */
+}
+
+.dark input[type="text"],
+.dark input[type="email"],
+.dark input[type="password"],
+.dark input[type="number"],
+.dark input[type="search"],
+.dark input[type="date"],
+.dark input[type="time"],
+.dark input[type="datetime-local"],
+.dark input[type="month"],
+.dark input[type="week"],
+.dark input[type="tel"],
+.dark input[type="url"],
+.dark textarea,
+.dark select {
+  background-color: #1E293B; /* slate-800 */
+  color: rgb(241 245 249);   /* slate-100 */
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: rgba(42, 27, 110, 0.45); /* ultiq-indigo @ 45% */
+}
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: rgb(148 163 184); /* slate-400 */
+}
+
 /* ─── Dark-mode overlay ─────────────────────────────────────────────────
    We use neutral slate as the base for surfaces (page bg, cards, borders)
    and keep the brand indigo as a saturated accent. This keeps the indigo
