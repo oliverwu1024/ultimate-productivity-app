@@ -34,6 +34,15 @@ async fn main() {
 
     let pool = db::create_pool(&config.database_url).await;
 
+    // One-shot recovery: migration 009 was rewritten from a literal UPDATE to
+    // `SELECT 1;` during the pre-public security scrub, so prod's stored
+    // checksum no longer matches the file. Drop the row so sqlx re-applies
+    // the (now no-op) migration with a fresh checksum. Idempotent: harmless
+    // on a fresh DB or once the row already matches the new content.
+    let _ = sqlx::query("DELETE FROM _sqlx_migrations WHERE version = 9")
+        .execute(&pool)
+        .await;
+
     sqlx::migrate!("src/migrations").run(&pool).await.expect("Failed to run migrations");
 
     let email = EmailClient::new(config.resend_api_key.clone());
