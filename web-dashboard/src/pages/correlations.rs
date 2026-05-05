@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use chrono::{Duration, Local, NaiveDate};
 use leptos::prelude::*;
+use leptos_meta::Title;
 
 use crate::api::sessions::{list_sessions, ProductivitySession};
 use crate::api::sleep::{list_records, SleepRecord};
@@ -70,6 +71,7 @@ pub fn CorrelationsPage() -> impl IntoView {
     });
 
     view! {
+        <Title text="Correlations — Ultiq" />
         <AppShell>
             <div class="p-8 max-w-5xl mx-auto">
                 <header class="flex items-center justify-between mb-6 flex-wrap gap-3">

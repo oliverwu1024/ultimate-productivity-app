@@ -1,6 +1,7 @@
 use chrono::{Datelike, Duration, Local, NaiveDate, Timelike};
 use gloo_storage::{LocalStorage, Storage};
 use leptos::prelude::*;
+use leptos_meta::Title;
 use leptos_router::components::A;
 
 use crate::api::calendar::{list_events, CalendarEvent};
@@ -107,6 +108,7 @@ pub fn OverviewPage() -> impl IntoView {
     );
 
     view! {
+        <Title text="Overview — Ultiq" />
         <AppShell>
             <div class="p-8 max-w-5xl mx-auto">
                 <header class="flex items-center justify-between mb-6">

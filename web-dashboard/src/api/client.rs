@@ -4,6 +4,23 @@ use serde::{Deserialize, Serialize};
 
 use crate::auth::AuthContext;
 
+/// Centralised 401 handling — clear the stored token and bounce the user to /login.
+/// Called from every request helper before returning the error.
+fn handle_unauthorized() {
+    AuthContext::clear_token();
+    if let Some(window) = web_sys::window() {
+        // Don't loop if we're already on /login
+        let on_login = window
+            .location()
+            .pathname()
+            .map(|p| p == "/login")
+            .unwrap_or(false);
+        if !on_login {
+            let _ = window.location().set_href("/login");
+        }
+    }
+}
+
 pub fn api_base_url() -> &'static str {
     option_env!("API_BASE_URL").unwrap_or("https://api.ultiqapp.com")
 }
@@ -33,6 +50,9 @@ pub async fn get<T: DeserializeOwned>(path: &str) -> Result<T, ApiError> {
     let status = resp.status();
     if !(200..300).contains(&status) {
         let message = error_message(resp).await;
+        if status == 401 {
+            handle_unauthorized();
+        }
         return Err(ApiError { status, message });
     }
     resp.json::<T>().await.map_err(|e| ApiError::other(e.to_string()))
@@ -62,6 +82,9 @@ pub async fn delete(path: &str) -> Result<(), ApiError> {
     let status = resp.status();
     if !(200..300).contains(&status) {
         let message = error_message(resp).await;
+        if status == 401 {
+            handle_unauthorized();
+        }
         return Err(ApiError { status, message });
     }
     Ok(())
@@ -91,6 +114,9 @@ async fn json_body<B: Serialize, T: DeserializeOwned>(
     let status = resp.status();
     if !(200..300).contains(&status) {
         let message = error_message(resp).await;
+        if status == 401 {
+            handle_unauthorized();
+        }
         return Err(ApiError { status, message });
     }
     resp.json::<T>().await.map_err(|e| ApiError::other(e.to_string()))

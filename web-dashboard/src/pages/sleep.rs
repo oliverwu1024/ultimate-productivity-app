@@ -1,8 +1,10 @@
 use chrono::{Duration, Local, NaiveDate};
 use leptos::either::Either;
 use leptos::prelude::*;
+use leptos_meta::Title;
 
 use crate::api::sleep::{fetch_stats, list_records, SleepRecord, SleepStats};
+use crate::api::sse::{use_sse, SyncEvent};
 use crate::components::layout::AppShell;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -69,7 +71,20 @@ pub fn SleepPage() -> impl IntoView {
         refresh();
     });
 
+    let sse = use_sse();
+    Effect::new(move |_| {
+        if let Some(ev) = sse.last_event.get() {
+            match ev {
+                SyncEvent::SleepCreated(_)
+                | SyncEvent::SleepUpdated(_)
+                | SyncEvent::SleepDeleted(_) => refresh(),
+                _ => {}
+            }
+        }
+    });
+
     view! {
+        <Title text="Sleep — Ultiq" />
         <AppShell>
             <div class="p-8 max-w-5xl mx-auto">
                 <header class="flex items-center justify-between mb-6 flex-wrap gap-3">

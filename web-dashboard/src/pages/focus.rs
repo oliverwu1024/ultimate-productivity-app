@@ -3,10 +3,12 @@ use std::collections::BTreeMap;
 use chrono::{Duration, Local, NaiveDate};
 use leptos::either::Either;
 use leptos::prelude::*;
+use leptos_meta::Title;
 
 use crate::api::sessions::{
     fetch_stats, list_sessions, ProductivitySession, SessionStats, TagStat,
 };
+use crate::api::sse::{use_sse, SyncEvent};
 use crate::components::layout::AppShell;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -87,7 +89,20 @@ pub fn FocusPage() -> impl IntoView {
         refresh();
     });
 
+    let sse = use_sse();
+    Effect::new(move |_| {
+        if let Some(ev) = sse.last_event.get() {
+            match ev {
+                SyncEvent::SessionCreated(_)
+                | SyncEvent::SessionUpdated(_)
+                | SyncEvent::SessionDeleted(_) => refresh(),
+                _ => {}
+            }
+        }
+    });
+
     view! {
+        <Title text="Focus — Ultiq" />
         <AppShell>
             <div class="p-8 max-w-5xl mx-auto">
                 <header class="flex items-center justify-between mb-6 flex-wrap gap-3">

@@ -14,6 +14,12 @@ sealed class SyncEvent {
     data class ChecklistCreated(val item: ChecklistItemDto) : SyncEvent()
     data class ChecklistUpdated(val item: ChecklistItemDto) : SyncEvent()
     data class ChecklistDeleted(val id: String) : SyncEvent()
+    data class SleepCreated(val record: SleepRecordDto) : SyncEvent()
+    data class SleepUpdated(val record: SleepRecordDto) : SyncEvent()
+    data class SleepDeleted(val id: String) : SyncEvent()
+    data class SessionCreated(val session: SessionDto) : SyncEvent()
+    data class SessionUpdated(val session: SessionDto) : SyncEvent()
+    data class SessionDeleted(val id: String) : SyncEvent()
 }
 
 private data class IdPayload(val id: String)
@@ -45,6 +51,24 @@ fun parseSyncEvent(json: String): SyncEvent? {
                 gson.fromJson(data, ChecklistItemDto::class.java)
             )
             "ChecklistDeleted" -> SyncEvent.ChecklistDeleted(
+                gson.fromJson(data, IdPayload::class.java).id
+            )
+            "SleepCreated" -> SyncEvent.SleepCreated(
+                gson.fromJson(data, SleepRecordDto::class.java)
+            )
+            "SleepUpdated" -> SyncEvent.SleepUpdated(
+                gson.fromJson(data, SleepRecordDto::class.java)
+            )
+            "SleepDeleted" -> SyncEvent.SleepDeleted(
+                gson.fromJson(data, IdPayload::class.java).id
+            )
+            "SessionCreated" -> SyncEvent.SessionCreated(
+                gson.fromJson(data, SessionDto::class.java)
+            )
+            "SessionUpdated" -> SyncEvent.SessionUpdated(
+                gson.fromJson(data, SessionDto::class.java)
+            )
+            "SessionDeleted" -> SyncEvent.SessionDeleted(
                 gson.fromJson(data, IdPayload::class.java).id
             )
             else -> null
