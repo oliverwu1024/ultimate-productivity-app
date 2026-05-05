@@ -2588,9 +2588,9 @@ ALTER TABLE users
 ADD COLUMN is_admin BOOLEAN NOT NULL DEFAULT FALSE;
 ```
 
-Bootstrap your own row once via psql/RDS Query Editor (no UI for this — admin status is an out-of-band flip):
+Bootstrap your own row once via psql/RDS Query Editor or ECS exec (no UI for this — admin status is an out-of-band flip):
 ```sql
-UPDATE users SET is_admin = TRUE WHERE email = '[scrubbed-email]';
+UPDATE users SET is_admin = TRUE WHERE email = '<your-admin-email>';
 ```
 
 Code changes:
