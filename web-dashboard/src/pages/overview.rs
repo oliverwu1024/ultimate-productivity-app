@@ -1,10 +1,12 @@
-use chrono::{Datelike, Local, Timelike};
+use chrono::{Datelike, Duration, Local, NaiveDate, Timelike};
 use gloo_storage::{LocalStorage, Storage};
 use leptos::prelude::*;
 use leptos_router::components::A;
 
 use crate::api::calendar::{list_events, CalendarEvent};
 use crate::api::checklist::{list_for_range, ChecklistItem};
+use crate::api::sessions::{fetch_stats as fetch_session_stats, list_sessions, ProductivitySession, SessionStats};
+use crate::api::sleep::{list_records, SleepRecord};
 use crate::api::sse::use_sse;
 use crate::components::layout::AppShell;
 
@@ -39,6 +41,9 @@ pub fn OverviewPage() -> impl IntoView {
 
     let events: RwSignal<Vec<CalendarEvent>> = RwSignal::new(Vec::new());
     let items: RwSignal<Vec<ChecklistItem>> = RwSignal::new(Vec::new());
+    let sleep: RwSignal<Vec<SleepRecord>> = RwSignal::new(Vec::new());
+    let sessions: RwSignal<Vec<ProductivitySession>> = RwSignal::new(Vec::new());
+    let session_stats: RwSignal<Option<SessionStats>> = RwSignal::new(None);
 
     let onboarding_dismissed = RwSignal::new(
         LocalStorage::get::<String>(ONBOARDING_KEY).is_ok(),
@@ -50,6 +55,7 @@ pub fn OverviewPage() -> impl IntoView {
     };
 
     let refresh = move || {
+        let yesterday = today - Duration::days(1);
         wasm_bindgen_futures::spawn_local(async move {
             if let Ok(list) = list_events(today, today).await {
                 events.set(list);
@@ -58,6 +64,23 @@ pub fn OverviewPage() -> impl IntoView {
         wasm_bindgen_futures::spawn_local(async move {
             if let Ok(list) = list_for_range(today, today).await {
                 items.set(list);
+            }
+        });
+        wasm_bindgen_futures::spawn_local(async move {
+            // Pull last 2 days so "last night" lands regardless of whether wake-time was
+            // before or after midnight.
+            if let Ok(list) = list_records(yesterday, today).await {
+                sleep.set(list);
+            }
+        });
+        wasm_bindgen_futures::spawn_local(async move {
+            if let Ok(list) = list_sessions(today, today).await {
+                sessions.set(list);
+            }
+        });
+        wasm_bindgen_futures::spawn_local(async move {
+            if let Ok(s) = fetch_session_stats("week").await {
+                session_stats.set(Some(s));
             }
         });
     };
@@ -115,6 +138,8 @@ pub fn OverviewPage() -> impl IntoView {
                 </Show>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <LastNightCard sleep=sleep />
+                    <TodayFocusCard sessions=sessions stats=session_stats />
                     <TodayChecklistCard items=items />
                     <TodayEventsCard events=events />
                 </div>
@@ -129,6 +154,145 @@ pub fn OverviewPage() -> impl IntoView {
                 </div>
             </div>
         </AppShell>
+    }
+}
+
+fn fmt_minutes(m: f64) -> String {
+    if m <= 0.0 {
+        return "0m".to_string();
+    }
+    let h = (m / 60.0).floor() as i64;
+    let mins = (m - h as f64 * 60.0).round() as i64;
+    if h == 0 {
+        format!("{}m", mins)
+    } else if mins == 0 {
+        format!("{}h", h)
+    } else {
+        format!("{}h {}m", h, mins)
+    }
+}
+
+fn duration_minutes(record: &SleepRecord) -> f64 {
+    ((record.actual_wake_time - record.actual_bedtime).num_seconds() as f64 / 60.0).max(0.0)
+}
+
+#[component]
+fn LastNightCard(sleep: RwSignal<Vec<SleepRecord>>) -> impl IntoView {
+    view! {
+        <section class="bg-white rounded-2xl shadow p-6 flex flex-col">
+            <header class="flex items-center justify-between mb-3">
+                <h2 class="text-lg font-semibold text-ultiq-indigo">"Last night"</h2>
+                <A href="/sleep" attr:class="text-sm text-ultiq-indigo/60 hover:text-ultiq-indigo">
+                    "Sleep analytics →"
+                </A>
+            </header>
+            {move || {
+                let recs = sleep.get();
+                // Most-recent record by wake time.
+                let latest = recs.iter().max_by_key(|r| r.actual_wake_time).cloned();
+                match latest {
+                    None => view! {
+                        <p class="text-sm text-ultiq-indigo/50">
+                            "No sleep records yet. Start tracking from the Android app."
+                        </p>
+                    }.into_any(),
+                    Some(r) => {
+                        let dur = duration_minutes(&r);
+                        let stars = "★".repeat(r.quality_rating.max(0) as usize);
+                        let dim_stars = "☆".repeat((5 - r.quality_rating.max(0).min(5)) as usize);
+                        let bedtime = r.actual_bedtime
+                            .with_timezone(&Local)
+                            .format("%H:%M").to_string();
+                        let waketime = r.actual_wake_time
+                            .with_timezone(&Local)
+                            .format("%H:%M").to_string();
+                        view! {
+                            <div class="space-y-3">
+                                <div class="flex items-baseline gap-3">
+                                    <span class="text-3xl font-bold text-ultiq-indigo">
+                                        {fmt_minutes(dur)}
+                                    </span>
+                                    <span class="text-sm text-ultiq-indigo/60">
+                                        {format!("{} → {}", bedtime, waketime)}
+                                    </span>
+                                </div>
+                                <div class="flex items-center gap-3 text-sm">
+                                    <span class="text-ultiq-yellow text-base">
+                                        {stars}<span class="text-ultiq-indigo/20">{dim_stars}</span>
+                                    </span>
+                                    <span class="text-ultiq-indigo/60">
+                                        {format!("· {} pickups", r.phone_pickups)}
+                                    </span>
+                                </div>
+                            </div>
+                        }.into_any()
+                    }
+                }
+            }}
+        </section>
+    }
+}
+
+#[component]
+fn TodayFocusCard(
+    sessions: RwSignal<Vec<ProductivitySession>>,
+    stats: RwSignal<Option<SessionStats>>,
+) -> impl IntoView {
+    view! {
+        <section class="bg-white rounded-2xl shadow p-6 flex flex-col">
+            <header class="flex items-center justify-between mb-3">
+                <h2 class="text-lg font-semibold text-ultiq-indigo">"Today's focus"</h2>
+                <A href="/focus" attr:class="text-sm text-ultiq-indigo/60 hover:text-ultiq-indigo">
+                    "Focus analytics →"
+                </A>
+            </header>
+            {move || {
+                let recs = sessions.get();
+                let st = stats.get();
+                let completed: Vec<&ProductivitySession> = recs.iter().filter(|s| s.completed).collect();
+                let total_min: i64 = completed.iter().map(|s| s.duration_minutes as i64).sum();
+                let n = completed.len();
+                let pickups: i32 = recs.iter().map(|s| s.phone_pickups).sum();
+                let streak = st.as_ref().map(|s| s.current_streak_days).unwrap_or(0);
+
+                if n == 0 {
+                    view! {
+                        <div class="space-y-3">
+                            <p class="text-sm text-ultiq-indigo/50">
+                                "No focus sessions yet today."
+                            </p>
+                            <Show when=move || { streak > 0 }>
+                                <p class="text-xs text-ultiq-indigo/60">
+                                    {format!("Current streak: {} day(s)", streak)}
+                                </p>
+                            </Show>
+                        </div>
+                    }.into_any()
+                } else {
+                    view! {
+                        <div class="space-y-3">
+                            <div class="flex items-baseline gap-3">
+                                <span class="text-3xl font-bold text-ultiq-indigo">
+                                    {fmt_minutes(total_min as f64)}
+                                </span>
+                                <span class="text-sm text-ultiq-indigo/60">
+                                    {format!("{} session{}", n, if n == 1 { "" } else { "s" })}
+                                </span>
+                            </div>
+                            <div class="flex items-center gap-3 text-sm text-ultiq-indigo/60">
+                                <span>
+                                    "🔥 "
+                                    {format!("{} day streak", streak)}
+                                </span>
+                                <Show when=move || { pickups > 0 }>
+                                    <span>{format!("· {} pickups", pickups)}</span>
+                                </Show>
+                            </div>
+                        </div>
+                    }.into_any()
+                }
+            }}
+        </section>
     }
 }
 
