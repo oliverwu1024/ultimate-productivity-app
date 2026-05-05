@@ -14,7 +14,7 @@ argon2 = "0.5"
 dotenvy = "0.15"
 uuid = { version = "1", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
-tower-http = { version = "0.5", features = ["cors", "limit", "set-header"] }
+tower-http = { version = "0.6", features = ["cors", "limit", "set-header"] }
 tower = "0.4"
 tower_governor = "0.4"
 tracing = "0.1"
