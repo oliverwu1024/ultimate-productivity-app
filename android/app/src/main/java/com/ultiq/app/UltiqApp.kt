@@ -69,6 +69,8 @@ class UltiqApp : Application() {
             tokenManager = TokenManager(this),
             calendarDao = db.calendarEventDao(),
             checklistDao = db.checklistDao(),
+            sleepDao = db.sleepDao(),
+            sessionDao = db.sessionDao(),
             alarmScheduler = AlarmScheduler(this),
         )
         ProcessLifecycleOwner.get().lifecycle.addObserver(

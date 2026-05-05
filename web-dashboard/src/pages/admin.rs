@@ -1,5 +1,6 @@
 use leptos::either::Either;
 use leptos::prelude::*;
+use leptos_meta::Title;
 
 use crate::api::admin::{fetch_stats, AdminStats, SignupCount};
 use crate::auth::use_auth;
@@ -11,6 +12,7 @@ pub fn AdminPage() -> impl IntoView {
     let stats = LocalResource::new(|| async move { fetch_stats().await });
 
     view! {
+        <Title text="Admin — Ultiq" />
         <AppShell>
             <div class="p-8">
                 <header class="flex items-center justify-between mb-8">

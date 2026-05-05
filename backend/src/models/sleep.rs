@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 // Database row
-#[derive(Debug, Serialize, sqlx::FromRow)]
+#[derive(Debug, Clone, Serialize, sqlx::FromRow)]
 pub struct SleepRecord {
     pub id: Uuid,
     pub user_id: Uuid,

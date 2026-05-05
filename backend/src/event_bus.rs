@@ -7,6 +7,8 @@ use uuid::Uuid;
 
 use crate::models::calendar::CalendarEvent;
 use crate::models::checklist::ChecklistItem;
+use crate::models::session::ProductivitySession;
+use crate::models::sleep::SleepRecord;
 
 /// One per-user channel, multiplexed across all that user's connected clients.
 /// Single-task in-process for now. Swap for Redis pub/sub when ECS desired_count > 1.
@@ -21,6 +23,12 @@ pub enum SyncEvent {
     ChecklistCreated(ChecklistItem),
     ChecklistUpdated(ChecklistItem),
     ChecklistDeleted { id: Uuid },
+    SleepCreated(SleepRecord),
+    SleepUpdated(SleepRecord),
+    SleepDeleted { id: Uuid },
+    SessionCreated(ProductivitySession),
+    SessionUpdated(ProductivitySession),
+    SessionDeleted { id: Uuid },
 }
 
 #[derive(Clone, Default)]

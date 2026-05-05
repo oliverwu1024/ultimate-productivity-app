@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use chrono::{Datelike, Duration, Local, NaiveDate, Weekday};
 use leptos::prelude::*;
+use leptos_meta::Title;
 
 use crate::api::calendar::{list_events, CalendarEvent, EventCategory};
 use crate::api::sessions::{list_sessions, ProductivitySession};
@@ -142,6 +143,7 @@ pub fn ReportsPage() -> impl IntoView {
     };
 
     view! {
+        <Title text="Reports — Ultiq" />
         <AppShell>
             <div class="p-8 max-w-4xl mx-auto print:p-0 print:max-w-none">
                 <header class="flex items-center justify-between mb-6 flex-wrap gap-3 print:hidden">

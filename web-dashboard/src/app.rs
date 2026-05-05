@@ -1,4 +1,5 @@
 use leptos::prelude::*;
+use leptos_meta::{provide_meta_context, Title};
 use leptos_router::components::{Route, Router, Routes};
 use leptos_router::path;
 
@@ -16,6 +17,7 @@ use crate::pages::sleep::SleepPage;
 
 #[component]
 pub fn App() -> impl IntoView {
+    provide_meta_context();
     provide_auth();
     sse::provide_sse();
 
@@ -32,6 +34,7 @@ pub fn App() -> impl IntoView {
     });
 
     view! {
+        <Title text="Ultiq" />
         <Router>
             <Routes fallback=|| view! { <p class="p-8">"Page not found"</p> }>
                 <Route path=path!("/login") view=LoginPage />

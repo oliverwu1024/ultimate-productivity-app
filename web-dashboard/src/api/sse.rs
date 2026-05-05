@@ -7,6 +7,8 @@ use web_sys::{EventSource, MessageEvent};
 use crate::api::client::api_base_url;
 use crate::api::calendar::CalendarEvent;
 use crate::api::checklist::ChecklistItem;
+use crate::api::sessions::ProductivitySession;
+use crate::api::sleep::SleepRecord;
 use crate::auth::AuthContext;
 
 #[derive(Debug, Clone, Deserialize)]
@@ -20,6 +22,14 @@ pub enum SyncEvent {
     ChecklistUpdated(ChecklistItem),
     #[serde(rename = "ChecklistDeleted")]
     ChecklistDeleted(IdPayload),
+    SleepCreated(SleepRecord),
+    SleepUpdated(SleepRecord),
+    #[serde(rename = "SleepDeleted")]
+    SleepDeleted(IdPayload),
+    SessionCreated(ProductivitySession),
+    SessionUpdated(ProductivitySession),
+    #[serde(rename = "SessionDeleted")]
+    SessionDeleted(IdPayload),
 }
 
 #[derive(Debug, Clone, Deserialize)]
