@@ -47,10 +47,10 @@ class ChecklistRepository(
             val server = apiService.createChecklistItem(createDto)
             val entity = server.toEntity()
             dao.insert(entity)
-            Log.d(tag, "create — server returned id=${server.id} title='$title'")
+            Log.d(tag, "create — server returned id=${server.id}")
             Result.success(entity)
         } catch (e: Exception) {
-            Log.w(tag, "create — API failed for title='$title', falling back to local-only", e)
+            Log.w(tag, "create — API failed, falling back to local-only", e)
             // Offline fallback
             val now = System.currentTimeMillis()
             val entity = ChecklistEntity(

@@ -1,3 +1,4 @@
+use gloo_net::http::Request;
 use leptos::prelude::*;
 use serde::Deserialize;
 use wasm_bindgen::prelude::*;
@@ -65,10 +66,42 @@ thread_local! {
     static CURRENT: std::cell::RefCell<Option<SseConnection>> = const { std::cell::RefCell::new(None) };
 }
 
+#[derive(Deserialize)]
+struct TicketResponse {
+    ticket: String,
+}
+
+/// Trade the stored JWT for a single-use SSE ticket so the long-lived bearer
+/// token never appears in the EventSource URL (which would otherwise land in
+/// browser history, CloudFront access logs, and Referer headers).
+async fn fetch_ticket() -> Option<String> {
+    let token = AuthContext::token()?;
+    let url = format!("{}/sync/ticket", api_base_url());
+    let resp = Request::post(&url)
+        .header("Authorization", &format!("Bearer {}", token))
+        .send()
+        .await
+        .ok()?;
+    if !(200..300).contains(&resp.status()) {
+        return None;
+    }
+    let body: TicketResponse = resp.json().await.ok()?;
+    Some(body.ticket)
+}
+
 pub fn connect_for_current_user() {
-    let Some(token) = AuthContext::token() else { return };
+    if AuthContext::token().is_none() {
+        return;
+    }
+    wasm_bindgen_futures::spawn_local(async move {
+        let Some(ticket) = fetch_ticket().await else { return };
+        open_event_source(ticket);
+    });
+}
+
+fn open_event_source(ticket: String) {
     let stream = use_sse();
-    let url = format!("{}/sync/events?token={}", api_base_url(), token);
+    let url = format!("{}/sync/events?ticket={}", api_base_url(), ticket);
 
     let source = match EventSource::new(&url) {
         Ok(s) => s,
@@ -87,7 +120,7 @@ pub fn connect_for_current_user() {
         match serde_json::from_str::<SyncEvent>(&data) {
             Ok(event) => last_event_signal.set(Some(event)),
             Err(_e) => {
-                // ignore — keep-alive ticks etc.
+                // ignore — keep-alive ticks, lagged markers, etc.
             }
         }
     });
@@ -96,7 +129,14 @@ pub fn connect_for_current_user() {
     let connected_for_err = stream.connected;
     let on_error = Closure::<dyn FnMut(_)>::new(move |_ev: web_sys::Event| {
         connected_for_err.set(false);
-        // Browser EventSource auto-reconnects; nothing else to do.
+        // EventSource will auto-reconnect, but a single-use ticket is now spent.
+        // Schedule a fresh ticket exchange after a short delay so the next
+        // reconnect uses a valid one.
+        wasm_bindgen_futures::spawn_local(async move {
+            gloo_timers::future::TimeoutFuture::new(5_000).await;
+            disconnect();
+            connect_for_current_user();
+        });
     });
     source.set_onerror(Some(on_error.as_ref().unchecked_ref()));
 

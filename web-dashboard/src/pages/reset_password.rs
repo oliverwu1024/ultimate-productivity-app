@@ -41,7 +41,27 @@ pub fn ResetPasswordPage() -> impl IntoView {
     let query = use_query_map();
     let navigate_store = StoredValue::new(use_navigate());
 
-    let token = move || query.read().get("token").map(|s| s.to_string()).unwrap_or_default();
+    // Capture the token once, then immediately scrub it from window.history so
+    // it stops persisting in browser history and stops leaking via Referer to
+    // anything the page links to. Submission goes via a POST body anyway.
+    let initial_token = query
+        .read_untracked()
+        .get("token")
+        .map(|s| s.to_string())
+        .unwrap_or_default();
+    let token_store = StoredValue::new(initial_token.clone());
+    if !initial_token.is_empty() {
+        if let Some(window) = web_sys::window() {
+            if let Ok(history) = window.history() {
+                let _ = history.replace_state_with_url(
+                    &wasm_bindgen::JsValue::NULL,
+                    "",
+                    Some("/reset"),
+                );
+            }
+        }
+    }
+    let token = move || token_store.get_value();
 
     let new_password = RwSignal::new(String::new());
     let confirm_password = RwSignal::new(String::new());

@@ -53,13 +53,20 @@ impl EventBus {
     }
 
     /// Publish an event to all connected clients of `user_id`.
-    /// No-op if no client is currently subscribed.
+    /// No-op if no client is currently subscribed. Drops the per-user channel
+    /// when no receivers remain so the map doesn't grow unbounded.
     pub fn publish(&self, user_id: Uuid, event: SyncEvent) {
-        let map = self.inner.lock().expect("event bus lock poisoned");
-        if let Some(sender) = map.get(&user_id) {
-            // send returns Err if there are no active receivers — that's fine,
-            // just means no clients are connected for that user right now.
-            let _ = sender.send(event);
+        let mut map = self.inner.lock().expect("event bus lock poisoned");
+        let drop_entry = match map.get(&user_id) {
+            Some(sender) if sender.receiver_count() == 0 => true,
+            Some(sender) => {
+                let _ = sender.send(event);
+                false
+            }
+            None => false,
+        };
+        if drop_entry {
+            map.remove(&user_id);
         }
     }
 }

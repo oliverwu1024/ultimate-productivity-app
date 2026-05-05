@@ -6,11 +6,20 @@ mod event_bus;
 mod middleware;
 mod models;
 mod routes;
+mod ticket;
 
+use std::sync::Arc;
+
+use axum::http::{header, HeaderName, HeaderValue, Method};
 use config::{AppState, Config};
 use email::EmailClient;
 use event_bus::EventBus;
-use tower_http::cors::{Any, CorsLayer};
+use ticket::TicketStore;
+use tower_governor::governor::GovernorConfigBuilder;
+use tower_governor::GovernorLayer;
+use tower_http::cors::{AllowOrigin, CorsLayer};
+use tower_http::limit::RequestBodyLimitLayer;
+use tower_http::set_header::SetResponseHeaderLayer;
 use tracing_subscriber::EnvFilter;
 
 #[tokio::main]
@@ -29,23 +38,84 @@ async fn main() {
 
     let email = EmailClient::new(config.resend_api_key.clone());
     let events = EventBus::new();
+    let tickets = TicketStore::new();
 
-    let state = AppState { pool, config, email, events };
-
+    // CORS — explicit allowlist (loaded from ALLOWED_ORIGINS env, defaults to
+    // app.ultiqapp.com + ultiqapp.com). Android calls don't trigger preflight
+    // so the allowlist only affects browser origins.
+    let allowed: Vec<HeaderValue> = config
+        .allowed_origins
+        .iter()
+        .filter_map(|o| HeaderValue::from_str(o).ok())
+        .collect();
     let cors = CorsLayer::new()
-        .allow_origin(Any)
-        .allow_methods(Any)
-        .allow_headers(Any);
+        .allow_origin(AllowOrigin::list(allowed))
+        .allow_methods([
+            Method::GET,
+            Method::POST,
+            Method::PUT,
+            Method::PATCH,
+            Method::DELETE,
+            Method::OPTIONS,
+        ])
+        .allow_headers([header::AUTHORIZATION, header::CONTENT_TYPE, header::ACCEPT]);
 
+    // Per-IP rate limit. Defaults to 20 req/sec with burst 40 — comfortably above
+    // the dashboard's normal traffic but tight enough to brake brute-force.
+    // ECS sits behind an ALB, so we read X-Forwarded-For for the real client IP.
+    let governor_conf = Arc::new(
+        GovernorConfigBuilder::default()
+            .per_second(20)
+            .burst_size(40)
+            .use_headers()
+            .finish()
+            .expect("valid governor config"),
+    );
+
+    let state = AppState { pool, config, email, events, tickets };
+
+    // Security headers applied to every response. The API only ever returns
+    // JSON / SSE; CSP locks scripts/iframes/etc out entirely, HSTS pins HTTPS,
+    // and Referrer-Policy keeps reset tokens off the wire if an old client
+    // ever follows an external link from a token-bearing URL.
     let app = routes::all_routes()
+        .layer(GovernorLayer { config: governor_conf })
+        // 1 MiB hard cap on request bodies — well above the largest legitimate
+        // bulk_create payload but cheap to enforce.
+        .layer(RequestBodyLimitLayer::new(1024 * 1024))
         .layer(cors)
+        .layer(SetResponseHeaderLayer::if_not_present(
+            HeaderName::from_static("strict-transport-security"),
+            HeaderValue::from_static("max-age=31536000; includeSubDomains; preload"),
+        ))
+        .layer(SetResponseHeaderLayer::if_not_present(
+            HeaderName::from_static("x-content-type-options"),
+            HeaderValue::from_static("nosniff"),
+        ))
+        .layer(SetResponseHeaderLayer::if_not_present(
+            HeaderName::from_static("x-frame-options"),
+            HeaderValue::from_static("DENY"),
+        ))
+        .layer(SetResponseHeaderLayer::if_not_present(
+            HeaderName::from_static("referrer-policy"),
+            HeaderValue::from_static("no-referrer"),
+        ))
+        .layer(SetResponseHeaderLayer::if_not_present(
+            HeaderName::from_static("content-security-policy"),
+            HeaderValue::from_static("default-src 'none'; frame-ancestors 'none'"),
+        ))
         .with_state(state);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8080")
         .await
         .expect("Failed to bind to port 8080");
 
-    tracing::info!("Server running on http://0.0.0.0:8080");
+    tracing::info!("Server listening on 0.0.0.0:8080 (TLS terminated upstream)");
 
-    axum::serve(listener, app).await.expect("Server error");
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<std::net::SocketAddr>(),
+    )
+    .await
+    .expect("Server error");
 }
