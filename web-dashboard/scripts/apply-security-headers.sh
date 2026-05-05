@@ -21,8 +21,13 @@ DASHBOARD_POLICY_NAME="ultiq-security-headers-dashboard"
 LANDING_POLICY_NAME="ultiq-security-headers-landing"
 LEGACY_POLICY_NAME="ultiq-security-headers"
 
+# Trunk emits an inline `<script type="module">` to bootstrap the WASM on
+# every build (it references hash-versioned filenames so pinning a SHA in
+# CSP would require regenerating the policy on every deploy). Accept
+# 'unsafe-inline' for scripts as the practical Trunk-build trade-off; all
+# other directives stay locked down.
 DASHBOARD_CSP="default-src 'self'; \
-script-src 'self' 'wasm-unsafe-eval'; \
+script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; \
 style-src 'self' 'unsafe-inline'; \
 img-src 'self' data:; \
 connect-src 'self' https://api.ultiqapp.com; \
