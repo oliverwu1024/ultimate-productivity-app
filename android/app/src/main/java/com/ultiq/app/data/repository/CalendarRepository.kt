@@ -153,6 +153,23 @@ class CalendarRepository(
             }
 
             val serverEvents = apiService.getCalendarEvents(null, null, null, null)
+            val serverIds = serverEvents.map { it.id }.toSet()
+
+            // Reconcile deletes: any local synced row in the pulled window that's no longer
+            // on the server was deleted elsewhere (web dashboard, another device). Match the
+            // backend's default ±30-day window.
+            val now = System.currentTimeMillis()
+            val day = 24L * 60L * 60L * 1000L
+            val rangeStart = now - 30L * day
+            val rangeEnd = now + 30L * day
+            val localSyncedIds = calendarEventDao.getSyncedIdsInRange(rangeStart, rangeEnd)
+            for (id in localSyncedIds) {
+                if (id !in serverIds) {
+                    calendarEventDao.deleteById(id)
+                    alarmScheduler?.cancelEventReminder(id)
+                }
+            }
+
             val entities = serverEvents.map { it.toEntity() }
             calendarEventDao.insertAll(entities)
             alarmScheduler?.rescheduleAllEventReminders(entities)
