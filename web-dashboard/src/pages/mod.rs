@@ -1,7 +1,9 @@
 pub mod admin;
 pub mod calendar;
 pub mod checklist;
+pub mod correlations;
 pub mod focus;
 pub mod login;
 pub mod overview;
+pub mod reports;
 pub mod sleep;

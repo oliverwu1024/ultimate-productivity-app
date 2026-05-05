@@ -24,8 +24,8 @@ pub fn AppShell(children: Children) -> impl IntoView {
     };
 
     view! {
-        <div class="flex min-h-screen bg-ultiq-cream">
-            <aside class="w-56 bg-ultiq-indigo text-ultiq-cream p-6 flex flex-col gap-2">
+        <div class="flex min-h-screen bg-ultiq-cream print:bg-white">
+            <aside class="w-56 bg-ultiq-indigo text-ultiq-cream p-6 flex flex-col gap-2 print:hidden">
                 <div class="text-xl font-bold mb-6">"Ultiq"</div>
                 <nav class="flex flex-col gap-1 text-sm">
                     <A href="/" attr:class="px-3 py-2 rounded hover:bg-white/10">
@@ -42,6 +42,12 @@ pub fn AppShell(children: Children) -> impl IntoView {
                     </A>
                     <A href="/focus" attr:class="px-3 py-2 rounded hover:bg-white/10">
                         "Focus"
+                    </A>
+                    <A href="/correlations" attr:class="px-3 py-2 rounded hover:bg-white/10">
+                        "Correlations"
+                    </A>
+                    <A href="/reports" attr:class="px-3 py-2 rounded hover:bg-white/10">
+                        "Reports"
                     </A>
                     <Show when=move || auth.user.get().map(|u| u.is_admin).unwrap_or(false)>
                         <A href="/admin" attr:class="px-3 py-2 rounded hover:bg-white/10">
