@@ -50,4 +50,7 @@ interface SessionDao {
 
     @Query("SELECT SUM(durationMinutes) FROM productivity_sessions WHERE completed = 1 AND startedAt BETWEEN :start AND :end")
     suspend fun getTotalFocusMinutes(start: Long, end: Long): Int?
+
+    @Query("SELECT id FROM productivity_sessions WHERE isSynced = 1 AND startedAt BETWEEN :start AND :end")
+    suspend fun getSyncedIdsInRange(start: Long, end: Long): List<String>
 }
