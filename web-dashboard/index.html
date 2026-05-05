@@ -4,8 +4,20 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Ultiq Dashboard</title>
+    <!-- Pre-paint dark-mode application: runs before WASM loads to avoid a flash
+         of the wrong theme. Reads localStorage first, falls back to system pref. -->
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem("ultiq_theme");
+          var prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+          var dark = stored === "dark" || (stored == null && prefersDark);
+          if (dark) document.documentElement.classList.add("dark");
+        } catch (e) {}
+      })();
+    </script>
     <link data-trunk rel="rust" />
     <link data-trunk rel="tailwind-css" href="style/input.css" />
   </head>
-  <body class="bg-ultiq-cream text-ultiq-indigo antialiased"></body>
+  <body class="bg-ultiq-cream text-ultiq-indigo dark:bg-ultiq-night-900 dark:text-slate-100 antialiased"></body>
 </html>

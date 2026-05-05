@@ -10,14 +10,17 @@ use crate::pages::calendar::CalendarPage;
 use crate::pages::checklist::ChecklistPage;
 use crate::pages::correlations::CorrelationsPage;
 use crate::pages::focus::FocusPage;
+use crate::pages::forgot_password::ForgotPasswordPage;
 use crate::pages::login::LoginPage;
 use crate::pages::overview::OverviewPage;
 use crate::pages::reports::ReportsPage;
+use crate::pages::reset_password::ResetPasswordPage;
 use crate::pages::sleep::SleepPage;
 
 #[component]
 pub fn App() -> impl IntoView {
     provide_meta_context();
+    crate::theme::provide_theme();
     provide_auth();
     sse::provide_sse();
 
@@ -38,6 +41,8 @@ pub fn App() -> impl IntoView {
         <Router>
             <Routes fallback=|| view! { <p class="p-8">"Page not found"</p> }>
                 <Route path=path!("/login") view=LoginPage />
+                <Route path=path!("/forgot-password") view=ForgotPasswordPage />
+                <Route path=path!("/reset") view=ResetPasswordPage />
                 <Route path=path!("/") view=OverviewPage />
                 <Route path=path!("/calendar") view=CalendarPage />
                 <Route path=path!("/checklist") view=ChecklistPage />
