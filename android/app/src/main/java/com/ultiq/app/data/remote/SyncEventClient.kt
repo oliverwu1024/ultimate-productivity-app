@@ -92,7 +92,13 @@ class SyncEventClient(
             type: String?,
             data: String,
         ) {
-            val event = parseSyncEvent(data) ?: return
+            Log.d(TAG, "SSE recv: ${data.take(160)}${if (data.length > 160) "…" else ""}")
+            val event = parseSyncEvent(data)
+            if (event == null) {
+                Log.w(TAG, "SSE parse failed for: ${data.take(200)}")
+                return
+            }
+            Log.d(TAG, "SSE parsed: ${event.javaClass.simpleName}")
             scope.launch { applyEvent(event) }
         }
 
@@ -118,31 +124,43 @@ class SyncEventClient(
     }
 
     private suspend fun applyEvent(event: SyncEvent) {
-        when (event) {
-            is SyncEvent.CalendarCreated -> {
-                val entity = event.event.toEntity()
-                calendarDao.insert(entity)
-                alarmScheduler?.scheduleEventReminder(entity)
+        try {
+            when (event) {
+                is SyncEvent.CalendarCreated -> {
+                    val entity = event.event.toEntity()
+                    Log.d(TAG, "applyEvent: CalendarCreated id=${entity.id} title='${entity.title}' startTime=${entity.startTime}")
+                    calendarDao.insert(entity)
+                    alarmScheduler?.scheduleEventReminder(entity)
+                }
+                is SyncEvent.CalendarUpdated -> {
+                    val entity = event.event.toEntity()
+                    Log.d(TAG, "applyEvent: CalendarUpdated id=${entity.id}")
+                    calendarDao.insert(entity)
+                    alarmScheduler?.cancelEventReminder(entity.id)
+                    alarmScheduler?.scheduleEventReminder(entity)
+                }
+                is SyncEvent.CalendarDeleted -> {
+                    Log.d(TAG, "applyEvent: CalendarDeleted id=${event.id}")
+                    calendarDao.deleteById(event.id)
+                    alarmScheduler?.cancelEventReminder(event.id)
+                }
+                is SyncEvent.ChecklistCreated -> {
+                    val entity = event.item.toEntity()
+                    Log.d(TAG, "applyEvent: ChecklistCreated id=${entity.id}")
+                    checklistDao.insert(entity)
+                }
+                is SyncEvent.ChecklistUpdated -> {
+                    val entity = event.item.toEntity()
+                    Log.d(TAG, "applyEvent: ChecklistUpdated id=${entity.id}")
+                    checklistDao.insert(entity)
+                }
+                is SyncEvent.ChecklistDeleted -> {
+                    Log.d(TAG, "applyEvent: ChecklistDeleted id=${event.id}")
+                    checklistDao.deleteById(event.id)
+                }
             }
-            is SyncEvent.CalendarUpdated -> {
-                val entity = event.event.toEntity()
-                calendarDao.insert(entity)
-                alarmScheduler?.cancelEventReminder(entity.id)
-                alarmScheduler?.scheduleEventReminder(entity)
-            }
-            is SyncEvent.CalendarDeleted -> {
-                calendarDao.deleteById(event.id)
-                alarmScheduler?.cancelEventReminder(event.id)
-            }
-            is SyncEvent.ChecklistCreated -> {
-                checklistDao.insert(event.item.toEntity())
-            }
-            is SyncEvent.ChecklistUpdated -> {
-                checklistDao.insert(event.item.toEntity())
-            }
-            is SyncEvent.ChecklistDeleted -> {
-                checklistDao.deleteById(event.id)
-            }
+        } catch (e: Exception) {
+            Log.e(TAG, "applyEvent failed for ${event.javaClass.simpleName}", e)
         }
     }
 
