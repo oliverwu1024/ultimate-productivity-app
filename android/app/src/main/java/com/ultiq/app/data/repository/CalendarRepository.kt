@@ -14,8 +14,11 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.YearMonth
+import java.time.ZoneId
 import java.time.ZoneOffset
 import java.util.UUID
+
+private val LOCAL_ZONE: ZoneId get() = ZoneId.systemDefault()
 
 class CalendarRepository(
     private val calendarEventDao: CalendarEventDao,
@@ -25,24 +28,24 @@ class CalendarRepository(
 
     fun getEventsForMonth(year: Int, month: Int): Flow<List<CalendarEventEntity>> {
         val ym = YearMonth.of(year, month)
-        val start = ym.atDay(1).atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli()
-        val end = ym.atEndOfMonth().atTime(23, 59, 59).toInstant(ZoneOffset.UTC).toEpochMilli()
+        val start = ym.atDay(1).atStartOfDay(LOCAL_ZONE).toInstant().toEpochMilli()
+        val end = ym.atEndOfMonth().atTime(23, 59, 59).atZone(LOCAL_ZONE).toInstant().toEpochMilli()
         return calendarEventDao.getEventsForRange(start, end).map { events ->
             expandAll(events, start, end)
         }
     }
 
     fun getEventsForRange(startDate: LocalDate, endDate: LocalDate): Flow<List<CalendarEventEntity>> {
-        val start = startDate.atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli()
-        val end = endDate.atTime(23, 59, 59).toInstant(ZoneOffset.UTC).toEpochMilli()
+        val start = startDate.atStartOfDay(LOCAL_ZONE).toInstant().toEpochMilli()
+        val end = endDate.atTime(23, 59, 59).atZone(LOCAL_ZONE).toInstant().toEpochMilli()
         return calendarEventDao.getEventsForRange(start, end).map { events ->
             expandAll(events, start, end)
         }
     }
 
     fun getEventsForDay(date: LocalDate): Flow<List<CalendarEventEntity>> {
-        val start = date.atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli()
-        val end = date.atTime(23, 59, 59).toInstant(ZoneOffset.UTC).toEpochMilli()
+        val start = date.atStartOfDay(LOCAL_ZONE).toInstant().toEpochMilli()
+        val end = date.atTime(23, 59, 59).atZone(LOCAL_ZONE).toInstant().toEpochMilli()
         return calendarEventDao.getEventsForRange(start, end).map { events ->
             expandAll(events, start, end)
         }
@@ -203,10 +206,10 @@ class CalendarRepository(
     ): List<CalendarEventEntity> {
         val rule = event.recurrenceRule ?: return emptyList()
         val duration = event.endTime - event.startTime
-        val eventTime = Instant.ofEpochMilli(event.startTime).atOffset(ZoneOffset.UTC).toLocalTime()
-        val eventStartDate = Instant.ofEpochMilli(event.startTime).atOffset(ZoneOffset.UTC).toLocalDate()
-        val rangeStartDate = Instant.ofEpochMilli(rangeStart).atOffset(ZoneOffset.UTC).toLocalDate()
-        val rangeEndDate = Instant.ofEpochMilli(rangeEnd).atOffset(ZoneOffset.UTC).toLocalDate()
+        val eventTime = Instant.ofEpochMilli(event.startTime).atZone(LOCAL_ZONE).toLocalTime()
+        val eventStartDate = Instant.ofEpochMilli(event.startTime).atZone(LOCAL_ZONE).toLocalDate()
+        val rangeStartDate = Instant.ofEpochMilli(rangeStart).atZone(LOCAL_ZONE).toLocalDate()
+        val rangeEndDate = Instant.ofEpochMilli(rangeEnd).atZone(LOCAL_ZONE).toLocalDate()
 
         val instances = mutableListOf<CalendarEventEntity>()
 
@@ -260,7 +263,7 @@ class CalendarRepository(
         time: LocalTime,
         duration: Long
     ): CalendarEventEntity {
-        val start = date.atTime(time).toInstant(ZoneOffset.UTC).toEpochMilli()
+        val start = date.atTime(time).atZone(LOCAL_ZONE).toInstant().toEpochMilli()
         return event.copy(startTime = start, endTime = start + duration)
     }
 
