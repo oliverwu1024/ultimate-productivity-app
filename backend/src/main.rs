@@ -60,10 +60,13 @@ async fn main() {
         ])
         .allow_headers([header::AUTHORIZATION, header::CONTENT_TYPE, header::ACCEPT]);
 
-    // Per-IP rate limit. Defaults to 20 req/sec with burst 40 — comfortably above
-    // the dashboard's normal traffic but tight enough to brake brute-force.
+    // Per-IP rate limit. Two tiers:
+    //   - Global 20 rps / burst 40 covers normal app traffic.
+    //   - Auth endpoints get a stricter 1 rps / burst 5 to slow brute force,
+    //     drain attempts on Resend's email quota via `forgot-password`, and
+    //     account-creation floods.
     // ECS sits behind an ALB, so we read X-Forwarded-For for the real client IP.
-    let governor_conf = Arc::new(
+    let global_governor = Arc::new(
         GovernorConfigBuilder::default()
             .per_second(20)
             .burst_size(40)
@@ -71,15 +74,28 @@ async fn main() {
             .finish()
             .expect("valid governor config"),
     );
+    let auth_governor = Arc::new(
+        GovernorConfigBuilder::default()
+            .per_second(1)
+            .burst_size(5)
+            .use_headers()
+            .finish()
+            .expect("valid governor config"),
+    );
 
     let state = AppState { pool, config, email, events, tickets };
+
+    let auth_routes = routes::auth_routes()
+        .layer(GovernorLayer { config: auth_governor });
+    let other_routes = routes::other_routes()
+        .layer(GovernorLayer { config: global_governor });
 
     // Security headers applied to every response. The API only ever returns
     // JSON / SSE; CSP locks scripts/iframes/etc out entirely, HSTS pins HTTPS,
     // and Referrer-Policy keeps reset tokens off the wire if an old client
     // ever follows an external link from a token-bearing URL.
-    let app = routes::all_routes()
-        .layer(GovernorLayer { config: governor_conf })
+    let app = auth_routes
+        .merge(other_routes)
         // 1 MiB hard cap on request bodies — well above the largest legitimate
         // bulk_create payload but cheap to enforce.
         .layer(RequestBodyLimitLayer::new(1024 * 1024))

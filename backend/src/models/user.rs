@@ -10,6 +10,7 @@ pub struct User {
     pub created_at: DateTime<Utc>,
     pub sleep_target_minutes: i32,
     pub is_admin: bool,
+    pub token_version: i32,
 }
 
 #[derive(Debug, Deserialize)]
