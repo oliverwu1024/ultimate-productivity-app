@@ -65,12 +65,23 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.material.icons.filled.Public
+import androidx.compose.material.icons.filled.Close
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ultiq.app.data.local.entity.CalendarEventEntity
 import com.ultiq.app.ui.calendar.categoryColor
 import com.ultiq.app.ui.copy.WarmCopy
 import com.ultiq.app.ui.theme.AnimatedAppear
 import com.ultiq.app.util.Comparisons
+import com.ultiq.app.util.UserPreferences
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalTime
 import java.time.ZoneId
@@ -89,6 +100,17 @@ fun DashboardScreen(
     viewModel: DashboardViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
+    val userPrefs = remember { UserPreferences(context) }
+    var showWebHint by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        userPrefs.settings.collectLatest { showWebHint = !it.webDashboardHintSeen }
+    }
+    val dismissWebHint = {
+        showWebHint = false
+        CoroutineScope(Dispatchers.IO).launch { userPrefs.setWebDashboardHintSeen(true) }
+        Unit
+    }
 
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -134,6 +156,22 @@ fun DashboardScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item { GreetingHeader() }
+
+            if (showWebHint) {
+                item {
+                    WebDashboardHint(
+                        onOpen = {
+                            val intent = android.content.Intent(
+                                android.content.Intent.ACTION_VIEW,
+                                android.net.Uri.parse("https://app.ultiqapp.com"),
+                            ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                            context.startActivity(intent)
+                            dismissWebHint()
+                        },
+                        onDismiss = { dismissWebHint() },
+                    )
+                }
+            }
 
             item {
                 SyncIndicator(
@@ -226,6 +264,53 @@ fun DashboardScreen(
 
             item { Spacer(Modifier.height(8.dp)) }
         }
+        }
+    }
+}
+
+@Composable
+private fun WebDashboardHint(
+    onOpen: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+        ),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onOpen() },
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                Icons.Default.Public,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                modifier = Modifier.size(22.dp),
+            )
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    "Did you know?",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f),
+                )
+                Text(
+                    "Ultiq is also on the web — full analytics at app.ultiqapp.com",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                )
+            }
+            IconButton(onClick = onDismiss) {
+                Icon(
+                    Icons.Default.Close,
+                    contentDescription = "Dismiss",
+                    tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                )
+            }
         }
     }
 }

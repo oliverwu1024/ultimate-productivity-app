@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
@@ -299,6 +300,20 @@ fun SettingsScreen(
                     title = "Weekly report",
                     description = "Sleep, focus, and achievements",
                     onClick = onNavigateToReports,
+                )
+            }
+            item {
+                LinkRow(
+                    icon = Icons.Default.Public,
+                    title = "Web dashboard",
+                    description = "Open app.ultiqapp.com — full analytics, correlations, reports",
+                    onClick = {
+                        val intent = android.content.Intent(
+                            android.content.Intent.ACTION_VIEW,
+                            android.net.Uri.parse("https://app.ultiqapp.com"),
+                        ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                        context.startActivity(intent)
+                    },
                 )
             }
 
