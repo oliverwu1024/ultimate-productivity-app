@@ -98,8 +98,11 @@ dependencies {
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
     implementation("com.squareup.okhttp3:okhttp-sse:4.12.0")
 
-    // DataStore
+    // DataStore (still used by other prefs; auth tokens moved to EncryptedSharedPreferences)
     implementation("androidx.datastore:datastore-preferences:1.1.1")
+
+    // Encrypted prefs for auth tokens — Keystore-backed AEAD via Tink.
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
 
     // Lifecycle / ViewModel
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
