@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type)]
+#[serde(rename_all = "lowercase")]
 #[sqlx(type_name = "event_category", rename_all = "lowercase")]
 pub enum EventCategory {
     Study,
@@ -25,6 +26,7 @@ impl EventCategory {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type)]
+#[serde(rename_all = "lowercase")]
 #[sqlx(type_name = "event_priority", rename_all = "lowercase")]
 pub enum EventPriority {
     High,

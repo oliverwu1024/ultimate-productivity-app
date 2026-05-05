@@ -114,10 +114,9 @@ class CalendarViewModel(application: Application) : AndroidViewModel(application
         monthJob?.cancel()
         monthJob = viewModelScope.launch {
             repository.getEventsForMonth(yearMonth.year, yearMonth.monthValue).collect { events ->
+                val zone = java.time.ZoneId.systemDefault()
                 val grouped = events.groupBy { entity ->
-                    Instant.ofEpochMilli(entity.startTime)
-                        .atOffset(ZoneOffset.UTC)
-                        .toLocalDate()
+                    Instant.ofEpochMilli(entity.startTime).atZone(zone).toLocalDate()
                 }
                 _uiState.value = _uiState.value.copy(
                     monthEvents = grouped,
