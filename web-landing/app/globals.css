@@ -1,8 +1,16 @@
 @import "tailwindcss";
 
+/* Class-based dark mode: applies when <html class="dark"> is set */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #FFF4E6;
   --foreground: #2A1B6E;
+}
+
+.dark {
+  --background: #0E0A24;
+  --foreground: #F1F5F9;
 }
 
 @theme inline {
@@ -13,6 +21,9 @@
   --color-ultiq-yellow: #FFC83D;
   --color-ultiq-cream: #FFF4E6;
   --color-ultiq-blue: #A8C5E8;
+  --color-ultiq-night-900: #0E0A24;
+  --color-ultiq-night-800: #1A1244;
+  --color-ultiq-night-700: #2A1F58;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -23,3 +34,24 @@ body {
   font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
+
+/* Dark-mode overlay — remap commonly-used brand utility classes */
+.dark .bg-ultiq-cream { background-color: var(--color-ultiq-night-900); }
+.dark .bg-ultiq-cream\/80 { background-color: rgb(14 10 36 / 0.85); }
+.dark .bg-ultiq-cream\/60 { background-color: rgb(14 10 36 / 0.7); }
+.dark .text-ultiq-indigo { color: rgb(241 245 249); }
+.dark .text-ultiq-indigo\/80 { color: rgb(226 232 240); }
+.dark .text-ultiq-indigo\/75 { color: rgb(226 232 240); }
+.dark .text-ultiq-indigo\/70 { color: rgb(203 213 225); }
+.dark .text-ultiq-indigo\/60 { color: rgb(148 163 184); }
+.dark .text-ultiq-indigo\/50 { color: rgb(148 163 184); }
+.dark .border-ultiq-indigo\/20,
+.dark .border-ultiq-indigo\/15,
+.dark .border-ultiq-indigo\/10 { border-color: var(--color-ultiq-night-700); }
+.dark .bg-ultiq-indigo\/5 { background-color: rgb(51 65 85 / 0.4); }
+.dark .bg-ultiq-indigo\/10 { background-color: rgb(51 65 85 / 0.6); }
+.dark .bg-ultiq-yellow\/30 { background-color: rgb(255 200 61 / 0.18); }
+.dark .bg-ultiq-yellow\/20 { background-color: rgb(255 200 61 / 0.12); }
+.dark .bg-ultiq-blue\/40 { background-color: rgb(168 197 232 / 0.18); }
+.dark .bg-ultiq-red\/15 { background-color: rgb(217 71 76 / 0.18); }
+.dark .bg-ultiq-red\/5 { background-color: rgb(217 71 76 / 0.12); }

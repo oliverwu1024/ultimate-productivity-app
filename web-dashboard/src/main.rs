@@ -6,6 +6,7 @@ mod auth;
 mod components;
 mod pages;
 mod stats;
+mod theme;
 
 fn main() {
     console_error_panic_hook::set_once();

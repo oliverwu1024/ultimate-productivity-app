@@ -120,7 +120,12 @@ fun AppNavigation(
         bottomNavItems.any { it.screen.route == dest.route }
     } == true
 
+    val updateInfo by com.ultiq.app.util.UpdateChecker.state.collectAsState()
+
     Scaffold(
+        topBar = {
+            updateInfo?.let { com.ultiq.app.ui.common.UpdateBanner(it) }
+        },
         bottomBar = {
             if (showBottomBar) {
                 NavigationBar {

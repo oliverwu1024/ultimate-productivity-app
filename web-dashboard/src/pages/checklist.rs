@@ -135,7 +135,7 @@ pub fn ChecklistPage() -> impl IntoView {
     view! {
         <Title text="Checklist — Ultiq" />
         <AppShell>
-            <div class="p-8 max-w-4xl mx-auto">
+            <div class="p-4 md:p-8 max-w-4xl mx-auto">
                 <header class="flex items-center justify-between mb-6">
                     <h1 class="text-3xl font-bold text-ultiq-indigo">"Checklist"</h1>
                     <button

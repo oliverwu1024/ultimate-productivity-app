@@ -9,3 +9,86 @@ html, body {
 body {
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
+
+/* ─── Dark-mode overlay ─────────────────────────────────────────────────
+   Rather than sprinkling `dark:` variants on every element, we remap the
+   existing brand classes to dark-friendly values when `<html class="dark">`
+   is set. Brand colors are preserved in light mode; this only kicks in
+   when the user (or system pref) selects dark.
+
+   Keep this list in sync with frequently-used classes in components/pages.
+*/
+
+.dark .bg-white {
+  background-color: theme("colors.ultiq-night.800");
+}
+.dark .bg-ultiq-cream {
+  background-color: theme("colors.ultiq-night.900");
+}
+.dark .bg-ultiq-cream\/40 {
+  background-color: rgb(15 10 36 / 0.6);
+}
+.dark .bg-ultiq-cream\/50 {
+  background-color: rgb(15 10 36 / 0.6);
+}
+.dark .bg-ultiq-cream\/70 {
+  background-color: rgb(15 10 36 / 0.5);
+}
+
+.dark .text-ultiq-indigo {
+  color: rgb(241 245 249); /* slate-100 */
+}
+.dark .text-ultiq-indigo\/80 {
+  color: rgb(226 232 240); /* slate-200 */
+}
+.dark .text-ultiq-indigo\/70 {
+  color: rgb(203 213 225); /* slate-300 */
+}
+.dark .text-ultiq-indigo\/60 {
+  color: rgb(148 163 184); /* slate-400 */
+}
+.dark .text-ultiq-indigo\/50 {
+  color: rgb(148 163 184); /* slate-400 */
+}
+.dark .text-ultiq-indigo\/40 {
+  color: rgb(100 116 139); /* slate-500 */
+}
+.dark .text-ultiq-indigo\/30 {
+  color: rgb(71 85 105); /* slate-600 */
+}
+
+.dark .border-ultiq-indigo\/20,
+.dark .border-ultiq-indigo\/15,
+.dark .border-ultiq-indigo\/10 {
+  border-color: theme("colors.ultiq-night.700");
+}
+
+.dark .bg-ultiq-indigo\/5 {
+  background-color: rgb(51 65 85 / 0.4);
+}
+.dark .bg-ultiq-indigo\/10 {
+  background-color: rgb(51 65 85 / 0.6);
+}
+
+/* Hover variants for interactive surfaces */
+.dark .hover\:bg-ultiq-indigo\/5:hover {
+  background-color: rgb(51 65 85 / 0.4);
+}
+.dark .hover\:bg-ultiq-indigo\/10:hover {
+  background-color: rgb(51 65 85 / 0.6);
+}
+
+/* Onboarding banner stays cheerful but not blinding in dark mode */
+.dark .bg-ultiq-yellow\/15 {
+  background-color: rgb(255 200 61 / 0.08);
+}
+
+/* Red-error pill — keep readable on dark surface */
+.dark .bg-ultiq-red\/5 {
+  background-color: rgb(217 71 76 / 0.15);
+}
+
+/* Calendar grid bg between cells */
+.dark .grid-cols-7.gap-px.bg-ultiq-indigo\/10 {
+  background-color: rgb(51 65 85 / 0.7);
+}
