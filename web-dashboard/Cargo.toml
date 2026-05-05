@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 leptos = { version = "0.7", features = ["csr"] }
-leptos_router = "0.7"
+leptos_router = "0.8"
 leptos_meta = "0.7"
 gloo-net = { version = "0.6", features = ["http"] }
 gloo-storage = "0.3"
