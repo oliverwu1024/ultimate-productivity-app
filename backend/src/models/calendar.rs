@@ -58,6 +58,7 @@ pub struct CalendarEvent {
     pub is_recurring: bool,
     pub recurrence_rule: Option<String>,
     pub color: String,
+    pub is_done: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -74,4 +75,7 @@ pub struct CreateCalendarEvent {
     pub is_recurring: bool,
     pub recurrence_rule: Option<String>,
     pub color: Option<String>,
+    /// Optional on input so older clients (without the field) preserve the
+    /// stored value on update. New clients always send it.
+    pub is_done: Option<bool>,
 }

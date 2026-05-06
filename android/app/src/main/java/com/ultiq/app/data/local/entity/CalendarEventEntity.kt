@@ -16,6 +16,7 @@ data class CalendarEventEntity(
     val isRecurring: Boolean,
     val recurrenceRule: String?,
     val color: String,
+    val isDone: Boolean = false,
     val createdAt: Long,
     val updatedAt: Long,
     val isSynced: Boolean = false

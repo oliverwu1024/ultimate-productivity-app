@@ -106,6 +106,15 @@ class CalendarViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    /** Toggle the "I actually did this" flag on a past event. Only meaningful
+     *  for events whose end_time is already in the past — the UI gates that. */
+    fun setEventDone(id: String, isDone: Boolean) {
+        viewModelScope.launch {
+            repository.setEventDone(id, userId, isDone)
+                .onFailure { _uiState.value = _uiState.value.copy(error = it.toUserMessage("Couldn't update event. Try again.")) }
+        }
+    }
+
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
     }

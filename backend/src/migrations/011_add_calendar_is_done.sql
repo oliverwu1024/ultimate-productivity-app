@@ -1,0 +1,2 @@
+ALTER TABLE calendar_events
+    ADD COLUMN is_done BOOLEAN NOT NULL DEFAULT FALSE;

@@ -355,6 +355,7 @@ fn DayEvents(
                     <p class="text-ultiq-indigo/50 text-sm">"No events on this day."</p>
                 }.into_any()
             } else {
+                let now = Utc::now();
                 view! {
                     <ul class="space-y-2">
                         {day_events.into_iter().map(|e| {
@@ -367,11 +368,22 @@ fn DayEvents(
                                 end_local.format("%H:%M"),
                             );
                             let color = e.color.clone();
+                            // Mark-done only applies once the slot has actually
+                            // finished. Future events stay clean / no checkbox.
+                            let is_past = e.end_time < now;
+                            let is_done = e.is_done;
+                            let event_id = e.id.clone();
+                            let event_for_toggle = e.clone();
+                            let title_class = if is_done {
+                                "font-medium text-ultiq-indigo/50 line-through"
+                            } else {
+                                "font-medium text-ultiq-indigo"
+                            };
                             view! {
-                                <li>
+                                <li class="flex items-stretch gap-2 bg-white rounded-xl shadow-sm hover:shadow">
                                     <button
                                         on:click=move |_| on_edit(event_for_click.clone())
-                                        class="w-full bg-white rounded-xl shadow-sm hover:shadow p-4 flex items-start gap-3 text-left cursor-pointer"
+                                        class="flex-1 min-w-0 p-4 flex items-start gap-3 text-left cursor-pointer"
                                     >
                                         <span
                                             class="w-1 h-12 rounded-full flex-shrink-0 self-stretch"
@@ -379,7 +391,7 @@ fn DayEvents(
                                         />
                                         <div class="flex-1 min-w-0">
                                             <div class="flex items-center gap-2 flex-wrap">
-                                                <span class="font-medium text-ultiq-indigo">{e.title.clone()}</span>
+                                                <span class=title_class>{e.title.clone()}</span>
                                                 <span class="text-xs px-2 py-0.5 rounded bg-ultiq-indigo/5 text-ultiq-indigo/70">
                                                     {e.category.label()}
                                                 </span>
@@ -398,6 +410,51 @@ fn DayEvents(
                                             </Show>
                                         </div>
                                     </button>
+                                    <Show when=move || is_past>
+                                        <label
+                                            class="flex items-center pr-4 cursor-pointer"
+                                            title=if is_done { "Mark not done" } else { "Mark done" }
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                prop:checked=is_done
+                                                class="w-5 h-5 accent-ultiq-indigo cursor-pointer"
+                                                on:change={
+                                                    let event_id = event_id.clone();
+                                                    let src = event_for_toggle.clone();
+                                                    move |_| {
+                                                        let new_done = !is_done;
+                                                        // Optimistic local flip — the row re-renders immediately.
+                                                        events.update(|list| {
+                                                            if let Some(item) = list.iter_mut().find(|x| x.id == event_id) {
+                                                                item.is_done = new_done;
+                                                            }
+                                                        });
+                                                        // Backend's update endpoint is full-replacement, so we
+                                                        // re-send every field of the current event with only
+                                                        // is_done flipped. The COALESCE on the server treats
+                                                        // is_done = Some(value) as the new value.
+                                                        let event_id = event_id.clone();
+                                                        let body = CreateCalendarEvent {
+                                                            title: src.title.clone(),
+                                                            description: src.description.clone(),
+                                                            start_time: src.start_time,
+                                                            end_time: src.end_time,
+                                                            category: src.category,
+                                                            priority: src.priority,
+                                                            is_recurring: src.is_recurring,
+                                                            recurrence_rule: src.recurrence_rule.clone(),
+                                                            color: Some(src.color.clone()),
+                                                            is_done: Some(new_done),
+                                                        };
+                                                        wasm_bindgen_futures::spawn_local(async move {
+                                                            let _ = update_event(&event_id, &body).await;
+                                                        });
+                                                    }
+                                                }
+                                            />
+                                        </label>
+                                    </Show>
                                 </li>
                             }
                         }).collect_view()}
@@ -475,6 +532,7 @@ fn EventDialog(
             is_recurring: false,
             recurrence_rule: None,
             color: None,
+            is_done: None,
         };
 
         submitting.set(true);

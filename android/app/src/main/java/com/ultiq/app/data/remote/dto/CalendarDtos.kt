@@ -12,7 +12,8 @@ data class CreateCalendarEventDto(
     val priority: String,
     val is_recurring: Boolean,
     val recurrence_rule: String?,
-    val color: String?
+    val color: String?,
+    val is_done: Boolean? = null,
 )
 
 data class CalendarEventDto(
@@ -27,6 +28,7 @@ data class CalendarEventDto(
     val is_recurring: Boolean,
     val recurrence_rule: String?,
     val color: String,
+    val is_done: Boolean = false,
     val created_at: String,
     val updated_at: String
 )
@@ -44,6 +46,7 @@ fun CalendarEventDto.toEntity(): CalendarEventEntity {
         isRecurring = is_recurring,
         recurrenceRule = recurrence_rule,
         color = color,
+        isDone = is_done,
         createdAt = Instant.parse(created_at).toEpochMilli(),
         updatedAt = Instant.parse(updated_at).toEpochMilli(),
         isSynced = true
@@ -60,6 +63,7 @@ fun CalendarEventEntity.toCreateDto(): CreateCalendarEventDto {
         priority = priority,
         is_recurring = isRecurring,
         recurrence_rule = recurrenceRule,
-        color = color
+        color = color,
+        is_done = isDone,
     )
 }

@@ -72,6 +72,7 @@ class CalendarRepository(
                     isRecurring = dto.is_recurring,
                     recurrenceRule = dto.recurrence_rule,
                     color = dto.color ?: defaultColor(dto.category),
+                    isDone = dto.is_done ?: false,
                     createdAt = now,
                     updatedAt = now,
                     isSynced = false
@@ -108,6 +109,7 @@ class CalendarRepository(
                     isRecurring = dto.is_recurring,
                     recurrenceRule = dto.recurrence_rule,
                     color = dto.color ?: defaultColor(dto.category),
+                    isDone = dto.is_done ?: existing?.isDone ?: false,
                     createdAt = existing?.createdAt ?: now,
                     updatedAt = now,
                     isSynced = false
@@ -123,6 +125,15 @@ class CalendarRepository(
             alarmScheduler?.scheduleEventReminder(it)
         }
         return result
+    }
+
+    /** Toggle a calendar event's done flag. Reuses the full PUT update so the
+     *  server / local stay consistent with the existing single-update path. */
+    suspend fun setEventDone(id: String, userId: String, isDone: Boolean): Result<CalendarEventEntity> {
+        val existing = calendarEventDao.getById(id)
+            ?: return Result.failure(IllegalStateException("event not found locally"))
+        val dto = existing.toCreateDto().copy(is_done = isDone)
+        return updateEvent(id, dto, userId)
     }
 
     suspend fun deleteEvent(id: String): Result<Unit> {

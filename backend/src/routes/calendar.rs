@@ -78,8 +78,8 @@ async fn create(
     let event = sqlx::query_as::<_, CalendarEvent>(
         "INSERT INTO calendar_events
             (user_id, title, description, start_time, end_time, category, priority,
-             is_recurring, recurrence_rule, color)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+             is_recurring, recurrence_rule, color, is_done)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
          RETURNING *",
     )
     .bind(user_id)
@@ -92,6 +92,7 @@ async fn create(
     .bind(input.is_recurring)
     .bind(&input.recurrence_rule)
     .bind(color)
+    .bind(input.is_done.unwrap_or(false))
     .fetch_one(&state.pool)
     .await?;
 
@@ -231,12 +232,14 @@ async fn update(
         .as_deref()
         .unwrap_or_else(|| default_color(&input.category));
 
+    // is_done is COALESCEd so older clients (which omit the field) preserve
+    // the stored value rather than clobbering it back to false on every update.
     let event = sqlx::query_as::<_, CalendarEvent>(
         "UPDATE calendar_events
          SET title = $1, description = $2, start_time = $3, end_time = $4,
              category = $5, priority = $6, is_recurring = $7, recurrence_rule = $8,
-             color = $9, updated_at = NOW()
-         WHERE id = $10 AND user_id = $11
+             color = $9, is_done = COALESCE($10, is_done), updated_at = NOW()
+         WHERE id = $11 AND user_id = $12
          RETURNING *",
     )
     .bind(input.title.trim())
@@ -248,6 +251,7 @@ async fn update(
     .bind(input.is_recurring)
     .bind(&input.recurrence_rule)
     .bind(color)
+    .bind(input.is_done)
     .bind(id)
     .bind(user_id)
     .fetch_optional(&state.pool)

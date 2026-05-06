@@ -114,6 +114,11 @@ pub struct CalendarEvent {
     pub is_recurring: bool,
     pub recurrence_rule: Option<String>,
     pub color: String,
+    /// Defaults to false on older payloads that don't include the field, so
+    /// the dashboard keeps working against a backend that hasn't shipped the
+    /// is_done migration yet.
+    #[serde(default)]
+    pub is_done: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -129,6 +134,10 @@ pub struct CreateCalendarEvent {
     pub is_recurring: bool,
     pub recurrence_rule: Option<String>,
     pub color: Option<String>,
+    /// Optional on send so updates that don't intend to flip the flag preserve
+    /// the stored value (the backend COALESCEs it).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub is_done: Option<bool>,
 }
 
 pub async fn list_events(start: NaiveDate, end: NaiveDate) -> Result<Vec<CalendarEvent>, ApiError> {

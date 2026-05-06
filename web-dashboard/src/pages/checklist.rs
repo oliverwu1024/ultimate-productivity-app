@@ -519,6 +519,7 @@ fn ItemDialog(
             is_recurring: false,
             recurrence_rule: None,
             color: None,
+            is_done: None,
         };
 
         submitting.set(true);

@@ -28,6 +28,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
@@ -50,6 +51,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -129,6 +131,7 @@ fun CalendarScreen(viewModel: CalendarViewModel = viewModel()) {
                     EventItem(
                         event = event,
                         onClick = { viewModel.showEditDialog(event) },
+                        onSetDone = { done -> viewModel.setEventDone(event.id, done) },
                         modifier = Modifier.animateItem(),
                     )
                 }
@@ -316,7 +319,16 @@ private fun SelectedDayHeader(date: LocalDate) {
 }
 
 @Composable
-private fun EventItem(event: CalendarEventEntity, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun EventItem(
+    event: CalendarEventEntity,
+    onClick: () -> Unit,
+    onSetDone: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    // Past = the slot has actually finished. Mark-done only makes sense for
+    // those — future events stay clean / no checkbox.
+    val isPast = event.endTime < System.currentTimeMillis()
+    val isDone = event.isDone
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -327,7 +339,8 @@ private fun EventItem(event: CalendarEventEntity, onClick: () -> Unit, modifier:
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(IntrinsicSize.Min)
+                .height(IntrinsicSize.Min),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             // Colored left border
             Box(
@@ -349,7 +362,13 @@ private fun EventItem(event: CalendarEventEntity, onClick: () -> Unit, modifier:
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Medium,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
+                    textDecoration = if (isDone) TextDecoration.LineThrough else null,
+                    color = if (isDone) {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    },
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
@@ -365,6 +384,13 @@ private fun EventItem(event: CalendarEventEntity, onClick: () -> Unit, modifier:
                     CategoryChip(event.category)
                     PriorityIndicator(event.priority)
                 }
+            }
+            if (isPast) {
+                Checkbox(
+                    checked = isDone,
+                    onCheckedChange = onSetDone,
+                    modifier = Modifier.padding(end = 8.dp),
+                )
             }
         }
     }
