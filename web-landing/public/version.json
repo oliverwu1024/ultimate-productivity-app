@@ -1,6 +1,6 @@
 {
-  "versionCode": 10,
-  "versionName": "1.9",
-  "url": "https://ultiqapp.com/ultiq.1.9.apk",
-  "releaseNotes": "Routine maintenance — under-the-hood toolchain refresh. No user-facing changes."
+  "versionCode": 11,
+  "versionName": "1.10",
+  "url": "https://ultiqapp.com/ultiq.1.10.apk",
+  "releaseNotes": "Tap a recent focus session to see its details. Unfinished tasks from yesterday now surface a soft \"bring forward\" banner. Past calendar events get a checkbox so you can mark what you actually did."
 }
