@@ -1,6 +1,6 @@
 {
-  "versionCode": 11,
-  "versionName": "1.10",
-  "url": "https://ultiqapp.com/ultiq.1.10.apk",
-  "releaseNotes": "Tap a recent focus session to see its details. Unfinished tasks from yesterday now surface a soft \"bring forward\" banner. Past calendar events get a checkbox so you can mark what you actually did."
+  "versionCode": 12,
+  "versionName": "1.11",
+  "url": "https://ultiqapp.com/ultiq.1.11.apk",
+  "releaseNotes": "Fix: in-app update banner now shows again. (R8 was silently renaming the version-manifest fields, so the comparison always saw versionCode 0 and decided you were already up to date.)"
 }

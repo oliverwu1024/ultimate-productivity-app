@@ -27,6 +27,11 @@
     <init>(...);
 }
 
+# --- Update-banner manifest (Gson-deserialised, lives outside dto package) ---
+# Without this, R8 renames `versionCode` → `a`, Gson can't bind, the value
+# parses as 0, and the in-app update banner silently never shows.
+-keep class com.ultiq.app.util.VersionManifest { *; }
+
 # --- Room entities and DAOs ---------------------------------------------------
 -keep class com.ultiq.app.data.local.entity.** { *; }
 -keep class com.ultiq.app.data.local.dao.** { *; }
