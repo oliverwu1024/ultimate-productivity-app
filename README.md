@@ -60,7 +60,10 @@ The backend, dashboard, and Android app went through a full security audit befor
 
 ## License
 
-[MIT](LICENSE) — © 2026 Che-Yu Wu.
+© 2026 Che-Yu Wu. **All rights reserved.** This repository is source-available
+for reading only — see [LICENSE](LICENSE). No grant of use, redistribution, or
+commercial exploitation. The Android app itself is published separately on the
+Play Store; this repo is the implementation history, not a redistributable artifact.
 
 ## Why does this exist
 
