@@ -86,6 +86,11 @@ object LockoutOverlayController {
             WindowManager.LayoutParams.TYPE_PHONE
         }
 
+        // FLAG_TURN_SCREEN_ON / FLAG_SHOW_WHEN_LOCKED are deprecated for
+        // Activities (use setTurnScreenOn/setShowWhenLocked instead) but are
+        // still the only way to get equivalent behavior on a non-Activity
+        // window like this SYSTEM_ALERT_WINDOW overlay.
+        @Suppress("DEPRECATION")
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT,
             WindowManager.LayoutParams.MATCH_PARENT,

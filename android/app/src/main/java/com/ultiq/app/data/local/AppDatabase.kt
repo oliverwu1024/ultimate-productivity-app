@@ -164,7 +164,7 @@ abstract class AppDatabase : RoomDatabase() {
                 // open the file (corrupt / version mismatch from a prior
                 // build), fall back to a fresh encrypted DB rather than
                 // crashing the app.
-                .fallbackToDestructiveMigration()
+                .fallbackToDestructiveMigration(dropAllTables = true)
                 .build()
         }
     }
