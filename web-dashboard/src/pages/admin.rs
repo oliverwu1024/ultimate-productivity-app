@@ -30,7 +30,7 @@ pub fn AdminPage() -> impl IntoView {
                 <Suspense fallback=|| view! {
                     <p class="text-ultiq-indigo/60">"Loading…"</p>
                 }>
-                    {move || stats.get().map(|res| match res.take() {
+                    {move || stats.get().map(|res| match res {
                         Ok(s) => Either::Left(view! { <AdminBody stats=s /> }),
                         Err(e) => Either::Right(view! {
                             <div class="bg-ultiq-red/5 text-ultiq-red rounded-lg p-4">
