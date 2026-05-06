@@ -102,6 +102,10 @@ async fn main() {
         .layer(GovernorLayer { config: auth_governor });
     let other_routes = routes::other_routes()
         .layer(GovernorLayer { config: global_governor });
+    // `/health` is mounted outside both governors. ALB probes must never
+    // be rate-limited — a burst from real traffic depleting the bucket
+    // would otherwise 429 the next probe and make ECS kill the task.
+    let health_routes = routes::health_routes();
 
     // Security headers applied to every response. The API only ever returns
     // JSON / SSE; CSP locks scripts/iframes/etc out entirely, HSTS pins HTTPS,
@@ -109,6 +113,7 @@ async fn main() {
     // ever follows an external link from a token-bearing URL.
     let app = auth_routes
         .merge(other_routes)
+        .merge(health_routes)
         // 1 MiB hard cap on request bodies — well above the largest legitimate
         // bulk_create payload but cheap to enforce.
         .layer(RequestBodyLimitLayer::new(1024 * 1024))

@@ -15,7 +15,14 @@ async fn health() -> &'static str {
     "ok"
 }
 
-/// Routes that need a tighter per-IP rate limit than the global 20 rps —
+/// Liveness probe. Mounted outside the rate limiter so ALB health checks
+/// can never share a bucket with real traffic — a burst from one client
+/// must not be able to make ECS think the task is unhealthy.
+pub fn health_routes() -> Router<AppState> {
+    Router::new().route("/health", get(health))
+}
+
+/// Routes that need a tighter per-IP rate limit than the global 200 rps —
 /// login, register, forgot-password and reset-password are the abuse-prone
 /// surfaces (email-quota drain, brute force, account flood).
 pub fn auth_routes() -> Router<AppState> {
@@ -25,7 +32,6 @@ pub fn auth_routes() -> Router<AppState> {
 /// Routes covered by the regular global rate limit.
 pub fn other_routes() -> Router<AppState> {
     Router::new()
-        .route("/health", get(health))
         .merge(sleep::router())
         .merge(phone_pickups::router())
         .merge(sessions::router())
