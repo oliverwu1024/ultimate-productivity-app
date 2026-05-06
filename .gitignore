@@ -42,3 +42,9 @@ ultiq-roadmap.md
 # Local agent / AI-assistant guidance — kept locally, never published
 AGENTS.md
 CLAUDE.md
+
+# All other markdown is local-only. Only README.md (anywhere in the tree)
+# is published. Anything else (release checklists, design notes, scratch
+# docs) lives on disk for the developer's reference.
+*.md
+!README.md
