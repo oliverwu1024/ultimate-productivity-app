@@ -29,6 +29,9 @@ data class ChecklistUiState(
     val editingItem: ChecklistEntity? = null,
     val error: String? = null,
     val showWeeklyPrompt: Boolean = false,
+    /** Open items dated yesterday (only meaningful when selectedDate == today
+     *  and the user hasn't dismissed the carry-over banner today). */
+    val yesterdayOpenItems: List<ChecklistEntity> = emptyList(),
 )
 
 class ChecklistViewModel(application: Application) : AndroidViewModel(application) {
@@ -43,12 +46,14 @@ class ChecklistViewModel(application: Application) : AndroidViewModel(applicatio
 
     private var userId: String = ""
     private var collectJob: Job? = null
+    private var yesterdayJob: Job? = null
 
     init {
         viewModelScope.launch {
             userId = tokenManager.getUserId().firstOrNull() ?: ""
             sync()
             observeSelectedDate()
+            observeYesterdayCarryOver()
             maybeShowWeeklyPrompt()
         }
     }
@@ -88,6 +93,7 @@ class ChecklistViewModel(application: Application) : AndroidViewModel(applicatio
         if (date == _uiState.value.selectedDate) return
         _uiState.value = _uiState.value.copy(selectedDate = date)
         observeSelectedDate()
+        observeYesterdayCarryOver()
     }
 
     fun selectPreviousDay() = selectDate(_uiState.value.selectedDate.minusDays(1))
@@ -185,6 +191,54 @@ class ChecklistViewModel(application: Application) : AndroidViewModel(applicatio
                     completedItems = items.filter { it.completed },
                 )
             }
+        }
+    }
+
+    /** Stream yesterday's open items, but only when looking at today and the user
+     *  hasn't already dismissed the carry-over banner today. The screen renders
+     *  the banner whenever `yesterdayOpenItems` is non-empty. */
+    private fun observeYesterdayCarryOver() {
+        yesterdayJob?.cancel()
+        if (_uiState.value.selectedDate != LocalDate.now()) {
+            _uiState.value = _uiState.value.copy(yesterdayOpenItems = emptyList())
+            return
+        }
+        yesterdayJob = viewModelScope.launch {
+            val today = LocalDate.now().toEpochDay()
+            val dismissedDay = userPreferences.snapshot().lastCarryOverDismissedEpochDay
+            if (dismissedDay == today) {
+                _uiState.value = _uiState.value.copy(yesterdayOpenItems = emptyList())
+                return@launch
+            }
+            val yesterday = LocalDate.now().minusDays(1).toEpochDay()
+            repository.getOpenForDate(yesterday).collectLatest { items ->
+                _uiState.value = _uiState.value.copy(yesterdayOpenItems = items)
+            }
+        }
+    }
+
+    /** Move every yesterday-open item forward to today's date. Items are updated
+     *  one-at-a-time through the repository so the offline-fallback path on each
+     *  individual update still applies. After the bulk move the banner empties
+     *  out naturally because `yesterdayOpenItems` re-streams empty. */
+    fun bringYesterdayForward() {
+        val items = _uiState.value.yesterdayOpenItems
+        if (items.isEmpty()) return
+        val todayEpochDay = LocalDate.now().toEpochDay()
+        viewModelScope.launch {
+            for (item in items) {
+                repository.update(item.copy(dueDateEpochDay = todayEpochDay))
+            }
+        }
+    }
+
+    /** Hide the banner for the rest of today. Persisted so it doesn't re-appear
+     *  on the next app launch within the same day. */
+    fun dismissYesterdayBanner() {
+        viewModelScope.launch {
+            userPreferences.setLastCarryOverDismissedEpochDay(LocalDate.now().toEpochDay())
+            _uiState.value = _uiState.value.copy(yesterdayOpenItems = emptyList())
+            yesterdayJob?.cancel()
         }
     }
 }

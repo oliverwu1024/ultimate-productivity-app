@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
@@ -35,6 +36,9 @@ data class UserSettings(
     val sleepTargetMinutes: Int,
     /** Has the user dismissed the "Ultiq is also on the web" hint on the dashboard? */
     val webDashboardHintSeen: Boolean,
+    /** Epoch day on which the user last dismissed the "unfinished from yesterday"
+     *  carry-over banner. If equal to today's epoch day the banner stays hidden. */
+    val lastCarryOverDismissedEpochDay: Long,
 )
 
 class UserPreferences(private val context: Context) {
@@ -54,6 +58,7 @@ class UserPreferences(private val context: Context) {
         val SLEEP_EXPLAINER_SEEN = booleanPreferencesKey("sleep_explainer_seen")
         val SLEEP_TARGET_MINUTES = intPreferencesKey("sleep_target_minutes")
         val WEB_DASHBOARD_HINT_SEEN = booleanPreferencesKey("web_dashboard_hint_seen")
+        val LAST_CARRYOVER_DISMISSED_DAY = longPreferencesKey("last_carryover_dismissed_day")
     }
 
     private val defaults = UserSettings(
@@ -71,6 +76,7 @@ class UserPreferences(private val context: Context) {
         sleepExplainerSeen = false,
         sleepTargetMinutes = 480,
         webDashboardHintSeen = false,
+        lastCarryOverDismissedEpochDay = 0L,
     )
 
     val settings: Flow<UserSettings> = context.userDataStore.data.map { prefs ->
@@ -89,6 +95,7 @@ class UserPreferences(private val context: Context) {
             sleepExplainerSeen = prefs[Keys.SLEEP_EXPLAINER_SEEN] ?: defaults.sleepExplainerSeen,
             sleepTargetMinutes = prefs[Keys.SLEEP_TARGET_MINUTES] ?: defaults.sleepTargetMinutes,
             webDashboardHintSeen = prefs[Keys.WEB_DASHBOARD_HINT_SEEN] ?: defaults.webDashboardHintSeen,
+            lastCarryOverDismissedEpochDay = prefs[Keys.LAST_CARRYOVER_DISMISSED_DAY] ?: defaults.lastCarryOverDismissedEpochDay,
         )
     }
 
@@ -148,6 +155,10 @@ class UserPreferences(private val context: Context) {
 
     suspend fun setWebDashboardHintSeen(seen: Boolean) {
         context.userDataStore.edit { it[Keys.WEB_DASHBOARD_HINT_SEEN] = seen }
+    }
+
+    suspend fun setLastCarryOverDismissedEpochDay(epochDay: Long) {
+        context.userDataStore.edit { it[Keys.LAST_CARRYOVER_DISMISSED_DAY] = epochDay }
     }
 
     /** Wipe every preference back to defaults — used when deleting the account. */

@@ -132,6 +132,14 @@ fun ChecklistScreen(
 
             ProgressBar(done = done, total = total, progress = progress)
 
+            if (state.yesterdayOpenItems.isNotEmpty() && state.selectedDate == LocalDate.now()) {
+                CarryOverBanner(
+                    count = state.yesterdayOpenItems.size,
+                    onBringForward = viewModel::bringYesterdayForward,
+                    onDismiss = viewModel::dismissYesterdayBanner,
+                )
+            }
+
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(16.dp),
@@ -196,6 +204,36 @@ fun ChecklistScreen(
                     TextButton(onClick = viewModel::dismissWeeklyPrompt) { Text("Skip") }
                 },
             )
+        }
+    }
+}
+
+@Composable
+private fun CarryOverBanner(
+    count: Int,
+    onBringForward: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val label = if (count == 1) "1 unfinished from yesterday" else "$count unfinished from yesterday"
+    Surface(
+        color = MaterialTheme.colorScheme.tertiaryContainer,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                label,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                modifier = Modifier.weight(1f),
+            )
+            TextButton(onClick = onBringForward) { Text("Bring forward") }
+            TextButton(onClick = onDismiss) { Text("Dismiss") }
         }
     }
 }
