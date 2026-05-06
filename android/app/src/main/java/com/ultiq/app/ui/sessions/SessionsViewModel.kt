@@ -51,6 +51,8 @@ data class SessionsUiState(
     val phonePickups: Int = 0,
     val todayStats: TodayStats? = null,
     val recentSessions: List<SessionEntity> = emptyList(),
+    /** Resolved checklist titles for sessions that linked a task — keyed by checklistItemId. */
+    val checklistTitleById: Map<String, String> = emptyMap(),
     val hasUsagePermission: Boolean = false,
     val error: String? = null,
     val openChecklistItems: List<ChecklistEntity> = emptyList(),
@@ -158,8 +160,18 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
                 val dates = sessionDao.getCompletedSessionDates(0, todayEnd)
                 val streak = computeStreak(dates, todayStart)
 
+                // Resolve linked checklist titles for the expanded session card.
+                // Only sessions with a checklistItemId trigger a lookup.
+                val checklistDao = db.checklistDao()
+                val titleMap = recent
+                    .mapNotNull { it.checklistItemId }
+                    .distinct()
+                    .mapNotNull { id -> checklistDao.getById(id)?.let { id to it.title } }
+                    .toMap()
+
                 _uiState.value = _uiState.value.copy(
                     recentSessions = recent,
+                    checklistTitleById = titleMap,
                     todayStats = TodayStats(
                         totalFocusMinutes = todayCompleted.sumOf { it.durationMinutes },
                         sessionsCompleted = todayCompleted.size,

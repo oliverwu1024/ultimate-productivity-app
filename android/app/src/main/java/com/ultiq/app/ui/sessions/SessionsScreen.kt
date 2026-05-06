@@ -1,5 +1,7 @@
 package com.ultiq.app.ui.sessions
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -178,6 +180,8 @@ fun SessionsScreen(viewModel: SessionsViewModel = viewModel()) {
                 items(uiState.recentSessions, key = { it.id }) { session ->
                     SessionItem(
                         session = session,
+                        checklistTitle = session.checklistItemId
+                            ?.let { uiState.checklistTitleById[it] },
                         onDelete = { viewModel.deletePastSession(session.id) },
                         modifier = Modifier
                             .padding(horizontal = 16.dp)
@@ -570,6 +574,7 @@ private fun ActiveControls(
 @Composable
 private fun SessionItem(
     session: SessionEntity,
+    checklistTitle: String?,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -622,61 +627,113 @@ private fun SessionItem(
         },
         enableDismissFromStartToEnd = false,
     ) {
-        SessionItemContent(session)
+        SessionItemContent(session, checklistTitle)
     }
 }
 
 @Composable
-private fun SessionItemContent(session: SessionEntity) {
+private fun SessionItemContent(
+    session: SessionEntity,
+    checklistTitle: String?,
+) {
+    var expanded by remember { mutableStateOf(false) }
     val zone = ZoneId.systemDefault()
-    val dateStr = Instant.ofEpochMilli(session.startedAt)
-        .atZone(zone)
-        .format(DateTimeFormatter.ofPattern("EEE, MMM dd"))
+    val startInstant = Instant.ofEpochMilli(session.startedAt).atZone(zone)
+    val dateStr = startInstant.format(DateTimeFormatter.ofPattern("EEE, MMM dd"))
     val h = session.durationMinutes / 60
     val m = session.durationMinutes % 60
     val durationStr = if (h > 0) "${h}h ${m}m" else "${m}m"
 
     Card(
         shape = RoundedCornerShape(12.dp),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { expanded = !expanded }
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    session.tag,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    "$durationStr  ·  $dateStr",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            if (session.phonePickups > 0) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Default.PhoneAndroid,
-                        null,
-                        modifier = Modifier.size(14.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        session.tag,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        " ${session.phonePickups}",
+                        "$durationStr  ·  $dateStr",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+                if (session.phonePickups > 0) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.PhoneAndroid,
+                            null,
+                            modifier = Modifier.size(14.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            " ${session.phonePickups}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            AnimatedVisibility(visible = expanded) {
+                Column(modifier = Modifier.padding(top = 12.dp)) {
+                    val timeFormat = DateTimeFormatter.ofPattern("hh:mm a")
+                    val timeStr = if (session.endedAt != null) {
+                        val endInstant = Instant.ofEpochMilli(session.endedAt).atZone(zone)
+                        "${startInstant.format(timeFormat)} – ${endInstant.format(timeFormat)}"
+                    } else {
+                        startInstant.format(timeFormat)
+                    }
+                    SessionDetailRow("Time", timeStr)
+                    val planStr = if (session.breakDuration > 0) {
+                        "${session.workDuration}m work / ${session.breakDuration}m break"
+                    } else {
+                        "${session.workDuration}m work / no break"
+                    }
+                    SessionDetailRow("Plan", planStr)
+                    if (!checklistTitle.isNullOrBlank()) {
+                        SessionDetailRow("Linked task", checklistTitle)
+                    }
+                    if (!session.isSynced) {
+                        Text(
+                            "Not synced",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(top = 4.dp),
+                        )
+                    }
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun SessionDetailRow(label: String, value: String) {
+    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
+        Text(
+            "$label: ",
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            value,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
     }
 }
 
