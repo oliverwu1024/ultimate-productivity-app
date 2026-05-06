@@ -58,6 +58,10 @@ The backend, dashboard, and Android app went through a full security audit befor
 - Dashboard: SSE auth via single-use 30-second tickets so JWTs never appear in URLs / browser history / access logs.
 - All GitHub Actions pinned to commit SHAs; Dependabot manages updates.
 
+## License
+
+[MIT](LICENSE) — © 2026 Che-Yu Wu.
+
 ## Why does this exist
 
 It's a personal portfolio project — built to learn full-stack mobile + cloud development from scratch, to use Rust as much as the problem domain allowed, and to run it on a real production AWS stack rather than a hosted-platform escape hatch. The asymmetry between local directory name (`ultimate_productivity_app`) and GitHub repo (`ultimate-productivity-app`) is intentional and predates the renaming pass to "Ultiq".
