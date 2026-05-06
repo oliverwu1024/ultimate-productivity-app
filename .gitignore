@@ -38,3 +38,7 @@ Thumbs.db
 # Docker
 docker-compose.override.yml
 ultiq-roadmap.md
+
+# Local agent / AI-assistant guidance — kept locally, never published
+AGENTS.md
+CLAUDE.md

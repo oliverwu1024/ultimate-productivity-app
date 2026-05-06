@@ -25,7 +25,7 @@ A full-stack productivity tracker — sleep, focus sessions, calendar, checklist
 
 **Backend** — Rust, Axum 0.7, sqlx, PostgreSQL, JWT (jsonwebtoken), Argon2id, tower_governor for per-IP rate limiting, tower-http security headers, broadcast channels for SSE fan-out.
 
-**Web dashboard** — Rust, Leptos 0.7 (CSR), Tailwind, charming/leptos-chartistry, gloo-net.
+**Web dashboard** — Rust, Leptos 0.8 (CSR), Tailwind, charming/leptos-chartistry, gloo-net.
 
 **Web landing** — Next.js (static export), Tailwind, framer-motion.
 
@@ -35,7 +35,7 @@ A full-stack productivity tracker — sleep, focus sessions, calendar, checklist
 
 ## Build status
 
-Phases 0–7 (scaffold → auth → sleep → pomodoro → calendar → dashboard → AWS deploy → web analytics) are **shipped**. Android is at v1.8, dashboard is feature-complete with realtime sync via Server-Sent Events.
+Phases 0–7 (scaffold → auth → sleep → pomodoro → calendar → dashboard → AWS deploy → web analytics) are **shipped**. Android is at v1.11, dashboard is feature-complete with realtime sync via Server-Sent Events.
 
 What's planned for **v2 and beyond** lives in three follow-up phases:
 
