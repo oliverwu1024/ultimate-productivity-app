@@ -89,10 +89,6 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         userPreferences.setDefaultWorkDuration(minutes)
     }
 
-    fun setDefaultBreakDuration(minutes: Int) = viewModelScope.launch {
-        userPreferences.setDefaultBreakDuration(minutes)
-    }
-
     fun setLockoutForFocus(enabled: Boolean) = viewModelScope.launch {
         userPreferences.setLockoutForFocus(enabled)
     }

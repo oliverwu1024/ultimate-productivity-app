@@ -20,7 +20,6 @@ data class UserSettings(
     val targetBedtime: LocalTime,
     val targetWakeTime: LocalTime,
     val defaultWorkDuration: Int,
-    val defaultBreakDuration: Int,
     val onboardingCompleted: Boolean,
     val lockoutForFocus: Boolean,
     val lockoutForSleep: Boolean,
@@ -47,7 +46,6 @@ class UserPreferences(private val context: Context) {
         val TARGET_BEDTIME = stringPreferencesKey("target_bedtime")
         val TARGET_WAKE_TIME = stringPreferencesKey("target_wake_time")
         val DEFAULT_WORK = intPreferencesKey("default_work_duration")
-        val DEFAULT_BREAK = intPreferencesKey("default_break_duration")
         val ONBOARDING_DONE = booleanPreferencesKey("onboarding_completed")
         val LOCKOUT_FOR_FOCUS = booleanPreferencesKey("lockout_for_focus")
         val LOCKOUT_FOR_SLEEP = booleanPreferencesKey("lockout_for_sleep")
@@ -65,7 +63,6 @@ class UserPreferences(private val context: Context) {
         targetBedtime = LocalTime.of(22, 0),
         targetWakeTime = LocalTime.of(6, 0),
         defaultWorkDuration = 25,
-        defaultBreakDuration = 5,
         onboardingCompleted = false,
         lockoutForFocus = true,
         lockoutForSleep = false,
@@ -84,7 +81,6 @@ class UserPreferences(private val context: Context) {
             targetBedtime = prefs[Keys.TARGET_BEDTIME]?.let(::parseTime) ?: defaults.targetBedtime,
             targetWakeTime = prefs[Keys.TARGET_WAKE_TIME]?.let(::parseTime) ?: defaults.targetWakeTime,
             defaultWorkDuration = prefs[Keys.DEFAULT_WORK] ?: defaults.defaultWorkDuration,
-            defaultBreakDuration = prefs[Keys.DEFAULT_BREAK] ?: defaults.defaultBreakDuration,
             onboardingCompleted = prefs[Keys.ONBOARDING_DONE] ?: defaults.onboardingCompleted,
             lockoutForFocus = prefs[Keys.LOCKOUT_FOR_FOCUS] ?: defaults.lockoutForFocus,
             lockoutForSleep = prefs[Keys.LOCKOUT_FOR_SLEEP] ?: defaults.lockoutForSleep,
@@ -110,11 +106,7 @@ class UserPreferences(private val context: Context) {
     }
 
     suspend fun setDefaultWorkDuration(minutes: Int) {
-        context.userDataStore.edit { it[Keys.DEFAULT_WORK] = minutes.coerceIn(5, 120) }
-    }
-
-    suspend fun setDefaultBreakDuration(minutes: Int) {
-        context.userDataStore.edit { it[Keys.DEFAULT_BREAK] = minutes.coerceIn(1, 60) }
+        context.userDataStore.edit { it[Keys.DEFAULT_WORK] = minutes.coerceIn(5, 240) }
     }
 
     suspend fun setOnboardingCompleted(done: Boolean) {

@@ -27,7 +27,6 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -269,50 +268,43 @@ private fun StatCard(label: String, value: String) {
 
 @Composable
 private fun TimerSection(uiState: SessionsUiState) {
-    val displayTime = if (uiState.timerState == TimerState.IDLE) {
-        uiState.workDuration * 60
-    } else {
-        uiState.timeRemainingSeconds
+    val displayTime = when {
+        uiState.timerState == TimerState.IDLE -> uiState.workDuration * 60
+        uiState.isOvertime -> uiState.overtimeSeconds
+        else -> uiState.timeRemainingSeconds
     }
     val displayTotal = if (uiState.timerState == TimerState.IDLE) {
         uiState.workDuration * 60
     } else {
         uiState.totalTimeSeconds
     }
-    val isWork = uiState.currentPhase == Phase.WORK
 
     Box(contentAlignment = Alignment.Center, modifier = Modifier.size(220.dp)) {
         TimerCircle(
-            timeRemaining = displayTime,
+            timeRemaining = if (uiState.isOvertime) 0 else displayTime,
             totalTime = displayTotal,
-            isWorkPhase = isWork,
+            isWorkPhase = !uiState.isOvertime,
             modifier = Modifier.fillMaxSize()
         )
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                text = formatTime(displayTime),
+                text = if (uiState.isOvertime) "+${formatTime(displayTime)}" else formatTime(displayTime),
                 style = MaterialTheme.typography.displayMedium,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                color = if (uiState.isOvertime) Color(0xFFFF9800) else MaterialTheme.colorScheme.onSurface,
             )
             if (uiState.timerState != TimerState.IDLE) {
                 Text(
-                    text = if (isWork) "WORK" else "REST",
+                    text = if (uiState.isOvertime) "OVERTIME" else "FOCUS",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Medium,
-                    color = if (isWork) Color(0xFF4CAF50) else Color(0xFFFF9800)
+                    color = if (uiState.isOvertime) Color(0xFFFF9800) else Color(0xFF4CAF50),
                 )
                 if (uiState.tag.isNotBlank()) {
                     Text(
                         text = uiState.tag,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                if (uiState.completedPomodoros > 0) {
-                    Text(
-                        text = "${uiState.completedPomodoros} pomodoro${if (uiState.completedPomodoros != 1) "s" else ""}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                     )
                 }
                 if (uiState.phonePickups > 0) {
@@ -352,13 +344,6 @@ private fun TimerControls(uiState: SessionsUiState, viewModel: SessionsViewModel
                 primaryLabel = "Resume",
                 primaryIcon = { Icon(Icons.Default.PlayArrow, null, Modifier.size(18.dp)) }
             )
-            TimerState.BREAK -> ActiveControls(
-                onPause = { viewModel.skipBreak() },
-                onCancel = { viewModel.cancelSession() },
-                onComplete = { viewModel.completeSession() },
-                primaryLabel = "Skip Rest",
-                primaryIcon = { Icon(Icons.Default.SkipNext, null, Modifier.size(18.dp)) }
-            )
             TimerState.FINISHED -> {}
         }
     }
@@ -384,7 +369,7 @@ private fun IdleControls(uiState: SessionsUiState, viewModel: SessionsViewModel)
 
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceEvenly,
+        horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
         DurationPicker(
@@ -392,12 +377,6 @@ private fun IdleControls(uiState: SessionsUiState, viewModel: SessionsViewModel)
             value = uiState.workDuration,
             onDecrease = { viewModel.updateWorkDuration(uiState.workDuration - 5) },
             onIncrease = { viewModel.updateWorkDuration(uiState.workDuration + 5) }
-        )
-        DurationPicker(
-            label = "Rest",
-            value = uiState.breakDuration,
-            onDecrease = { viewModel.updateBreakDuration(uiState.breakDuration - 1) },
-            onIncrease = { viewModel.updateBreakDuration(uiState.breakDuration + 1) }
         )
     }
 
@@ -700,7 +679,7 @@ private fun SessionItemContent(
                     val planStr = if (session.breakDuration > 0) {
                         "${session.workDuration}m work / ${session.breakDuration}m break"
                     } else {
-                        "${session.workDuration}m work / no break"
+                        "${session.workDuration}m planned"
                     }
                     SessionDetailRow("Plan", planStr)
                     if (!checklistTitle.isNullOrBlank()) {

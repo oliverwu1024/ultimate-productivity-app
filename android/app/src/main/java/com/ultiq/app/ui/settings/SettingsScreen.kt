@@ -193,19 +193,6 @@ fun SettingsScreen(
                     onValueChange = viewModel::setDefaultWorkDuration,
                 )
             }
-            item {
-                StepperCard(
-                    icon = Icons.Default.Timer,
-                    title = "Rest duration",
-                    description = "Length of rest between work blocks (0 = no break)",
-                    value = user.defaultBreakDuration,
-                    suffix = "min",
-                    step = 1,
-                    range = 0..60,
-                    onValueChange = viewModel::setDefaultBreakDuration,
-                )
-            }
-
             item { SectionHeader("Focus mode") }
             item {
                 OverlayPermissionCard(

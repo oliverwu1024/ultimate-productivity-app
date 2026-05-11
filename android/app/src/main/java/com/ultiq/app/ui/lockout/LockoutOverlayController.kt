@@ -124,11 +124,13 @@ object LockoutOverlayController {
                     LockoutMode.FOCUS -> FocusTrackingService.unlockCount
                     LockoutMode.SLEEP -> SleepTrackingService.sessionUnlockCount
                 }.collectAsState()
+                val plannedWorkMinutes by FocusTrackingService.plannedWorkMinutes.collectAsState()
 
                 UltiqTheme {
                     LockoutScreen(
                         mode = mode,
                         elapsedMillis = (now - sessionStartedAt).coerceAtLeast(0),
+                        plannedWorkMinutes = if (mode == LockoutMode.FOCUS) plannedWorkMinutes else 0,
                         unlockCount = unlockCount,
                         showUnlockCount = true,
                         allowEndSession = true,

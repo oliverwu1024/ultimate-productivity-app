@@ -37,9 +37,12 @@ class FocusTrackingService : Service() {
         const val TAG = "FocusTrackingService"
         const val CHANNEL_ID = "focus_tracking"
         const val NOTIFICATION_ID = 1002
+        const val EXTRA_WORK_DURATION_MIN = "extra_work_duration_min"
 
         val isRunning = MutableStateFlow(false)
         val sessionStartTime = MutableStateFlow(0L)
+        /** Planned focus minutes for the active session — drives the overtime label on the overlay. */
+        val plannedWorkMinutes = MutableStateFlow(0)
         val unlockCount = MutableStateFlow(0)
     }
 
@@ -91,6 +94,7 @@ class FocusTrackingService : Service() {
         Log.d(TAG, "onStartCommand — starting focus tracking")
         unlockCount.value = 0
         sessionStartTime.value = System.currentTimeMillis()
+        plannedWorkMinutes.value = intent?.getIntExtra(EXTRA_WORK_DURATION_MIN, 0) ?: 0
         isRunning.value = true
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
@@ -194,6 +198,7 @@ class FocusTrackingService : Service() {
         LockoutOverlayController.hide()
         serviceScope.cancel()
         isRunning.value = false
+        plannedWorkMinutes.value = 0
         super.onDestroy()
     }
 

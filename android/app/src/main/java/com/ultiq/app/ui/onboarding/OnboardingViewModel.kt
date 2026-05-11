@@ -14,7 +14,6 @@ data class OnboardingUiState(
     val targetBedtime: LocalTime = LocalTime.of(22, 0),
     val targetWakeTime: LocalTime = LocalTime.of(6, 0),
     val workDuration: Int = 25,
-    val breakDuration: Int = 5,
 )
 
 class OnboardingViewModel(application: Application) : AndroidViewModel(application) {
@@ -46,18 +45,12 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
         _uiState.value = _uiState.value.copy(workDuration = minutes.coerceIn(5, 240))
     }
 
-    fun setBreakDuration(minutes: Int) {
-        // 0 = no break by default
-        _uiState.value = _uiState.value.copy(breakDuration = minutes.coerceIn(0, 60))
-    }
-
     fun finish() {
         viewModelScope.launch {
             val s = _uiState.value
             userPreferences.setTargetBedtime(s.targetBedtime)
             userPreferences.setTargetWakeTime(s.targetWakeTime)
             userPreferences.setDefaultWorkDuration(s.workDuration)
-            userPreferences.setDefaultBreakDuration(s.breakDuration)
             // Sync the bedtime reminder schedule to the user's chosen target
             reminderPreferences.setBedtimeTime(s.targetBedtime)
             val reminders = reminderPreferences.snapshot()

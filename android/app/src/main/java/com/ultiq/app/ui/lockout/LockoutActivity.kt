@@ -71,6 +71,7 @@ class LockoutActivity : ComponentActivity() {
                     LockoutMode.SLEEP -> SleepTrackingService.sessionUnlockCount
                 }
             }.collectAsState()
+            val plannedWorkMinutes by FocusTrackingService.plannedWorkMinutes.collectAsState()
 
             var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
             LaunchedEffect(Unit) {
@@ -84,6 +85,7 @@ class LockoutActivity : ComponentActivity() {
                 LockoutScreen(
                     mode = mode,
                     elapsedMillis = (now - sessionStartedAt).coerceAtLeast(0),
+                    plannedWorkMinutes = if (mode == LockoutMode.FOCUS) plannedWorkMinutes else 0,
                     unlockCount = unlockCount,
                     showUnlockCount = settings?.showPickupCountOnLockout ?: true,
                     allowEndSession = settings?.allowEndSessionFromLockout ?: true,

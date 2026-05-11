@@ -29,8 +29,7 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.ZoneId
 
-enum class TimerState { IDLE, RUNNING, PAUSED, BREAK, FINISHED }
-enum class Phase { WORK, BREAK }
+enum class TimerState { IDLE, RUNNING, PAUSED, FINISHED }
 
 data class TodayStats(
     val totalFocusMinutes: Int,
@@ -41,13 +40,16 @@ data class TodayStats(
 
 data class SessionsUiState(
     val timerState: TimerState = TimerState.IDLE,
-    val currentPhase: Phase = Phase.WORK,
+    /** Seconds remaining in the planned work block. Stays at 0 once overtime begins. */
     val timeRemainingSeconds: Int = 0,
+    /** Length of the planned work block in seconds — used by the progress ring. */
     val totalTimeSeconds: Int = 0,
     val workDuration: Int = 25,
-    val breakDuration: Int = 5,
     val tag: String = "",
-    val completedPomodoros: Int = 0,
+    /** True once the user has crossed past their planned work duration. */
+    val isOvertime: Boolean = false,
+    /** Seconds spent past the planned work duration. Counts up. */
+    val overtimeSeconds: Int = 0,
     val phonePickups: Int = 0,
     val todayStats: TodayStats? = null,
     val recentSessions: List<SessionEntity> = emptyList(),
@@ -88,6 +90,13 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
     private var pickupPollJob: Job? = null
     private var currentSessionId: String? = null
 
+    // Wall-clock anchors. The timer derives display values from these on every tick,
+    // so duration stays accurate even when Android throttles the coroutine in the
+    // background (where a pure tick counter would lose time).
+    private var sessionStartMillis: Long = 0L
+    private var pausedAccumMillis: Long = 0L
+    private var pauseStartMillis: Long = 0L
+
     init {
         _uiState.value = _uiState.value.copy(hasUsagePermission = usageTracker.hasPermission())
         viewModelScope.launch {
@@ -95,7 +104,6 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
             val settings = userPreferences.snapshot()
             _uiState.value = _uiState.value.copy(
                 workDuration = settings.defaultWorkDuration,
-                breakDuration = settings.defaultBreakDuration,
             )
             loadSessionsAndStats()
             observeTodayChecklist()
@@ -195,11 +203,6 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
         _uiState.value = _uiState.value.copy(workDuration = minutes.coerceIn(5, 240))
     }
 
-    fun updateBreakDuration(minutes: Int) {
-        // 0 = no break (timer chains straight back into another work block on phase rollover).
-        _uiState.value = _uiState.value.copy(breakDuration = minutes.coerceIn(0, 60))
-    }
-
     fun startSession() {
         val state = _uiState.value
         if (state.tag.isBlank()) {
@@ -213,12 +216,16 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
             return
         }
 
+        sessionStartMillis = System.currentTimeMillis()
+        pausedAccumMillis = 0L
+        pauseStartMillis = 0L
+
         _uiState.value = state.copy(
             timerState = TimerState.RUNNING,
-            currentPhase = Phase.WORK,
             timeRemainingSeconds = state.workDuration * 60,
             totalTimeSeconds = state.workDuration * 60,
-            completedPomodoros = 0,
+            isOvertime = false,
+            overtimeSeconds = 0,
             phonePickups = 0,
         )
 
@@ -226,7 +233,6 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
             val result = repository.createSession(
                 tag = state.tag.trim(),
                 workDuration = state.workDuration,
-                breakDuration = state.breakDuration,
                 userId = userId,
                 checklistItemId = state.selectedChecklistItemId,
             )
@@ -244,25 +250,18 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
 
     fun pauseTimer() {
         timerJob?.cancel()
+        if (pauseStartMillis == 0L) {
+            pauseStartMillis = System.currentTimeMillis()
+        }
         _uiState.value = _uiState.value.copy(timerState = TimerState.PAUSED)
     }
 
     fun resumeTimer() {
-        _uiState.value = _uiState.value.copy(
-            timerState = if (_uiState.value.currentPhase == Phase.WORK) TimerState.RUNNING else TimerState.BREAK
-        )
-        startTimer()
-    }
-
-    fun skipBreak() {
-        timerJob?.cancel()
-        val state = _uiState.value
-        _uiState.value = state.copy(
-            currentPhase = Phase.WORK,
-            timerState = TimerState.RUNNING,
-            timeRemainingSeconds = state.workDuration * 60,
-            totalTimeSeconds = state.workDuration * 60,
-        )
+        if (pauseStartMillis > 0L) {
+            pausedAccumMillis += System.currentTimeMillis() - pauseStartMillis
+            pauseStartMillis = 0L
+        }
+        _uiState.value = _uiState.value.copy(timerState = TimerState.RUNNING)
         startTimer()
     }
 
@@ -280,12 +279,15 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
             viewModelScope.launch { repository.deleteSession(id) }
         }
         currentSessionId = null
+        sessionStartMillis = 0L
+        pausedAccumMillis = 0L
+        pauseStartMillis = 0L
         _uiState.value = _uiState.value.copy(
             timerState = TimerState.IDLE,
-            currentPhase = Phase.WORK,
             timeRemainingSeconds = 0,
             totalTimeSeconds = 0,
-            completedPomodoros = 0,
+            isOvertime = false,
+            overtimeSeconds = 0,
             phonePickups = 0,
         )
     }
@@ -296,13 +298,14 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
         stopFocusTrackingService()
         val state = _uiState.value
 
-        // Count full pomodoros + partial work time
-        val partialMinutes = if (state.currentPhase == Phase.WORK) {
-            (state.totalTimeSeconds - state.timeRemainingSeconds) / 60
-        } else {
-            0
-        }
-        val totalMinutes = state.completedPomodoros * state.workDuration + partialMinutes
+        // Wall-clock duration minus any time spent paused. Folds in the current
+        // pause interval if the user hit Complete while paused.
+        val now = System.currentTimeMillis()
+        val livePauseMillis = if (pauseStartMillis > 0L) now - pauseStartMillis else 0L
+        val totalPausedMillis = pausedAccumMillis + livePauseMillis
+        val totalMillis = (now - sessionStartMillis - totalPausedMillis).coerceAtLeast(0L)
+        val totalMinutes = (totalMillis / 60_000L).toInt()
+
         val linkedItemId = state.selectedChecklistItemId
         val linkedItemTitle = state.openChecklistItems.firstOrNull { it.id == linkedItemId }?.title
 
@@ -311,12 +314,15 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
                 repository.completeSession(id, totalMinutes, state.phonePickups)
             }
             currentSessionId = null
+            sessionStartMillis = 0L
+            pausedAccumMillis = 0L
+            pauseStartMillis = 0L
             _uiState.value = _uiState.value.copy(
                 timerState = TimerState.IDLE,
-                currentPhase = Phase.WORK,
                 timeRemainingSeconds = 0,
                 totalTimeSeconds = 0,
-                completedPomodoros = 0,
+                isOvertime = false,
+                overtimeSeconds = 0,
                 phonePickups = 0,
                 selectedChecklistItemId = null,
                 completionPrompt = if (linkedItemId != null && linkedItemTitle != null) {
@@ -340,7 +346,9 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
 
     private fun startFocusTrackingService() {
         val app = getApplication<Application>()
-        val intent = Intent(app, FocusTrackingService::class.java)
+        val intent = Intent(app, FocusTrackingService::class.java).apply {
+            putExtra(FocusTrackingService.EXTRA_WORK_DURATION_MIN, _uiState.value.workDuration)
+        }
         ContextCompat.startForegroundService(app, intent)
     }
 
@@ -353,16 +361,38 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
         _uiState.value = _uiState.value.copy(error = null)
     }
 
+    /**
+     * Wall-clock anchored timer. Every tick we recompute remaining/overtime from
+     * (now − sessionStart − pausedAccum); the coroutine's `delay` cadence only drives
+     * how often the UI refreshes, not how time is measured. This keeps duration
+     * accurate even when Android throttles the coroutine in the background.
+     */
     private fun startTimer() {
         timerJob?.cancel()
         timerJob = viewModelScope.launch {
-            while (_uiState.value.timeRemainingSeconds > 0) {
-                delay(1000)
-                _uiState.value = _uiState.value.copy(
-                    timeRemainingSeconds = _uiState.value.timeRemainingSeconds - 1
-                )
+            while (true) {
+                val current = _uiState.value
+                if (current.timerState != TimerState.RUNNING) break
+
+                val plannedSec = current.workDuration * 60
+                val elapsedMillis = System.currentTimeMillis() - sessionStartMillis - pausedAccumMillis
+                val elapsedSec = (elapsedMillis / 1000L).toInt().coerceAtLeast(0)
+
+                _uiState.value = if (elapsedSec < plannedSec) {
+                    current.copy(
+                        timeRemainingSeconds = plannedSec - elapsedSec,
+                        isOvertime = false,
+                        overtimeSeconds = 0,
+                    )
+                } else {
+                    current.copy(
+                        timeRemainingSeconds = 0,
+                        isOvertime = true,
+                        overtimeSeconds = elapsedSec - plannedSec,
+                    )
+                }
+                delay(500)
             }
-            onTimerFinished()
         }
     }
 
@@ -380,41 +410,6 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
                     )
                 }
             }
-        }
-    }
-
-    private fun onTimerFinished() {
-        val state = _uiState.value
-        if (state.currentPhase == Phase.WORK) {
-            // Always credit the completed pomodoro before deciding what's next.
-            val completed = state.completedPomodoros + 1
-            if (state.breakDuration <= 0) {
-                // No break configured — chain straight into another work block.
-                _uiState.value = state.copy(
-                    currentPhase = Phase.WORK,
-                    timerState = TimerState.RUNNING,
-                    completedPomodoros = completed,
-                    timeRemainingSeconds = state.workDuration * 60,
-                    totalTimeSeconds = state.workDuration * 60,
-                )
-            } else {
-                _uiState.value = state.copy(
-                    currentPhase = Phase.BREAK,
-                    timerState = TimerState.BREAK,
-                    completedPomodoros = completed,
-                    timeRemainingSeconds = state.breakDuration * 60,
-                    totalTimeSeconds = state.breakDuration * 60,
-                )
-            }
-            startTimer()
-        } else {
-            _uiState.value = state.copy(
-                currentPhase = Phase.WORK,
-                timerState = TimerState.RUNNING,
-                timeRemainingSeconds = state.workDuration * 60,
-                totalTimeSeconds = state.workDuration * 60,
-            )
-            startTimer()
         }
     }
 

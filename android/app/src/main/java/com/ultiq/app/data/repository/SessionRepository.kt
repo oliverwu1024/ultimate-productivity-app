@@ -27,14 +27,15 @@ class SessionRepository(
     suspend fun createSession(
         tag: String,
         workDuration: Int,
-        breakDuration: Int,
         userId: String,
         checklistItemId: String? = null,
     ): Result<SessionEntity> {
+        // Breaks were removed from the UX; persisted as 0 for new sessions so the
+        // legacy column on the entity/DTO stays populated.
         val createDto = CreateSessionDto(
             tag = tag,
             work_duration = workDuration,
-            break_duration = breakDuration,
+            break_duration = 0,
             checklist_item_id = checklistItemId,
         )
         return try {
@@ -51,7 +52,7 @@ class SessionRepository(
                     tag = tag,
                     durationMinutes = 0,
                     workDuration = workDuration,
-                    breakDuration = breakDuration,
+                    breakDuration = 0,
                     phonePickups = 0,
                     startedAt = now,
                     endedAt = null,

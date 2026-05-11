@@ -134,9 +134,7 @@ fun OnboardingScreen(
                     )
                     2 -> FocusPrefsStep(
                         work = uiState.workDuration,
-                        breakMins = uiState.breakDuration,
                         onWorkChange = viewModel::setWorkDuration,
-                        onBreakChange = viewModel::setBreakDuration,
                     )
                     3 -> PermissionsStep()
                     else -> AllSetStep()
@@ -191,24 +189,20 @@ private fun SleepTargetsStep(
 @Composable
 private fun FocusPrefsStep(
     work: Int,
-    breakMins: Int,
     onWorkChange: (Int) -> Unit,
-    onBreakChange: (Int) -> Unit,
 ) {
     StepContainer {
         BigIcon(Icons.Default.Timer)
         Text("How do you focus?", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(8.dp))
         Text(
-            "Pick your default work + break lengths. Tweak them anytime — these are just starting points.",
+            "Pick your default focus block length. Tweak it anytime — this is just a starting point.",
             style = MaterialTheme.typography.bodyMedium,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(Modifier.height(24.dp))
         StepperRow(label = "Work", value = work, suffix = "min", step = 5, range = 5..240, onChange = onWorkChange)
-        Spacer(Modifier.height(12.dp))
-        StepperRow(label = "Rest", value = breakMins, suffix = "min", step = 1, range = 0..60, onChange = onBreakChange)
     }
 }
 

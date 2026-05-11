@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 fun LockoutScreen(
     mode: LockoutMode,
     elapsedMillis: Long,
+    plannedWorkMinutes: Int = 0,
     unlockCount: Int,
     showUnlockCount: Boolean,
     allowEndSession: Boolean,
@@ -62,6 +63,7 @@ fun LockoutScreen(
             BodySection(
                 mode = mode,
                 elapsedMillis = elapsedMillis,
+                plannedWorkMinutes = plannedWorkMinutes,
                 unlockCount = unlockCount,
                 showUnlockCount = showUnlockCount,
             )
@@ -123,9 +125,15 @@ private fun HeaderSection(mode: LockoutMode) {
 private fun BodySection(
     mode: LockoutMode,
     elapsedMillis: Long,
+    plannedWorkMinutes: Int,
     unlockCount: Int,
     showUnlockCount: Boolean,
 ) {
+    val plannedMillis = plannedWorkMinutes * 60_000L
+    val isOvertime = mode == LockoutMode.FOCUS &&
+        plannedWorkMinutes > 0 &&
+        elapsedMillis > plannedMillis
+
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -135,13 +143,18 @@ private fun BodySection(
             text = formatElapsed(elapsedMillis),
             style = MaterialTheme.typography.displayMedium,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
+            color = if (isOvertime) {
+                MaterialTheme.colorScheme.tertiary
+            } else {
+                MaterialTheme.colorScheme.primary
+            },
         )
 
         Text(
-            text = when (mode) {
-                LockoutMode.FOCUS -> "into your focus session"
-                LockoutMode.SLEEP -> "into your sleep session"
+            text = when {
+                isOvertime -> "you focused more than your planned ${plannedWorkMinutes}m"
+                mode == LockoutMode.FOCUS -> "into your focus session"
+                else -> "into your sleep session"
             },
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
