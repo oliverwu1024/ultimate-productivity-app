@@ -2,7 +2,7 @@ use leptos::either::Either;
 use leptos::prelude::*;
 use leptos_meta::Title;
 
-use crate::api::admin::{fetch_stats, AdminStats, SignupCount};
+use crate::api::admin::{fetch_stats, fetch_users, AdminStats, AdminUserEntry, SignupCount};
 use crate::auth::use_auth;
 use crate::components::layout::AppShell;
 
@@ -10,18 +10,14 @@ use crate::components::layout::AppShell;
 pub fn AdminPage() -> impl IntoView {
     let auth = use_auth();
     let stats = LocalResource::new(|| async move { fetch_stats().await });
+    let users = LocalResource::new(|| async move { fetch_users().await });
 
     view! {
         <Title text="Admin — Ultiq" />
         <AppShell>
             <div class="p-8">
                 <header class="flex items-center justify-between mb-8">
-                    <div>
-                        <h1 class="text-3xl font-bold text-ultiq-indigo">"Admin"</h1>
-                        <p class="text-sm text-ultiq-indigo/60 mt-1">
-                            "Aggregate stats only — no per-user data is exposed."
-                        </p>
-                    </div>
+                    <h1 class="text-3xl font-bold text-ultiq-indigo">"Admin"</h1>
                     <div class="text-sm text-ultiq-indigo/60">
                         {move || auth.user.get().map(|u| u.email).unwrap_or_default()}
                     </div>
@@ -42,6 +38,25 @@ pub fn AdminPage() -> impl IntoView {
                         }),
                     })}
                 </Suspense>
+
+                <section class="bg-white rounded-2xl p-6 shadow mt-8">
+                    <h2 class="text-lg font-semibold text-ultiq-indigo mb-4">"Users"</h2>
+                    <Suspense fallback=|| view! {
+                        <p class="text-ultiq-indigo/60">"Loading users…"</p>
+                    }>
+                        {move || users.get().map(|res| match res {
+                            Ok(list) => Either::Left(view! { <UsersTable users=list /> }),
+                            Err(e) => Either::Right(view! {
+                                <div class="bg-ultiq-red/5 text-ultiq-red rounded-lg p-4">
+                                    <p class="font-medium">"Failed to load users"</p>
+                                    <p class="text-sm mt-1">
+                                        {format!("HTTP {}: {}", e.status, e.message)}
+                                    </p>
+                                </div>
+                            }),
+                        })}
+                    </Suspense>
+                </section>
             </div>
         </AppShell>
     }
@@ -72,6 +87,46 @@ fn StatCard(label: &'static str, value: String) -> impl IntoView {
         <div class="bg-white rounded-2xl p-6 shadow">
             <p class="text-sm text-ultiq-indigo/60 font-medium">{label}</p>
             <p class="text-4xl font-bold text-ultiq-indigo mt-2">{value}</p>
+        </div>
+    }
+}
+
+#[component]
+fn UsersTable(users: Vec<AdminUserEntry>) -> impl IntoView {
+    let count = users.len();
+    let rows = users
+        .into_iter()
+        .map(|u| {
+            let joined = u.created_at.format("%Y-%m-%d").to_string();
+            view! {
+                <tr class="border-t border-ultiq-indigo/10">
+                    <td class="py-2 pr-4 text-ultiq-indigo">
+                        {u.email}
+                        {u.is_admin.then(|| view! {
+                            <span class="ml-2 text-xs uppercase tracking-wider text-ultiq-indigo/50">
+                                "admin"
+                            </span>
+                        })}
+                    </td>
+                    <td class="py-2 text-ultiq-indigo/70 text-right">{joined}</td>
+                </tr>
+            }
+        })
+        .collect_view();
+    view! {
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="text-xs uppercase tracking-wider text-ultiq-indigo/60">
+                        <th class="text-left py-2 pr-4">"Email"</th>
+                        <th class="text-right py-2">"Joined"</th>
+                    </tr>
+                </thead>
+                <tbody>{rows}</tbody>
+            </table>
+            <p class="text-xs text-ultiq-indigo/50 mt-3">
+                {format!("{} user{}", count, if count == 1 { "" } else { "s" })}
+            </p>
         </div>
     }
 }

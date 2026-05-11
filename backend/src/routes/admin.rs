@@ -4,7 +4,7 @@ use axum::http::request::Parts;
 use axum::http::StatusCode;
 use axum::routing::get;
 use axum::{Json, Router};
-use chrono::NaiveDate;
+use chrono::{DateTime, NaiveDate, Utc};
 use serde::Serialize;
 use uuid::Uuid;
 
@@ -13,7 +13,9 @@ use crate::error::AppError;
 use crate::middleware::auth::Claims;
 
 pub fn router() -> Router<AppState> {
-    Router::new().route("/admin/stats", get(admin_stats))
+    Router::new()
+        .route("/admin/stats", get(admin_stats))
+        .route("/admin/users", get(admin_users))
 }
 
 pub struct AdminUser;
@@ -108,4 +110,35 @@ async fn admin_stats(
         signups_last_30d: last_30d.0,
         signups_by_day,
     }))
+}
+
+#[derive(Debug, Serialize)]
+pub struct AdminUserEntry {
+    pub id: Uuid,
+    pub email: String,
+    pub created_at: DateTime<Utc>,
+    pub is_admin: bool,
+}
+
+async fn admin_users(
+    State(state): State<AppState>,
+    _admin: AdminUser,
+) -> Result<Json<Vec<AdminUserEntry>>, AppError> {
+    let rows: Vec<(Uuid, String, DateTime<Utc>, bool)> = sqlx::query_as(
+        "SELECT id, email, created_at, is_admin FROM users ORDER BY created_at DESC",
+    )
+    .fetch_all(&state.pool)
+    .await?;
+
+    let users = rows
+        .into_iter()
+        .map(|(id, email, created_at, is_admin)| AdminUserEntry {
+            id,
+            email,
+            created_at,
+            is_admin,
+        })
+        .collect();
+
+    Ok(Json(users))
 }
