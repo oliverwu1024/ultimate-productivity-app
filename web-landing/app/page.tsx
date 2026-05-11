@@ -88,6 +88,34 @@ const features = [
   },
 ];
 
+const screenshots = [
+  {
+    src: "/screenshots/dashboard.png",
+    title: "Dashboard",
+    body: "Last night, today's plan, and the day's focus at a glance.",
+  },
+  {
+    src: "/screenshots/checklist.png",
+    title: "Checklist",
+    body: "Plan tomorrow or carry today forward — one short list, no nags.",
+  },
+  {
+    src: "/screenshots/sleep.png",
+    title: "Sleep",
+    body: "Start a night with one tap. Duration, quality, debt — at a glance.",
+  },
+  {
+    src: "/screenshots/focus.png",
+    title: "Focus",
+    body: "A Pomodoro timer that pulls from today's checklist.",
+  },
+  {
+    src: "/screenshots/calendar.png",
+    title: "Calendar",
+    body: "Sessions, sleep, and events on a single monthly view.",
+  },
+];
+
 export default function Home() {
   return (
     <div className="flex flex-1 flex-col bg-ultiq-cream text-ultiq-indigo">
@@ -198,6 +226,45 @@ export default function Home() {
               <p className="mt-2 text-sm leading-relaxed text-ultiq-indigo/70">{f.body}</p>
             </motion.div>
           ))}
+        </div>
+      </section>
+
+      {/* Screenshots */}
+      <section className="bg-ultiq-cream/60 border-y border-ultiq-indigo/10">
+        <div className="mx-auto w-full max-w-6xl px-6 py-20">
+          <h2 className="text-center text-3xl font-bold tracking-tight md:text-4xl">
+            See it on your phone.
+          </h2>
+          <p className="mx-auto mt-4 max-w-2xl text-center text-ultiq-indigo/70">
+            A quick tour of the screens you&apos;ll actually live in.
+          </p>
+
+          <div className="mt-12 -mx-6 overflow-x-auto px-6 pb-4 md:mx-0 md:px-0 md:overflow-visible">
+            <ul className="flex snap-x snap-mandatory gap-5 md:grid md:grid-cols-5 md:gap-6">
+              {screenshots.map((s, i) => (
+                <motion.li
+                  key={s.title}
+                  initial={{ opacity: 0, y: 18 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "-40px" }}
+                  transition={{ delay: i * 0.06, duration: 0.45 }}
+                  className="snap-center shrink-0 basis-[78%] sm:basis-[44%] md:basis-auto"
+                >
+                  <div className="rounded-[2rem] border border-ultiq-indigo/10 bg-ultiq-indigo/95 p-2 shadow-xl shadow-ultiq-indigo/15">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={s.src}
+                      alt={`${s.title} screen`}
+                      loading="lazy"
+                      className="block w-full rounded-[1.6rem]"
+                    />
+                  </div>
+                  <h3 className="mt-4 text-base font-semibold tracking-tight">{s.title}</h3>
+                  <p className="mt-1 text-sm leading-relaxed text-ultiq-indigo/65">{s.body}</p>
+                </motion.li>
+              ))}
+            </ul>
+          </div>
         </div>
       </section>
 
