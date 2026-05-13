@@ -102,7 +102,7 @@ dependencies {
     implementation("androidx.datastore:datastore-preferences:1.1.1")
 
     // Encrypted prefs for auth tokens — Keystore-backed AEAD via Tink.
-    implementation("androidx.security:security-crypto:1.1.0-alpha06")
+    implementation("androidx.security:security-crypto:1.1.0")
 
     // SQLCipher: encrypts the entire Room DB file at rest. Passphrase is stored
     // in EncryptedSharedPreferences (Keystore-rooted), so it never lives in
