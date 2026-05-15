@@ -35,11 +35,11 @@ class UltiqApp : Application() {
         applyReminderSchedules()
         wireRealtimeSync()
         // Run the update check now and on every subsequent foreground.
-        UpdateChecker.checkOnce()
+        UpdateChecker.checkOnce(this@UltiqApp)
         ProcessLifecycleOwner.get().lifecycle.addObserver(
             object : DefaultLifecycleObserver {
                 override fun onStart(owner: LifecycleOwner) {
-                    UpdateChecker.checkOnce()
+                    UpdateChecker.checkOnce(this@UltiqApp)
                 }
             }
         )

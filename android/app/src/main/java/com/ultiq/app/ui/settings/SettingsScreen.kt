@@ -4,6 +4,7 @@ import android.app.TimePickerDialog
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -95,6 +96,11 @@ fun SettingsScreen(
     val supportEmail = "support@ultiqapp.com"
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+    var showReleaseNotes by remember { mutableStateOf(false) }
+
+    if (showReleaseNotes) {
+        ReleaseNotesDialog(onDismiss = { showReleaseNotes = false })
+    }
 
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
@@ -407,7 +413,10 @@ fun SettingsScreen(
 
             item { SectionHeader("About") }
             item {
-                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                    modifier = Modifier.clickable { showReleaseNotes = true },
+                ) {
                     Row(
                         modifier = Modifier.padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -426,11 +435,16 @@ fun SettingsScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                             Text(
-                                "Version ${uiState.versionName} (${uiState.versionCode})",
+                                "Version ${uiState.versionName} (${uiState.versionCode}) · tap for what's new",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
+                        Icon(
+                            Icons.Default.ChevronRight,
+                            null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 }
             }
@@ -830,4 +844,35 @@ private fun LinkRow(
         }
         HorizontalDivider(thickness = 0.dp)
     }
+}
+
+@Composable
+private fun ReleaseNotesDialog(onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("What's new") },
+        text = {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                items(ReleaseNotes.history.size) { index ->
+                    val note = ReleaseNotes.history[index]
+                    Column {
+                        Text(
+                            "v${note.versionName}",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                        Text(
+                            note.summary,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Close") }
+        },
+    )
 }

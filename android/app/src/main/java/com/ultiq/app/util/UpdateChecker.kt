@@ -1,5 +1,7 @@
 package com.ultiq.app.util
 
+import android.content.Context
+import android.os.Build
 import android.util.Log
 import com.google.gson.Gson
 import com.ultiq.app.BuildConfig
@@ -46,7 +48,11 @@ object UpdateChecker {
             .build()
     }
 
-    fun checkOnce() {
+    fun checkOnce(context: Context) {
+        // Play Store builds get updates via Play Store itself — don't compete
+        // with that, and definitely don't tell the user to grab a sideload APK
+        // that won't install over a Play-signed install anyway.
+        if (isInstalledFromPlayStore(context)) return
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val req = Request.Builder().url(MANIFEST_URL).build()
@@ -75,5 +81,21 @@ object UpdateChecker {
 
     fun dismiss() {
         _state.value = null
+    }
+
+    private fun isInstalledFromPlayStore(context: Context): Boolean {
+        val pm = context.packageManager
+        val pkg = context.packageName
+        val installer: String? = try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                pm.getInstallSourceInfo(pkg).installingPackageName
+            } else {
+                @Suppress("DEPRECATION")
+                pm.getInstallerPackageName(pkg)
+            }
+        } catch (_: Exception) {
+            null
+        }
+        return installer == "com.android.vending"
     }
 }

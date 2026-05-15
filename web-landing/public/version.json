@@ -1,6 +1,6 @@
 {
-  "versionCode": 14,
-  "versionName": "1.13",
-  "url": "https://ultiqapp.com/ultiq.1.13.apk",
-  "releaseNotes": "Fix: the Focus tab now shows your running session when you reopen the app (previously it could appear empty mid-session). Overtime now stands out on the lockout popup — a clear OVERTIME pill appears once you pass your planned focus time, and the overtime indicator survives if the system briefly restarts the tracking service."
+  "versionCode": 15,
+  "versionName": "1.14",
+  "url": "https://ultiqapp.com/ultiq.1.14.apk",
+  "releaseNotes": "Play Store users no longer see the sideload update banner — Play handles updates directly. Tap the version row in Settings to view release notes history."
 }
