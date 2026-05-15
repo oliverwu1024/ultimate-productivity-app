@@ -105,11 +105,51 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
             _uiState.value = _uiState.value.copy(
                 workDuration = settings.defaultWorkDuration,
             )
+            // The activity may be created after a session has already started
+            // (cold open from notification, process death + restore). Pick the
+            // running session back up before showing the IDLE controls.
+            if (FocusTrackingService.isRunning.value) {
+                restoreActiveSession()
+            }
             loadSessionsAndStats()
             observeTodayChecklist()
             sync()
         }
         observeAchievementEvents()
+    }
+
+    private suspend fun restoreActiveSession() {
+        val startMillis = FocusTrackingService.sessionStartTime.value
+        if (startMillis <= 0L) return
+
+        val active = sessionDao.getActiveSessions().firstOrNull()?.firstOrNull() ?: return
+        val planned = FocusTrackingService.plannedWorkMinutes.value
+            .takeIf { it > 0 } ?: active.workDuration
+        val plannedSec = planned * 60
+        val elapsedSec = ((System.currentTimeMillis() - startMillis) / 1000L)
+            .toInt()
+            .coerceAtLeast(0)
+        val overtime = elapsedSec >= plannedSec
+
+        sessionStartMillis = startMillis
+        pausedAccumMillis = 0L
+        pauseStartMillis = 0L
+        currentSessionId = active.id
+
+        _uiState.value = _uiState.value.copy(
+            timerState = TimerState.RUNNING,
+            workDuration = planned,
+            tag = active.tag,
+            selectedChecklistItemId = active.checklistItemId,
+            timeRemainingSeconds = if (overtime) 0 else plannedSec - elapsedSec,
+            totalTimeSeconds = plannedSec,
+            isOvertime = overtime,
+            overtimeSeconds = if (overtime) elapsedSec - plannedSec else 0,
+            phonePickups = 0,
+        )
+
+        startTimer()
+        startPickupPolling()
     }
 
     private fun observeAchievementEvents() {

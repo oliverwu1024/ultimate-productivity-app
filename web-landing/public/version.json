@@ -1,6 +1,6 @@
 {
-  "versionCode": 13,
-  "versionName": "1.12",
-  "url": "https://ultiqapp.com/ultiq.1.12.apk",
-  "releaseNotes": "Fix: focus session duration is now accurate when the app runs in the background (was undercounted before because the timer relied on a tick counter that Android throttles). Removed the rest/break phase — sessions are a single focus block, and when you pass your planned time an Overtime indicator counts up while the lockout keeps tracking."
+  "versionCode": 14,
+  "versionName": "1.13",
+  "url": "https://ultiqapp.com/ultiq.1.13.apk",
+  "releaseNotes": "Fix: the Focus tab now shows your running session when you reopen the app (previously it could appear empty mid-session). Overtime now stands out on the lockout popup — a clear OVERTIME pill appears once you pass your planned focus time, and the overtime indicator survives if the system briefly restarts the tracking service."
 }

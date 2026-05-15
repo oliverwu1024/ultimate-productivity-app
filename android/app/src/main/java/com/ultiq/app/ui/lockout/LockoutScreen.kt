@@ -150,6 +150,21 @@ private fun BodySection(
             },
         )
 
+        if (isOvertime) {
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = MaterialTheme.colorScheme.tertiaryContainer,
+            ) {
+                Text(
+                    text = "OVERTIME",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                )
+            }
+        }
+
         Text(
             text = when {
                 isOvertime -> "you focused more than your planned ${plannedWorkMinutes}m"

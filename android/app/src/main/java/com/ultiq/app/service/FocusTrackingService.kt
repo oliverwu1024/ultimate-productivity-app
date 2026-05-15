@@ -92,9 +92,16 @@ class FocusTrackingService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d(TAG, "onStartCommand — starting focus tracking")
-        unlockCount.value = 0
-        sessionStartTime.value = System.currentTimeMillis()
-        plannedWorkMinutes.value = intent?.getIntExtra(EXTRA_WORK_DURATION_MIN, 0) ?: 0
+        // Only treat this as a fresh start when the caller supplied a planned
+        // duration. If Android system-restarts the service (START_STICKY with a
+        // null intent), we must NOT wipe sessionStartTime / plannedWorkMinutes
+        // — that would break the overtime label on the overlay.
+        val durationFromIntent = intent?.getIntExtra(EXTRA_WORK_DURATION_MIN, 0) ?: 0
+        if (durationFromIntent > 0) {
+            unlockCount.value = 0
+            sessionStartTime.value = System.currentTimeMillis()
+            plannedWorkMinutes.value = durationFromIntent
+        }
         isRunning.value = true
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
