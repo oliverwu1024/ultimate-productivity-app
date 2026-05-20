@@ -15,6 +15,7 @@ import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.ultiq.app.MainActivity
+import com.ultiq.app.alarm.AlarmRingService
 import com.ultiq.app.ui.lockout.LockoutMode
 import com.ultiq.app.ui.lockout.LockoutOverlayController
 import com.ultiq.app.util.LockoutNotifier
@@ -58,6 +59,14 @@ class SleepTrackingService : Service() {
     private val screenReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             Log.d(TAG, "onReceive action=${intent.action}")
+            // §8.10: pickup detection is suspended whenever a Phase 8 wake
+            // alarm is ringing — the screen-on/off cycle caused by dismissing
+            // the alarm activity isn't a real pickup and shouldn't count.
+            if (AlarmRingService.currentAlarmId.value != null) {
+                Log.d(TAG, "${intent.action} ignored — alarm ringing")
+                lastScreenOnTime = null
+                return
+            }
             when (intent.action) {
                 Intent.ACTION_SCREEN_ON -> {
                     lastScreenOnTime = System.currentTimeMillis()
@@ -89,7 +98,7 @@ class SleepTrackingService : Service() {
                                     context = appContext,
                                     mode = LockoutMode.SLEEP,
                                     sessionStartedAt = sessionStartTime.value,
-                                    graceMinutes = settings.lockoutGraceMinutes,
+                                    graceMinutes = settings.sleepLockoutGraceMinutes,
                                 )
                             }
                         } else {
@@ -167,7 +176,7 @@ class SleepTrackingService : Service() {
                             context = applicationContext,
                             mode = LockoutMode.SLEEP,
                             sessionStartedAt = sessionStartTime.value,
-                            graceMinutes = settings.lockoutGraceMinutes,
+                            graceMinutes = settings.sleepLockoutGraceMinutes,
                         )
                     }
                 }
@@ -190,7 +199,7 @@ class SleepTrackingService : Service() {
                         context = applicationContext,
                         mode = LockoutMode.SLEEP,
                         sessionStartedAt = sessionStartTime.value,
-                        graceMinutes = settings.lockoutGraceMinutes,
+                        graceMinutes = settings.sleepLockoutGraceMinutes,
                     )
                 }
             } else {

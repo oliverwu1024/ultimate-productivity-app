@@ -7,11 +7,15 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.ultiq.app.data.local.dao.AchievementDao
+import com.ultiq.app.data.local.dao.AlarmDao
 import com.ultiq.app.data.local.dao.CalendarEventDao
 import com.ultiq.app.data.local.dao.ChecklistDao
 import com.ultiq.app.data.local.dao.SessionDao
 import com.ultiq.app.data.local.dao.SleepDao
 import com.ultiq.app.data.local.entity.AchievementEntity
+import com.ultiq.app.data.local.entity.AlarmEntity
+import com.ultiq.app.data.local.entity.AlarmEventEntity
+import com.ultiq.app.data.local.entity.AlarmTombstoneEntity
 import com.ultiq.app.data.local.entity.CalendarEventEntity
 import com.ultiq.app.data.local.entity.ChecklistEntity
 import com.ultiq.app.data.local.entity.SessionEntity
@@ -26,8 +30,11 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
         CalendarEventEntity::class,
         AchievementEntity::class,
         ChecklistEntity::class,
+        AlarmEntity::class,
+        AlarmEventEntity::class,
+        AlarmTombstoneEntity::class,
     ],
-    version = 6,
+    version = 8,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -36,6 +43,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun calendarEventDao(): CalendarEventDao
     abstract fun achievementDao(): AchievementDao
     abstract fun checklistDao(): ChecklistDao
+    abstract fun alarmDao(): AlarmDao
 
     companion object {
         @Volatile
@@ -139,6 +147,73 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """CREATE TABLE IF NOT EXISTS `alarm_tombstones` (
+                        `id` TEXT NOT NULL,
+                        `deletedAt` INTEGER NOT NULL,
+                        PRIMARY KEY(`id`)
+                    )"""
+                )
+            }
+        }
+
+        private val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """CREATE TABLE IF NOT EXISTS `alarms` (
+                        `id` TEXT NOT NULL,
+                        `userId` TEXT NOT NULL,
+                        `label` TEXT,
+                        `triggerHour` INTEGER NOT NULL,
+                        `triggerMinute` INTEGER NOT NULL,
+                        `daysOfWeekMask` INTEGER NOT NULL,
+                        `enabled` INTEGER NOT NULL,
+                        `soundUri` TEXT,
+                        `volumePct` INTEGER NOT NULL,
+                        `volumeEscalates` INTEGER NOT NULL,
+                        `vibration` INTEGER NOT NULL,
+                        `snoozeMinutes` INTEGER NOT NULL,
+                        `snoozeMax` INTEGER NOT NULL,
+                        `missionKind` TEXT NOT NULL,
+                        `missionConfigJson` TEXT NOT NULL,
+                        `createdAt` INTEGER NOT NULL,
+                        `updatedAt` INTEGER NOT NULL,
+                        `isSynced` INTEGER NOT NULL DEFAULT 0,
+                        PRIMARY KEY(`id`)
+                    )"""
+                )
+                db.execSQL(
+                    """CREATE TABLE IF NOT EXISTS `alarm_events` (
+                        `id` TEXT NOT NULL,
+                        `userId` TEXT NOT NULL,
+                        `alarmId` TEXT,
+                        `firedAt` INTEGER NOT NULL,
+                        `dismissedAt` INTEGER,
+                        `dismissMethod` TEXT,
+                        `snoozeCount` INTEGER NOT NULL,
+                        `missionKind` TEXT,
+                        `missionAttempts` INTEGER NOT NULL,
+                        `missionDurationMs` INTEGER,
+                        `createdAt` INTEGER NOT NULL,
+                        `isSynced` INTEGER NOT NULL DEFAULT 0,
+                        PRIMARY KEY(`id`),
+                        FOREIGN KEY(`alarmId`) REFERENCES `alarms`(`id`)
+                            ON UPDATE NO ACTION ON DELETE SET NULL
+                    )"""
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `idx_alarm_events_user_fired` " +
+                        "ON `alarm_events` (`userId`, `firedAt`)"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `idx_alarm_events_alarm_fired` " +
+                        "ON `alarm_events` (`alarmId`, `firedAt`)"
+                )
+            }
+        }
+
         fun getInstance(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: build(context).also { INSTANCE = it }
@@ -169,6 +244,8 @@ abstract class AppDatabase : RoomDatabase() {
                     MIGRATION_3_4,
                     MIGRATION_4_5,
                     MIGRATION_5_6,
+                    MIGRATION_6_7,
+                    MIGRATION_7_8,
                 )
                 // Legacy DB has been dropped if it existed; if Room can't
                 // open the file (corrupt / version mismatch from a prior

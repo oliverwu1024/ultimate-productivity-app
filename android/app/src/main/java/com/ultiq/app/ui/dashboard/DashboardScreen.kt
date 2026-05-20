@@ -122,6 +122,20 @@ fun DashboardScreen(
         }
     }
 
+    // Re-check overlay + strict-lock permission state whenever the dashboard
+    // comes back into the foreground, so the lock&overlay hint disappears
+    // immediately after the user grants permission in system settings.
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                viewModel.refreshLockOverlayState()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -156,6 +170,32 @@ fun DashboardScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item { GreetingHeader() }
+
+            if (uiState.showLockOverlayHint) {
+                item {
+                    com.ultiq.app.ui.common.ConfigureHintCard(
+                        title = "Grant lock & overlay in Settings",
+                        body = "Focus mode and sleep lockout need 'Display over " +
+                            "other apps' and 'Strict lock' to work reliably. " +
+                            "Without them, the lockout screen can be swiped " +
+                            "away. Open Settings (top right) to grant.",
+                        onDismiss = { viewModel.dismissLockOverlayHint() },
+                    )
+                }
+            }
+
+            if (uiState.showPrefsHint) {
+                item {
+                    com.ultiq.app.ui.common.ConfigureHintCard(
+                        title = "Set up your sleep & focus preferences",
+                        body = "Your wake-up alarms and sleep settings live on the " +
+                            "Sleep tab; your focus settings live on the Focus tab. " +
+                            "Open each tab and scroll down to configure — or tap " +
+                            "this card's × to hide it.",
+                        onDismiss = { viewModel.dismissPrefsHint() },
+                    )
+                }
+            }
 
             if (showWebHint) {
                 item {

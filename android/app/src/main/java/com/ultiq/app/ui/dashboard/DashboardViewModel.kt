@@ -1,6 +1,7 @@
 package com.ultiq.app.ui.dashboard
 
 import android.app.Application
+import android.provider.Settings
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -15,6 +16,7 @@ import com.ultiq.app.data.repository.ChecklistRepository
 import com.ultiq.app.data.repository.SessionRepository
 import com.ultiq.app.data.repository.SleepRepository
 import com.ultiq.app.data.repository.SyncManager
+import com.ultiq.app.ui.lockout.LockoutAdmin
 import com.ultiq.app.util.AlarmScheduler
 import com.ultiq.app.util.Comparisons
 import com.ultiq.app.util.TokenManager
@@ -86,7 +88,23 @@ data class DashboardUiState(
     val isLoading: Boolean = false,
     val isSyncing: Boolean = false,
     val lastSyncTime: Long = 0L,
-)
+    val showPrefsHint: Boolean = false,
+    /** Live overlay-permission grant state — refreshed on screen resume. */
+    val canDrawOverlays: Boolean = true,
+    /** Live device-admin / strict-lock state — refreshed on screen resume. */
+    val isStrictLockEnabled: Boolean = true,
+    /** User dismissed the lock&overlay hint. */
+    val lockOverlayHintSeen: Boolean = true,
+) {
+    /**
+     * Show the lock&overlay hint on the dashboard when at least one of
+     * those permissions is missing AND the user hasn't dismissed the
+     * hint. Lives on the dashboard (not Settings) so the user sees it
+     * immediately on app open rather than having to dig into Settings.
+     */
+    val showLockOverlayHint: Boolean
+        get() = !lockOverlayHintSeen && (!canDrawOverlays || !isStrictLockEnabled)
+}
 
 class DashboardViewModel(application: Application) : AndroidViewModel(application) {
     private val tokenManager = TokenManager(application)
@@ -99,7 +117,8 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     private val sessionRepo = SessionRepository(sessionDao, api)
     private val calendarRepo = CalendarRepository(db.calendarEventDao(), api, AlarmScheduler(application))
     private val checklistRepo = ChecklistRepository(db.checklistDao(), api)
-    private val syncManager = SyncManager(sleepRepo, sessionRepo, calendarRepo)
+    private val alarmRepo = com.ultiq.app.data.repository.AlarmRepository(application, db.alarmDao(), api)
+    private val syncManager = SyncManager(sleepRepo, sessionRepo, calendarRepo, alarmRepo)
     private val userPreferences = UserPreferences(application)
 
     private val _uiState = MutableStateFlow(DashboardUiState())
@@ -112,8 +131,42 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             loadAll()
             _uiState.value = _uiState.value.copy(isLoading = false)
         }
+        // Mirror the dashboard prefs-hint + lock-overlay dismissal so the
+        // cards disappear immediately when the user taps × and stay gone
+        // across launches.
+        viewModelScope.launch {
+            userPreferences.settings.collect { s ->
+                _uiState.value = _uiState.value.copy(
+                    showPrefsHint = !s.dashboardPrefsHintSeen,
+                    lockOverlayHintSeen = s.lockOverlayHintSeen,
+                )
+            }
+        }
+        refreshLockOverlayState()
         observeTodayChecklist()
         observeAchievements()
+    }
+
+    fun dismissPrefsHint() = viewModelScope.launch {
+        userPreferences.setDashboardPrefsHintSeen(true)
+    }
+
+    fun dismissLockOverlayHint() = viewModelScope.launch {
+        userPreferences.setLockOverlayHintSeen(true)
+    }
+
+    /**
+     * Recheck overlay + strict-lock permission state. Called from the
+     * Dashboard screen's ON_RESUME observer so the hint disappears as
+     * soon as the user comes back from granting permission in system
+     * settings.
+     */
+    fun refreshLockOverlayState() {
+        val app = getApplication<Application>()
+        _uiState.value = _uiState.value.copy(
+            canDrawOverlays = Settings.canDrawOverlays(app),
+            isStrictLockEnabled = LockoutAdmin.isAdminActive(app),
+        )
     }
 
     private fun observeTodayChecklist() {

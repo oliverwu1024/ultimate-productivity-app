@@ -21,7 +21,8 @@ class SyncWorker(
         val syncManager = SyncManager(
             sleepRepo = SleepRepository(db.sleepDao(), api),
             sessionRepo = SessionRepository(db.sessionDao(), api),
-            calendarRepo = CalendarRepository(db.calendarEventDao(), api, AlarmScheduler(applicationContext))
+            calendarRepo = CalendarRepository(db.calendarEventDao(), api, AlarmScheduler(applicationContext)),
+            alarmRepo = AlarmRepository(applicationContext, db.alarmDao(), api),
         )
 
         return try {

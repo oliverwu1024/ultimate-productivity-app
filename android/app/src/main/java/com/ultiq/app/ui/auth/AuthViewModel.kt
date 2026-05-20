@@ -94,6 +94,10 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                 tokenManager.saveToken(response.token)
                 tokenManager.saveUserId(response.user.id)
                 tokenManager.saveEmail(response.user.email)
+                // §sync-prefs: pull server's preferences into local DataStore so
+                // a fresh install on a new device picks up the user's existing
+                // bedtime/wake/focus config rather than starting from defaults.
+                response.user.preferences?.let { userPreferences.applyServerPreferences(it) }
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     isLoggedIn = true,
@@ -116,6 +120,11 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                 tokenManager.saveToken(response.token)
                 tokenManager.saveUserId(response.user.id)
                 tokenManager.saveEmail(response.user.email)
+                // §sync-prefs: a brand-new account has an empty preferences
+                // blob server-side, so this is a no-op. The hook is here for
+                // symmetry with login (and so that account-merge flows work
+                // when we eventually have them).
+                response.user.preferences?.let { userPreferences.applyServerPreferences(it) }
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     isLoggedIn = true,

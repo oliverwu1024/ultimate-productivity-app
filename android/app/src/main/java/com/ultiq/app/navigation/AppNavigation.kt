@@ -49,7 +49,10 @@ import com.ultiq.app.ui.checklist.WeeklyPlannerScreen
 import com.ultiq.app.ui.dashboard.DashboardScreen
 import com.ultiq.app.ui.onboarding.OnboardingScreen
 import com.ultiq.app.ui.reports.WeeklyReportScreen
+import com.ultiq.app.ui.alarms.AlarmEditScreen
+import com.ultiq.app.ui.sessions.FocusSettingsScreen
 import com.ultiq.app.ui.sessions.SessionsScreen
+import com.ultiq.app.ui.sleep.SleepSettingsScreen
 import com.ultiq.app.ui.settings.ChangePasswordScreen
 import com.ultiq.app.ui.settings.RemindersScreen
 import com.ultiq.app.ui.settings.SettingsScreen
@@ -73,6 +76,12 @@ sealed class Screen(val route: String) {
     data object Calendar : Screen("calendar")
     data object Settings : Screen("settings")
     data object Reminders : Screen("reminders")
+    data object SleepSettings : Screen("sleep/settings")
+    data object FocusSettings : Screen("focus/settings")
+    data object AlarmNew : Screen("alarms/new")
+    data object AlarmEdit : Screen("alarms/edit/{id}") {
+        fun route(id: String) = "alarms/edit/$id"
+    }
     data object Reports : Screen("reports")
     data object ChangePassword : Screen("change_password")
     data object Terms : Screen("terms")
@@ -247,8 +256,24 @@ fun AppNavigation(
             composable(Screen.WeeklyPlanner.route) {
                 WeeklyPlannerScreen(onDone = { navController.popBackStack() })
             }
-            composable(Screen.Sleep.route) { SleepScreen() }
-            composable(Screen.Sessions.route) { SessionsScreen() }
+            composable(Screen.Sleep.route) {
+                SleepScreen(
+                    onCreateAlarm = { navController.navigate(Screen.AlarmNew.route) },
+                    onEditAlarm = { id -> navController.navigate(Screen.AlarmEdit.route(id)) },
+                    onOpenSleepSettings = { navController.navigate(Screen.SleepSettings.route) },
+                )
+            }
+            composable(Screen.Sessions.route) {
+                SessionsScreen(
+                    onOpenFocusSettings = { navController.navigate(Screen.FocusSettings.route) },
+                )
+            }
+            composable(Screen.SleepSettings.route) {
+                SleepSettingsScreen(onBack = { navController.popBackStack() })
+            }
+            composable(Screen.FocusSettings.route) {
+                FocusSettingsScreen(onBack = { navController.popBackStack() })
+            }
             composable(Screen.Calendar.route) { CalendarScreen() }
             composable(Screen.Settings.route) {
                 SettingsScreen(
@@ -260,6 +285,18 @@ fun AppNavigation(
                     onLogout = { authViewModel.logout() },
                     onResetAccount = { authViewModel.resetAccount() },
                     onDeleteAccount = { authViewModel.deleteAccount() },
+                )
+            }
+            composable(Screen.AlarmNew.route) {
+                AlarmEditScreen(alarmId = null, onBack = { navController.popBackStack() })
+            }
+            composable(
+                route = Screen.AlarmEdit.route,
+                arguments = listOf(navArgument("id") { type = NavType.StringType }),
+            ) { entry ->
+                AlarmEditScreen(
+                    alarmId = entry.arguments?.getString("id"),
+                    onBack = { navController.popBackStack() },
                 )
             }
             composable(Screen.Terms.route) {

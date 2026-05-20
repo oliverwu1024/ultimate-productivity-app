@@ -1,7 +1,11 @@
 package com.ultiq.app.data.remote
 
+import com.ultiq.app.data.remote.dto.AlarmDto
+import com.ultiq.app.data.remote.dto.AlarmEventDto
 import com.ultiq.app.data.remote.dto.AuthResponse
 import com.ultiq.app.data.remote.dto.CalendarEventDto
+import com.ultiq.app.data.remote.dto.CreateAlarmDto
+import com.ultiq.app.data.remote.dto.CreateAlarmEventDto
 import com.ultiq.app.data.remote.dto.ChangePasswordRequest
 import com.ultiq.app.data.remote.dto.ForgotPasswordRequest
 import com.ultiq.app.data.remote.dto.ResetPasswordRequest
@@ -165,4 +169,28 @@ interface ApiService {
     suspend fun bulkCreateChecklistItems(
         @Body items: List<CreateChecklistItemDto>
     ): List<ChecklistItemDto>
+
+    @POST("alarms")
+    suspend fun createAlarm(@Body alarm: CreateAlarmDto): AlarmDto
+
+    @GET("alarms")
+    suspend fun getAlarms(): List<AlarmDto>
+
+    @GET("alarms/{id}")
+    suspend fun getAlarm(@Path("id") id: String): AlarmDto
+
+    @PUT("alarms/{id}")
+    suspend fun updateAlarm(
+        @Path("id") id: String,
+        @Body alarm: CreateAlarmDto
+    ): AlarmDto
+
+    @DELETE("alarms/{id}")
+    suspend fun deleteAlarm(@Path("id") id: String)
+
+    @POST("alarms/{id}/events")
+    suspend fun logAlarmEvent(
+        @Path("id") id: String,
+        @Body event: CreateAlarmEventDto
+    ): AlarmEventDto
 }

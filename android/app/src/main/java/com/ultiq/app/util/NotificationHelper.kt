@@ -5,6 +5,8 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.media.AudioAttributes
+import android.media.RingtoneManager
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.ultiq.app.MainActivity
@@ -14,6 +16,7 @@ object NotificationHelper {
 
     const val CHANNEL_REMINDERS = "reminders"
     const val CHANNEL_SUMMARY = "summary"
+    const val CHANNEL_ALARM = "alarm"
 
     const val NOTIFICATION_ID_BEDTIME = 2001
     const val NOTIFICATION_ID_FOCUS = 2002
@@ -46,8 +49,27 @@ object NotificationHelper {
             description = "Morning summary of sleep and the day ahead"
         }
 
+        val alarm = NotificationChannel(
+            CHANNEL_ALARM,
+            "Alarms",
+            NotificationManager.IMPORTANCE_HIGH,
+        ).apply {
+            description = "Wake-up alarms — bypass Do Not Disturb"
+            enableVibration(true)
+            setBypassDnd(true)
+            lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
+            val alarmAttrs = AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_ALARM)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build()
+            // Channel sound is a fallback — the active sound comes from
+            // AlarmRingService's MediaPlayer so we can stop it on dismiss.
+            setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM), alarmAttrs)
+        }
+
         manager.createNotificationChannel(reminders)
         manager.createNotificationChannel(summary)
+        manager.createNotificationChannel(alarm)
     }
 
     fun showBedtimeReminder(context: Context, minutesUntilBedtime: Int) {

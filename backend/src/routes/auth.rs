@@ -204,13 +204,19 @@ async fn update_profile(
         }
     }
 
+    // §sync-prefs: merge any provided preferences into the existing JSONB
+    // blob using the `||` operator. A null `preferences` field keeps the
+    // existing blob untouched (COALESCE to an empty object first so the
+    // merge is a no-op).
     let user = sqlx::query_as::<_, User>(
         "UPDATE users
-         SET sleep_target_minutes = COALESCE($1, sleep_target_minutes)
-         WHERE id = $2
+         SET sleep_target_minutes = COALESCE($1, sleep_target_minutes),
+             preferences = preferences || COALESCE($2, '{}'::jsonb)
+         WHERE id = $3
          RETURNING *",
     )
     .bind(input.sleep_target_minutes)
+    .bind(input.preferences)
     .bind(user_id)
     .fetch_optional(&state.pool)
     .await?

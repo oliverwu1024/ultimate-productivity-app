@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use serde_json::Value as JsonValue;
 use uuid::Uuid;
 
 #[derive(Debug, sqlx::FromRow)]
@@ -11,11 +12,16 @@ pub struct User {
     pub sleep_target_minutes: i32,
     pub is_admin: bool,
     pub token_version: i32,
+    pub preferences: JsonValue,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct UpdateProfile {
     pub sleep_target_minutes: Option<i32>,
+    /// §sync-prefs: a partial preferences blob, merged into the existing
+    /// JSONB column via `||`. Send only the keys you want to change; the
+    /// rest stay as they were. Null clears the column to `{}`.
+    pub preferences: Option<JsonValue>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -54,6 +60,7 @@ pub struct UserResponse {
     pub created_at: DateTime<Utc>,
     pub sleep_target_minutes: i32,
     pub is_admin: bool,
+    pub preferences: JsonValue,
 }
 
 #[derive(Debug, Serialize)]
@@ -70,6 +77,7 @@ impl From<User> for UserResponse {
             created_at: user.created_at,
             sleep_target_minutes: user.sleep_target_minutes,
             is_admin: user.is_admin,
+            preferences: user.preferences,
         }
     }
 }

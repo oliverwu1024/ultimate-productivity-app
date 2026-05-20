@@ -1,3 +1,4 @@
+pub mod alarm;
 pub mod calendar;
 pub mod checklist;
 pub mod phone_pickup;

@@ -5,6 +5,7 @@ use serde::Serialize;
 use tokio::sync::broadcast;
 use uuid::Uuid;
 
+use crate::models::alarm::{Alarm, AlarmEvent};
 use crate::models::calendar::CalendarEvent;
 use crate::models::checklist::ChecklistItem;
 use crate::models::session::ProductivitySession;
@@ -29,6 +30,10 @@ pub enum SyncEvent {
     SessionCreated(ProductivitySession),
     SessionUpdated(ProductivitySession),
     SessionDeleted { id: Uuid },
+    AlarmCreated(Alarm),
+    AlarmUpdated(Alarm),
+    AlarmDeleted { id: Uuid },
+    AlarmEventLogged(AlarmEvent),
 }
 
 #[derive(Clone, Default)]

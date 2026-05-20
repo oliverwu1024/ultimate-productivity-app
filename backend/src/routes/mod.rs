@@ -1,4 +1,5 @@
 pub mod admin;
+pub mod alarms;
 pub mod auth;
 pub mod calendar;
 pub mod checklist;
@@ -37,6 +38,7 @@ pub fn other_routes() -> Router<AppState> {
         .merge(sessions::router())
         .merge(calendar::router())
         .merge(checklist::router())
+        .merge(alarms::router())
         .merge(admin::router())
         .merge(sync::router())
 }

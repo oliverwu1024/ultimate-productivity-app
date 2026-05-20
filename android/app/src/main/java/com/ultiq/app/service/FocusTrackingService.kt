@@ -69,7 +69,7 @@ class FocusTrackingService : Service() {
                             context = appContext,
                             mode = LockoutMode.FOCUS,
                             sessionStartedAt = sessionStartTime.value,
-                            graceMinutes = settings.lockoutGraceMinutes,
+                            graceMinutes = settings.focusLockoutGraceMinutes,
                         )
                     }
                 } else {
@@ -158,7 +158,7 @@ class FocusTrackingService : Service() {
                             context = applicationContext,
                             mode = LockoutMode.FOCUS,
                             sessionStartedAt = sessionStartTime.value,
-                            graceMinutes = settings.lockoutGraceMinutes,
+                            graceMinutes = settings.focusLockoutGraceMinutes,
                         )
                     }
                 }
@@ -181,7 +181,7 @@ class FocusTrackingService : Service() {
                         context = applicationContext,
                         mode = LockoutMode.FOCUS,
                         sessionStartedAt = sessionStartTime.value,
-                        graceMinutes = settings.lockoutGraceMinutes,
+                        graceMinutes = settings.focusLockoutGraceMinutes,
                     )
                 }
             } else {

@@ -14,6 +14,11 @@
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="false" />
 
     <application
         android:name=".UltiqApp"
@@ -58,6 +63,16 @@
             android:taskAffinity=""
             android:theme="@style/Theme.Lockout" />
 
+        <activity
+            android:name=".alarm.AlarmActivity"
+            android:exported="false"
+            android:launchMode="singleInstance"
+            android:excludeFromRecents="true"
+            android:showOnLockScreen="true"
+            android:turnScreenOn="true"
+            android:taskAffinity=""
+            android:theme="@style/Theme.Ultiq" />
+
         <service
             android:name=".service.SleepTrackingService"
             android:foregroundServiceType="specialUse"
@@ -76,6 +91,15 @@
                 android:value="focus_session_screen_monitor" />
         </service>
 
+        <service
+            android:name=".alarm.AlarmRingService"
+            android:foregroundServiceType="specialUse"
+            android:exported="false">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="alarm_ringing" />
+        </service>
+
         <receiver
             android:name=".receiver.BedtimeReminderReceiver"
             android:exported="false" />
@@ -87,6 +111,10 @@
             android:exported="false" />
         <receiver
             android:name=".receiver.EventReminderReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".alarm.AlarmReceiver"
             android:exported="false" />
 
         <receiver

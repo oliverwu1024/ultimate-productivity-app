@@ -3,6 +3,7 @@ package com.ultiq.app.receiver
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import com.ultiq.app.alarm.WakeAlarmScheduler
 import com.ultiq.app.data.local.AppDatabase
 import com.ultiq.app.util.AlarmScheduler
 import com.ultiq.app.util.ReminderPreferences
@@ -36,6 +37,9 @@ class BootReceiver : BroadcastReceiver() {
                     .firstOrNull()
                     .orEmpty()
                 scheduler.rescheduleAllEventReminders(events)
+
+                // Phase 8: re-arm wake-up alarms after reboot / app update.
+                WakeAlarmScheduler(app).rescheduleAll()
             } finally {
                 pendingResult.finish()
             }

@@ -25,8 +25,12 @@ data class UserSettings(
     val lockoutForSleep: Boolean,
     val showPickupCountOnLockout: Boolean,
     val allowEndSessionFromLockout: Boolean,
-    /** Minutes the foreground watcher stays silent after "I need my phone". */
-    val lockoutGraceMinutes: Int,
+    /** Minutes the foreground watcher stays silent after "I need my phone"
+     *  during a sleep session. Previously shared with focus; split in v1.15
+     *  so users can dial them independently. */
+    val sleepLockoutGraceMinutes: Int,
+    /** Minutes the foreground watcher stays silent during a focus session. */
+    val focusLockoutGraceMinutes: Int,
     /** Encoded as `isoYear * 100 + weekOfYear` (e.g. 202617 for week 17 of 2026). */
     val lastPlanningPromptDismissedWeek: Int,
     /** Has the user dismissed the "what sleep tracking does" explainer? */
@@ -35,6 +39,11 @@ data class UserSettings(
     val sleepTargetMinutes: Int,
     /** Has the user dismissed the "Ultiq is also on the web" hint on the dashboard? */
     val webDashboardHintSeen: Boolean,
+    /** Per-tab "settings have moved here, configure them below" hints — one-shot. */
+    val sleepPrefsHintSeen: Boolean,
+    val focusPrefsHintSeen: Boolean,
+    val dashboardPrefsHintSeen: Boolean,
+    val lockOverlayHintSeen: Boolean,
     /** Epoch day on which the user last dismissed the "unfinished from yesterday"
      *  carry-over banner. If equal to today's epoch day the banner stays hidden. */
     val lastCarryOverDismissedEpochDay: Long,
@@ -51,12 +60,20 @@ class UserPreferences(private val context: Context) {
         val LOCKOUT_FOR_SLEEP = booleanPreferencesKey("lockout_for_sleep")
         val SHOW_PICKUP_COUNT_ON_LOCKOUT = booleanPreferencesKey("show_pickup_count_on_lockout")
         val ALLOW_END_SESSION_FROM_LOCKOUT = booleanPreferencesKey("allow_end_session_from_lockout")
+        // Pre-split (≤ v1.14) key. Kept for one-way read so existing installs
+        // upgrade smoothly — see settings.fold logic below.
         val LOCKOUT_GRACE_MINUTES = intPreferencesKey("lockout_grace_minutes")
+        val SLEEP_LOCKOUT_GRACE_MINUTES = intPreferencesKey("sleep_lockout_grace_minutes")
+        val FOCUS_LOCKOUT_GRACE_MINUTES = intPreferencesKey("focus_lockout_grace_minutes")
         val LAST_PLANNING_DISMISSED_WEEK = intPreferencesKey("last_planning_dismissed_week")
         val SLEEP_EXPLAINER_SEEN = booleanPreferencesKey("sleep_explainer_seen")
         val SLEEP_TARGET_MINUTES = intPreferencesKey("sleep_target_minutes")
         val WEB_DASHBOARD_HINT_SEEN = booleanPreferencesKey("web_dashboard_hint_seen")
         val LAST_CARRYOVER_DISMISSED_DAY = longPreferencesKey("last_carryover_dismissed_day")
+        val SLEEP_PREFS_HINT_SEEN = booleanPreferencesKey("sleep_prefs_hint_seen")
+        val FOCUS_PREFS_HINT_SEEN = booleanPreferencesKey("focus_prefs_hint_seen")
+        val DASHBOARD_PREFS_HINT_SEEN = booleanPreferencesKey("dashboard_prefs_hint_seen")
+        val LOCK_OVERLAY_HINT_SEEN = booleanPreferencesKey("lock_overlay_hint_seen")
     }
 
     private val defaults = UserSettings(
@@ -68,12 +85,17 @@ class UserPreferences(private val context: Context) {
         lockoutForSleep = false,
         showPickupCountOnLockout = true,
         allowEndSessionFromLockout = true,
-        lockoutGraceMinutes = 5,
+        sleepLockoutGraceMinutes = 5,
+        focusLockoutGraceMinutes = 5,
         lastPlanningPromptDismissedWeek = 0,
         sleepExplainerSeen = false,
         sleepTargetMinutes = 480,
         webDashboardHintSeen = false,
         lastCarryOverDismissedEpochDay = 0L,
+        sleepPrefsHintSeen = false,
+        focusPrefsHintSeen = false,
+        dashboardPrefsHintSeen = false,
+        lockOverlayHintSeen = false,
     )
 
     val settings: Flow<UserSettings> = context.userDataStore.data.map { prefs ->
@@ -86,12 +108,24 @@ class UserPreferences(private val context: Context) {
             lockoutForSleep = prefs[Keys.LOCKOUT_FOR_SLEEP] ?: defaults.lockoutForSleep,
             showPickupCountOnLockout = prefs[Keys.SHOW_PICKUP_COUNT_ON_LOCKOUT] ?: defaults.showPickupCountOnLockout,
             allowEndSessionFromLockout = prefs[Keys.ALLOW_END_SESSION_FROM_LOCKOUT] ?: defaults.allowEndSessionFromLockout,
-            lockoutGraceMinutes = prefs[Keys.LOCKOUT_GRACE_MINUTES] ?: defaults.lockoutGraceMinutes,
+            // §M-grace-split: if the new per-mode key is missing but the old
+            // shared key is present (existing install upgrading), copy the
+            // old value into both. New users get the default 5.
+            sleepLockoutGraceMinutes = prefs[Keys.SLEEP_LOCKOUT_GRACE_MINUTES]
+                ?: prefs[Keys.LOCKOUT_GRACE_MINUTES]
+                ?: defaults.sleepLockoutGraceMinutes,
+            focusLockoutGraceMinutes = prefs[Keys.FOCUS_LOCKOUT_GRACE_MINUTES]
+                ?: prefs[Keys.LOCKOUT_GRACE_MINUTES]
+                ?: defaults.focusLockoutGraceMinutes,
             lastPlanningPromptDismissedWeek = prefs[Keys.LAST_PLANNING_DISMISSED_WEEK] ?: defaults.lastPlanningPromptDismissedWeek,
             sleepExplainerSeen = prefs[Keys.SLEEP_EXPLAINER_SEEN] ?: defaults.sleepExplainerSeen,
             sleepTargetMinutes = prefs[Keys.SLEEP_TARGET_MINUTES] ?: defaults.sleepTargetMinutes,
             webDashboardHintSeen = prefs[Keys.WEB_DASHBOARD_HINT_SEEN] ?: defaults.webDashboardHintSeen,
             lastCarryOverDismissedEpochDay = prefs[Keys.LAST_CARRYOVER_DISMISSED_DAY] ?: defaults.lastCarryOverDismissedEpochDay,
+            sleepPrefsHintSeen = prefs[Keys.SLEEP_PREFS_HINT_SEEN] ?: defaults.sleepPrefsHintSeen,
+            focusPrefsHintSeen = prefs[Keys.FOCUS_PREFS_HINT_SEEN] ?: defaults.focusPrefsHintSeen,
+            dashboardPrefsHintSeen = prefs[Keys.DASHBOARD_PREFS_HINT_SEEN] ?: defaults.dashboardPrefsHintSeen,
+            lockOverlayHintSeen = prefs[Keys.LOCK_OVERLAY_HINT_SEEN] ?: defaults.lockOverlayHintSeen,
         )
     }
 
@@ -129,8 +163,16 @@ class UserPreferences(private val context: Context) {
         context.userDataStore.edit { it[Keys.ALLOW_END_SESSION_FROM_LOCKOUT] = enabled }
     }
 
-    suspend fun setLockoutGraceMinutes(minutes: Int) {
-        context.userDataStore.edit { it[Keys.LOCKOUT_GRACE_MINUTES] = minutes.coerceIn(1, 10) }
+    suspend fun setSleepLockoutGraceMinutes(minutes: Int) {
+        context.userDataStore.edit {
+            it[Keys.SLEEP_LOCKOUT_GRACE_MINUTES] = minutes.coerceIn(1, 10)
+        }
+    }
+
+    suspend fun setFocusLockoutGraceMinutes(minutes: Int) {
+        context.userDataStore.edit {
+            it[Keys.FOCUS_LOCKOUT_GRACE_MINUTES] = minutes.coerceIn(1, 10)
+        }
     }
 
     suspend fun setLastPlanningPromptDismissedWeek(encodedYearWeek: Int) {
@@ -153,9 +195,68 @@ class UserPreferences(private val context: Context) {
         context.userDataStore.edit { it[Keys.LAST_CARRYOVER_DISMISSED_DAY] = epochDay }
     }
 
+    suspend fun setSleepPrefsHintSeen(seen: Boolean) {
+        context.userDataStore.edit { it[Keys.SLEEP_PREFS_HINT_SEEN] = seen }
+    }
+
+    suspend fun setFocusPrefsHintSeen(seen: Boolean) {
+        context.userDataStore.edit { it[Keys.FOCUS_PREFS_HINT_SEEN] = seen }
+    }
+
+    suspend fun setDashboardPrefsHintSeen(seen: Boolean) {
+        context.userDataStore.edit { it[Keys.DASHBOARD_PREFS_HINT_SEEN] = seen }
+    }
+
+    suspend fun setLockOverlayHintSeen(seen: Boolean) {
+        context.userDataStore.edit { it[Keys.LOCK_OVERLAY_HINT_SEEN] = seen }
+    }
+
     /** Wipe every preference back to defaults — used when deleting the account. */
     suspend fun clearAll() {
         context.userDataStore.edit { it.clear() }
+    }
+
+    /**
+     * §sync-prefs: apply a server-provided preferences blob into local
+     * DataStore. Each key is optional; only keys that are present override
+     * the local value. Called on login + on every successful background sync
+     * so a fresh install on a new device picks up the user's existing config.
+     *
+     * Wire-format keys mirror the DataStore key names (snake_case).
+     */
+    suspend fun applyServerPreferences(server: com.google.gson.JsonObject) {
+        context.userDataStore.edit { prefs ->
+            server.get("target_bedtime")?.takeIf { !it.isJsonNull }?.asString?.let {
+                prefs[Keys.TARGET_BEDTIME] = it
+            }
+            server.get("target_wake_time")?.takeIf { !it.isJsonNull }?.asString?.let {
+                prefs[Keys.TARGET_WAKE_TIME] = it
+            }
+            server.get("default_work_duration")?.takeIf { !it.isJsonNull }?.asInt?.let {
+                prefs[Keys.DEFAULT_WORK] = it.coerceIn(5, 240)
+            }
+            server.get("lockout_for_focus")?.takeIf { !it.isJsonNull }?.asBoolean?.let {
+                prefs[Keys.LOCKOUT_FOR_FOCUS] = it
+            }
+            server.get("lockout_for_sleep")?.takeIf { !it.isJsonNull }?.asBoolean?.let {
+                prefs[Keys.LOCKOUT_FOR_SLEEP] = it
+            }
+            server.get("show_pickup_count_on_lockout")?.takeIf { !it.isJsonNull }?.asBoolean?.let {
+                prefs[Keys.SHOW_PICKUP_COUNT_ON_LOCKOUT] = it
+            }
+            server.get("allow_end_session_from_lockout")?.takeIf { !it.isJsonNull }?.asBoolean?.let {
+                prefs[Keys.ALLOW_END_SESSION_FROM_LOCKOUT] = it
+            }
+            server.get("sleep_lockout_grace_minutes")?.takeIf { !it.isJsonNull }?.asInt?.let {
+                prefs[Keys.SLEEP_LOCKOUT_GRACE_MINUTES] = it.coerceIn(1, 10)
+            }
+            server.get("focus_lockout_grace_minutes")?.takeIf { !it.isJsonNull }?.asInt?.let {
+                prefs[Keys.FOCUS_LOCKOUT_GRACE_MINUTES] = it.coerceIn(1, 10)
+            }
+            server.get("sleep_target_minutes")?.takeIf { !it.isJsonNull }?.asInt?.let {
+                prefs[Keys.SLEEP_TARGET_MINUTES] = it.coerceIn(180, 900)
+            }
+        }
     }
 
     private fun parseTime(value: String): LocalTime = try {

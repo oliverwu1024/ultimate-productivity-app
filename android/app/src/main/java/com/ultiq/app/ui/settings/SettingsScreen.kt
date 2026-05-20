@@ -75,6 +75,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ultiq.app.ui.common.SectionHeader
 import com.ultiq.app.ui.lockout.LockoutAdmin
 import com.ultiq.app.ui.theme.ThemeMode
 import java.time.LocalTime
@@ -147,59 +148,12 @@ fun SettingsScreen(
             item { SectionHeader("Appearance") }
             item { ThemeCard(current = uiState.themeMode, onSelect = viewModel::setThemeMode) }
 
-            item { SectionHeader("Sleep goal") }
-            item {
-                DurationStepperCard(
-                    icon = Icons.Default.Bedtime,
-                    title = "Optimal nightly sleep",
-                    description = "Falling short adds to sleep debt; sleeping longer goes into extra rest",
-                    valueMinutes = user.sleepTargetMinutes,
-                    stepMinutes = 15,
-                    range = 300..720,
-                    onValueChange = viewModel::setSleepTargetMinutes,
-                )
-            }
+            // Sleep goal, schedule, focus defaults, and per-mode lockout
+            // toggles + grace now live on the Sleep and Focus tabs themselves
+            // (closer to where they're used). Settings keeps only system-level
+            // permissions and cross-cutting account / appearance / notifications.
 
-            item {
-                val durationMins = targetDurationMinutes(user.targetBedtime, user.targetWakeTime)
-                SectionHeaderWithSuffix(
-                    title = "Sleep schedule",
-                    suffix = "Duration: ${formatDuration(durationMins)}",
-                )
-            }
-            item {
-                TimeSettingCard(
-                    icon = Icons.Default.Bedtime,
-                    title = "Target bedtime",
-                    description = "Used to compute sleep debt and schedule the bedtime reminder",
-                    time = user.targetBedtime,
-                    onTimeChange = viewModel::setTargetBedtime,
-                )
-            }
-            item {
-                TimeSettingCard(
-                    icon = Icons.Default.WbSunny,
-                    title = "Target wake time",
-                    description = "When you'd ideally wake up",
-                    time = user.targetWakeTime,
-                    onTimeChange = viewModel::setTargetWakeTime,
-                )
-            }
-
-            item { SectionHeader("Focus defaults") }
-            item {
-                StepperCard(
-                    icon = Icons.Default.Timer,
-                    title = "Work duration",
-                    description = "Length of one focus block",
-                    value = user.defaultWorkDuration,
-                    suffix = "min",
-                    step = 5,
-                    range = 5..240,
-                    onValueChange = viewModel::setDefaultWorkDuration,
-                )
-            }
-            item { SectionHeader("Focus mode") }
+            item { SectionHeader("Lock & overlay") }
             item {
                 OverlayPermissionCard(
                     granted = uiState.canDrawOverlays,
@@ -210,42 +164,6 @@ fun SettingsScreen(
                         ).apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK }
                         context.startActivity(intent)
                     },
-                )
-            }
-            item {
-                SwitchCard(
-                    icon = Icons.Default.Lock,
-                    title = "Lockout during focus sessions",
-                    description = "Pop a confirmation screen each time you unlock during a focus session",
-                    checked = user.lockoutForFocus,
-                    onCheckedChange = viewModel::setLockoutForFocus,
-                )
-            }
-            item {
-                SwitchCard(
-                    icon = Icons.Default.Bedtime,
-                    title = "Lockout during sleep",
-                    description = "Off by default — sleep is for sleeping, not friction",
-                    checked = user.lockoutForSleep,
-                    onCheckedChange = viewModel::setLockoutForSleep,
-                )
-            }
-            item {
-                SwitchCard(
-                    icon = Icons.Default.Visibility,
-                    title = "Show unlock count",
-                    description = "Display how many times you've unlocked during the active session",
-                    checked = user.showPickupCountOnLockout,
-                    onCheckedChange = viewModel::setShowPickupCountOnLockout,
-                )
-            }
-            item {
-                SwitchCard(
-                    icon = Icons.Default.Stop,
-                    title = "Allow ending session from lockout",
-                    description = "Show an 'End session early' link on the lockout screen",
-                    checked = user.allowEndSessionFromLockout,
-                    onCheckedChange = viewModel::setAllowEndSessionFromLockout,
                 )
             }
             item {
@@ -261,18 +179,6 @@ fun SettingsScreen(
                         context.startActivity(intent)
                     },
                     onDisable = { viewModel.disableStrictLock() },
-                )
-            }
-            item {
-                StepperCard(
-                    icon = Icons.Default.Timer,
-                    title = "Phone break duration",
-                    description = "Quiet window after tapping 'Yes, I need my phone' before the lockout snaps back",
-                    value = user.lockoutGraceMinutes,
-                    suffix = "min",
-                    step = 1,
-                    range = 1..10,
-                    onValueChange = viewModel::setLockoutGraceMinutes,
                 )
             }
 
@@ -476,52 +382,6 @@ fun SettingsScreen(
     }
 }
 
-private fun targetDurationMinutes(bedtime: LocalTime, wakeTime: LocalTime): Int {
-    val bed = bedtime.hour * 60 + bedtime.minute
-    val wake = wakeTime.hour * 60 + wakeTime.minute
-    return if (wake >= bed) wake - bed else 24 * 60 - bed + wake
-}
-
-private fun formatDuration(minutes: Int): String {
-    val h = minutes / 60
-    val m = minutes % 60
-    return if (m == 0) "${h}h" else "${h}h ${m}m"
-}
-
-@Composable
-private fun SectionHeaderWithSuffix(title: String, suffix: String) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 4.dp, end = 4.dp, top = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Text(
-            title.uppercase(),
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.primary,
-        )
-        Text(
-            suffix,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
-
-@Composable
-private fun SectionHeader(text: String) {
-    Text(
-        text.uppercase(),
-        style = MaterialTheme.typography.labelMedium,
-        fontWeight = FontWeight.SemiBold,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(start = 4.dp, top = 8.dp),
-    )
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ThemeCard(current: ThemeMode, onSelect: (ThemeMode) -> Unit) {
@@ -543,133 +403,6 @@ private fun ThemeCard(current: ThemeMode, onSelect: (ThemeMode) -> Unit) {
                         label = { Text(labelAndIcon.first) },
                     )
                 }
-            }
-        }
-    }
-}
-
-@Composable
-private fun TimeSettingCard(
-    icon: ImageVector,
-    title: String,
-    description: String,
-    time: LocalTime,
-    onTimeChange: (LocalTime) -> Unit,
-) {
-    val context = LocalContext.current
-    val fmt = DateTimeFormatter.ofPattern("h:mm a")
-
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Icon(icon, null, tint = MaterialTheme.colorScheme.primary)
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
-                    Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-            TextButton(
-                onClick = {
-                    TimePickerDialog(
-                        context,
-                        { _, h, m -> onTimeChange(LocalTime.of(h, m)) },
-                        time.hour, time.minute, false,
-                    ).show()
-                },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(time.format(fmt))
-            }
-        }
-    }
-}
-
-@Composable
-private fun StepperCard(
-    icon: ImageVector,
-    title: String,
-    description: String,
-    value: Int,
-    suffix: String,
-    step: Int,
-    range: IntRange,
-    onValueChange: (Int) -> Unit,
-) {
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Icon(icon, null, tint = MaterialTheme.colorScheme.primary)
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
-                    Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center,
-            ) {
-                IconButton(
-                    onClick = { onValueChange((value - step).coerceAtLeast(range.first)) },
-                    enabled = value > range.first,
-                ) { Icon(Icons.Default.Remove, "Decrease") }
-                Text(
-                    "$value $suffix",
-                    style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp)
-                        .width(96.dp),
-                    textAlign = TextAlign.Center,
-                )
-                IconButton(
-                    onClick = { onValueChange((value + step).coerceAtMost(range.last)) },
-                    enabled = value < range.last,
-                ) { Icon(Icons.Default.Add, "Increase") }
-            }
-        }
-    }
-}
-
-@Composable
-private fun DurationStepperCard(
-    icon: ImageVector,
-    title: String,
-    description: String,
-    valueMinutes: Int,
-    stepMinutes: Int,
-    range: IntRange,
-    onValueChange: (Int) -> Unit,
-) {
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Icon(icon, null, tint = MaterialTheme.colorScheme.primary)
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
-                    Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center,
-            ) {
-                IconButton(
-                    onClick = { onValueChange((valueMinutes - stepMinutes).coerceAtLeast(range.first)) },
-                    enabled = valueMinutes > range.first,
-                ) { Icon(Icons.Default.Remove, "Decrease") }
-                Text(
-                    formatDuration(valueMinutes),
-                    style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp)
-                        .width(96.dp),
-                    textAlign = TextAlign.Center,
-                )
-                IconButton(
-                    onClick = { onValueChange((valueMinutes + stepMinutes).coerceAtMost(range.last)) },
-                    enabled = valueMinutes < range.last,
-                ) { Icon(Icons.Default.Add, "Increase") }
             }
         }
     }
@@ -788,32 +521,6 @@ private fun StrictLockCard(
             ) {
                 Text(if (enabled) "Disable strict lock" else "Enable strict lock")
             }
-        }
-    }
-}
-
-@Composable
-private fun SwitchCard(
-    icon: ImageVector,
-    title: String,
-    description: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-) {
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Icon(icon, null, tint = MaterialTheme.colorScheme.primary)
-            Column(modifier = Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
-                Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Switch(checked = checked, onCheckedChange = onCheckedChange)
         }
     }
 }

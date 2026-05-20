@@ -5,7 +5,10 @@ import android.content.Intent
 import android.os.Build
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.gson.JsonObject
+import com.ultiq.app.alarm.WakeAlarmScheduler
 import com.ultiq.app.data.local.AppDatabase
+import com.ultiq.app.data.local.entity.AlarmEntity
 import com.ultiq.app.data.local.entity.SleepRecordEntity
 import com.ultiq.app.data.remote.RetrofitClient
 import com.ultiq.app.data.remote.dto.CreateSleepRecordDto
@@ -18,8 +21,10 @@ import com.ultiq.app.data.achievements.AchievementId
 import com.ultiq.app.service.FocusTrackingService
 import com.ultiq.app.service.PickupEvent
 import com.ultiq.app.service.SleepTrackingService
+import com.ultiq.app.util.ReminderPreferences
 import com.ultiq.app.util.TokenManager
 import com.ultiq.app.util.UserPreferences
+import com.ultiq.app.util.UserSettings
 import com.ultiq.app.util.toUserMessage
 import java.time.LocalTime
 import kotlinx.coroutines.Job
@@ -48,6 +53,7 @@ data class SleepUiState(
     val showSetTargetDialog: Boolean = false,
     val showEndSleepDialog: Boolean = false,
     val showManualLogDialog: Boolean = false,
+    val showNoAlarmDialog: Boolean = false,
     // Snapshot of session data at end (for EndSleepDialog)
     val endedSessionStart: Long = 0L,
     val endedPickupEvents: List<PickupEvent> = emptyList(),
@@ -61,13 +67,18 @@ data class SleepUiState(
     val celebratedAchievement: AchievementId? = null,
     // First-visit explainer card.
     val showSleepExplainer: Boolean = false,
+    // Live UserPreferences snapshot, used by the SLEEP PREFERENCES section.
+    val settings: UserSettings? = null,
 )
+
+private const val NEAREST_ALARM_HORIZON_HOURS = 24
 
 class SleepViewModel(application: Application) : AndroidViewModel(application) {
     private val tokenManager = TokenManager(application)
     private val api = RetrofitClient.create(tokenManager)
     private val db = AppDatabase.getInstance(application)
     private val userPreferences = UserPreferences(application)
+    private val reminderPreferences = ReminderPreferences(application)
     private val achievementChecker = AchievementChecker(
         db.achievementDao(), db.sleepDao(), db.sessionDao(), userPreferences,
     )
@@ -87,12 +98,76 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
                 targetBedtime = settings.targetBedtime,
                 targetWakeTime = settings.targetWakeTime,
                 showSleepExplainer = !settings.sleepExplainerSeen,
+                settings = settings,
             )
             observeServiceState()
             loadRecords()
             sync()
         }
+        // Continuous mirror so the SLEEP PREFERENCES cards stay in sync when
+        // the user changes them.
+        viewModelScope.launch {
+            userPreferences.settings.collect { s ->
+                _uiState.value = _uiState.value.copy(settings = s)
+            }
+        }
         observeAchievementEvents()
+    }
+
+    // ── Preference setters (moved out of SettingsViewModel) ──────────────────
+
+    fun setTargetBedtime(time: LocalTime) = viewModelScope.launch {
+        userPreferences.setTargetBedtime(time)
+        // Keep the bedtime reminder time in sync with the user's target.
+        reminderPreferences.setBedtimeTime(time)
+        pushPrefs { addProperty("target_bedtime", "%02d:%02d".format(time.hour, time.minute)) }
+    }
+
+    fun setTargetWakeTime(time: LocalTime) = viewModelScope.launch {
+        userPreferences.setTargetWakeTime(time)
+        pushPrefs { addProperty("target_wake_time", "%02d:%02d".format(time.hour, time.minute)) }
+    }
+
+    fun setSleepTargetMinutes(minutes: Int) = viewModelScope.launch {
+        userPreferences.setSleepTargetMinutes(minutes)
+        runCatching {
+            api.updateProfile(
+                com.ultiq.app.data.remote.dto.UpdateProfileRequest(
+                    sleep_target_minutes = minutes,
+                ),
+            )
+        }
+    }
+
+    fun setLockoutForSleep(enabled: Boolean) = viewModelScope.launch {
+        userPreferences.setLockoutForSleep(enabled)
+        pushPrefs { addProperty("lockout_for_sleep", enabled) }
+    }
+
+    fun setSleepLockoutGraceMinutes(minutes: Int) = viewModelScope.launch {
+        userPreferences.setSleepLockoutGraceMinutes(minutes)
+        pushPrefs { addProperty("sleep_lockout_grace_minutes", minutes) }
+    }
+
+    /**
+     * §sync-prefs: fire-and-forget push of a partial preferences blob to the
+     * server. Failure is silent — the local DataStore is the source of truth
+     * until the next successful sync replays the change.
+     */
+    private fun pushPrefs(build: JsonObject.() -> Unit) {
+        viewModelScope.launch {
+            runCatching {
+                api.updateProfile(
+                    com.ultiq.app.data.remote.dto.UpdateProfileRequest(
+                        preferences = JsonObject().apply(build),
+                    ),
+                )
+            }
+        }
+    }
+
+    fun dismissSleepPrefsHint() = viewModelScope.launch {
+        userPreferences.setSleepPrefsHintSeen(true)
     }
 
     fun dismissSleepExplainer() {
@@ -139,16 +214,69 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
             )
             return
         }
-        // Show the per-session target dialog before actually starting tracking.
-        _uiState.value = _uiState.value.copy(
-            showSetTargetDialog = true,
-            sessionTargetBedtime = LocalTime.now(),
-            sessionTargetWakeTime = LocalTime.now().plusHours(8),
-        )
+        viewModelScope.launch {
+            val nearest = findNearestEnabledAlarmWithin(NEAREST_ALARM_HORIZON_HOURS)
+            if (nearest != null) {
+                // (b) Prefill the target-wake dialog with the user's own alarm
+                // time instead of a hardcoded +8h. User can still override
+                // for one-off early-wake nights.
+                _uiState.value = _uiState.value.copy(
+                    showSetTargetDialog = true,
+                    sessionTargetBedtime = LocalTime.now(),
+                    sessionTargetWakeTime = LocalTime.of(
+                        nearest.triggerHour,
+                        nearest.triggerMinute,
+                    ),
+                )
+            } else {
+                // (e) No alarm in the next 24h — prompt before sleeping. The
+                // dialog has both [Set alarm] and [Sleep without one] so the
+                // user is never blocked.
+                _uiState.value = _uiState.value.copy(showNoAlarmDialog = true)
+            }
+        }
     }
 
     fun dismissSetTargetDialog() {
         _uiState.value = _uiState.value.copy(showSetTargetDialog = false)
+    }
+
+    fun dismissNoAlarmDialog() {
+        _uiState.value = _uiState.value.copy(showNoAlarmDialog = false)
+    }
+
+    /**
+     * "Sleep without one" path from the no-alarm dialog. Falls back to the
+     * user's configured sleep target (e.g. 8h from now) as the suggested wake.
+     */
+    fun sleepWithoutAlarm() {
+        viewModelScope.launch {
+            val settings = userPreferences.snapshot()
+            val fallbackWake = LocalTime.now().plusMinutes(settings.sleepTargetMinutes.toLong())
+            _uiState.value = _uiState.value.copy(
+                showNoAlarmDialog = false,
+                showSetTargetDialog = true,
+                sessionTargetBedtime = LocalTime.now(),
+                sessionTargetWakeTime = fallbackWake,
+            )
+        }
+    }
+
+    /**
+     * Find the enabled alarm whose next trigger is soonest within
+     * [maxHours] from now. Returns null when no alarm will fire in that
+     * window — that's the trigger for the no-alarm prompt.
+     */
+    private suspend fun findNearestEnabledAlarmWithin(maxHours: Int): AlarmEntity? {
+        val now = System.currentTimeMillis()
+        val cutoff = now + maxHours * 3_600_000L
+        return db.alarmDao().getEnabledAlarmsSync()
+            .mapNotNull { a ->
+                WakeAlarmScheduler.computeNextTrigger(a, now)?.let { t -> a to t }
+            }
+            .filter { (_, t) -> t in (now + 1)..cutoff }
+            .minByOrNull { (_, t) -> t }
+            ?.first
     }
 
     fun confirmStartSleepSession(targetWakeTime: LocalTime) {

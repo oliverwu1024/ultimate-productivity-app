@@ -23,10 +23,15 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -85,7 +90,10 @@ import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SessionsScreen(viewModel: SessionsViewModel = viewModel()) {
+fun SessionsScreen(
+    onOpenFocusSettings: () -> Unit = {},
+    viewModel: SessionsViewModel = viewModel(),
+) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -108,7 +116,16 @@ fun SessionsScreen(viewModel: SessionsViewModel = viewModel()) {
     }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Focus") }) },
+        topBar = {
+            TopAppBar(
+                title = { Text("Focus") },
+                actions = {
+                    TextButton(onClick = onOpenFocusSettings) {
+                        Text("Preferences")
+                    }
+                },
+            )
+        },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         LazyColumn(
@@ -118,6 +135,18 @@ fun SessionsScreen(viewModel: SessionsViewModel = viewModel()) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            if (uiState.settings?.focusPrefsHintSeen == false) {
+                item(key = "focus-prefs-hint") {
+                    com.ultiq.app.ui.common.ConfigureHintCard(
+                        title = "Focus preferences",
+                        body = "Tap Preferences in the top right to set your " +
+                            "default work duration and lockout preferences.",
+                        onDismiss = { viewModel.dismissFocusPrefsHint() },
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                    )
+                }
+            }
+
             if (!uiState.hasUsagePermission && uiState.timerState == TimerState.IDLE) {
                 item(key = "usage-banner") {
                     Card(

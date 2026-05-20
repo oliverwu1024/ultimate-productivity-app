@@ -5,6 +5,7 @@ import android.content.Intent
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.gson.JsonObject
 import com.ultiq.app.data.local.AppDatabase
 import com.ultiq.app.data.local.entity.ChecklistEntity
 import com.ultiq.app.data.local.entity.SessionEntity
@@ -19,6 +20,7 @@ import com.ultiq.app.service.SleepTrackingService
 import com.ultiq.app.util.PhoneUsageTracker
 import com.ultiq.app.util.TokenManager
 import com.ultiq.app.util.UserPreferences
+import com.ultiq.app.util.UserSettings
 import com.ultiq.app.util.toUserMessage
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -61,6 +63,8 @@ data class SessionsUiState(
     val selectedChecklistItemId: String? = null,
     val completionPrompt: ChecklistCompletionPrompt? = null,
     val celebratedAchievement: AchievementId? = null,
+    // Live UserPreferences snapshot, used by the FOCUS PREFERENCES section.
+    val settings: UserSettings? = null,
 )
 
 data class ChecklistCompletionPrompt(
@@ -104,6 +108,7 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
             val settings = userPreferences.snapshot()
             _uiState.value = _uiState.value.copy(
                 workDuration = settings.defaultWorkDuration,
+                settings = settings,
             )
             // The activity may be created after a session has already started
             // (cold open from notification, process death + restore). Pick the
@@ -115,7 +120,58 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
             observeTodayChecklist()
             sync()
         }
+        // Continuous mirror so the FOCUS PREFERENCES cards stay in sync when
+        // the user changes them.
+        viewModelScope.launch {
+            userPreferences.settings.collect { s ->
+                _uiState.value = _uiState.value.copy(settings = s)
+            }
+        }
         observeAchievementEvents()
+    }
+
+    // ── Preference setters (moved out of SettingsViewModel) ──────────────────
+
+    fun setDefaultWorkDuration(minutes: Int) = viewModelScope.launch {
+        userPreferences.setDefaultWorkDuration(minutes)
+        pushPrefs { addProperty("default_work_duration", minutes) }
+    }
+
+    fun setLockoutForFocus(enabled: Boolean) = viewModelScope.launch {
+        userPreferences.setLockoutForFocus(enabled)
+        pushPrefs { addProperty("lockout_for_focus", enabled) }
+    }
+
+    fun setShowPickupCountOnLockout(enabled: Boolean) = viewModelScope.launch {
+        userPreferences.setShowPickupCountOnLockout(enabled)
+        pushPrefs { addProperty("show_pickup_count_on_lockout", enabled) }
+    }
+
+    fun setAllowEndSessionFromLockout(enabled: Boolean) = viewModelScope.launch {
+        userPreferences.setAllowEndSessionFromLockout(enabled)
+        pushPrefs { addProperty("allow_end_session_from_lockout", enabled) }
+    }
+
+    fun setFocusLockoutGraceMinutes(minutes: Int) = viewModelScope.launch {
+        userPreferences.setFocusLockoutGraceMinutes(minutes)
+        pushPrefs { addProperty("focus_lockout_grace_minutes", minutes) }
+    }
+
+    fun dismissFocusPrefsHint() = viewModelScope.launch {
+        userPreferences.setFocusPrefsHintSeen(true)
+    }
+
+    /** §sync-prefs: fire-and-forget partial preferences push. */
+    private fun pushPrefs(build: JsonObject.() -> Unit) {
+        viewModelScope.launch {
+            runCatching {
+                api.updateProfile(
+                    com.ultiq.app.data.remote.dto.UpdateProfileRequest(
+                        preferences = JsonObject().apply(build),
+                    ),
+                )
+            }
+        }
     }
 
     private suspend fun restoreActiveSession() {
