@@ -30,14 +30,14 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@e3dd6a429d7300a6a4c196c26e071d42e0343502 # v4.0.2
+        uses: aws-actions/configure-aws-credentials@d979d5b3a71173a29b74b5b88418bfda9437d885 # v6.1.1
         with:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-deploy
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to ECR
         id: ecr
-        uses: aws-actions/amazon-ecr-login@062b18b96a7aff071d4dc91bc00c4c1a7945b076 # v2.0.1
+        uses: aws-actions/amazon-ecr-login@fa648b43de3d4d023bcb3f89ed6940096949c419 # v2.1.5
 
       - name: Build and push image
         id: build
@@ -63,7 +63,7 @@ jobs:
           image: ${{ steps.build.outputs.image }}
 
       - name: Deploy to ECS
-        uses: aws-actions/amazon-ecs-deploy-task-definition@06703f1be1bf4df74075222214d21baae72cf3a1 # v2.1.1
+        uses: aws-actions/amazon-ecs-deploy-task-definition@a310a830f5c14e583e35d84e4e1ec7dd177c3c9c # v2.6.2
         with:
           task-definition: ${{ steps.taskdef.outputs.task-definition }}
           service: ${{ env.ECS_SERVICE }}
