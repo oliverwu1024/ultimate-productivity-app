@@ -37,6 +37,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.ultiq.app.BuildConfig
 import com.ultiq.app.alarm.AlarmPermissionState
 import com.ultiq.app.alarm.openAppNotificationSettings
 import com.ultiq.app.alarm.openExactAlarmSettings
@@ -146,11 +147,15 @@ fun LazyListScope.sleepAlarmsSection(
         }
     }
 
-    item(key = "alarms-debug") {
-        DebugTestAlarmCard(
-            onTest = onTestAlarm,
-            modifier = Modifier.padding(horizontal = 16.dp),
-        )
+    // Hidden in release builds — useful for dev testing of the alarm pipeline
+    // but not something an end user should ever see in production.
+    if (BuildConfig.DEBUG) {
+        item(key = "alarms-debug") {
+            DebugTestAlarmCard(
+                onTest = onTestAlarm,
+                modifier = Modifier.padding(horizontal = 16.dp),
+            )
+        }
     }
 }
 

@@ -1,6 +1,6 @@
 {
-  "versionCode": 17,
-  "versionName": "2.2",
-  "url": "https://ultiqapp.com/ultiq.2.2.apk",
-  "releaseNotes": "Quick-pick chips on the work duration and sleep target steppers — tap 25m, 8h, etc. instead of mashing +/− to reach common values."
+  "versionCode": 18,
+  "versionName": "2.3",
+  "url": "https://ultiqapp.com/ultiq.2.3.apk",
+  "releaseNotes": "Hides the 'debug schedule test alarm' card on the Alarms section. Quick-pick chips on work duration and sleep target steppers."
 }

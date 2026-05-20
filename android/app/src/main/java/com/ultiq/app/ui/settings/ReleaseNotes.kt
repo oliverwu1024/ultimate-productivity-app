@@ -9,6 +9,13 @@ data class ReleaseNote(
 object ReleaseNotes {
     val history: List<ReleaseNote> = listOf(
         ReleaseNote(
+            versionName = "2.3",
+            versionCode = 18,
+            summary = "Removed the debug 'schedule test alarm' card from the " +
+                "Alarms section in release builds. Same code in debug builds " +
+                "keeps the dev shortcut.",
+        ),
+        ReleaseNote(
             versionName = "2.2",
             versionCode = 17,
             summary = "Quick-pick chips on the work-duration and sleep-target " +
