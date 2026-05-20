@@ -9,6 +9,17 @@ data class ReleaseNote(
 object ReleaseNotes {
     val history: List<ReleaseNote> = listOf(
         ReleaseNote(
+            versionName = "2.1",
+            versionCode = 16,
+            summary = "Wake-up alarms with dismiss missions: solve a math problem, " +
+                "shake the phone, or photograph a fixed scene to silence — so " +
+                "you actually get out of bed. Sleep and Focus settings moved " +
+                "to their own tabs (tap 'Preferences' top right). Sleep tab " +
+                "now has Sleep / Alarms sub-tabs. Settings sync across devices, " +
+                "so a reinstall doesn't wipe your bedtime, wake time, or focus " +
+                "defaults.",
+        ),
+        ReleaseNote(
             versionName = "1.14",
             versionCode = 15,
             summary = "Play Store users no longer see the sideload update banner — " +

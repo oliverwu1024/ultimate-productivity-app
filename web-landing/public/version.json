@@ -1,6 +1,6 @@
 {
-  "versionCode": 15,
-  "versionName": "1.14",
-  "url": "https://ultiqapp.com/ultiq.1.14.apk",
-  "releaseNotes": "Play Store users no longer see the sideload update banner — Play handles updates directly. Tap the version row in Settings to view release notes history."
+  "versionCode": 16,
+  "versionName": "2.1",
+  "url": "https://ultiqapp.com/ultiq.2.1.apk",
+  "releaseNotes": "Wake-up alarms with dismiss missions (math, shake, photo). Sleep and Focus settings moved to their respective tabs. Settings now sync across devices — a reinstall picks up your bedtime, wake time, and focus defaults from the server."
 }
