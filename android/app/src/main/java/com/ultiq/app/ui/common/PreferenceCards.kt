@@ -3,6 +3,8 @@ package com.ultiq.app.ui.common
 import android.app.TimePickerDialog
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -13,6 +15,8 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -105,6 +109,7 @@ fun TimeSettingCard(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun StepperCard(
     icon: ImageVector,
@@ -115,6 +120,8 @@ fun StepperCard(
     step: Int,
     range: IntRange,
     onValueChange: (Int) -> Unit,
+    /** Common values shown as tap-to-select FilterChips above the stepper. */
+    quickPicks: List<Int> = emptyList(),
 ) {
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -123,6 +130,20 @@ fun StepperCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
                     Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            if (quickPicks.isNotEmpty()) {
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    quickPicks.forEach { pick ->
+                        FilterChip(
+                            selected = value == pick,
+                            onClick = { onValueChange(pick.coerceIn(range)) },
+                            label = { Text("$pick") },
+                        )
+                    }
                 }
             }
             Row(
@@ -151,6 +172,7 @@ fun StepperCard(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun DurationStepperCard(
     icon: ImageVector,
@@ -160,6 +182,10 @@ fun DurationStepperCard(
     stepMinutes: Int,
     range: IntRange,
     onValueChange: (Int) -> Unit,
+    /** Common durations (in minutes) shown as tap-to-select chips above the
+     *  stepper. Chips render with [compactDurationLabel] so "480" → "8h",
+     *  "450" → "7.5h", "510" → "8.5h", etc. */
+    quickPicks: List<Int> = emptyList(),
 ) {
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -168,6 +194,20 @@ fun DurationStepperCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
                     Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            if (quickPicks.isNotEmpty()) {
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    quickPicks.forEach { pick ->
+                        FilterChip(
+                            selected = valueMinutes == pick,
+                            onClick = { onValueChange(pick.coerceIn(range)) },
+                            label = { Text(compactDurationLabel(pick)) },
+                        )
+                    }
                 }
             }
             Row(
@@ -232,6 +272,17 @@ fun formatDuration(minutes: Int): String {
     val h = minutes / 60
     val m = minutes % 60
     return if (m == 0) "${h}h" else "${h}h ${m}m"
+}
+
+/** Compact form for chip labels: 480 → "8h", 450 → "7.5h", 510 → "8.5h". */
+fun compactDurationLabel(minutes: Int): String {
+    val h = minutes / 60
+    val m = minutes % 60
+    return when (m) {
+        0 -> "${h}h"
+        30 -> "${h}.5h"
+        else -> "${h}h${m}m"
+    }
 }
 
 /**

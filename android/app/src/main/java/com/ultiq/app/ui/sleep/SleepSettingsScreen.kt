@@ -70,6 +70,8 @@ fun SleepSettingsScreen(
                     stepMinutes = 15,
                     range = 300..720,
                     onValueChange = viewModel::setSleepTargetMinutes,
+                    // 6h, 7h, 7.5h, 8h, 8.5h, 9h — the realistic adult range.
+                    quickPicks = listOf(360, 420, 450, 480, 510, 540),
                 )
             }
             item {

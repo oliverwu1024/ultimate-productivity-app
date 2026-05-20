@@ -9,6 +9,14 @@ data class ReleaseNote(
 object ReleaseNotes {
     val history: List<ReleaseNote> = listOf(
         ReleaseNote(
+            versionName = "2.2",
+            versionCode = 17,
+            summary = "Quick-pick chips on the work-duration and sleep-target " +
+                "steppers — tap 25m, 8h, etc. instead of mashing +/− to reach " +
+                "common values. Applies to Focus Preferences, Sleep Preferences, " +
+                "and the per-session work duration on the Focus tab.",
+        ),
+        ReleaseNote(
             versionName = "2.1",
             versionCode = 16,
             summary = "Wake-up alarms with dismiss missions: solve a math problem, " +

@@ -68,6 +68,8 @@ fun FocusSettingsScreen(
                     step = 5,
                     range = 5..240,
                     onValueChange = viewModel::setDefaultWorkDuration,
+                    // Pomodoro classic (25), short sprint (15), deep work (45/60/90).
+                    quickPicks = listOf(15, 25, 45, 60, 90),
                 )
             }
             item {

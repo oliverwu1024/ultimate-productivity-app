@@ -1,6 +1,6 @@
 {
-  "versionCode": 16,
-  "versionName": "2.1",
-  "url": "https://ultiqapp.com/ultiq.2.1.apk",
-  "releaseNotes": "Wake-up alarms with dismiss missions (math, shake, photo). Sleep and Focus settings moved to their respective tabs. Settings now sync across devices — a reinstall picks up your bedtime, wake time, and focus defaults from the server."
+  "versionCode": 17,
+  "versionName": "2.2",
+  "url": "https://ultiqapp.com/ultiq.2.2.apk",
+  "releaseNotes": "Quick-pick chips on the work duration and sleep target steppers — tap 25m, 8h, etc. instead of mashing +/− to reach common values."
 }

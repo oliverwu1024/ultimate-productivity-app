@@ -396,18 +396,14 @@ private fun IdleControls(uiState: SessionsUiState, viewModel: SessionsViewModel)
         modifier = Modifier.fillMaxWidth()
     )
 
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        DurationPicker(
-            label = "Work",
-            value = uiState.workDuration,
-            onDecrease = { viewModel.updateWorkDuration(uiState.workDuration - 5) },
-            onIncrease = { viewModel.updateWorkDuration(uiState.workDuration + 5) }
-        )
-    }
+    DurationPicker(
+        label = "Work",
+        value = uiState.workDuration,
+        onDecrease = { viewModel.updateWorkDuration(uiState.workDuration - 5) },
+        onIncrease = { viewModel.updateWorkDuration(uiState.workDuration + 5) },
+        onSetValue = { viewModel.updateWorkDuration(it) },
+        quickPicks = listOf(15, 25, 45, 60, 90),
+    )
 
     Button(
         onClick = { viewModel.startSession() },
@@ -506,15 +502,40 @@ private fun ChecklistMenu(
     }
 }
 
+@OptIn(
+    androidx.compose.foundation.layout.ExperimentalLayoutApi::class,
+    ExperimentalMaterial3Api::class,
+)
 @Composable
 private fun DurationPicker(
     label: String,
     value: Int,
     onDecrease: () -> Unit,
-    onIncrease: () -> Unit
+    onIncrease: () -> Unit,
+    onSetValue: (Int) -> Unit = {},
+    quickPicks: List<Int> = emptyList(),
 ) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
         Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (quickPicks.isNotEmpty()) {
+            androidx.compose.foundation.layout.FlowRow(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+            ) {
+                quickPicks.forEach { pick ->
+                    androidx.compose.material3.FilterChip(
+                        selected = value == pick,
+                        onClick = { onSetValue(pick) },
+                        label = { Text("${pick}m") },
+                    )
+                }
+            }
+        }
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onDecrease, modifier = Modifier.size(32.dp)) {
                 Icon(Icons.Default.Remove, "Decrease", modifier = Modifier.size(16.dp))
