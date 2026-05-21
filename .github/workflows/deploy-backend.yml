@@ -8,6 +8,15 @@ on:
       - '.github/workflows/deploy-backend.yml'
   workflow_dispatch:
 
+# Serialize backend deploys per branch. Without this, two backend-touching
+# commits landing within ~90s can race in ECS — the second deployment arrives
+# before the first stabilizes and the circuit breaker rolls one back. With
+# `cancel-in-progress: true`, the in-flight deploy is cancelled when a newer
+# commit lands, so the latest commit always wins.
+concurrency:
+  group: deploy-backend-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   id-token: write
   contents: read

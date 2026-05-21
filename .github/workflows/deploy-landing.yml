@@ -8,6 +8,10 @@ on:
       - '.github/workflows/deploy-landing.yml'
   workflow_dispatch:
 
+concurrency:
+  group: deploy-landing-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   id-token: write
   contents: read
