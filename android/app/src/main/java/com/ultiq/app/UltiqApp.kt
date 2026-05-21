@@ -15,6 +15,7 @@ import com.ultiq.app.data.repository.SyncWorker
 import com.ultiq.app.util.AlarmScheduler
 import com.ultiq.app.util.NotificationHelper
 import com.ultiq.app.util.ReminderPreferences
+import com.ultiq.app.util.UserPreferences
 import com.ultiq.app.util.TokenManager
 import com.ultiq.app.util.UpdateChecker
 import kotlinx.coroutines.CoroutineScope
@@ -64,7 +65,8 @@ class UltiqApp : Application() {
     private fun applyReminderSchedules() {
         appScope.launch {
             val settings = ReminderPreferences(this@UltiqApp).snapshot()
-            AlarmScheduler(this@UltiqApp).applyDailyReminders(settings)
+            val targetBedtime = UserPreferences(this@UltiqApp).snapshot().targetBedtime
+            AlarmScheduler(this@UltiqApp).applyDailyReminders(settings, targetBedtime)
         }
     }
 

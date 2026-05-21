@@ -1,6 +1,6 @@
 {
-  "versionCode": 23,
-  "versionName": "2.7.1",
-  "url": "https://ultiqapp.com/ultiq.2.7.1.apk",
-  "releaseNotes": "AI weekly insight on your dashboard, plus a one-line 'what did you work on?' prompt at the end of focus sessions (auto-tagged as deep work / meetings / admin). Checklist fixes: edit completed tasks without un-checking them, recurring task checkbox now reflects today's state, an 'include today?' prompt when you schedule a repeat that doesn't cover today's weekday, and un-ticking a recurring task in the Completed section now actually moves it back to Open (the server stamp is fully cleared instead of being restored on the next sync)."
+  "versionCode": 24,
+  "versionName": "2.7.2",
+  "url": "https://ultiqapp.com/ultiq.2.7.2.apk",
+  "releaseNotes": "Quality-of-life fixes: math alarms now allow up to 20 problems, sleep target time renders in the same 12h format as the actual time, the morning summary stops showing a stale sleep figure when last night's session isn't in yet, the bedtime reminder follows your Sleep settings target (changes apply tonight, not the next night), and recurring tasks no longer ask to 'bring forward' unless tomorrow's schedule doesn't already include them — and when you do, a one-off copy is created instead of mutating the recurrence pattern."
 }

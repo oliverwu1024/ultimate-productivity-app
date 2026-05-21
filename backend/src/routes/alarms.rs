@@ -51,8 +51,8 @@ fn validate_mission_config(kind: &str, config: &JsonValue) -> Result<(), AppErro
             }
             if let Some(c) = obj.get("count") {
                 let n = c.as_i64().ok_or_else(|| bad("math.count must be an integer"))?;
-                if !(1..=10).contains(&n) {
-                    return Err(bad("math.count must be 1..10"));
+                if !(1..=20).contains(&n) {
+                    return Err(bad("math.count must be 1..20"));
                 }
             }
             Ok(())

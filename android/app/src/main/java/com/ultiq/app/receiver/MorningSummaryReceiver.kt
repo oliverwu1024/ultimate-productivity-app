@@ -25,13 +25,25 @@ class MorningSummaryReceiver : BroadcastReceiver() {
                 val today = LocalDate.now(zone)
                 val todayStart = today.atStartOfDay(zone).toInstant().toEpochMilli()
                 val todayEnd = todayStart + 86_400_000 - 1
-                val lookbackStart = todayStart - 36 * 3_600_000L
+
+                // §fix-morning-summary — query window ends at "now" not
+                // "todayStart" so a session that ended this morning is
+                // included. Then the wake-time staleness check below
+                // suppresses the sleep line entirely when the most-recent
+                // record is too old to plausibly be "last night" — e.g.
+                // the user is still sleeping and the only saved record
+                // is from a previous night.
+                val now = System.currentTimeMillis()
+                val windowStart = now - 24 * 3_600_000L
+                val staleCutoffMs = now - 12 * 3_600_000L
 
                 val sleepRecords = db.sleepDao()
-                    .getRecordsBetween(lookbackStart, todayStart)
+                    .getRecordsBetween(windowStart, now)
                     .firstOrNull()
                     .orEmpty()
-                val lastNight = sleepRecords.firstOrNull()
+                val lastNight = sleepRecords
+                    .firstOrNull()
+                    ?.takeIf { it.actualWakeTime >= staleCutoffMs }
                 val sleepStr = lastNight?.let {
                     val mins = ((it.actualWakeTime - it.actualBedtime) / 60_000L).toInt()
                     val h = mins / 60

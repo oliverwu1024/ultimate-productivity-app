@@ -45,11 +45,37 @@ interface ChecklistDao {
     )
     fun getByDueDateExact(epochDay: Long): Flow<List<ChecklistEntity>>
 
+    /**
+     * §fix-carryover-recurring — candidates for the "bring forward" banner.
+     *
+     * Two cases that qualify:
+     *   1. Pure one-off open on `epochDay`: dueDate matches, no recurrence,
+     *      no show-until-due, completed = 0.
+     *   2. Recurring whose mask covers `epochDay`'s weekday but NOT today's
+     *      weekday, and that wasn't ticked for `epochDay`. If today's mask
+     *      already includes the row, it'll show on today's list naturally
+     *      so we skip it here to avoid a redundant nudge.
+     *
+     * `showUntilDue` items deliberately never appear — they persist across
+     * days under their own rules, so "carry forward" doesn't apply.
+     */
     @Query(
-        "SELECT * FROM checklist_items WHERE dueDateEpochDay = :epochDay AND completed = 0 " +
+        "SELECT * FROM checklist_items WHERE " +
+            "(recurrenceDaysMask = 0 AND showUntilDue = 0 " +
+            " AND dueDateEpochDay = :epochDay AND completed = 0) " +
+            "OR " +
+            "(recurrenceDaysMask != 0 " +
+            " AND (recurrenceDaysMask & :yesterdayBit) != 0 " +
+            " AND (recurrenceDaysMask & :todayBit) = 0 " +
+            " AND (lastCompletedEpochDay IS NULL OR lastCompletedEpochDay != :epochDay) " +
+            " AND dueDateEpochDay <= :epochDay) " +
             "ORDER BY priority DESC, createdAt ASC"
     )
-    fun getOpenForDate(epochDay: Long): Flow<List<ChecklistEntity>>
+    fun getCarryoverCandidates(
+        epochDay: Long,
+        yesterdayBit: Int,
+        todayBit: Int,
+    ): Flow<List<ChecklistEntity>>
 
     @Query(
         "SELECT * FROM checklist_items " +

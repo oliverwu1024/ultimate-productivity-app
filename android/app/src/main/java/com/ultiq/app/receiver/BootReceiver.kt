@@ -7,6 +7,7 @@ import com.ultiq.app.alarm.WakeAlarmScheduler
 import com.ultiq.app.data.local.AppDatabase
 import com.ultiq.app.util.AlarmScheduler
 import com.ultiq.app.util.ReminderPreferences
+import com.ultiq.app.util.UserPreferences
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.firstOrNull
@@ -27,7 +28,8 @@ class BootReceiver : BroadcastReceiver() {
             try {
                 val scheduler = AlarmScheduler(app)
                 val prefs = ReminderPreferences(app).snapshot()
-                scheduler.applyDailyReminders(prefs)
+                val targetBedtime = UserPreferences(app).snapshot().targetBedtime
+                scheduler.applyDailyReminders(prefs, targetBedtime)
 
                 val now = System.currentTimeMillis()
                 val cutoff = now + 30L * 86_400_000L

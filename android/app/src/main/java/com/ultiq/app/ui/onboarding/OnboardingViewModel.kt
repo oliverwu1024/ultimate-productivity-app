@@ -51,10 +51,10 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
             userPreferences.setTargetBedtime(s.targetBedtime)
             userPreferences.setTargetWakeTime(s.targetWakeTime)
             userPreferences.setDefaultWorkDuration(s.workDuration)
-            // Sync the bedtime reminder schedule to the user's chosen target
-            reminderPreferences.setBedtimeTime(s.targetBedtime)
+            // §fix-bedtime-unified — schedule using the just-saved target
+            // directly; no more parallel `reminderPreferences.bedtimeTime`.
             val reminders = reminderPreferences.snapshot()
-            alarmScheduler.applyDailyReminders(reminders)
+            alarmScheduler.applyDailyReminders(reminders, s.targetBedtime)
             userPreferences.setOnboardingCompleted(true)
         }
     }

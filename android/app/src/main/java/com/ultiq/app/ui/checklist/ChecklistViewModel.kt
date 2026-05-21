@@ -242,7 +242,11 @@ class ChecklistViewModel(application: Application) : AndroidViewModel(applicatio
 
     /** Stream yesterday's open items, but only when looking at today and the user
      *  hasn't already dismissed the carry-over banner today. The screen renders
-     *  the banner whenever `yesterdayOpenItems` is non-empty. */
+     *  the banner whenever `yesterdayOpenItems` is non-empty.
+     *
+     *  §fix-carryover-recurring — the query now mixes two kinds:
+     *  one-offs due yesterday + recurring rows whose mask covers yesterday
+     *  but NOT today (so today's view wouldn't show them naturally). */
     private fun observeYesterdayCarryOver() {
         yesterdayJob?.cancel()
         if (_uiState.value.selectedDate != LocalDate.now()) {
@@ -250,30 +254,54 @@ class ChecklistViewModel(application: Application) : AndroidViewModel(applicatio
             return
         }
         yesterdayJob = viewModelScope.launch {
-            val today = LocalDate.now().toEpochDay()
+            val todayDate = LocalDate.now()
+            val today = todayDate.toEpochDay()
             val dismissedDay = userPreferences.snapshot().lastCarryOverDismissedEpochDay
             if (dismissedDay == today) {
                 _uiState.value = _uiState.value.copy(yesterdayOpenItems = emptyList())
                 return@launch
             }
-            val yesterday = LocalDate.now().minusDays(1).toEpochDay()
-            repository.getOpenForDate(yesterday).collectLatest { items ->
-                _uiState.value = _uiState.value.copy(yesterdayOpenItems = items)
-            }
+            val yesterdayDate = todayDate.minusDays(1)
+            val yesterday = yesterdayDate.toEpochDay()
+            // Sun=0..Sat=6 to match recurrence_days_mask encoding.
+            val yesterdayBit = 1 shl (yesterdayDate.dayOfWeek.value % 7)
+            val todayBit = 1 shl (todayDate.dayOfWeek.value % 7)
+            repository.getCarryoverCandidates(yesterday, yesterdayBit, todayBit)
+                .collectLatest { items ->
+                    _uiState.value = _uiState.value.copy(yesterdayOpenItems = items)
+                }
         }
     }
 
-    /** Move every yesterday-open item forward to today's date. Items are updated
-     *  one-at-a-time through the repository so the offline-fallback path on each
-     *  individual update still applies. After the bulk move the banner empties
-     *  out naturally because `yesterdayOpenItems` re-streams empty. */
+    /** Move every yesterday-open item forward to today.
+     *
+     *  §fix-carryover-recurring — recurring rows get a separate one-off
+     *  *copy* due today rather than having their start date mutated.
+     *  Mutating dueDateEpochDay on a recurring row would shift the
+     *  recurrence pattern (since dueDate doubles as the start date) —
+     *  unwanted side effect. One-offs are mutated in place as before. */
     fun bringYesterdayForward() {
         val items = _uiState.value.yesterdayOpenItems
         if (items.isEmpty()) return
         val todayEpochDay = LocalDate.now().toEpochDay()
         viewModelScope.launch {
             for (item in items) {
-                repository.update(item.copy(dueDateEpochDay = todayEpochDay))
+                if (item.recurrenceDaysMask != 0) {
+                    // Spawn a one-off copy due today; leave the recurring
+                    // row untouched so its schedule keeps working.
+                    repository.create(
+                        userId = userId,
+                        title = item.title,
+                        description = item.description,
+                        dueDate = LocalDate.ofEpochDay(todayEpochDay),
+                        estimatedMinutes = item.estimatedMinutes,
+                        priority = item.priority,
+                        recurrenceDaysMask = 0,
+                        showUntilDue = false,
+                    )
+                } else {
+                    repository.update(item.copy(dueDateEpochDay = todayEpochDay))
+                }
             }
         }
     }

@@ -133,14 +133,10 @@ fun RemindersScreen(
             }
 
             item {
-                ReminderRow(
-                    icon = Icons.Default.Bedtime,
-                    title = "Bedtime",
-                    description = "Notifies ${ReminderSettings.BEDTIME_LEAD_MINUTES} min before your target bedtime",
+                BedtimeReminderRow(
                     enabled = settings.bedtimeEnabled,
-                    time = settings.bedtimeTime,
+                    targetBedtime = uiState.targetBedtime,
                     onToggle = { viewModel.setBedtimeEnabled(it) },
-                    onTimeChange = { viewModel.setBedtimeTime(it) }
                 )
             }
 
@@ -176,6 +172,48 @@ fun RemindersScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+        }
+    }
+}
+
+/// §fix-bedtime-unified — toggle-only row for the bedtime reminder.
+/// The actual time lives in Sleep settings (UserPreferences.targetBedtime)
+/// and is only displayed here as static text so users can verify what
+/// they'd be reminded about.
+@Composable
+private fun BedtimeReminderRow(
+    enabled: Boolean,
+    targetBedtime: LocalTime,
+    onToggle: (Boolean) -> Unit,
+) {
+    val timeFormat = DateTimeFormatter.ofPattern("h:mm a")
+    val leadMinutes = ReminderSettings.BEDTIME_LEAD_MINUTES
+    val triggerTime = targetBedtime.minusMinutes(leadMinutes.toLong()).format(timeFormat)
+    val bedtimeText = targetBedtime.format(timeFormat)
+
+    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Icon(Icons.Default.Bedtime, null, tint = MaterialTheme.colorScheme.primary)
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Bedtime", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
+                    Text(
+                        "Notifies at $triggerTime ($leadMinutes min before your $bedtimeText target)",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(checked = enabled, onCheckedChange = onToggle)
+            }
+            Text(
+                "Time is set in Sleep settings → Target bedtime.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

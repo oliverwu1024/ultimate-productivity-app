@@ -89,6 +89,7 @@ import com.ultiq.app.ui.theme.AnimatedAppear
 import com.ultiq.app.ui.theme.QualityStar
 import kotlinx.coroutines.delay
 import java.time.Instant
+import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
@@ -734,7 +735,18 @@ private fun SleepRecordItem(
                         val wakeInstant = Instant.ofEpochMilli(record.actualWakeTime).atZone(zone)
                         val timeFormat = DateTimeFormatter.ofPattern("hh:mm a")
 
-                        DetailRow("Target", "${record.targetBedtime} - ${record.targetWakeTime}")
+                        // §fix-target-time-format — server stores TIME as
+                        // "HH:MM:SS" 24h strings; re-parse to LocalTime and
+                        // format the same way as the Actual row below so
+                        // the two rows don't disagree (one 24h, one 12h).
+                        val targetBed = runCatching { LocalTime.parse(record.targetBedtime) }.getOrNull()
+                        val targetWake = runCatching { LocalTime.parse(record.targetWakeTime) }.getOrNull()
+                        val targetStr = if (targetBed != null && targetWake != null) {
+                            "${targetBed.format(timeFormat)} - ${targetWake.format(timeFormat)}"
+                        } else {
+                            "${record.targetBedtime} - ${record.targetWakeTime}"
+                        }
+                        DetailRow("Target", targetStr)
                         DetailRow("Actual", "${bedInstant.format(timeFormat)} - ${wakeInstant.format(timeFormat)}")
                         if (record.totalPhoneMinutes != null) {
                             DetailRow("Phone Time", "${record.totalPhoneMinutes} min")

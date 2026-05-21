@@ -33,8 +33,11 @@ class AlarmScheduler(private val context: Context) {
     private val alarmManager: AlarmManager =
         context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
-    fun applyDailyReminders(settings: ReminderSettings) {
-        if (settings.bedtimeEnabled) scheduleBedtime(settings.bedtimeTime)
+    fun applyDailyReminders(settings: ReminderSettings, targetBedtime: LocalTime) {
+        // §fix-bedtime-unified — the bedtime *time* is canonically the
+        // user's target bedtime (UserPreferences). Reminders only owns
+        // the on/off toggle now; the duplicate time picker was removed.
+        if (settings.bedtimeEnabled) scheduleBedtime(targetBedtime)
         else cancel(REQ_BEDTIME, BedtimeReminderReceiver::class.java)
 
         if (settings.focusEnabled) scheduleFocus(settings.focusTime)

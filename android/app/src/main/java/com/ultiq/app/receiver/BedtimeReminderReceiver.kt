@@ -7,6 +7,7 @@ import com.ultiq.app.util.AlarmScheduler
 import com.ultiq.app.util.NotificationHelper
 import com.ultiq.app.util.ReminderPreferences
 import com.ultiq.app.util.ReminderSettings
+import com.ultiq.app.util.UserPreferences
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -19,9 +20,14 @@ class BedtimeReminderReceiver : BroadcastReceiver() {
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val prefs = ReminderPreferences(context.applicationContext).snapshot()
+                val app = context.applicationContext
+                val prefs = ReminderPreferences(app).snapshot()
                 if (prefs.bedtimeEnabled) {
-                    AlarmScheduler(context.applicationContext).scheduleBedtime(prefs.bedtimeTime)
+                    // §fix-bedtime-unified — re-arm tomorrow's reminder
+                    // against the canonical target bedtime, not the stale
+                    // reminder-prefs copy.
+                    val targetBedtime = UserPreferences(app).snapshot().targetBedtime
+                    AlarmScheduler(app).scheduleBedtime(targetBedtime)
                 }
             } finally {
                 pendingResult.finish()

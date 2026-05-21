@@ -242,11 +242,24 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
 
     private fun observeTodayChecklist() {
         viewModelScope.launch {
-            val todayEpochDay = LocalDate.now().toEpochDay()
+            val today = LocalDate.now()
+            val todayEpochDay = today.toEpochDay()
+            // Sun=0..Sat=6 to match recurrence_days_mask packing.
+            val todayBit = 1 shl (today.dayOfWeek.value % 7)
             android.util.Log.d("SessionsViewModel", "observing checklist for epochDay=$todayEpochDay")
-            checklistRepository.getOpenForDate(todayEpochDay).collect { items ->
-                android.util.Log.d("SessionsViewModel", "checklist update: ${items.size} open item(s) for today")
-                _uiState.value = _uiState.value.copy(openChecklistItems = items)
+            // §fix-carryover-recurring — getOpenForDate is gone; use the
+            // canonical per-day query and filter to items that are still
+            // "open for today" (recurring vs one-off semantics differ).
+            db.checklistDao().getByDate(todayEpochDay, todayBit).collect { items ->
+                val open = items.filter { item ->
+                    if (item.recurrenceDaysMask != 0) {
+                        item.lastCompletedEpochDay != todayEpochDay
+                    } else {
+                        !item.completed
+                    }
+                }
+                android.util.Log.d("SessionsViewModel", "checklist update: ${open.size} open item(s) for today")
+                _uiState.value = _uiState.value.copy(openChecklistItems = open)
             }
         }
     }

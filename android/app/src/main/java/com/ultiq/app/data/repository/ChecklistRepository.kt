@@ -24,7 +24,11 @@ class ChecklistRepository(
     fun getByDate(epochDay: Long, dayOfWeekBit: Int): Flow<List<ChecklistEntity>> =
         dao.getByDate(epochDay, dayOfWeekBit)
 
-    fun getOpenForDate(epochDay: Long): Flow<List<ChecklistEntity>> = dao.getOpenForDate(epochDay)
+    fun getCarryoverCandidates(
+        epochDay: Long,
+        yesterdayBit: Int,
+        todayBit: Int,
+    ): Flow<List<ChecklistEntity>> = dao.getCarryoverCandidates(epochDay, yesterdayBit, todayBit)
 
     fun getInRange(startEpochDay: Long, endEpochDay: Long): Flow<List<ChecklistEntity>> =
         dao.getInRange(startEpochDay, endEpochDay)
