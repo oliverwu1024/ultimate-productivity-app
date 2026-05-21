@@ -1,6 +1,6 @@
 {
-  "versionCode": 19,
-  "versionName": "2.4",
-  "url": "https://ultiqapp.com/ultiq.2.4.apk",
-  "releaseNotes": "Checklist items can now repeat on chosen days (every day, weekdays, weekends, or per-day) and items with a future due date show every day until you tick them off. Clearer Set alarm / Cancel buttons in the alarm editor. Math mission lets you pick 3, 5, 10, or 20 problems and no longer overflows long expressions. Sleep session no longer auto-ends when you dismiss the alarm — stop it manually from the Sleep tab."
+  "versionCode": 20,
+  "versionName": "2.5",
+  "url": "https://ultiqapp.com/ultiq.2.5.apk",
+  "releaseNotes": "Fixes from v2.4: Cancel on a new alarm now discards instead of creating a disabled alarm. Returning from the alarm editor lands on the Alarms tab you came from. Changing your sleep bedtime re-arms the reminder right away so the new time takes effect the same night."
 }

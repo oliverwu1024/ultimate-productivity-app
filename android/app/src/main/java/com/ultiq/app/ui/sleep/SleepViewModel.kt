@@ -21,6 +21,7 @@ import com.ultiq.app.data.achievements.AchievementId
 import com.ultiq.app.service.FocusTrackingService
 import com.ultiq.app.service.PickupEvent
 import com.ultiq.app.service.SleepTrackingService
+import com.ultiq.app.util.AlarmScheduler
 import com.ultiq.app.util.ReminderPreferences
 import com.ultiq.app.util.TokenManager
 import com.ultiq.app.util.UserPreferences
@@ -79,6 +80,7 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
     private val db = AppDatabase.getInstance(application)
     private val userPreferences = UserPreferences(application)
     private val reminderPreferences = ReminderPreferences(application)
+    private val alarmScheduler = AlarmScheduler(application)
     private val achievementChecker = AchievementChecker(
         db.achievementDao(), db.sleepDao(), db.sessionDao(), userPreferences,
     )
@@ -118,8 +120,13 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setTargetBedtime(time: LocalTime) = viewModelScope.launch {
         userPreferences.setTargetBedtime(time)
-        // Keep the bedtime reminder time in sync with the user's target.
+        // Keep the bedtime reminder time in sync with the user's target, and
+        // re-arm the AlarmManager entry so the change takes effect tonight.
+        // Without applyDailyReminders the prefs are written but the previously
+        // scheduled trigger (at the old time) still fires once before the
+        // receiver itself re-reads prefs and reschedules for the next night.
         reminderPreferences.setBedtimeTime(time)
+        alarmScheduler.applyDailyReminders(reminderPreferences.snapshot())
         pushPrefs { addProperty("target_bedtime", "%02d:%02d".format(time.hour, time.minute)) }
     }
 

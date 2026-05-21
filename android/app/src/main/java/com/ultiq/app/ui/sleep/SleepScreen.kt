@@ -56,9 +56,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -104,7 +106,9 @@ fun SleepScreen(
     var pendingDeleteAlarm by remember { mutableStateOf<AlarmEntity?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
     // Sub-tab state — local, no need to round-trip through the VM.
-    var subTab by remember { mutableStateOf(0) } // 0 = Sleep, 1 = Alarms
+    // rememberSaveable so popping back from AlarmEditScreen returns to the
+    // sub-tab the user came from (was resetting to Sleep tab — bug from v2.4).
+    var subTab by rememberSaveable { mutableIntStateOf(0) } // 0 = Sleep, 1 = Alarms
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()

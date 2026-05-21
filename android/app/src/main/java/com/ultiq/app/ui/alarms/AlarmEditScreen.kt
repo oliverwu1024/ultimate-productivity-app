@@ -110,7 +110,14 @@ fun AlarmEditScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     OutlinedButton(
-                        onClick = { viewModel.saveWithEnabled(enabled = false, onDone = onBack) },
+                        onClick = {
+                            // New-draft Cancel: discard, don't create a disabled
+                            // alarm. Existing-alarm Cancel: keep the row, save
+                            // with enabled=false (user wanted "keep the time
+                            // but don't ring tonight").
+                            if (alarmId == null) onBack()
+                            else viewModel.saveWithEnabled(enabled = false, onDone = onBack)
+                        },
                         enabled = draft != null,
                         modifier = Modifier.weight(1f),
                     ) { Text("Cancel") }
