@@ -1,6 +1,6 @@
 {
-  "versionCode": 21,
-  "versionName": "2.6",
-  "url": "https://ultiqapp.com/ultiq.2.6.apk",
-  "releaseNotes": "One-tap in-app updates. When a new version is available, tap the banner and the app downloads + installs it for you — no more opening the browser and hunting for the APK in Downloads. First time only, you'll be sent to grant Install unknown apps in Settings."
+  "versionCode": 22,
+  "versionName": "2.7",
+  "url": "https://ultiqapp.com/ultiq.2.7.apk",
+  "releaseNotes": "AI weekly insight on your dashboard, plus a one-line 'what did you work on?' prompt at the end of focus sessions (auto-tagged as deep work / meetings / admin). Checklist fixes: edit completed tasks without un-checking them, recurring task checkbox now reflects today's state, and a new 'include today?' prompt when you schedule a repeat that doesn't cover today's weekday."
 }
