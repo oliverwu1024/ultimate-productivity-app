@@ -16,6 +16,11 @@
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- One-tap in-app updates: lets us hand the APK to PackageInstaller so
+         the user gets the system "Install?" prompt instead of having to find
+         the file in Downloads. Still requires user grant on first use via
+         Settings → Install unknown apps. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-feature
         android:name="android.hardware.camera"
         android:required="false" />
@@ -115,6 +120,10 @@
 
         <receiver
             android:name=".alarm.AlarmReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".receiver.ApkInstallResultReceiver"
             android:exported="false" />
 
         <receiver
