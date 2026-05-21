@@ -16,6 +16,10 @@ pub struct ProductivitySession {
     pub ended_at: Option<DateTime<Utc>>,
     pub completed: bool,
     pub checklist_item_id: Option<Uuid>,
+    /// §9.7 user-written "what did you work on?" line (≤ 240 chars).
+    pub debrief: Option<String>,
+    /// §9.7 Haiku-assigned tag — `deep_work` | `meetings` | `admin` | `other`.
+    pub debrief_tag: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

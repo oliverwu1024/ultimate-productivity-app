@@ -21,24 +21,27 @@ use aws_sdk_bedrockruntime::types::{
     CachePointBlock, CachePointType, ContentBlock, ConversationRole, InferenceConfiguration,
     Message, SystemContentBlock,
 };
-use axum::extract::State;
+use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::routing::post;
 use axum::{Json, Router};
 use chrono::{DateTime, Duration, Utc};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::json;
+
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::ai::MODEL_SONNET;
+use crate::ai::{MODEL_HAIKU, MODEL_SONNET};
 use crate::config::AppState;
 use crate::error::AppError;
 use crate::middleware::auth::Claims;
 use crate::models::ai::AiInsight;
 
 pub fn router() -> Router<AppState> {
-    Router::new().route("/ai/weekly-insight", post(weekly_insight))
+    Router::new()
+        .route("/ai/weekly-insight", post(weekly_insight))
+        .route("/ai/session-debrief/:id", post(session_debrief))
 }
 
 // ── 24h cache window ──────────────────────────────────────────────────────
@@ -513,4 +516,206 @@ fn collect_numerals(s: &str) -> HashSet<String> {
         }
     }
     out
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// §9.7 — Session debriefs (Haiku auto-tagging)
+// ──────────────────────────────────────────────────────────────────────────
+
+/// Max characters allowed in a single debrief line. A 1-line "what did
+/// you work on" should never need more.
+const DEBRIEF_MAX_CHARS: usize = 240;
+
+#[derive(Debug, Deserialize)]
+struct SessionDebriefRequest {
+    text: String,
+}
+
+#[derive(Debug, Serialize)]
+struct SessionDebriefResponse {
+    id: Uuid,
+    debrief: String,
+    debrief_tag: String,
+}
+
+/// Allowed tag values — keep in sync with the CHECK constraint in
+/// migration 017 and with the Haiku classifier prompt.
+const DEBRIEF_TAGS: [&str; 4] = ["deep_work", "meetings", "admin", "other"];
+
+async fn session_debrief(
+    State(state): State<AppState>,
+    claims: Claims,
+    Path(session_id): Path<Uuid>,
+    Json(input): Json<SessionDebriefRequest>,
+) -> Result<Json<SessionDebriefResponse>, AppError> {
+    let user_id = parse_user_id(&claims)?;
+
+    // Validate text.
+    let text = input.text.trim();
+    if text.is_empty() {
+        return Err(AppError::new(
+            StatusCode::BAD_REQUEST,
+            "debrief text must not be empty",
+        ));
+    }
+    if text.chars().count() > DEBRIEF_MAX_CHARS {
+        return Err(AppError::new(
+            StatusCode::BAD_REQUEST,
+            "debrief text is too long",
+        ));
+    }
+
+    // Verify the session belongs to this user. We don't require it to be
+    // completed — a user can label a session at any point.
+    let owns: Option<Uuid> = sqlx::query_scalar(
+        "SELECT id FROM productivity_sessions WHERE id = $1 AND user_id = $2",
+    )
+    .bind(session_id)
+    .bind(user_id)
+    .fetch_optional(&state.pool)
+    .await?;
+    if owns.is_none() {
+        return Err(AppError::new(StatusCode::NOT_FOUND, "session not found"));
+    }
+
+    // Quota — before the Bedrock call.
+    state.ai.check_quota(&state.pool, user_id).await?;
+
+    // Classify via Haiku.
+    let (tag, usage) = classify_debrief(&state.ai, text).await?;
+
+    // Persist debrief + tag.
+    sqlx::query(
+        "UPDATE productivity_sessions
+            SET debrief = $1, debrief_tag = $2, updated_at = NOW()
+          WHERE id = $3 AND user_id = $4",
+    )
+    .bind(text)
+    .bind(&tag)
+    .bind(session_id)
+    .bind(user_id)
+    .execute(&state.pool)
+    .await?;
+
+    state
+        .ai
+        .record_usage(
+            &state.pool,
+            user_id,
+            usage.input,
+            usage.output,
+            usage.cache_read,
+            usage.cache_write,
+        )
+        .await?;
+
+    Ok(Json(SessionDebriefResponse {
+        id: session_id,
+        debrief: text.to_string(),
+        debrief_tag: tag,
+    }))
+}
+
+/// One-shot Haiku classification. Returns (tag, usage). Tag is always
+/// one of `DEBRIEF_TAGS`; anything weird falls back to "other".
+async fn classify_debrief(
+    ai: &crate::ai::AiClient,
+    text: &str,
+) -> Result<(String, CallUsage), AppError> {
+    let system = SystemContentBlock::Text(
+        "You classify a 1-line description of a productivity work session \
+into exactly one of these four buckets:\n\
+\n\
+- deep_work — coding, writing, problem-solving, study, focused single-task work\n\
+- meetings — calls, syncs, 1:1s, group discussions, interviews\n\
+- admin — email, planning, scheduling, organizing, low-cognitive busywork\n\
+- other — anything that clearly does not fit the three above\n\
+\n\
+Reply with ONLY the bucket name (lowercase, snake_case, no punctuation, \
+no quotes, no explanation). If the input is ambiguous, choose the closest \
+fit rather than guessing 'other'."
+            .to_string(),
+    );
+
+    let user_msg = Message::builder()
+        .role(ConversationRole::User)
+        .content(ContentBlock::Text(text.to_string()))
+        .build()
+        .map_err(|e| {
+            tracing::error!("debrief user message build failed: {}", e);
+            AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "AI request build failed")
+        })?;
+
+    let inference = InferenceConfiguration::builder()
+        .max_tokens(8)
+        .temperature(0.0)
+        .build();
+
+    let response = ai
+        .bedrock()
+        .converse()
+        .model_id(MODEL_HAIKU)
+        .system(system)
+        .messages(user_msg)
+        .inference_config(inference)
+        .send()
+        .await
+        .map_err(|e| {
+            let detail = e
+                .as_service_error()
+                .map(|svc| format!("{:?}", svc))
+                .unwrap_or_else(|| format!("{:?}", e));
+            tracing::error!(target: "ai.session_debrief", "bedrock haiku call failed: {}", detail);
+            AppError::new(StatusCode::BAD_GATEWAY, "AI service request failed")
+        })?;
+
+    let raw = response
+        .output()
+        .and_then(|o| o.as_message().ok())
+        .and_then(|m| m.content().first())
+        .and_then(|c| c.as_text().ok())
+        .cloned()
+        .ok_or_else(|| {
+            tracing::error!("haiku returned no text");
+            AppError::new(StatusCode::BAD_GATEWAY, "AI service returned no content")
+        })?;
+
+    // Sanitize: lowercase, strip whitespace + punctuation, then match against
+    // the allowed set. Anything we don't recognise becomes 'other' — never
+    // trust a model to stay in-distribution.
+    let cleaned: String = raw
+        .trim()
+        .to_lowercase()
+        .chars()
+        .filter(|c| c.is_alphanumeric() || *c == '_')
+        .collect();
+    let tag = DEBRIEF_TAGS
+        .iter()
+        .find(|t| **t == cleaned)
+        .copied()
+        .unwrap_or("other")
+        .to_string();
+
+    if tag == "other" && cleaned != "other" {
+        tracing::warn!(
+            target: "ai.session_debrief",
+            raw = %raw,
+            cleaned = %cleaned,
+            "haiku returned out-of-distribution tag; falling back to 'other'",
+        );
+    }
+
+    let usage = response.usage();
+    let call_usage = CallUsage {
+        input: usage.map(|u| u.input_tokens()).unwrap_or(0) as i64,
+        output: usage.map(|u| u.output_tokens()).unwrap_or(0) as i64,
+        cache_read: usage
+            .and_then(|u| u.cache_read_input_tokens())
+            .unwrap_or(0) as i64,
+        cache_write: usage
+            .and_then(|u| u.cache_write_input_tokens())
+            .unwrap_or(0) as i64,
+    };
+
+    Ok((tag, call_usage))
 }
