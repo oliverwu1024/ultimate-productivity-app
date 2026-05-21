@@ -175,6 +175,15 @@ pub async fn complete_item(id: &str) -> Result<ChecklistItem, ApiError> {
     post(&path, &empty).await
 }
 
+/// §recurring-uncomplete-fix — dedicated symmetric inverse of /complete.
+/// Server clears `completed`, `completed_at`, and `last_completed_epoch_day`
+/// atomically so recurring un-ticks survive the next sync.
+pub async fn uncomplete_item(id: &str) -> Result<ChecklistItem, ApiError> {
+    let path = format!("/checklist/{}/uncomplete", id);
+    let empty = serde_json::json!({});
+    post(&path, &empty).await
+}
+
 pub async fn delete_item(id: &str) -> Result<(), ApiError> {
     let path = format!("/checklist/{}", id);
     delete(&path).await

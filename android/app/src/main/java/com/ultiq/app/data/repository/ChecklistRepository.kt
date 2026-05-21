@@ -135,15 +135,15 @@ class ChecklistRepository(
         val now = System.currentTimeMillis()
         dao.setLastCompletedEpochDay(id, null, now)
         return try {
-            val existing = dao.getById(id) ?: return Result.success(Unit)
-            val server = apiService.updateChecklistItem(id, existing.toUpdateDto())
-            dao.insert(
-                server.toEntity().copy(
-                    recurrenceDaysMask = existing.recurrenceDaysMask,
-                    showUntilDue = existing.showUntilDue,
-                    lastCompletedEpochDay = existing.lastCompletedEpochDay,
-                ),
-            )
+            // §recurring-uncomplete-fix — go through the dedicated
+            // /uncomplete endpoint so the server actually clears
+            // `last_completed_epoch_day`. The old path (PUT with
+            // last_completed_epoch_day = null) couldn't be distinguished
+            // from "field omitted" on the wire, so the server kept the
+            // old stamp and the row flipped back to completed on next
+            // sync.
+            val server = apiService.uncompleteChecklistItem(id)
+            dao.insert(server.toEntity())
             Result.success(Unit)
         } catch (_: Exception) {
             Result.success(Unit)
@@ -166,8 +166,10 @@ class ChecklistRepository(
         val now = System.currentTimeMillis()
         dao.markIncompleteLocally(id, updatedAt = now)
         return try {
-            val existing = dao.getById(id) ?: return Result.success(Unit)
-            val server = apiService.updateChecklistItem(id, existing.toUpdateDto())
+            // §recurring-uncomplete-fix — same dedicated endpoint as the
+            // recurring path so completed/completed_at are explicitly
+            // cleared without ambiguity from the generic update body.
+            val server = apiService.uncompleteChecklistItem(id)
             dao.insert(server.toEntity())
             Result.success(Unit)
         } catch (_: Exception) {

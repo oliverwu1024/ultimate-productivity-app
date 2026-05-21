@@ -7,8 +7,8 @@ use crate::api::calendar::{
     create_event as create_calendar_event, CreateCalendarEvent, EventCategory, EventPriority,
 };
 use crate::api::checklist::{
-    complete_item, create_item, delete_item, list_for_range, naive_date_to_epoch_day, update_item,
-    ChecklistItem, CreateChecklistItem, Priority, UpdateChecklistItem,
+    complete_item, create_item, delete_item, list_for_range, naive_date_to_epoch_day,
+    uncomplete_item, update_item, ChecklistItem, CreateChecklistItem, Priority, UpdateChecklistItem,
 };
 use crate::api::sse::{use_sse, SyncEvent};
 use crate::components::layout::AppShell;
@@ -128,9 +128,17 @@ pub fn ChecklistPage() -> impl IntoView {
         let was_done = item.is_done_on(day);
         let recurring = item.is_recurring();
         wasm_bindgen_futures::spawn_local(async move {
-            let result = if recurring {
-                // Recurring: stamp / unstamp `last_completed_epoch_day` for
-                // the selected day. The `completed` boolean stays false.
+            let result = if was_done {
+                // §recurring-uncomplete-fix — dedicated endpoint clears
+                // `completed`, `completed_at`, and `last_completed_epoch_day`
+                // atomically, fixing the "recurring task flips back to
+                // completed on next sync" bug.
+                uncomplete_item(&id).await.map(|_| ())
+            } else if recurring {
+                // Stamping the recurring "done for today" marker still
+                // goes through the generic PUT, since here we have a
+                // value to send (the epoch day) — no null-vs-omitted
+                // ambiguity.
                 update_item(
                     &id,
                     &UpdateChecklistItem {
@@ -142,32 +150,7 @@ pub fn ChecklistPage() -> impl IntoView {
                         completed: None,
                         recurrence_days_mask: None,
                         show_until_due: None,
-                        last_completed_epoch_day: if was_done {
-                            // Backend treats Option<i64>::None as "leave
-                            // unchanged", so we can't fully clear from the
-                            // server side here. Local refresh after the call
-                            // gives the user visual feedback either way.
-                            None
-                        } else {
-                            Some(day_epoch)
-                        },
-                    },
-                )
-                .await
-                .map(|_| ())
-            } else if was_done {
-                update_item(
-                    &id,
-                    &UpdateChecklistItem {
-                        title: None,
-                        description: None,
-                        due_date: None,
-                        estimated_minutes: None,
-                        priority: None,
-                        completed: Some(false),
-                        recurrence_days_mask: None,
-                        show_until_due: None,
-                        last_completed_epoch_day: None,
+                        last_completed_epoch_day: Some(day_epoch),
                     },
                 )
                 .await

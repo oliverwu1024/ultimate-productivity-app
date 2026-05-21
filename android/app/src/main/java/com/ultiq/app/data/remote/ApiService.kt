@@ -165,6 +165,13 @@ interface ApiService {
     @POST("checklist/{id}/complete")
     suspend fun completeChecklistItem(@Path("id") id: String): ChecklistItemDto
 
+    // §recurring-uncomplete-fix — symmetric inverse of /complete. Clears
+    // `completed`, `completed_at`, and `last_completed_epoch_day` in one
+    // shot. Generic PUT couldn't distinguish JSON null from "omit", which
+    // left recurring un-ticks reverting on the next sync.
+    @POST("checklist/{id}/uncomplete")
+    suspend fun uncompleteChecklistItem(@Path("id") id: String): ChecklistItemDto
+
     @DELETE("checklist/{id}")
     suspend fun deleteChecklistItem(@Path("id") id: String)
 

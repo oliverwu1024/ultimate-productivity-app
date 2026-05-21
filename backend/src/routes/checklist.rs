@@ -22,6 +22,7 @@ pub fn router() -> Router<AppState> {
             get(get_one).put(update).delete(remove),
         )
         .route("/checklist/:id/complete", post(complete))
+        .route("/checklist/:id/uncomplete", post(uncomplete))
 }
 
 #[derive(serde::Deserialize)]
@@ -279,6 +280,42 @@ async fn complete(
     let item = sqlx::query_as::<_, ChecklistItem>(
         "UPDATE checklist_items
          SET completed = TRUE, completed_at = NOW(), updated_at = NOW()
+         WHERE id = $1 AND user_id = $2
+         RETURNING *",
+    )
+    .bind(id)
+    .bind(user_id)
+    .fetch_optional(&state.pool)
+    .await?
+    .ok_or_else(|| AppError::new(StatusCode::NOT_FOUND, "Checklist item not found"))?;
+
+    state
+        .events
+        .publish(user_id, SyncEvent::ChecklistUpdated(item.clone()));
+
+    Ok(Json(item))
+}
+
+/// Symmetric inverse of `complete`. Clears `completed`, `completed_at`, and
+/// `last_completed_epoch_day` in a single statement. Exists because the
+/// generic `PUT /checklist/:id` route can't distinguish JSON `null` from
+/// an omitted field for `last_completed_epoch_day`, so it falls back to
+/// "leave unchanged" — meaning a recurring item couldn't be un-ticked
+/// server-side via the update path, and would flip back to completed on
+/// the next sync.
+async fn uncomplete(
+    State(state): State<AppState>,
+    claims: Claims,
+    Path(id): Path<Uuid>,
+) -> Result<Json<ChecklistItem>, AppError> {
+    let user_id = parse_user_id(&claims)?;
+
+    let item = sqlx::query_as::<_, ChecklistItem>(
+        "UPDATE checklist_items
+         SET completed = FALSE,
+             completed_at = NULL,
+             last_completed_epoch_day = NULL,
+             updated_at = NOW()
          WHERE id = $1 AND user_id = $2
          RETURNING *",
     )
