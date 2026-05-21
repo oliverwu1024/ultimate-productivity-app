@@ -1,4 +1,5 @@
 pub mod admin;
+pub mod ai;
 pub mod alarms;
 pub mod auth;
 pub mod calendar;
@@ -41,4 +42,5 @@ pub fn other_routes() -> Router<AppState> {
         .merge(alarms::router())
         .merge(admin::router())
         .merge(sync::router())
+        .merge(ai::router())
 }
