@@ -1,6 +1,6 @@
 {
-  "versionCode": 18,
-  "versionName": "2.3",
-  "url": "https://ultiqapp.com/ultiq.2.3.apk",
-  "releaseNotes": "Hides the 'debug schedule test alarm' card on the Alarms section. Quick-pick chips on work duration and sleep target steppers."
+  "versionCode": 19,
+  "versionName": "2.4",
+  "url": "https://ultiqapp.com/ultiq.2.4.apk",
+  "releaseNotes": "Checklist items can now repeat on chosen days (every day, weekdays, weekends, or per-day) and items with a future due date show every day until you tick them off. Clearer Set alarm / Cancel buttons in the alarm editor. Math mission lets you pick 3, 5, 10, or 20 problems and no longer overflows long expressions. Sleep session no longer auto-ends when you dismiss the alarm — stop it manually from the Sleep tab."
 }
