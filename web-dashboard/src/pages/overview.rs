@@ -82,7 +82,10 @@ pub fn OverviewPage() -> impl IntoView {
             }
         });
         wasm_bindgen_futures::spawn_local(async move {
-            if let Ok(list) = list_for_range(today, today).await {
+            // Pull 60 days back so recurring items (whose `due_date` is the
+            // start date, often months ago) are in the visible window.
+            let start = today - Duration::days(60);
+            if let Ok(list) = list_for_range(start, today).await {
                 items.set(list);
             }
         });
@@ -388,18 +391,23 @@ fn TodayChecklistCard(items: RwSignal<Vec<ChecklistItem>>) -> impl IntoView {
                 </A>
             </header>
             {move || {
-                let all = items.get();
-                if all.is_empty() {
+                let today = Local::now().date_naive();
+                let visible: Vec<ChecklistItem> = items
+                    .get()
+                    .into_iter()
+                    .filter(|i| i.shows_on(today))
+                    .collect();
+                if visible.is_empty() {
                     view! {
                         <p class="text-sm text-ultiq-indigo/50">
                             "No items for today. Add one from the Checklist tab."
                         </p>
                     }.into_any()
                 } else {
-                    let total = all.len();
-                    let done = all.iter().filter(|i| i.completed).count();
+                    let total = visible.len();
+                    let done = visible.iter().filter(|i| i.is_done_on(today)).count();
                     let pct = (done as f64 / total as f64) * 100.0;
-                    let mut open: Vec<&ChecklistItem> = all.iter().filter(|i| !i.completed).collect();
+                    let mut open: Vec<&ChecklistItem> = visible.iter().filter(|i| !i.is_done_on(today)).collect();
                     open.sort_by_key(|i| -i.priority);
                     let preview: Vec<String> = open.iter().take(4).map(|i| i.title.clone()).collect();
                     let more = open.len().saturating_sub(4);

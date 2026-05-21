@@ -7,17 +7,29 @@ use crate::api::calendar::{
     create_event as create_calendar_event, CreateCalendarEvent, EventCategory, EventPriority,
 };
 use crate::api::checklist::{
-    complete_item, create_item, delete_item, list_for_range, update_item, ChecklistItem,
-    CreateChecklistItem, Priority, UpdateChecklistItem,
+    complete_item, create_item, delete_item, list_for_range, naive_date_to_epoch_day, update_item,
+    ChecklistItem, CreateChecklistItem, Priority, UpdateChecklistItem,
 };
 use crate::api::sse::{use_sse, SyncEvent};
 use crate::components::layout::AppShell;
+
+/// Thin wrapper to keep the call sites tidy; logic lives on the model.
+fn shows_on(item: &ChecklistItem, day: NaiveDate) -> bool {
+    item.shows_on(day)
+}
 
 #[derive(Clone)]
 enum DialogState {
     Closed,
     Add,
     Edit(ChecklistItem),
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum ScheduleMode {
+    OneOff,
+    Recurring,
+    UntilDue,
 }
 
 fn weekday_label(w: chrono::Weekday) -> &'static str {
@@ -66,11 +78,15 @@ pub fn ChecklistPage() -> impl IntoView {
         let day = selected_day.get_untracked();
         loading.set(true);
         error.set(None);
+        // Recurring items only have a single `due_date` row in the DB
+        // (their "start" date), so to surface them on a given day we
+        // have to pull a back-window. 60 days back / 7 days forward is
+        // plenty for the typical user; the client filter below is what
+        // actually picks which items show.
+        let start = day - Duration::days(60);
+        let end = day + Duration::days(7);
         wasm_bindgen_futures::spawn_local(async move {
-            // Fetch a small window (today + 1 day each side) — backend's GET /checklist defaults
-            // to ±30 days, but we only need this single date for the day view; small window keeps
-            // payload tight.
-            match list_for_range(day, day).await {
+            match list_for_range(start, end).await {
                 Ok(list) => items.set(list),
                 Err(e) => error.set(Some(e.message)),
             }
@@ -107,9 +123,39 @@ pub fn ChecklistPage() -> impl IntoView {
 
     let toggle_complete = move |item: ChecklistItem| {
         let id = item.id.clone();
-        let was_completed = item.completed;
+        let day = selected_day.get_untracked();
+        let day_epoch = naive_date_to_epoch_day(day);
+        let was_done = item.is_done_on(day);
+        let recurring = item.is_recurring();
         wasm_bindgen_futures::spawn_local(async move {
-            let result = if was_completed {
+            let result = if recurring {
+                // Recurring: stamp / unstamp `last_completed_epoch_day` for
+                // the selected day. The `completed` boolean stays false.
+                update_item(
+                    &id,
+                    &UpdateChecklistItem {
+                        title: None,
+                        description: None,
+                        due_date: None,
+                        estimated_minutes: None,
+                        priority: None,
+                        completed: None,
+                        recurrence_days_mask: None,
+                        show_until_due: None,
+                        last_completed_epoch_day: if was_done {
+                            // Backend treats Option<i64>::None as "leave
+                            // unchanged", so we can't fully clear from the
+                            // server side here. Local refresh after the call
+                            // gives the user visual feedback either way.
+                            None
+                        } else {
+                            Some(day_epoch)
+                        },
+                    },
+                )
+                .await
+                .map(|_| ())
+            } else if was_done {
                 update_item(
                     &id,
                     &UpdateChecklistItem {
@@ -119,6 +165,9 @@ pub fn ChecklistPage() -> impl IntoView {
                         estimated_minutes: None,
                         priority: None,
                         completed: Some(false),
+                        recurrence_days_mask: None,
+                        show_until_due: None,
+                        last_completed_epoch_day: None,
                     },
                 )
                 .await
@@ -181,14 +230,15 @@ pub fn ChecklistPage() -> impl IntoView {
                         </button>
                     </div>
 
-                    <ProgressBar items=items />
+                    <ProgressBar items=items day=selected_day />
 
                     <div class="mt-4 space-y-2">
                         {move || {
+                            let day = selected_day.get();
                             let mut day_items: Vec<ChecklistItem> = items
                                 .get()
                                 .into_iter()
-                                .filter(|i| !i.completed)
+                                .filter(|i| shows_on(i, day) && !i.is_done_on(day))
                                 .collect();
                             day_items.sort_by_key(|i| (-i.priority, i.created_at));
                             if day_items.is_empty() {
@@ -206,6 +256,7 @@ pub fn ChecklistPage() -> impl IntoView {
                                             view! {
                                                 <ItemRow
                                                     item=item.clone()
+                                                    is_done_now=false
                                                     on_toggle=move || toggle_complete(item_for_toggle.clone())
                                                     on_edit=move || dialog.set(DialogState::Edit(item_for_edit.clone()))
                                                 />
@@ -223,7 +274,12 @@ pub fn ChecklistPage() -> impl IntoView {
                             class="text-sm text-ultiq-indigo/70 hover:text-ultiq-indigo cursor-pointer"
                         >
                             {move || {
-                                let n = items.get().iter().filter(|i| i.completed).count();
+                                let day = selected_day.get();
+                                let n = items
+                                    .get()
+                                    .iter()
+                                    .filter(|i| shows_on(i, day) && i.is_done_on(day))
+                                    .count();
                                 let arrow = if show_completed.get() { "▼" } else { "▶" };
                                 format!("{} Completed ({})", arrow, n)
                             }}
@@ -231,10 +287,11 @@ pub fn ChecklistPage() -> impl IntoView {
                         <Show when=move || show_completed.get()>
                             <ul class="space-y-2 mt-3">
                                 {move || {
+                                    let day = selected_day.get();
                                     let mut done: Vec<ChecklistItem> = items
                                         .get()
                                         .into_iter()
-                                        .filter(|i| i.completed)
+                                        .filter(|i| shows_on(i, day) && i.is_done_on(day))
                                         .collect();
                                     done.sort_by_key(|i| std::cmp::Reverse(i.completed_at));
                                     done.into_iter().map(|item| {
@@ -243,6 +300,7 @@ pub fn ChecklistPage() -> impl IntoView {
                                         view! {
                                             <ItemRow
                                                 item=item.clone()
+                                                is_done_now=true
                                                 on_toggle=move || toggle_complete(item_for_toggle.clone())
                                                 on_edit=move || dialog.set(DialogState::Edit(item_for_edit.clone()))
                                             />
@@ -279,12 +337,13 @@ pub fn ChecklistPage() -> impl IntoView {
 }
 
 #[component]
-fn ProgressBar(items: RwSignal<Vec<ChecklistItem>>) -> impl IntoView {
+fn ProgressBar(items: RwSignal<Vec<ChecklistItem>>, day: RwSignal<NaiveDate>) -> impl IntoView {
     view! {
         {move || {
-            let all = items.get();
-            let total = all.len();
-            let done = all.iter().filter(|i| i.completed).count();
+            let d = day.get();
+            let visible: Vec<_> = items.get().into_iter().filter(|i| shows_on(i, d)).collect();
+            let total = visible.len();
+            let done = visible.iter().filter(|i| i.is_done_on(d)).count();
             let pct = if total == 0 { 0.0 } else { (done as f64 / total as f64) * 100.0 };
             view! {
                 <div>
@@ -306,12 +365,14 @@ fn ProgressBar(items: RwSignal<Vec<ChecklistItem>>) -> impl IntoView {
 #[component]
 fn ItemRow(
     item: ChecklistItem,
+    /// True when the row should render as "done for the displayed day".
+    /// The parent picks based on `shows_on(day)` + `is_done_on(day)`.
+    is_done_now: bool,
     on_toggle: impl Fn() + Send + Sync + 'static,
     on_edit: impl Fn() + Send + Sync + 'static,
 ) -> impl IntoView {
     let priority = item.priority_enum();
-    let completed = item.completed;
-    let title_class = if completed {
+    let title_class = if is_done_now {
         "line-through text-ultiq-indigo/40"
     } else {
         "text-ultiq-indigo"
@@ -325,6 +386,7 @@ fn ItemRow(
     let title = item.title.clone();
     let estimated = item.estimated_minutes;
     let description = item.description.clone();
+    let schedule = schedule_label(&item);
 
     view! {
         <li class="flex items-start gap-3 bg-ultiq-cream/40 rounded-xl p-3 hover:bg-ultiq-cream/70 transition-colors">
@@ -332,7 +394,7 @@ fn ItemRow(
                 on:click=move |_| on_toggle()
                 class=format!(
                     "mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center cursor-pointer flex-shrink-0 {}",
-                    if completed {
+                    if is_done_now {
                         "bg-ultiq-indigo border-ultiq-indigo"
                     } else {
                         "border-ultiq-indigo/40 hover:border-ultiq-indigo bg-white"
@@ -340,7 +402,7 @@ fn ItemRow(
                 )
                 aria-label="Toggle complete"
             >
-                <Show when=move || completed>
+                <Show when=move || is_done_now>
                     <span class="text-ultiq-cream text-xs leading-none">"✓"</span>
                 </Show>
             </button>
@@ -367,9 +429,43 @@ fn ItemRow(
                         {description.clone().unwrap_or_default()}
                     </p>
                 </Show>
+                <Show when={
+                    let s = schedule.clone();
+                    move || s.is_some()
+                }>
+                    <p class="text-xs text-ultiq-indigo/50 mt-1">
+                        {schedule.clone().unwrap_or_default()}
+                    </p>
+                </Show>
             </button>
         </li>
     }
+}
+
+/// Human-readable schedule summary — matches the Android `scheduleLabel`
+/// shape so users see the same wording across platforms.
+fn schedule_label(item: &ChecklistItem) -> Option<String> {
+    if item.recurrence_days_mask != 0 {
+        if item.recurrence_days_mask == 0b1111111 {
+            return Some("Every day".into());
+        }
+        if item.recurrence_days_mask == 0b0111110 {
+            return Some("Weekdays".into());
+        }
+        if item.recurrence_days_mask == 0b1000001 {
+            return Some("Weekends".into());
+        }
+        let names = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        let picked: Vec<&str> = (0..7)
+            .filter(|i| (item.recurrence_days_mask >> i) & 1 == 1)
+            .map(|i| names[i as usize])
+            .collect();
+        return Some(format!("Repeats: {}", picked.join(", ")));
+    }
+    if item.show_until_due {
+        return Some(format!("Due {}", item.due_date.format("%b %d")));
+    }
+    None
 }
 
 #[component]
@@ -402,23 +498,32 @@ fn ItemDialog(
             .map(|i| i.priority_enum())
             .unwrap_or(Priority::Medium),
     );
+
+    // §1 — schedule mode + recurrence picker on web, mirroring the Android
+    // ChecklistEditDialog. Existing items hydrate their mode from the row.
+    let initial_mode = match existing.as_ref() {
+        None => ScheduleMode::OneOff,
+        Some(i) if i.recurrence_days_mask != 0 => ScheduleMode::Recurring,
+        Some(i) if i.show_until_due => ScheduleMode::UntilDue,
+        _ => ScheduleMode::OneOff,
+    };
+    let schedule_mode = RwSignal::new(initial_mode);
+    let recurrence_mask = RwSignal::new(
+        existing.as_ref().map(|i| i.recurrence_days_mask).unwrap_or(0),
+    );
+    let show_include_today_prompt = RwSignal::new(false);
+
     let submitting = RwSignal::new(false);
     let dialog_error = RwSignal::new(None::<String>);
     let scheduled_msg = RwSignal::new(None::<String>);
 
     let item_id_store = StoredValue::new(item_id);
+    let existing_is_some = StoredValue::new(existing.is_some());
 
-    let on_submit = move |ev: leptos::ev::SubmitEvent| {
-        ev.prevent_default();
-        if submitting.get_untracked() {
-            return;
-        }
-
+    /// Inner save shared between the direct path and the "include today"
+    /// follow-up. `also_today` is only honored on new recurring items.
+    let do_save = move |also_today: bool| {
         let t = title.get_untracked();
-        if t.trim().is_empty() {
-            dialog_error.set(Some("Title is required".into()));
-            return;
-        }
         let est_str = estimated_minutes_str.get_untracked();
         let est: Option<i32> = if est_str.trim().is_empty() {
             None
@@ -427,54 +532,114 @@ fn ItemDialog(
                 Ok(n) if n > 0 => Some(n),
                 _ => {
                     dialog_error.set(Some("Estimated minutes must be a positive number".into()));
+                    submitting.set(false);
                     return;
                 }
             }
         };
-
         let desc = description.get_untracked();
         let desc_opt = if desc.trim().is_empty() { None } else { Some(desc) };
         let dd = due_date.get_untracked();
         let pri = priority.get_untracked().to_i16();
-
-        submitting.set(true);
-        dialog_error.set(None);
+        let mode = schedule_mode.get_untracked();
+        let mask: i16 = if mode == ScheduleMode::Recurring {
+            // Treat empty mask as "every day" so a recurring row is never
+            // invisible — mirrors the Android coerce.
+            let m = recurrence_mask.get_untracked();
+            if m == 0 { 0b1111111 } else { m }
+        } else {
+            0
+        };
+        let show_until_due = mode == ScheduleMode::UntilDue;
 
         let id = item_id_store.get_value();
+        let is_new = id.is_none();
         wasm_bindgen_futures::spawn_local(async move {
             let res = if let Some(id) = id {
                 update_item(
                     &id,
                     &UpdateChecklistItem {
-                        title: Some(t),
-                        description: desc_opt,
+                        title: Some(t.clone()),
+                        description: desc_opt.clone(),
                         due_date: Some(dd),
                         estimated_minutes: est,
                         priority: Some(pri),
                         completed: None,
+                        recurrence_days_mask: Some(mask),
+                        show_until_due: Some(show_until_due),
+                        last_completed_epoch_day: None,
                     },
                 )
                 .await
                 .map(|_| ())
             } else {
                 create_item(&CreateChecklistItem {
-                    title: t,
-                    description: desc_opt,
+                    title: t.clone(),
+                    description: desc_opt.clone(),
                     due_date: dd,
                     estimated_minutes: est,
                     priority: pri,
+                    recurrence_days_mask: mask,
+                    show_until_due,
                 })
                 .await
                 .map(|_| ())
             };
             match res {
-                Ok(_) => on_saved(),
+                Ok(_) => {
+                    if also_today && is_new {
+                        // §4 — separate one-off row for today alongside the
+                        // recurring schedule. Failure here is non-fatal; the
+                        // main item already saved.
+                        let _ = create_item(&CreateChecklistItem {
+                            title: t,
+                            description: desc_opt,
+                            due_date: Local::now().date_naive(),
+                            estimated_minutes: est,
+                            priority: pri,
+                            recurrence_days_mask: 0,
+                            show_until_due: false,
+                        })
+                        .await;
+                    }
+                    on_saved();
+                }
                 Err(e) => {
                     dialog_error.set(Some(e.message));
                     submitting.set(false);
                 }
             }
         });
+    };
+
+    let on_submit = move |ev: leptos::ev::SubmitEvent| {
+        ev.prevent_default();
+        if submitting.get_untracked() {
+            return;
+        }
+        if title.get_untracked().trim().is_empty() {
+            dialog_error.set(Some("Title is required".into()));
+            return;
+        }
+
+        submitting.set(true);
+        dialog_error.set(None);
+
+        // §4 — when the user creates a new recurring task whose mask
+        // doesn't already cover today's weekday, pause and ask whether to
+        // also create a one-off for today.
+        let is_new = !existing_is_some.get_value();
+        let is_recurring = schedule_mode.get_untracked() == ScheduleMode::Recurring;
+        let mask_after_coerce: i16 = {
+            let m = recurrence_mask.get_untracked();
+            if m == 0 { 0b1111111 } else { m }
+        };
+        let today_bit: i16 = 1i16 << Local::now().date_naive().weekday().num_days_from_sunday();
+        if is_new && is_recurring && (mask_after_coerce & today_bit) == 0 {
+            show_include_today_prompt.set(true);
+        } else {
+            do_save(false);
+        }
     };
 
     let on_schedule = move |_| {
@@ -601,9 +766,98 @@ fn ItemDialog(
                     />
                 </label>
 
+                // §1 — schedule mode + recurrence picker. Mirrors the
+                // Android dialog's One-off / Repeat / By due segments.
+                <div>
+                    <span class="text-sm font-medium text-ultiq-indigo">"Schedule"</span>
+                    <div class="mt-1 grid grid-cols-3 gap-1 bg-ultiq-indigo/5 rounded-lg p-1">
+                        {[
+                            (ScheduleMode::OneOff, "Today"),
+                            (ScheduleMode::Recurring, "Repeat"),
+                            (ScheduleMode::UntilDue, "By due"),
+                        ].into_iter().map(|(m, label)| {
+                            view! {
+                                <button
+                                    type="button"
+                                    on:click=move |_| schedule_mode.set(m)
+                                    class=move || {
+                                        let selected = schedule_mode.get() == m;
+                                        if selected {
+                                            "py-1.5 text-sm rounded-md bg-white text-ultiq-indigo font-medium shadow-sm cursor-pointer".to_string()
+                                        } else {
+                                            "py-1.5 text-sm rounded-md text-ultiq-indigo/70 hover:text-ultiq-indigo cursor-pointer".to_string()
+                                        }
+                                    }
+                                >
+                                    {label}
+                                </button>
+                            }
+                        }).collect_view()}
+                    </div>
+                    <p class="text-xs text-ultiq-indigo/60 mt-1">
+                        {move || match schedule_mode.get() {
+                            ScheduleMode::OneOff => "Shows on the picked day only.",
+                            ScheduleMode::Recurring => "Repeats on the weekdays you pick below.",
+                            ScheduleMode::UntilDue => "Shows every day until the due date.",
+                        }}
+                    </p>
+                </div>
+
+                <Show when=move || schedule_mode.get() == ScheduleMode::Recurring>
+                    <div>
+                        <span class="text-sm font-medium text-ultiq-indigo">"Days"</span>
+                        <div class="mt-1 flex gap-1">
+                            {["S", "M", "T", "W", "T", "F", "S"].into_iter().enumerate().map(|(i, letter)| {
+                                let bit_idx = i as i16;
+                                view! {
+                                    <button
+                                        type="button"
+                                        on:click=move |_| recurrence_mask.update(|m| {
+                                            *m ^= 1i16 << bit_idx;
+                                        })
+                                        class=move || {
+                                            let on = (recurrence_mask.get() >> bit_idx) & 1 == 1;
+                                            if on {
+                                                "flex-1 py-1.5 text-sm rounded-md bg-ultiq-indigo text-ultiq-cream font-medium cursor-pointer".to_string()
+                                            } else {
+                                                "flex-1 py-1.5 text-sm rounded-md border border-ultiq-indigo/20 text-ultiq-indigo hover:bg-ultiq-indigo/5 cursor-pointer".to_string()
+                                            }
+                                        }
+                                    >
+                                        {letter}
+                                    </button>
+                                }
+                            }).collect_view()}
+                        </div>
+                        <div class="mt-2 flex gap-2 text-xs">
+                            <button
+                                type="button"
+                                on:click=move |_| recurrence_mask.set(0b1111111)
+                                class="text-ultiq-indigo/60 hover:text-ultiq-indigo cursor-pointer"
+                            >"Every day"</button>
+                            <button
+                                type="button"
+                                on:click=move |_| recurrence_mask.set(0b0111110)
+                                class="text-ultiq-indigo/60 hover:text-ultiq-indigo cursor-pointer"
+                            >"Weekdays"</button>
+                            <button
+                                type="button"
+                                on:click=move |_| recurrence_mask.set(0b1000001)
+                                class="text-ultiq-indigo/60 hover:text-ultiq-indigo cursor-pointer"
+                            >"Weekends"</button>
+                        </div>
+                    </div>
+                </Show>
+
                 <div class="grid grid-cols-2 gap-3">
                     <label class="block">
-                        <span class="text-sm font-medium text-ultiq-indigo">"Due"</span>
+                        <span class="text-sm font-medium text-ultiq-indigo">
+                            {move || match schedule_mode.get() {
+                                ScheduleMode::OneOff => "On",
+                                ScheduleMode::Recurring => "Starts",
+                                ScheduleMode::UntilDue => "Due",
+                            }}
+                        </span>
                         <input
                             type="date"
                             class="mt-1 w-full px-3 py-2 border border-ultiq-indigo/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-ultiq-indigo"
@@ -700,6 +954,52 @@ fn ItemDialog(
                     </div>
                 </div>
             </form>
+
+            // §4 — "Include today?" follow-up. Renders above the main
+            // dialog when the user tries to save a new recurring task
+            // whose mask doesn't already cover today.
+            <Show when=move || show_include_today_prompt.get()>
+                <div
+                    class="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4"
+                    on:click=|ev| ev.stop_propagation()
+                >
+                    <div class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm space-y-4">
+                        <h3 class="text-lg font-semibold text-ultiq-indigo">"Include today?"</h3>
+                        <p class="text-sm text-ultiq-indigo/70">
+                            {move || {
+                                let today = Local::now().date_naive();
+                                format!(
+                                    "Today is {}, which isn't in this task's repeat schedule. \
+Add it to today's list as well?",
+                                    weekday_label(today.weekday()),
+                                )
+                            }}
+                        </p>
+                        <div class="flex gap-2 justify-end">
+                            <button
+                                type="button"
+                                on:click=move |_| {
+                                    show_include_today_prompt.set(false);
+                                    do_save(false);
+                                }
+                                class="px-3 py-2 text-ultiq-indigo hover:bg-ultiq-indigo/5 rounded-lg cursor-pointer"
+                            >
+                                "No, future only"
+                            </button>
+                            <button
+                                type="button"
+                                on:click=move |_| {
+                                    show_include_today_prompt.set(false);
+                                    do_save(true);
+                                }
+                                class="px-3 py-2 bg-ultiq-indigo text-ultiq-cream rounded-lg font-medium hover:opacity-90 cursor-pointer"
+                            >
+                                "Yes, add today"
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </Show>
         </div>
     }
 }
