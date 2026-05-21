@@ -4,8 +4,10 @@ use leptos::prelude::*;
 use leptos_meta::Title;
 use leptos_router::components::A;
 
+use crate::api::ai::{fetch_weekly_insight, WeeklyInsight};
 use crate::api::calendar::{list_events, CalendarEvent};
 use crate::api::checklist::{list_for_range, ChecklistItem};
+use crate::api::client::ApiError;
 use crate::api::sessions::{fetch_stats as fetch_session_stats, list_sessions, ProductivitySession, SessionStats};
 use crate::api::sleep::{list_records, SleepRecord};
 use crate::api::sse::use_sse;
@@ -45,6 +47,23 @@ pub fn OverviewPage() -> impl IntoView {
     let sleep: RwSignal<Vec<SleepRecord>> = RwSignal::new(Vec::new());
     let sessions: RwSignal<Vec<ProductivitySession>> = RwSignal::new(Vec::new());
     let session_stats: RwSignal<Option<SessionStats>> = RwSignal::new(None);
+
+    // §9.4 Weekly AI insight. Three states: None=not yet fetched,
+    // Ok=loaded, Err=fetch failed (network, 429 quota, 502 from Bedrock).
+    let weekly_insight: RwSignal<Option<Result<WeeklyInsight, ApiError>>> = RwSignal::new(None);
+    let insight_loading: RwSignal<bool> = RwSignal::new(false);
+
+    let load_insight = move || {
+        if insight_loading.get_untracked() {
+            return;
+        }
+        insight_loading.set(true);
+        wasm_bindgen_futures::spawn_local(async move {
+            let result = fetch_weekly_insight().await;
+            weekly_insight.set(Some(result));
+            insight_loading.set(false);
+        });
+    };
 
     let onboarding_dismissed = RwSignal::new(
         LocalStorage::get::<String>(ONBOARDING_KEY).is_ok(),
@@ -89,6 +108,7 @@ pub fn OverviewPage() -> impl IntoView {
     Effect::new(move |prev: Option<()>| {
         if prev.is_none() {
             refresh();
+            load_insight();
         }
         ()
     });
@@ -145,6 +165,65 @@ pub fn OverviewPage() -> impl IntoView {
                     <TodayChecklistCard items=items />
                     <TodayEventsCard events=events />
                 </div>
+
+                <section class="mt-6 bg-white border border-ultiq-indigo/10 rounded-2xl p-6">
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="text-sm font-semibold text-ultiq-indigo/70">
+                            "This week — AI summary"
+                        </h2>
+                        <button
+                            on:click=move |_| load_insight()
+                            disabled=move || insight_loading.get()
+                            class="text-ultiq-indigo/50 hover:text-ultiq-indigo px-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                            title="Refresh"
+                            aria-label="Refresh weekly insight"
+                        >
+                            "↻"
+                        </button>
+                    </div>
+                    {move || {
+                        if insight_loading.get() {
+                            return view! {
+                                <p class="text-sm text-ultiq-indigo/60">"Generating your week…"</p>
+                            }.into_any();
+                        }
+                        match weekly_insight.get() {
+                            None => view! {
+                                <p class="text-sm text-ultiq-indigo/60">"Generating your week…"</p>
+                            }.into_any(),
+                            Some(Ok(i)) => {
+                                let paragraphs: Vec<String> = i.content
+                                    .split("\n\n")
+                                    .map(|p| p.trim().to_string())
+                                    .filter(|p| !p.is_empty())
+                                    .collect();
+                                let cached = i.cached;
+                                view! {
+                                    <div class="space-y-3 text-sm leading-relaxed text-ultiq-indigo">
+                                        {paragraphs.into_iter().map(|p| view! {
+                                            <p>{p}</p>
+                                        }).collect::<Vec<_>>()}
+                                        <Show when=move || cached>
+                                            <p class="text-xs text-ultiq-indigo/40 pt-2">
+                                                "Cached — refresh to regenerate (24h cap)"
+                                            </p>
+                                        </Show>
+                                    </div>
+                                }.into_any()
+                            }
+                            Some(Err(e)) => {
+                                let msg = if e.status == 429 {
+                                    "Daily AI limit reached — back tomorrow".to_string()
+                                } else if e.status == 401 {
+                                    "Sign in to see your weekly insight".to_string()
+                                } else {
+                                    "Couldn't load your weekly insight".to_string()
+                                };
+                                view! { <p class="text-sm text-red-600">{msg}</p> }.into_any()
+                            }
+                        }
+                    }}
+                </section>
 
                 <div class="mt-6 flex flex-wrap gap-3">
                     <A href="/checklist" attr:class="px-4 py-2 bg-ultiq-indigo text-ultiq-cream rounded-lg font-medium hover:opacity-90">
