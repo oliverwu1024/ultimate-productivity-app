@@ -415,7 +415,14 @@ async fn call_weekly_insight_model(
         .send()
         .await
         .map_err(|e| {
-            tracing::error!("bedrock converse failed: {}", e);
+            // Display strips the AWS service-error detail (you only get
+            // "service error"). Dig in to log the actual variant + message
+            // so CloudWatch shows AccessDenied / Validation / etc.
+            let detail = e
+                .as_service_error()
+                .map(|svc| format!("{:?}", svc))
+                .unwrap_or_else(|| format!("{:?}", e));
+            tracing::error!(target: "ai.weekly_insight", "bedrock converse failed: {}", detail);
             AppError::new(StatusCode::BAD_GATEWAY, "AI service request failed")
         })?;
 
