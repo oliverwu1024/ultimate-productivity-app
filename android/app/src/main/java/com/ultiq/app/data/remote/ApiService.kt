@@ -23,6 +23,8 @@ import com.ultiq.app.data.remote.dto.SleepStatsDto
 import com.ultiq.app.data.remote.dto.UpdateChecklistItemDto
 import com.ultiq.app.data.remote.dto.UpdateProfileRequest
 import com.ultiq.app.data.remote.dto.UpdateSessionDto
+import com.ultiq.app.data.remote.dto.SessionDebriefRequestDto
+import com.ultiq.app.data.remote.dto.SessionDebriefResponseDto
 import com.ultiq.app.data.remote.dto.UserResponse
 import com.ultiq.app.data.remote.dto.WeeklyInsightDto
 import retrofit2.http.Body
@@ -199,4 +201,12 @@ interface ApiService {
     // within that window returns the cached row without touching Bedrock.
     @POST("ai/weekly-insight")
     suspend fun getWeeklyInsight(): WeeklyInsightDto
+
+    // §9.7 — Submit a 1-line debrief for a completed focus session. Server
+    // classifies via Haiku and returns the assigned tag.
+    @POST("ai/session-debrief/{id}")
+    suspend fun submitSessionDebrief(
+        @Path("id") id: String,
+        @Body body: SessionDebriefRequestDto,
+    ): SessionDebriefResponseDto
 }

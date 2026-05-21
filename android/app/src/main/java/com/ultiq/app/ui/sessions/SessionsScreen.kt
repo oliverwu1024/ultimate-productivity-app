@@ -48,6 +48,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -235,6 +236,18 @@ fun SessionsScreen(
             dismissButton = {
                 TextButton(onClick = { viewModel.dismissChecklistCompletion() }) { Text("No") }
             },
+        )
+    }
+
+    // §9.7 — Debrief prompt sits beneath the checklist dialog. Skippable;
+    // submit hits Haiku and reveals the auto-assigned tag.
+    val debrief = uiState.debriefPrompt
+    if (debrief != null && uiState.completionPrompt == null) {
+        DebriefPromptDialog(
+            prompt = debrief,
+            onTextChange = viewModel::updateDebriefText,
+            onSubmit = viewModel::submitDebrief,
+            onDismiss = viewModel::dismissDebrief,
         )
     }
 
@@ -770,4 +783,92 @@ private fun formatTime(seconds: Int): String {
     val m = seconds / 60
     val s = seconds % 60
     return "%02d:%02d".format(m, s)
+}
+
+/// §9.7 — One-line "what did you work on?" prompt that shows after a
+/// focus session ends. On submit, Haiku assigns a bucket (deep_work /
+/// meetings / admin / other) and the dialog flips to show the tag for
+/// a beat before the user closes it.
+@Composable
+private fun DebriefPromptDialog(
+    prompt: SessionDebriefPrompt,
+    onTextChange: (String) -> Unit,
+    onSubmit: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("What did you work on?") },
+        text = {
+            Column {
+                when (val s = prompt.submitState) {
+                    is DebriefSubmitState.Idle,
+                    is DebriefSubmitState.Error -> {
+                        OutlinedTextField(
+                            value = prompt.text,
+                            onValueChange = onTextChange,
+                            placeholder = { Text("e.g. cs61a problem set 3") },
+                            singleLine = false,
+                            maxLines = 3,
+                            supportingText = { Text("${prompt.text.length} / 240") },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        if (s is DebriefSubmitState.Error) {
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                s.message,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        }
+                    }
+                    DebriefSubmitState.Submitting -> {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                strokeWidth = 2.dp,
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            Text("Tagging…", style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+                    is DebriefSubmitState.Tagged -> {
+                        Text(
+                            prompt.text,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        Text(
+                            "Tagged as " + s.tag.replace('_', ' '),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            when (prompt.submitState) {
+                is DebriefSubmitState.Tagged -> {
+                    Button(onClick = onDismiss) { Text("Done") }
+                }
+                DebriefSubmitState.Submitting -> {
+                    Button(onClick = {}, enabled = false) { Text("Save") }
+                }
+                else -> {
+                    Button(
+                        onClick = onSubmit,
+                        enabled = prompt.text.trim().isNotEmpty(),
+                    ) { Text("Save") }
+                }
+            }
+        },
+        dismissButton = {
+            if (prompt.submitState !is DebriefSubmitState.Tagged &&
+                prompt.submitState !is DebriefSubmitState.Submitting) {
+                TextButton(onClick = onDismiss) { Text("Skip") }
+            }
+        },
+    )
 }

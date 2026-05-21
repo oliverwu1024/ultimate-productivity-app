@@ -62,6 +62,8 @@ data class SessionsUiState(
     val openChecklistItems: List<ChecklistEntity> = emptyList(),
     val selectedChecklistItemId: String? = null,
     val completionPrompt: ChecklistCompletionPrompt? = null,
+    /// §9.7 — set when a focus session just ended; nulled on submit/skip.
+    val debriefPrompt: SessionDebriefPrompt? = null,
     val celebratedAchievement: AchievementId? = null,
     // Live UserPreferences snapshot, used by the FOCUS PREFERENCES section.
     val settings: UserSettings? = null,
@@ -70,6 +72,22 @@ data class SessionsUiState(
 data class ChecklistCompletionPrompt(
     val itemId: String,
     val title: String,
+)
+
+/// §9.7 — Post-session "what did you work on?" prompt. The Haiku call
+/// happens server-side on submit; until then state is Idle. Tagged carries
+/// the bucket the server assigned (deep_work / meetings / admin / other).
+sealed class DebriefSubmitState {
+    object Idle : DebriefSubmitState()
+    object Submitting : DebriefSubmitState()
+    data class Tagged(val tag: String) : DebriefSubmitState()
+    data class Error(val message: String) : DebriefSubmitState()
+}
+
+data class SessionDebriefPrompt(
+    val sessionId: String,
+    val text: String = "",
+    val submitState: DebriefSubmitState = DebriefSubmitState.Idle,
 )
 
 class SessionsViewModel(application: Application) : AndroidViewModel(application) {
@@ -405,8 +423,9 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
         val linkedItemId = state.selectedChecklistItemId
         val linkedItemTitle = state.openChecklistItems.firstOrNull { it.id == linkedItemId }?.title
 
+        val completedSessionId = currentSessionId
         viewModelScope.launch {
-            currentSessionId?.let { id ->
+            completedSessionId?.let { id ->
                 repository.completeSession(id, totalMinutes, state.phonePickups)
             }
             currentSessionId = null
@@ -424,6 +443,9 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
                 completionPrompt = if (linkedItemId != null && linkedItemTitle != null) {
                     ChecklistCompletionPrompt(itemId = linkedItemId, title = linkedItemTitle)
                 } else null,
+                // §9.7 prompt for a 1-line debrief on every completed session.
+                // Only show if the session actually got persisted (real ID).
+                debriefPrompt = completedSessionId?.let { SessionDebriefPrompt(sessionId = it) },
             )
         }
     }
@@ -438,6 +460,62 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
 
     fun dismissChecklistCompletion() {
         _uiState.value = _uiState.value.copy(completionPrompt = null)
+    }
+
+    // ── §9.7 debrief prompt ────────────────────────────────────────────────
+
+    fun updateDebriefText(text: String) {
+        val cur = _uiState.value.debriefPrompt ?: return
+        // Hard-cap at 240 to match the backend validator and keep the field
+        // from accepting more than will fit.
+        val trimmed = if (text.length > 240) text.take(240) else text
+        _uiState.value = _uiState.value.copy(
+            debriefPrompt = cur.copy(text = trimmed),
+        )
+    }
+
+    fun submitDebrief() {
+        val cur = _uiState.value.debriefPrompt ?: return
+        val text = cur.text.trim()
+        if (text.isEmpty() || cur.submitState is DebriefSubmitState.Submitting) return
+
+        _uiState.value = _uiState.value.copy(
+            debriefPrompt = cur.copy(submitState = DebriefSubmitState.Submitting),
+        )
+        viewModelScope.launch {
+            try {
+                val resp = api.submitSessionDebrief(
+                    cur.sessionId,
+                    com.ultiq.app.data.remote.dto.SessionDebriefRequestDto(text = text),
+                )
+                // Server is the source of truth — next sync will pull the
+                // saved fields into Room. We surface the tag in the dialog
+                // immediately so the user gets the feedback now.
+                _uiState.value = _uiState.value.copy(
+                    debriefPrompt = cur.copy(
+                        text = text,
+                        submitState = DebriefSubmitState.Tagged(resp.debrief_tag),
+                    ),
+                )
+            } catch (e: retrofit2.HttpException) {
+                val msg = when (e.code()) {
+                    429 -> "Daily AI limit reached — back tomorrow"
+                    400 -> "Couldn't process that text"
+                    else -> "Couldn't tag the session"
+                }
+                _uiState.value = _uiState.value.copy(
+                    debriefPrompt = cur.copy(submitState = DebriefSubmitState.Error(msg)),
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    debriefPrompt = cur.copy(submitState = DebriefSubmitState.Error("Couldn't tag the session")),
+                )
+            }
+        }
+    }
+
+    fun dismissDebrief() {
+        _uiState.value = _uiState.value.copy(debriefPrompt = null)
     }
 
     private fun startFocusTrackingService() {

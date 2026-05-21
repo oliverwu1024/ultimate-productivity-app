@@ -10,3 +10,16 @@ data class WeeklyInsightDto(
     val expires_at: String,
     val cached: Boolean,
 )
+
+/// §9.7 — Body for POST /ai/session-debrief/{id}.
+data class SessionDebriefRequestDto(
+    val text: String,
+)
+
+/// §9.7 — Response: server returns the saved text plus the Haiku-assigned
+/// bucket (deep_work / meetings / admin / other).
+data class SessionDebriefResponseDto(
+    val id: String,
+    val debrief: String,
+    val debrief_tag: String,
+)
