@@ -28,5 +28,13 @@ futures = "0.3"
 # AWS Bedrock (§9.3) — Claude calls go via Bedrock with ECS-task-role IAM,
 # no API key. `behavior-version-latest` opts into current SDK defaults and
 # suppresses the deprecation warning the SDK emits otherwise.
+#
+# `default-features = false` on bedrockruntime is critical: its default
+# feature set enables a legacy `rustls` (0.21) chain in parallel with the
+# secure `default-https-client` (rustls 0.23) chain. The legacy chain pulls
+# in rustls-webpki 0.101.x which has three open Dependabot advisories (one
+# HIGH — DoS via malformed CRL BIT STRING). Re-enabling only `rt-tokio` +
+# `default-https-client` keeps the SDK fully functional while dropping the
+# vulnerable transitive.
 aws-config = { version = "1", features = ["behavior-version-latest"] }
-aws-sdk-bedrockruntime = "1"
+aws-sdk-bedrockruntime = { version = "1", default-features = false, features = ["rt-tokio", "default-https-client"] }
