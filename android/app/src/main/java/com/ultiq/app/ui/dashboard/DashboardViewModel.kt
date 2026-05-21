@@ -76,6 +76,20 @@ data class AchievementBadge(
     val earnedAt: Long,
 )
 
+/// §9.4 — Weekly Insight card state machine. Server-side 24h cache means
+/// the first call after dashboard mount is usually free (cached row); the
+/// model only runs once per ~day per user.
+sealed class WeeklyInsightState {
+    object Idle : WeeklyInsightState()
+    object Loading : WeeklyInsightState()
+    data class Loaded(
+        val content: String,
+        val generatedAt: String,
+        val cached: Boolean,
+    ) : WeeklyInsightState()
+    data class Error(val message: String) : WeeklyInsightState()
+}
+
 data class DashboardUiState(
     val lastNightSleep: SleepSummary? = null,
     val todayFocus: FocusSummary? = null,
@@ -95,6 +109,8 @@ data class DashboardUiState(
     val isStrictLockEnabled: Boolean = true,
     /** User dismissed the lock&overlay hint. */
     val lockOverlayHintSeen: Boolean = true,
+    /** §9.4 AI weekly insight card. */
+    val weeklyInsight: WeeklyInsightState = WeeklyInsightState.Idle,
 ) {
     /**
      * Show the lock&overlay hint on the dashboard when at least one of
@@ -145,6 +161,38 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         refreshLockOverlayState()
         observeTodayChecklist()
         observeAchievements()
+        loadWeeklyInsight()
+    }
+
+    /// Fetch the AI weekly insight. Server returns a cached row if it's
+    /// less than 24h old (free, no Bedrock call). Pass force=true to bypass
+    /// the in-memory dedup; the server cache is still honored.
+    fun loadWeeklyInsight(force: Boolean = false) {
+        if (!force && _uiState.value.weeklyInsight is WeeklyInsightState.Loaded) return
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(weeklyInsight = WeeklyInsightState.Loading)
+            try {
+                val resp = api.getWeeklyInsight()
+                _uiState.value = _uiState.value.copy(
+                    weeklyInsight = WeeklyInsightState.Loaded(
+                        content = resp.content,
+                        generatedAt = resp.generated_at,
+                        cached = resp.cached,
+                    )
+                )
+            } catch (e: retrofit2.HttpException) {
+                val msg = when (e.code()) {
+                    401 -> "Sign in to see your weekly insight"
+                    429 -> "Daily AI limit reached — back tomorrow"
+                    else -> "Couldn't load your weekly insight"
+                }
+                _uiState.value = _uiState.value.copy(weeklyInsight = WeeklyInsightState.Error(msg))
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    weeklyInsight = WeeklyInsightState.Error("Couldn't load your weekly insight")
+                )
+            }
+        }
     }
 
     fun dismissPrefsHint() = viewModelScope.launch {

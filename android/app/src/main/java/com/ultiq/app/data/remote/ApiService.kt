@@ -24,6 +24,7 @@ import com.ultiq.app.data.remote.dto.UpdateChecklistItemDto
 import com.ultiq.app.data.remote.dto.UpdateProfileRequest
 import com.ultiq.app.data.remote.dto.UpdateSessionDto
 import com.ultiq.app.data.remote.dto.UserResponse
+import com.ultiq.app.data.remote.dto.WeeklyInsightDto
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
@@ -193,4 +194,9 @@ interface ApiService {
         @Path("id") id: String,
         @Body event: CreateAlarmEventDto
     ): AlarmEventDto
+
+    // §9.4 — AI weekly insight. Server-side 24h cache; calling repeatedly
+    // within that window returns the cached row without touching Bedrock.
+    @POST("ai/weekly-insight")
+    suspend fun getWeeklyInsight(): WeeklyInsightDto
 }

@@ -290,6 +290,15 @@ fun DashboardScreen(
                 }
             }
 
+            item {
+                AnimatedAppear(delayMillis = 220) {
+                    AiWeeklyInsightCard(
+                        state = uiState.weeklyInsight,
+                        onRefresh = { viewModel.loadWeeklyInsight(force = true) },
+                    )
+                }
+            }
+
             if (uiState.achievementsEarnedCount > 0) {
                 item {
                     AnimatedAppear(delayMillis = 230) {
@@ -880,6 +889,86 @@ private fun AchievementsCard(earned: Int, total: Int, recent: List<AchievementBa
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+            }
+        }
+    }
+}
+
+/// §9.4 — Weekly AI summary card. Multi-paragraph plain prose; split on
+/// blank lines to get the paragraph breaks the model emits per its prompt.
+@Composable
+private fun AiWeeklyInsightCard(
+    state: WeeklyInsightState,
+    onRefresh: () -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+        ),
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    "This week — AI summary",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f),
+                )
+                IconButton(
+                    onClick = onRefresh,
+                    enabled = state !is WeeklyInsightState.Loading,
+                ) {
+                    Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            when (state) {
+                WeeklyInsightState.Idle,
+                WeeklyInsightState.Loading -> {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Text(
+                            "Generating your week…",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                is WeeklyInsightState.Loaded -> {
+                    state.content.split("\n\n").forEach { paragraph ->
+                        val trimmed = paragraph.trim()
+                        if (trimmed.isNotEmpty()) {
+                            Text(
+                                trimmed,
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                            Spacer(Modifier.height(10.dp))
+                        }
+                    }
+                    if (state.cached) {
+                        Text(
+                            "Cached — refresh to regenerate (24h cap)",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                is WeeklyInsightState.Error -> {
+                    Text(
+                        state.message,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
             }
         }
     }
