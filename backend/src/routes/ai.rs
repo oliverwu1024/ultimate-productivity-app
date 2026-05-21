@@ -401,10 +401,11 @@ async fn call_weekly_insight_model(
             AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "AI request build failed")
         })?;
 
+    // Claude 4.x rejects requests that specify both `temperature` and
+    // `top_p` — pick one. Temperature is the more intuitive knob here.
     let inference = InferenceConfiguration::builder()
         .max_tokens(800)
         .temperature(0.6)
-        .top_p(0.9)
         .build();
 
     let response = ai
