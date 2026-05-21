@@ -1,5 +1,6 @@
 use std::env;
 
+use crate::ai::AiClient;
 use crate::email::EmailClient;
 use crate::event_bus::EventBus;
 use crate::ticket::TicketStore;
@@ -48,4 +49,7 @@ pub struct AppState {
     pub email: EmailClient,
     pub events: EventBus,
     pub tickets: TicketStore,
+    // §9.3 scaffolding — first read once §9.4's weekly-insight handler lands.
+    #[allow(dead_code)]
+    pub ai: AiClient,
 }

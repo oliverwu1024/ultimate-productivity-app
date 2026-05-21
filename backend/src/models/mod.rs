@@ -1,3 +1,4 @@
+pub mod ai;
 pub mod alarm;
 pub mod calendar;
 pub mod checklist;

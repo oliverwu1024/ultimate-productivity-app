@@ -24,3 +24,9 @@ sha2 = "0.11"
 subtle = "2"
 tokio-stream = { version = "0.1", features = ["sync"] }
 futures = "0.3"
+
+# AWS Bedrock (§9.3) — Claude calls go via Bedrock with ECS-task-role IAM,
+# no API key. `behavior-version-latest` opts into current SDK defaults and
+# suppresses the deprecation warning the SDK emits otherwise.
+aws-config = { version = "1", features = ["behavior-version-latest"] }
+aws-sdk-bedrockruntime = "1"

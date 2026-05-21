@@ -1,3 +1,4 @@
+mod ai;
 mod config;
 mod db;
 mod email;
@@ -48,6 +49,7 @@ async fn main() {
     let email = EmailClient::new(config.resend_api_key.clone());
     let events = EventBus::new();
     let tickets = TicketStore::new();
+    let ai = ai::AiClient::new().await;
 
     // CORS — explicit allowlist (loaded from ALLOWED_ORIGINS env, defaults to
     // app.ultiqapp.com + ultiqapp.com). Android calls don't trigger preflight
@@ -96,7 +98,7 @@ async fn main() {
             .expect("valid governor config"),
     );
 
-    let state = AppState { pool, config, email, events, tickets };
+    let state = AppState { pool, config, email, events, tickets, ai };
 
     let auth_routes = routes::auth_routes()
         .layer(GovernorLayer { config: auth_governor });
