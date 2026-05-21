@@ -155,6 +155,7 @@ fun ChecklistScreen(
                     items(state.openItems, key = { it.id }) { item ->
                         ChecklistRow(
                             item = item,
+                            isDoneNow = false,
                             onToggle = { viewModel.toggleCompleted(item) },
                             onEdit = { viewModel.openEditDialog(item) },
                             onDelete = { viewModel.deleteItem(item) },
@@ -167,7 +168,9 @@ fun ChecklistScreen(
                         CompletedSection(
                             items = state.completedItems,
                             onToggle = viewModel::toggleCompleted,
+                            onEdit = viewModel::openEditDialog,
                             onDelete = viewModel::deleteItem,
+                            todayEpochDay = state.selectedDate.toEpochDay(),
                         )
                     }
                 }
@@ -326,6 +329,11 @@ private fun EmptyState() {
 @Composable
 private fun ChecklistRow(
     item: ChecklistEntity,
+    /// `true` when this row represents a "done-for-the-selected-day" state.
+    /// Non-recurring rows pass `item.completed`; recurring rows pass the
+    /// computed `lastCompletedEpochDay == day` check from the parent so
+    /// the checkbox tick reflects the actual displayed state.
+    isDoneNow: Boolean,
     onToggle: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
@@ -342,13 +350,13 @@ private fun ChecklistRow(
                 .padding(horizontal = 8.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Checkbox(checked = item.completed, onCheckedChange = { onToggle() })
+            Checkbox(checked = isDoneNow, onCheckedChange = { onToggle() })
             Column(modifier = Modifier.weight(1f).padding(horizontal = 4.dp)) {
                 Text(
                     item.title,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Medium,
-                    textDecoration = if (item.completed) TextDecoration.LineThrough else null,
+                    textDecoration = if (isDoneNow) TextDecoration.LineThrough else null,
                 )
                 if (!item.description.isNullOrBlank()) {
                     Text(
@@ -430,7 +438,9 @@ private fun PriorityChip(priority: Int) {
 private fun CompletedSection(
     items: List<ChecklistEntity>,
     onToggle: (ChecklistEntity) -> Unit,
+    onEdit: (ChecklistEntity) -> Unit,
     onDelete: (ChecklistEntity) -> Unit,
+    todayEpochDay: Long,
 ) {
     var expanded by remember { mutableStateOf(false) }
     Column(modifier = Modifier.padding(top = 16.dp)) {
@@ -461,10 +471,18 @@ private fun CompletedSection(
         if (expanded) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items.forEach { item ->
+                    // §3 — recurring rows report "done-for-today" via the
+                    // stamped epoch day; non-recurring rows use the boolean.
+                    val doneNow = if (item.recurrenceDaysMask != 0) {
+                        item.lastCompletedEpochDay == todayEpochDay
+                    } else {
+                        item.completed
+                    }
                     ChecklistRow(
                         item = item,
+                        isDoneNow = doneNow,
                         onToggle = { onToggle(item) },
-                        onEdit = {},
+                        onEdit = { onEdit(item) },
                         onDelete = { onDelete(item) },
                     )
                 }
@@ -481,7 +499,11 @@ private fun ChecklistEditDialog(
     editing: ChecklistEntity?,
     defaultDueDate: LocalDate,
     onDismiss: () -> Unit,
-    onSave: (title: String, description: String?, dueDate: LocalDate, estimatedMinutes: Int?, priority: Int, recurrenceDaysMask: Int, showUntilDue: Boolean) -> Unit,
+    /// `alsoCreateTodayOneOff` is true when the user opted in to the
+    /// "include today as well" prompt for a recurring task whose mask
+    /// doesn't already cover today's weekday. The VM creates a separate
+    /// one-off row for today in that case.
+    onSave: (title: String, description: String?, dueDate: LocalDate, estimatedMinutes: Int?, priority: Int, recurrenceDaysMask: Int, showUntilDue: Boolean, alsoCreateTodayOneOff: Boolean) -> Unit,
 ) {
     val context = LocalContext.current
     var title by remember { mutableStateOf(editing?.title ?: "") }
@@ -506,6 +528,10 @@ private fun ChecklistEditDialog(
     }
     var mode by remember { mutableStateOf(initialMode) }
     var recurrenceMask by remember { mutableStateOf(editing?.recurrenceDaysMask ?: 0) }
+    /// §4 — when the user clicks Save on a new recurring task whose mask
+    /// doesn't cover today's weekday, we pause the save and ask whether to
+    /// also drop a one-off in today's list.
+    var showIncludeTodayPrompt by remember { mutableStateOf(false) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -610,20 +636,103 @@ private fun ChecklistEditDialog(
                     if (recurrenceMask == 0) 0b1111111 else recurrenceMask
                 } else 0
                 val showUntilDue = mode == ScheduleMode.UNTIL_DUE
-                onSave(
-                    title,
-                    description.ifBlank { null },
-                    dueDate,
-                    minutesText.toIntOrNull(),
-                    priority,
-                    mask,
-                    showUntilDue,
-                )
+
+                // §4 — only prompt when we're adding a new recurring task
+                // whose weekday mask doesn't already cover today. We use
+                // the system's "today" rather than the selected day, since
+                // the prompt is about the user's *current* daily list.
+                val today = LocalDate.now()
+                val todayBit = 1 shl (today.dayOfWeek.value % 7)
+                val needsTodayPrompt = editing == null &&
+                    mode == ScheduleMode.RECURRING &&
+                    (mask and todayBit) == 0
+
+                if (needsTodayPrompt) {
+                    showIncludeTodayPrompt = true
+                } else {
+                    onSave(
+                        title,
+                        description.ifBlank { null },
+                        dueDate,
+                        minutesText.toIntOrNull(),
+                        priority,
+                        mask,
+                        showUntilDue,
+                        false,
+                    )
+                }
             }) { Text("Save") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
+
+    if (showIncludeTodayPrompt) {
+        val today = LocalDate.now()
+        val mask = if (recurrenceMask == 0) 0b1111111 else recurrenceMask
+        val showUntilDue = mode == ScheduleMode.UNTIL_DUE
+        val params = remember(title, description, dueDate, minutesText, priority, mask, showUntilDue) {
+            SaveCommit(
+                title = title,
+                description = description.ifBlank { null },
+                dueDate = dueDate,
+                minutes = minutesText.toIntOrNull(),
+                priority = priority,
+                mask = mask,
+                showUntilDue = showUntilDue,
+            )
+        }
+        AlertDialog(
+            onDismissRequest = { showIncludeTodayPrompt = false },
+            title = { Text("Include today?") },
+            text = {
+                Text(
+                    "Today is ${today.dayOfWeek.name.lowercase().replaceFirstChar { it.uppercase() }}, " +
+                        "which isn't in this task's repeat schedule. Add it to today's list as well?",
+                )
+            },
+            confirmButton = {
+                Button(onClick = {
+                    showIncludeTodayPrompt = false
+                    onSave(
+                        params.title,
+                        params.description,
+                        params.dueDate,
+                        params.minutes,
+                        params.priority,
+                        params.mask,
+                        params.showUntilDue,
+                        true,
+                    )
+                }) { Text("Yes, add today") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showIncludeTodayPrompt = false
+                    onSave(
+                        params.title,
+                        params.description,
+                        params.dueDate,
+                        params.minutes,
+                        params.priority,
+                        params.mask,
+                        params.showUntilDue,
+                        false,
+                    )
+                }) { Text("No, future only") }
+            },
+        )
+    }
 }
+
+private data class SaveCommit(
+    val title: String,
+    val description: String?,
+    val dueDate: LocalDate,
+    val minutes: Int?,
+    val priority: Int,
+    val mask: Int,
+    val showUntilDue: Boolean,
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

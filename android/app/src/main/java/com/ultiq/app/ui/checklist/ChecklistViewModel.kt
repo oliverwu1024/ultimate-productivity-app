@@ -120,6 +120,10 @@ class ChecklistViewModel(application: Application) : AndroidViewModel(applicatio
         priority: Int,
         recurrenceDaysMask: Int,
         showUntilDue: Boolean,
+        /// §4 — when true, also creates a separate one-off task for today,
+        /// independent from the recurring schedule. Only used on new
+        /// recurring items whose weekday mask doesn't cover today.
+        alsoCreateTodayOneOff: Boolean = false,
     ) {
         if (title.isBlank()) {
             _uiState.value = _uiState.value.copy(error = "Title can't be empty")
@@ -152,6 +156,20 @@ class ChecklistViewModel(application: Application) : AndroidViewModel(applicatio
                 )
             }
             result.onSuccess {
+                if (alsoCreateTodayOneOff && editing == null) {
+                    // §4 — add a one-off for today alongside the recurring
+                    // task. Independent row, no recurrence, due today.
+                    repository.create(
+                        userId = userId,
+                        title = title.trim(),
+                        description = description?.trim()?.ifEmpty { null },
+                        dueDate = LocalDate.now(),
+                        estimatedMinutes = estimatedMinutes,
+                        priority = priority,
+                        recurrenceDaysMask = 0,
+                        showUntilDue = false,
+                    )
+                }
                 _uiState.value = _uiState.value.copy(showAddDialog = false, editingItem = null)
             }.onFailure {
                 _uiState.value = _uiState.value.copy(error = it.toUserMessage("Couldn't save task. Try again."))
