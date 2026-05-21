@@ -68,8 +68,9 @@ async fn create(
 
     let item = sqlx::query_as::<_, ChecklistItem>(
         "INSERT INTO checklist_items
-            (user_id, title, description, due_date, estimated_minutes, priority)
-         VALUES ($1, $2, $3, $4, $5, $6)
+            (user_id, title, description, due_date, estimated_minutes, priority,
+             recurrence_days_mask, show_until_due)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
          RETURNING *",
     )
     .bind(user_id)
@@ -78,6 +79,8 @@ async fn create(
     .bind(input.due_date)
     .bind(input.estimated_minutes)
     .bind(input.priority)
+    .bind(input.recurrence_days_mask)
+    .bind(input.show_until_due)
     .fetch_one(&state.pool)
     .await?;
 
@@ -225,12 +228,23 @@ async fn update(
     } else {
         existing.completed_at
     };
+    let recurrence_days_mask = input
+        .recurrence_days_mask
+        .unwrap_or(existing.recurrence_days_mask);
+    let show_until_due = input.show_until_due.unwrap_or(existing.show_until_due);
+    // None on the wire means "don't touch", so fall back to the existing stamp.
+    let last_completed_epoch_day = match input.last_completed_epoch_day {
+        Some(v) => Some(v),
+        None => existing.last_completed_epoch_day,
+    };
 
     let item = sqlx::query_as::<_, ChecklistItem>(
         "UPDATE checklist_items
          SET title = $1, description = $2, due_date = $3, estimated_minutes = $4,
-             priority = $5, completed = $6, completed_at = $7, updated_at = NOW()
-         WHERE id = $8 AND user_id = $9
+             priority = $5, completed = $6, completed_at = $7,
+             recurrence_days_mask = $8, show_until_due = $9,
+             last_completed_epoch_day = $10, updated_at = NOW()
+         WHERE id = $11 AND user_id = $12
          RETURNING *",
     )
     .bind(&title)
@@ -240,6 +254,9 @@ async fn update(
     .bind(priority)
     .bind(completed)
     .bind(completed_at)
+    .bind(recurrence_days_mask)
+    .bind(show_until_due)
+    .bind(last_completed_epoch_day)
     .bind(id)
     .bind(user_id)
     .fetch_one(&state.pool)
@@ -329,8 +346,9 @@ async fn bulk_create(
     for input in items {
         let row = sqlx::query_as::<_, ChecklistItem>(
             "INSERT INTO checklist_items
-                (user_id, title, description, due_date, estimated_minutes, priority)
-             VALUES ($1, $2, $3, $4, $5, $6)
+                (user_id, title, description, due_date, estimated_minutes, priority,
+                 recurrence_days_mask, show_until_due)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
              RETURNING *",
         )
         .bind(user_id)
@@ -339,6 +357,8 @@ async fn bulk_create(
         .bind(input.due_date)
         .bind(input.estimated_minutes)
         .bind(input.priority)
+        .bind(input.recurrence_days_mask)
+        .bind(input.show_until_due)
         .fetch_one(&mut *tx)
         .await?;
         created.push(row);

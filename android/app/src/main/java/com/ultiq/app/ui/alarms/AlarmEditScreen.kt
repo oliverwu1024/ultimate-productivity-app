@@ -25,7 +25,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
@@ -47,6 +46,7 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -95,15 +95,32 @@ fun AlarmEditScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                     }
                 },
-                actions = {
-                    IconButton(
-                        onClick = { viewModel.save(onBack) },
-                        enabled = draft != null,
-                    ) {
-                        Icon(Icons.Default.Check, "Save")
-                    }
-                },
             )
+        },
+        bottomBar = {
+            // §UX: replaced the lone checkmark — users were swiping back and
+            // assuming "save" had happened. Two explicit actions: Set Alarm
+            // arms the time; Cancel keeps the time settings but turns the
+            // alarm off (user toggles it back on from the list when ready).
+            Surface(tonalElevation = 3.dp) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    OutlinedButton(
+                        onClick = { viewModel.saveWithEnabled(enabled = false, onDone = onBack) },
+                        enabled = draft != null,
+                        modifier = Modifier.weight(1f),
+                    ) { Text("Cancel") }
+                    Button(
+                        onClick = { viewModel.saveWithEnabled(enabled = true, onDone = onBack) },
+                        enabled = draft != null,
+                        modifier = Modifier.weight(1f),
+                    ) { Text("Set alarm") }
+                }
+            }
         },
     ) { inner ->
         val current = draft
@@ -224,11 +241,7 @@ fun AlarmEditScreen(
                     }
                 }
                 item {
-                    Stepper(
-                        label = "Problems required",
-                        value = cfg.count,
-                        range = 1..10,
-                    ) { newCount ->
+                    MathCountPicker(current = cfg.count) { newCount ->
                         viewModel.updateEditingDraft { d ->
                             d.copy(missionConfigJson = MissionConfig.buildMath(cfg.difficulty, newCount))
                         }
@@ -591,6 +604,31 @@ private fun DifficultyPicker(current: MathDifficulty, onChange: (MathDifficulty)
                     }
                 }
                 if (diff != MathDifficulty.entries.last()) HorizontalDivider()
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MathCountPicker(current: Int, onChange: (Int) -> Unit) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Problems required", style = MaterialTheme.typography.titleMedium)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                MissionConfig.MATH_COUNT_OPTIONS.forEach { n ->
+                    FilterChip(
+                        selected = current == n,
+                        onClick = { onChange(n) },
+                        label = { Text("$n") },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
             }
         }
     }

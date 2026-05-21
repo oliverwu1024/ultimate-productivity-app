@@ -65,6 +65,23 @@ class AlarmsViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    /**
+     * Save the draft with [enabled] forced. "Set Alarm" passes true so the
+     * alarm arms immediately; "Cancel" passes false so the time settings are
+     * persisted but the alarm doesn't fire — the user can flick it back on
+     * from the list later.
+     */
+    fun saveWithEnabled(enabled: Boolean, onDone: () -> Unit) {
+        val draft = _editing.value ?: return
+        viewModelScope.launch {
+            val toSave = draft.copy(enabled = enabled, updatedAt = System.currentTimeMillis())
+            val isNew = repo.getAlarm(toSave.id) == null
+            if (isNew) repo.createAlarm(toSave) else repo.updateAlarm(toSave)
+            _editing.value = null
+            onDone()
+        }
+    }
+
     fun setEnabled(alarm: AlarmEntity, enabled: Boolean) {
         viewModelScope.launch { repo.setEnabled(alarm.id, enabled) }
     }

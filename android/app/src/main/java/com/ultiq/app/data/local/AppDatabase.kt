@@ -34,7 +34,7 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
         AlarmEventEntity::class,
         AlarmTombstoneEntity::class,
     ],
-    version = 8,
+    version = 9,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -159,6 +159,23 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE `checklist_items` " +
+                        "ADD COLUMN `recurrenceDaysMask` INTEGER NOT NULL DEFAULT 0"
+                )
+                db.execSQL(
+                    "ALTER TABLE `checklist_items` " +
+                        "ADD COLUMN `showUntilDue` INTEGER NOT NULL DEFAULT 0"
+                )
+                db.execSQL(
+                    "ALTER TABLE `checklist_items` " +
+                        "ADD COLUMN `lastCompletedEpochDay` INTEGER DEFAULT NULL"
+                )
+            }
+        }
+
         private val MIGRATION_6_7 = object : Migration(6, 7) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(
@@ -246,6 +263,7 @@ abstract class AppDatabase : RoomDatabase() {
                     MIGRATION_5_6,
                     MIGRATION_6_7,
                     MIGRATION_7_8,
+                    MIGRATION_8_9,
                 )
                 // Legacy DB has been dropped if it existed; if Room can't
                 // open the file (corrupt / version mismatch from a prior

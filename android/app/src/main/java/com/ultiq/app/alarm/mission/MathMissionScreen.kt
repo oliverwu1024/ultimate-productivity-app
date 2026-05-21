@@ -116,12 +116,25 @@ fun MathMissionScreen(
 
             Spacer(Modifier.height(8.dp))
 
+            // §UX: hard-difficulty problems like "(499 − 29) × 7" overflow a
+            // 56sp single line on narrow phones. Force one line and step the
+            // font down by character count so digits never wrap and overlap
+            // the answer box below.
+            val problemFontSize = when (problem.display.length) {
+                in 0..9 -> 56.sp
+                in 10..12 -> 48.sp
+                in 13..15 -> 40.sp
+                else -> 32.sp
+            }
             Text(
                 text = problem.display,
-                fontSize = 56.sp,
+                fontSize = problemFontSize,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground,
                 textAlign = TextAlign.Center,
+                maxLines = 1,
+                softWrap = false,
+                modifier = Modifier.fillMaxWidth(),
             )
 
             Spacer(Modifier.height(8.dp))

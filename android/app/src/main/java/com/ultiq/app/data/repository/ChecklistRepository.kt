@@ -21,7 +21,8 @@ class ChecklistRepository(
     private val tag = "ChecklistRepo"
     private val isoDate: DateTimeFormatter = DateTimeFormatter.ISO_LOCAL_DATE
 
-    fun getByDate(epochDay: Long): Flow<List<ChecklistEntity>> = dao.getByDate(epochDay)
+    fun getByDate(epochDay: Long, dayOfWeekBit: Int): Flow<List<ChecklistEntity>> =
+        dao.getByDate(epochDay, dayOfWeekBit)
 
     fun getOpenForDate(epochDay: Long): Flow<List<ChecklistEntity>> = dao.getOpenForDate(epochDay)
 
@@ -35,6 +36,8 @@ class ChecklistRepository(
         dueDate: LocalDate,
         estimatedMinutes: Int?,
         priority: Int,
+        recurrenceDaysMask: Int = 0,
+        showUntilDue: Boolean = false,
     ): Result<ChecklistEntity> {
         val createDto = CreateChecklistItemDto(
             title = title,
@@ -42,10 +45,17 @@ class ChecklistRepository(
             due_date = dueDate.format(isoDate),
             estimated_minutes = estimatedMinutes,
             priority = priority,
+            recurrence_days_mask = recurrenceDaysMask,
+            show_until_due = showUntilDue,
         )
         return try {
             val server = apiService.createChecklistItem(createDto)
-            val entity = server.toEntity()
+            // Preserve the schedule fields the server may not echo back yet —
+            // backend deploy can lag the client.
+            val entity = server.toEntity().copy(
+                recurrenceDaysMask = recurrenceDaysMask,
+                showUntilDue = showUntilDue,
+            )
             dao.insert(entity)
             Log.d(tag, "create — server returned id=${server.id}")
             Result.success(entity)
@@ -66,6 +76,9 @@ class ChecklistRepository(
                 createdAt = now,
                 updatedAt = now,
                 isSynced = false,
+                recurrenceDaysMask = recurrenceDaysMask,
+                showUntilDue = showUntilDue,
+                lastCompletedEpochDay = null,
             )
             try {
                 dao.insert(entity)
@@ -82,11 +95,58 @@ class ChecklistRepository(
         return try {
             dao.insert(updated)
             val server = apiService.updateChecklistItem(item.id, item.toUpdateDto())
-            val entity = server.toEntity()
+            // Server may strip schedule fields on older deploys — re-apply
+            // them from the local row so the local source-of-truth survives.
+            val entity = server.toEntity().copy(
+                recurrenceDaysMask = item.recurrenceDaysMask,
+                showUntilDue = item.showUntilDue,
+                lastCompletedEpochDay = item.lastCompletedEpochDay,
+            )
             dao.insert(entity)
             Result.success(entity)
         } catch (_: Exception) {
             Result.success(updated)
+        }
+    }
+
+    /** Recurring-item toggle: stamps lastCompletedEpochDay so the row re-opens
+     *  the next time its day-of-week comes round. completed flag stays false. */
+    suspend fun markRecurringCompletedOn(id: String, epochDay: Long): Result<Unit> {
+        val now = System.currentTimeMillis()
+        dao.setLastCompletedEpochDay(id, epochDay, now)
+        // Push as a regular update so the schedule fields ride along.
+        return try {
+            val existing = dao.getById(id) ?: return Result.success(Unit)
+            val server = apiService.updateChecklistItem(id, existing.toUpdateDto())
+            dao.insert(
+                server.toEntity().copy(
+                    recurrenceDaysMask = existing.recurrenceDaysMask,
+                    showUntilDue = existing.showUntilDue,
+                    lastCompletedEpochDay = existing.lastCompletedEpochDay,
+                ),
+            )
+            Result.success(Unit)
+        } catch (_: Exception) {
+            Result.success(Unit)
+        }
+    }
+
+    suspend fun markRecurringIncompleteOn(id: String): Result<Unit> {
+        val now = System.currentTimeMillis()
+        dao.setLastCompletedEpochDay(id, null, now)
+        return try {
+            val existing = dao.getById(id) ?: return Result.success(Unit)
+            val server = apiService.updateChecklistItem(id, existing.toUpdateDto())
+            dao.insert(
+                server.toEntity().copy(
+                    recurrenceDaysMask = existing.recurrenceDaysMask,
+                    showUntilDue = existing.showUntilDue,
+                    lastCompletedEpochDay = existing.lastCompletedEpochDay,
+                ),
+            )
+            Result.success(Unit)
+        } catch (_: Exception) {
+            Result.success(Unit)
         }
     }
 
@@ -194,7 +254,25 @@ class ChecklistRepository(
             }
             Log.d(tag, "sync — reconcile deleted $reconcileDeletes orphan local row(s)")
 
-            dao.insertAll(serverItems.map { it.toEntity() })
+            // §UX: backend may not have the schedule columns yet — fall back
+            // to the local row's recurrence fields when the server returns
+            // null / 0 to avoid clobbering a user-set repeat on every sync.
+            val merged = serverItems.map { dto ->
+                val incoming = dto.toEntity()
+                val local = dao.getById(dto.id)
+                if (local == null) {
+                    incoming
+                } else {
+                    incoming.copy(
+                        recurrenceDaysMask = dto.recurrence_days_mask
+                            ?: local.recurrenceDaysMask,
+                        showUntilDue = dto.show_until_due ?: local.showUntilDue,
+                        lastCompletedEpochDay = dto.last_completed_epoch_day
+                            ?: local.lastCompletedEpochDay,
+                    )
+                }
+            }
+            dao.insertAll(merged)
             Log.d(tag, "sync — inserted ${serverItems.size} item(s) from server")
         } catch (e: Exception) {
             Log.w(tag, "sync — failed (offline or API error)", e)

@@ -171,13 +171,25 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
 
     private fun observeTodayChecklist() {
         viewModelScope.launch {
-            val todayEpochDay = LocalDate.now().toEpochDay()
-            db.checklistDao().getByDate(todayEpochDay).collect { all ->
-                val open = all.filterNot { it.completed }
+            val today = LocalDate.now()
+            val todayEpochDay = today.toEpochDay()
+            // Sun=0..Sat=6 — match the bitmask packing used by the dialog.
+            val dayBit = 1 shl (today.dayOfWeek.value % 7)
+            db.checklistDao().getByDate(todayEpochDay, dayBit).collect { all ->
+                // Recurring rows are "open today" iff the per-day stamp is not
+                // today; non-recurring rows follow the completed flag.
+                val open = all.filter { item ->
+                    if (item.recurrenceDaysMask != 0) {
+                        item.lastCompletedEpochDay != todayEpochDay
+                    } else {
+                        !item.completed
+                    }
+                }
+                val doneCount = all.size - open.size
                 _uiState.value = _uiState.value.copy(
                     todayChecklist = TodayChecklistSummary(
                         openItems = open,
-                        completedCount = all.count { it.completed },
+                        completedCount = doneCount,
                         totalCount = all.size,
                     ),
                 )

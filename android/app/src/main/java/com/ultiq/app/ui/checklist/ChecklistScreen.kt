@@ -43,6 +43,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -379,6 +380,14 @@ private fun ChecklistRow(
                         }
                     }
                 }
+                scheduleLabel(item)?.let { label ->
+                    Text(
+                        label,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 2.dp),
+                    )
+                }
             }
             IconButton(onClick = onDelete) {
                 Icon(
@@ -464,13 +473,15 @@ private fun CompletedSection(
     }
 }
 
+private enum class ScheduleMode { ONE_OFF, RECURRING, UNTIL_DUE }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ChecklistEditDialog(
     editing: ChecklistEntity?,
     defaultDueDate: LocalDate,
     onDismiss: () -> Unit,
-    onSave: (title: String, description: String?, dueDate: LocalDate, estimatedMinutes: Int?, priority: Int) -> Unit,
+    onSave: (title: String, description: String?, dueDate: LocalDate, estimatedMinutes: Int?, priority: Int, recurrenceDaysMask: Int, showUntilDue: Boolean) -> Unit,
 ) {
     val context = LocalContext.current
     var title by remember { mutableStateOf(editing?.title ?: "") }
@@ -484,6 +495,17 @@ private fun ChecklistEditDialog(
         mutableStateOf(editing?.estimatedMinutes?.toString() ?: "")
     }
     var priority by remember { mutableStateOf(editing?.priority ?: 1) }
+
+    val initialMode = remember(editing) {
+        when {
+            editing == null -> ScheduleMode.ONE_OFF
+            editing.recurrenceDaysMask != 0 -> ScheduleMode.RECURRING
+            editing.showUntilDue -> ScheduleMode.UNTIL_DUE
+            else -> ScheduleMode.ONE_OFF
+        }
+    }
+    var mode by remember { mutableStateOf(initialMode) }
+    var recurrenceMask by remember { mutableStateOf(editing?.recurrenceDaysMask ?: 0) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -504,6 +526,39 @@ private fun ChecklistEditDialog(
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 2,
                 )
+
+                Text("Schedule", style = MaterialTheme.typography.labelMedium)
+                val modeLabels = listOf(
+                    ScheduleMode.ONE_OFF to "Today",
+                    ScheduleMode.RECURRING to "Repeat",
+                    ScheduleMode.UNTIL_DUE to "By due",
+                )
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                    modeLabels.forEachIndexed { i, (value, label) ->
+                        SegmentedButton(
+                            selected = mode == value,
+                            onClick = { mode = value },
+                            shape = SegmentedButtonDefaults.itemShape(i, modeLabels.size),
+                            label = { Text(label) },
+                        )
+                    }
+                }
+                // §UX: tiny helper text under each mode so the option label
+                // ("Today" / "Repeat" / "By due") isn't load-bearing on its own.
+                Text(
+                    when (mode) {
+                        ScheduleMode.ONE_OFF -> "Happens on the picked day only."
+                        ScheduleMode.RECURRING -> "Pick which days of the week it repeats on."
+                        ScheduleMode.UNTIL_DUE -> "Shows every day until the due date. Marking done removes it everywhere."
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+
+                if (mode == ScheduleMode.RECURRING) {
+                    DayOfWeekChips(mask = recurrenceMask, onChange = { recurrenceMask = it })
+                }
+
                 OutlinedButton(
                     onClick = {
                         DatePickerDialog(
@@ -516,8 +571,14 @@ private fun ChecklistEditDialog(
                     },
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text("Due: ${dueDate.format(dateFormatter)}")
+                    val prefix = when (mode) {
+                        ScheduleMode.ONE_OFF -> "On"
+                        ScheduleMode.RECURRING -> "Starts"
+                        ScheduleMode.UNTIL_DUE -> "Due"
+                    }
+                    Text("$prefix: ${dueDate.format(dateFormatter)}")
                 }
+
                 OutlinedTextField(
                     value = minutesText,
                     onValueChange = { v -> minutesText = v.filter(Char::isDigit).take(4) },
@@ -543,15 +604,90 @@ private fun ChecklistEditDialog(
         },
         confirmButton = {
             Button(onClick = {
+                val mask = if (mode == ScheduleMode.RECURRING) {
+                    // Empty mask in recurring mode = treat as everyday so we never
+                    // store a row that's recurring-but-invisible.
+                    if (recurrenceMask == 0) 0b1111111 else recurrenceMask
+                } else 0
+                val showUntilDue = mode == ScheduleMode.UNTIL_DUE
                 onSave(
                     title,
                     description.ifBlank { null },
                     dueDate,
                     minutesText.toIntOrNull(),
                     priority,
+                    mask,
+                    showUntilDue,
                 )
             }) { Text("Save") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DayOfWeekChips(mask: Int, onChange: (Int) -> Unit) {
+    // §UX: app weeks elsewhere start Sunday (matches the alarm RepeatPicker
+    // and the system locale most users come in on); bit 0 = Sun … bit 6 = Sat.
+    val labels = listOf("S", "M", "T", "W", "T", "F", "S")
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        labels.forEachIndexed { bit, letter ->
+            val on = (mask shr bit) and 1 == 1
+            FilterChip(
+                selected = on,
+                onClick = {
+                    val newMask = if (on) mask and (1 shl bit).inv() else mask or (1 shl bit)
+                    onChange(newMask)
+                },
+                label = { Text(letter) },
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+    // §UX: AlertDialog is narrow and TextButton's default 12dp horizontal
+    // padding pushed "Weekends" past the right edge so the "s" wrapped onto
+    // a second line. Tight contentPadding + softWrap=false + equal weights
+    // keeps all three labels single-line.
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        val tightPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp)
+        TextButton(
+            onClick = { onChange(0b1111111) },
+            contentPadding = tightPadding,
+            modifier = Modifier.weight(1f),
+        ) { Text("Every day", maxLines = 1, softWrap = false) }
+        TextButton(
+            onClick = { onChange(0b0111110) },
+            contentPadding = tightPadding,
+            modifier = Modifier.weight(1f),
+        ) { Text("Weekdays", maxLines = 1, softWrap = false) }
+        TextButton(
+            onClick = { onChange(0b1000001) },
+            contentPadding = tightPadding,
+            modifier = Modifier.weight(1f),
+        ) { Text("Weekends", maxLines = 1, softWrap = false) }
+    }
+}
+
+/** Human-readable summary of an item's schedule, shown under each row. */
+internal fun scheduleLabel(item: ChecklistEntity): String? {
+    if (item.recurrenceDaysMask != 0) {
+        if (item.recurrenceDaysMask == 0b1111111) return "Every day"
+        if (item.recurrenceDaysMask == 0b0111110) return "Weekdays"
+        if (item.recurrenceDaysMask == 0b1000001) return "Weekends"
+        val names = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+        val picked = (0..6).filter { (item.recurrenceDaysMask shr it) and 1 == 1 }
+            .joinToString(", ") { names[it] }
+        return "Repeats: $picked"
+    }
+    if (item.showUntilDue) {
+        return "Due ${LocalDate.ofEpochDay(item.dueDateEpochDay).format(dateFormatter)}"
+    }
+    return null
 }

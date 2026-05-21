@@ -23,4 +23,12 @@ data class ChecklistEntity(
     val createdAt: Long,
     val updatedAt: Long,
     val isSynced: Boolean = false,
+    // Bit 0 = Sunday … bit 6 = Saturday. 0 = not recurring (one-off / by-due).
+    val recurrenceDaysMask: Int = 0,
+    // True → item appears every day from today through dueDate until completed
+    // (the "due on which day" mode). Ignored when recurrenceDaysMask != 0.
+    val showUntilDue: Boolean = false,
+    // For recurring items: epoch day the user last ticked it off. Lets each
+    // day-of-week occurrence reset overnight without touching the master row.
+    val lastCompletedEpochDay: Long? = null,
 )

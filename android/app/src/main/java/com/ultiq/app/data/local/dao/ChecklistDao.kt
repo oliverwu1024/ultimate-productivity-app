@@ -14,11 +14,36 @@ interface ChecklistDao {
     @Query("SELECT * FROM checklist_items ORDER BY dueDateEpochDay ASC, priority DESC, createdAt ASC")
     fun getAll(): Flow<List<ChecklistEntity>>
 
+    /**
+     * Items to display on [epochDay]. Three modes coexist:
+     *  1. One-off (recurrenceDaysMask = 0, showUntilDue = 0): match on dueDate.
+     *  2. Show-until-due (recurrenceDaysMask = 0, showUntilDue = 1): visible
+     *     every day from createdEpochDay through dueDate, until completed.
+     *     A completed item still shows on dueDate itself so the user can see
+     *     it under the day it was due — but not on later days where the row
+     *     would otherwise have been carried.
+     *  3. Recurring (recurrenceDaysMask != 0): bit for [dayOfWeekBit] set,
+     *     and dueDate already reached (acts as a "start date"). The completed
+     *     flag is ignored here — per-day done state lives in lastCompletedEpochDay
+     *     and the ViewModel partitions open vs done.
+     */
+    @Query(
+        "SELECT * FROM checklist_items WHERE " +
+            "(recurrenceDaysMask = 0 AND showUntilDue = 0 AND dueDateEpochDay = :epochDay) " +
+            "OR (recurrenceDaysMask = 0 AND showUntilDue = 1 AND dueDateEpochDay >= :epochDay " +
+            "    AND (createdAt / 86400000) <= :epochDay " +
+            "    AND (completed = 0 OR dueDateEpochDay = :epochDay)) " +
+            "OR (recurrenceDaysMask != 0 AND (recurrenceDaysMask & :dayOfWeekBit) != 0 " +
+            "    AND dueDateEpochDay <= :epochDay) " +
+            "ORDER BY completed ASC, priority DESC, createdAt ASC"
+    )
+    fun getByDate(epochDay: Long, dayOfWeekBit: Int): Flow<List<ChecklistEntity>>
+
     @Query(
         "SELECT * FROM checklist_items WHERE dueDateEpochDay = :epochDay " +
             "ORDER BY completed ASC, priority DESC, createdAt ASC"
     )
-    fun getByDate(epochDay: Long): Flow<List<ChecklistEntity>>
+    fun getByDueDateExact(epochDay: Long): Flow<List<ChecklistEntity>>
 
     @Query(
         "SELECT * FROM checklist_items WHERE dueDateEpochDay = :epochDay AND completed = 0 " +
@@ -68,4 +93,11 @@ interface ChecklistDao {
             "updatedAt = :updatedAt, isSynced = 0 WHERE id = :id"
     )
     suspend fun markIncompleteLocally(id: String, updatedAt: Long)
+
+    /** Recurring-item completion stamp. Setting to null on the same day re-opens it. */
+    @Query(
+        "UPDATE checklist_items SET lastCompletedEpochDay = :epochDay, " +
+            "updatedAt = :updatedAt, isSynced = 0 WHERE id = :id"
+    )
+    suspend fun setLastCompletedEpochDay(id: String, epochDay: Long?, updatedAt: Long)
 }

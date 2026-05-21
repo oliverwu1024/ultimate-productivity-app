@@ -78,7 +78,12 @@ object MissionConfig {
 
     private const val DEFAULT_MATH_COUNT = 3
     private const val MIN_MATH_COUNT = 1
-    private const val MAX_MATH_COUNT = 10
+    private const val MAX_MATH_COUNT = 20
+
+    /** Fixed options surfaced in the edit UI — keeps the picker tight while
+     *  still letting older alarms with intermediate values round-trip cleanly
+     *  through parseMath()/buildMath(). */
+    val MATH_COUNT_OPTIONS: List<Int> = listOf(3, 5, 10, 20)
 
     private const val DEFAULT_SHAKES = 30
     private const val MIN_SHAKES = 10

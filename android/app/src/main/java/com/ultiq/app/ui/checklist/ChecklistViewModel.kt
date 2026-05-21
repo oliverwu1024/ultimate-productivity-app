@@ -118,6 +118,8 @@ class ChecklistViewModel(application: Application) : AndroidViewModel(applicatio
         dueDate: LocalDate,
         estimatedMinutes: Int?,
         priority: Int,
+        recurrenceDaysMask: Int,
+        showUntilDue: Boolean,
     ) {
         if (title.isBlank()) {
             _uiState.value = _uiState.value.copy(error = "Title can't be empty")
@@ -133,6 +135,8 @@ class ChecklistViewModel(application: Application) : AndroidViewModel(applicatio
                     dueDate = dueDate,
                     estimatedMinutes = estimatedMinutes,
                     priority = priority,
+                    recurrenceDaysMask = recurrenceDaysMask,
+                    showUntilDue = showUntilDue,
                 )
             } else {
                 repository.update(
@@ -142,6 +146,8 @@ class ChecklistViewModel(application: Application) : AndroidViewModel(applicatio
                         dueDateEpochDay = dueDate.toEpochDay(),
                         estimatedMinutes = estimatedMinutes,
                         priority = priority,
+                        recurrenceDaysMask = recurrenceDaysMask,
+                        showUntilDue = showUntilDue,
                     ),
                 )
             }
@@ -155,7 +161,17 @@ class ChecklistViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun toggleCompleted(item: ChecklistEntity) {
         viewModelScope.launch {
-            if (item.completed) {
+            if (item.recurrenceDaysMask != 0) {
+                // Recurring: stamp / unstamp lastCompletedEpochDay for the
+                // currently-selected day so the row reopens next occurrence.
+                val day = _uiState.value.selectedDate.toEpochDay()
+                val doneToday = item.lastCompletedEpochDay == day
+                if (doneToday) {
+                    repository.markRecurringIncompleteOn(item.id)
+                } else {
+                    repository.markRecurringCompletedOn(item.id, day)
+                }
+            } else if (item.completed) {
                 repository.markIncomplete(item.id)
             } else {
                 repository.markCompleted(item.id)
@@ -185,10 +201,22 @@ class ChecklistViewModel(application: Application) : AndroidViewModel(applicatio
     private fun observeSelectedDate() {
         collectJob?.cancel()
         collectJob = viewModelScope.launch {
-            repository.getByDate(_uiState.value.selectedDate.toEpochDay()).collectLatest { items ->
+            val day = _uiState.value.selectedDate.toEpochDay()
+            // java.time.DayOfWeek is 1=Monday..7=Sunday; convert to a Sun=0..Sat=6
+            // bit index that matches recurrenceDaysMask's encoding.
+            val dow = _uiState.value.selectedDate.dayOfWeek.value % 7
+            val dayBit = 1 shl dow
+            repository.getByDate(day, dayBit).collectLatest { items ->
+                val (open, done) = items.partition { item ->
+                    if (item.recurrenceDaysMask != 0) {
+                        item.lastCompletedEpochDay != day
+                    } else {
+                        !item.completed
+                    }
+                }
                 _uiState.value = _uiState.value.copy(
-                    openItems = items.filterNot { it.completed },
-                    completedItems = items.filter { it.completed },
+                    openItems = open,
+                    completedItems = done,
                 )
             }
         }

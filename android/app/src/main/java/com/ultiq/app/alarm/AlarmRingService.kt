@@ -21,7 +21,6 @@ import com.ultiq.app.R
 import com.ultiq.app.data.local.AppDatabase
 import com.ultiq.app.data.local.entity.AlarmEntity
 import com.ultiq.app.data.local.entity.AlarmEventEntity
-import com.ultiq.app.service.SleepTrackingService
 import com.ultiq.app.util.NotificationHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -164,14 +163,10 @@ class AlarmRingService : Service() {
                 }
             }
 
-            // §8.10 sleep-session auto-end: if a sleep session is currently
-            // running, dismissing the wake alarm is the user's wake event —
-            // stopping the service ends the session without making them tap
-            // through the sleep UI.
-            if (SleepTrackingService.isRunning.value) {
-                stopService(Intent(this@AlarmRingService, SleepTrackingService::class.java))
-            }
-
+            // Sleep session stays running after the alarm dismisses — user
+            // ends it manually from the Sleep tab. Auto-ending here lost the
+            // session record entirely if the user dismissed without going
+            // into the end-sleep flow.
             stopSelf()
         }
     }
