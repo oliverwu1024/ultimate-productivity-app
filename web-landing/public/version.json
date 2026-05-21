@@ -1,6 +1,6 @@
 {
-  "versionCode": 24,
-  "versionName": "2.7.2",
-  "url": "https://ultiqapp.com/ultiq.2.7.2.apk",
-  "releaseNotes": "Quality-of-life fixes: math alarms now allow up to 20 problems, sleep target time renders in the same 12h format as the actual time, the morning summary stops showing a stale sleep figure when last night's session isn't in yet, the bedtime reminder follows your Sleep settings target (changes apply tonight, not the next night), and recurring tasks no longer ask to 'bring forward' unless tomorrow's schedule doesn't already include them — and when you do, a one-off copy is created instead of mutating the recurrence pattern."
+  "versionCode": 25,
+  "versionName": "2.7.3",
+  "url": "https://ultiqapp.com/ultiq.2.7.3.apk",
+  "releaseNotes": "After installing an update, the banner now offers a 'tap to restart Ultiq' button so the new code actually starts running — previously you had to swipe-kill the app and reopen for the new version to take effect."
 }

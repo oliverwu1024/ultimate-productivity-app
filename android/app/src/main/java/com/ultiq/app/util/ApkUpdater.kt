@@ -74,6 +74,27 @@ object ApkUpdater {
         _state.value = State()
     }
 
+    /**
+     * Restart the app cleanly after a same-package install. Android leaves
+     * the old process running on most OEM ROMs (despite the SDK contract
+     * suggesting otherwise), so the user keeps seeing the old code until
+     * they manually kill + reopen. This helper fires the launcher intent
+     * with CLEAR_TASK and then kills our own process — the launcher then
+     * brings up the freshly-installed APK.
+     */
+    fun relaunchApp(context: Context) {
+        val launch = context.packageManager.getLaunchIntentForPackage(context.packageName)
+        if (launch != null) {
+            launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+            context.startActivity(launch)
+        }
+        // Tiny delay so the launcher intent is actually queued before we go
+        // away. Without it the OS sometimes drops the activity start.
+        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+            android.os.Process.killProcess(android.os.Process.myPid())
+        }, 200)
+    }
+
     /** Called by [ApkInstallResultReceiver] when the OS reports install outcome. */
     internal fun onInstallSuccess() {
         _state.value = State(stage = Stage.Installing)

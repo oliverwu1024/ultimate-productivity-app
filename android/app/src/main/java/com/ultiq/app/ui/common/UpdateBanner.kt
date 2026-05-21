@@ -48,8 +48,12 @@ fun UpdateBanner(info: UpdateInfo) {
             else "Downloading Ultiq ${info.versionName}…"
             msg to false
         }
-        ApkUpdater.Stage.AwaitingConfirm -> "Tap Install in the system prompt" to false
-        ApkUpdater.Stage.Installing -> "Installing Ultiq ${info.versionName}…" to false
+        ApkUpdater.Stage.AwaitingConfirm -> "System prompt is open — tap Install there" to false
+        // §fix-restart-after-install — the new APK is on disk but the
+        // running process is still the old code on most OEMs. Make the
+        // banner clickable and have it kill+relaunch so the launcher
+        // brings up the freshly-installed version.
+        ApkUpdater.Stage.Installing -> "Update installed — tap to restart Ultiq" to true
         ApkUpdater.Stage.Failed -> "Update failed — tap to retry" to true
         ApkUpdater.Stage.Idle -> "Ultiq ${info.versionName} is available — tap to install" to true
     }
@@ -60,20 +64,25 @@ fun UpdateBanner(info: UpdateInfo) {
             .background(MaterialTheme.colorScheme.tertiaryContainer)
             .then(
                 if (clickable) Modifier.clickable {
-                    // The platform requires per-app "Install unknown apps" grant
-                    // (API 26+). If we don't have it, send the user straight to
-                    // the right Settings page — bouncing through the OS install
-                    // prompt without it just fails silently.
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
-                        !context.packageManager.canRequestPackageInstalls()
-                    ) {
-                        val intent = Intent(
-                            Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
-                            Uri.parse("package:${context.packageName}"),
-                        ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        context.startActivity(intent)
-                    } else {
-                        ApkUpdater.startUpdate(context, info.downloadUrl)
+                    when (updater.stage) {
+                        ApkUpdater.Stage.Installing -> ApkUpdater.relaunchApp(context)
+                        else -> {
+                            // The platform requires per-app "Install unknown apps"
+                            // grant (API 26+). If we don't have it, send the user
+                            // straight to the right Settings page — bouncing through
+                            // the OS install prompt without it just fails silently.
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+                                !context.packageManager.canRequestPackageInstalls()
+                            ) {
+                                val intent = Intent(
+                                    Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                                    Uri.parse("package:${context.packageName}"),
+                                ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                context.startActivity(intent)
+                            } else {
+                                ApkUpdater.startUpdate(context, info.downloadUrl)
+                            }
+                        }
                     }
                 } else Modifier,
             )
