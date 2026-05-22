@@ -54,6 +54,16 @@ sealed interface ChatTurn {
     ) : ChatTurn {
         override val key: String get() = "p:${invocation.id}"
     }
+
+    /// Same shape as CalendarProposal but for `create_alarm` — separate
+    /// variant because the rendered card and the confirm-action API call
+    /// are different.
+    data class AlarmProposal(
+        val invocation: ToolInvocationDto,
+        val state: ProposalState = ProposalState.Pending,
+    ) : ChatTurn {
+        override val key: String get() = "pa:${invocation.id}"
+    }
 }
 
 enum class ProposalState { Pending, Creating, Created, Cancelled }
@@ -149,10 +159,13 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     }
                     val appendTurns = buildList {
                         for (inv in resp.tool_invocations) {
-                            if (inv.status == "proposed" && inv.proposed_event != null) {
-                                add(ChatTurn.CalendarProposal(invocation = inv))
-                            } else {
-                                add(ChatTurn.ToolStatus(inv))
+                            when {
+                                inv.status == "proposed" && inv.proposed_event != null ->
+                                    add(ChatTurn.CalendarProposal(invocation = inv))
+                                inv.status == "proposed" && inv.proposed_alarm != null ->
+                                    add(ChatTurn.AlarmProposal(invocation = inv))
+                                else ->
+                                    add(ChatTurn.ToolStatus(inv))
                             }
                         }
                         add(ChatTurn.AssistantText(resp.assistant_message))
@@ -248,13 +261,14 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     /// User tapped Undo on the snackbar for a committed write. Routes to
     /// the matching reversal endpoint. SSE will replicate the reversal on
-    /// the Checklist screen.
+    /// the Checklist / Sleep screen.
     fun undo(resource: CommittedResourceDto) {
         viewModelScope.launch {
             runCatching {
                 when (resource.kind) {
                     "checklist" -> api.deleteChecklistItem(resource.id)
                     "checklist_complete" -> api.uncompleteChecklistItem(resource.id)
+                    "sleep_record" -> api.deleteSleepRecord(resource.id)
                     else -> Unit
                 }
             }.onFailure { e ->
@@ -263,6 +277,67 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 )
             }
         }
+    }
+
+    /// User tapped Create on a proposed alarm. POSTs the alarm with sane
+    /// defaults (volume_pct=80, snooze 9/3, vibration on) and the mission
+    /// config matching the requested mission_kind. SSE will replicate the
+    /// new row to the Alarms tab.
+    fun confirmAlarmProposal(invocationId: String) {
+        val current = _uiState.value.turns
+        val idx = current.indexOfFirst {
+            it is ChatTurn.AlarmProposal && it.invocation.id == invocationId
+        }
+        if (idx < 0) return
+        val proposal = current[idx] as ChatTurn.AlarmProposal
+        if (proposal.state != ProposalState.Pending) return
+        val fields = proposal.invocation.proposed_alarm ?: return
+
+        _uiState.value = _uiState.value.copy(
+            turns = current.toMutableList().also { it[idx] = proposal.copy(state = ProposalState.Creating) }
+        )
+
+        viewModelScope.launch {
+            val body = proposedAlarmToCreateDto(fields)
+            runCatching { api.createAlarm(body) }
+                .onSuccess {
+                    val turns = _uiState.value.turns.toMutableList()
+                    val i = turns.indexOfFirst {
+                        it is ChatTurn.AlarmProposal && it.invocation.id == invocationId
+                    }
+                    if (i >= 0) {
+                        turns[i] = (turns[i] as ChatTurn.AlarmProposal)
+                            .copy(state = ProposalState.Created)
+                        _uiState.value = _uiState.value.copy(turns = turns)
+                    }
+                }
+                .onFailure { e ->
+                    val turns = _uiState.value.turns.toMutableList()
+                    val i = turns.indexOfFirst {
+                        it is ChatTurn.AlarmProposal && it.invocation.id == invocationId
+                    }
+                    if (i >= 0) {
+                        turns[i] = (turns[i] as ChatTurn.AlarmProposal)
+                            .copy(state = ProposalState.Pending)
+                    }
+                    _uiState.value = _uiState.value.copy(
+                        turns = turns,
+                        error = e.toUserMessage("Couldn't create the alarm. Try again."),
+                    )
+                }
+        }
+    }
+
+    fun cancelAlarmProposal(invocationId: String) {
+        val turns = _uiState.value.turns.toMutableList()
+        val idx = turns.indexOfFirst {
+            it is ChatTurn.AlarmProposal && it.invocation.id == invocationId
+        }
+        if (idx < 0) return
+        val proposal = turns[idx] as ChatTurn.AlarmProposal
+        if (proposal.state != ProposalState.Pending) return
+        turns[idx] = proposal.copy(state = ProposalState.Cancelled)
+        _uiState.value = _uiState.value.copy(turns = turns)
     }
 
     fun resetConversation() {
@@ -302,4 +377,45 @@ private fun parsedFieldsToCreateDto(fields: ParsedCalendarFieldsDto): CreateCale
         color = null,
         is_done = false,
     )
+
+/// Map a Coach `proposed_alarm` into the wire-format CreateAlarmDto. The
+/// fields Coach doesn't carry — volume, vibration, snooze — get filled
+/// with the same defaults the Add-alarm screen uses for a fresh draft,
+/// so the user can edit afterwards if they want different behaviour.
+private fun proposedAlarmToCreateDto(fields: com.ultiq.app.data.remote.dto.ProposedAlarmFieldsDto): com.ultiq.app.data.remote.dto.CreateAlarmDto {
+    val parts = fields.trigger_time_local.split(":")
+    val hh = parts.getOrNull(0)?.toIntOrNull() ?: 7
+    val mm = parts.getOrNull(1)?.toIntOrNull() ?: 0
+    val triggerSql = "%02d:%02d:00".format(hh, mm)
+    val missionConfig = when (fields.mission_kind) {
+        "math" -> com.google.gson.JsonParser.parseString(
+            com.ultiq.app.alarm.mission.MissionConfig.buildMath(
+                com.ultiq.app.alarm.mission.MathDifficulty.MEDIUM,
+                count = 3,
+            )
+        ).asJsonObject
+        "shake" -> com.google.gson.JsonParser.parseString(
+            com.ultiq.app.alarm.mission.MissionConfig.buildShake(
+                com.ultiq.app.alarm.mission.ShakeIntensity.MEDIUM,
+                shakesRequired = 30,
+            )
+        ).asJsonObject
+        else -> com.google.gson.JsonObject()
+    }
+    return com.ultiq.app.data.remote.dto.CreateAlarmDto(
+        id = null,
+        label = fields.label,
+        trigger_time_local = triggerSql,
+        days_of_week = fields.days_of_week.toInt(),
+        enabled = true,
+        sound_uri = null,
+        volume_pct = 80,
+        volume_escalates = true,
+        vibration = true,
+        snooze_minutes = 9,
+        snooze_max = 3,
+        mission_kind = fields.mission_kind,
+        mission_config = missionConfig,
+    )
+}
 

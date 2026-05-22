@@ -26,6 +26,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ErrorOutline
@@ -73,6 +74,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ultiq.app.data.remote.dto.ChatMessageDto
 import com.ultiq.app.data.remote.dto.ParsedCalendarFieldsDto
+import com.ultiq.app.data.remote.dto.ProposedAlarmFieldsDto
 import com.ultiq.app.data.remote.dto.ToolInvocationDto
 import java.time.OffsetDateTime
 
@@ -177,6 +179,12 @@ fun ChatScreen(
                                             state = t.state,
                                             onCreate = { viewModel.confirmCalendarProposal(t.invocation.id) },
                                             onCancel = { viewModel.cancelCalendarProposal(t.invocation.id) },
+                                        )
+                                        is ChatTurn.AlarmProposal -> AlarmProposalCard(
+                                            invocation = t.invocation,
+                                            state = t.state,
+                                            onCreate = { viewModel.confirmAlarmProposal(t.invocation.id) },
+                                            onCancel = { viewModel.cancelAlarmProposal(t.invocation.id) },
                                         )
                                     }
                                 }
@@ -480,6 +488,122 @@ private fun CalendarProposalCard(
             }
         }
     }
+}
+
+/// Inline confirm card for a proposed alarm. Visually distinct from the
+/// calendar card (alarm icon + alarm-style time formatting) so the user
+/// can tell which kind of side-effect they're about to confirm.
+@Composable
+private fun AlarmProposalCard(
+    invocation: ToolInvocationDto,
+    state: ProposalState,
+    onCreate: () -> Unit,
+    onCancel: () -> Unit,
+) {
+    val alarm = invocation.proposed_alarm ?: return
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Start,
+    ) {
+        Card(
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface,
+            ),
+            modifier = Modifier
+                .widthIn(max = 320.dp)
+                .border(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
+                    shape = RoundedCornerShape(14.dp),
+                ),
+        ) {
+            Column(modifier = Modifier.padding(14.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.Alarm,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        "Proposed alarm",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    alarm.trigger_time_local,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    formatAlarmSubline(alarm),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (!alarm.label.isNullOrBlank()) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        alarm.label,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+                Spacer(Modifier.height(10.dp))
+                when (state) {
+                    ProposalState.Pending -> Row(horizontalArrangement = Arrangement.End) {
+                        Spacer(Modifier.weight(1f))
+                        OutlinedButton(onClick = onCancel) { Text("Cancel") }
+                        Spacer(Modifier.width(8.dp))
+                        Button(onClick = onCreate) { Text("Create") }
+                    }
+                    ProposalState.Creating -> Row(verticalAlignment = Alignment.CenterVertically) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(14.dp),
+                            strokeWidth = 1.5.dp,
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text("Creating…", style = MaterialTheme.typography.bodySmall)
+                    }
+                    ProposalState.Created -> Text(
+                        "✓ Alarm set",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    ProposalState.Cancelled -> Text(
+                        "Cancelled",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun formatAlarmSubline(alarm: ProposedAlarmFieldsDto): String {
+    // Bit 0 = Sun … bit 6 = Sat. Decode into a human-friendly recurrence
+    // string ("Mon-Fri", "Daily", "Sat/Sun", or "One-shot").
+    val mask = alarm.days_of_week.toInt() and 0x7F
+    val labels = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+    val days = (0..6).filter { (mask shr it) and 1 == 1 }
+    val cadence = when {
+        days.isEmpty() -> "One-shot"
+        days.size == 7 -> "Daily"
+        days == listOf(1, 2, 3, 4, 5) -> "Mon-Fri"
+        days == listOf(0, 6) -> "Weekends"
+        else -> days.joinToString("/") { labels[it] }
+    }
+    val mission = when (alarm.mission_kind) {
+        "math" -> "math mission"
+        "shake" -> "shake mission"
+        "photo" -> "photo mission"
+        else -> "no mission"
+    }
+    return "$cadence · $mission"
 }
 
 private fun formatTimeRange(fields: ParsedCalendarFieldsDto): String {

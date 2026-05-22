@@ -1217,6 +1217,81 @@ fn checklist_tool_schema() -> serde_json::Value {
     })
 }
 
+/// Schema for the `log_sleep_record` Coach tool. Captures only what the
+/// user typically mentions in chat — bed/wake times, quality, pickups,
+/// and an optional notes field. Target bed/wake times come from the
+/// user's prefs server-side, so the model doesn't have to invent them.
+fn sleep_tool_schema() -> serde_json::Value {
+    json!({
+        "type": "object",
+        "properties": {
+            "actual_bedtime": {
+                "type": "string",
+                "format": "date-time",
+                "description": "When the user actually fell asleep, UTC ISO-8601 with trailing Z. Convert from the user's local time using the snapshot's offset footer."
+            },
+            "actual_wake_time": {
+                "type": "string",
+                "format": "date-time",
+                "description": "When the user actually woke, UTC ISO-8601 with trailing Z. Must be after actual_bedtime."
+            },
+            "quality_rating": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 5,
+                "description": "Self-rated sleep quality, 1=poor through 5=great. Default 3 if the user didn't characterise it."
+            },
+            "phone_pickups": {
+                "type": ["integer", "null"],
+                "minimum": 0,
+                "description": "Number of phone pickups during the sleep window. Default 0 if not mentioned."
+            },
+            "notes": {
+                "type": ["string", "null"],
+                "description": "Optional one-line note ('woke up at 3am for water', 'felt anxious'). Null if the user didn't add context."
+            }
+        },
+        "required": ["actual_bedtime", "actual_wake_time", "quality_rating"]
+    })
+}
+
+/// Schema for the `create_alarm` Coach tool. The user confirms before the
+/// alarm is actually written, so this is a proposal schema — keep it
+/// loose. The client maps `days_of_week` ([sun..sat] strings) to the
+/// bitmask the existing /alarms endpoint expects, and uses the user's
+/// existing mission-config defaults from the Alarm preferences.
+fn alarm_tool_schema() -> serde_json::Value {
+    json!({
+        "type": "object",
+        "properties": {
+            "trigger_time_local": {
+                "type": "string",
+                "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$",
+                "description": "24-hour local time the alarm fires, \"HH:MM\". Always two-digit (07:30, not 7:30)."
+            },
+            "label": {
+                "type": ["string", "null"],
+                "description": "Optional short label like \"Lab meeting wake\" or \"Gym\". Null if the user didn't name it."
+            },
+            "days_of_week": {
+                "type": "array",
+                "items": {
+                    "type": "string",
+                    "enum": ["sun", "mon", "tue", "wed", "thu", "fri", "sat"]
+                },
+                "uniqueItems": true,
+                "description": "Days the alarm repeats. Empty array = one-shot at the next occurrence of trigger_time_local. \"weekdays\" → mon..fri. \"daily\" → all seven."
+            },
+            "mission_kind": {
+                "type": "string",
+                "enum": ["none", "math", "shake", "photo"],
+                "description": "Dismiss mission. \"math\" is the default if the user didn't specify."
+            }
+        },
+        "required": ["trigger_time_local", "days_of_week", "mission_kind"]
+    })
+}
+
 const PARSE_EVENT_SYSTEM_PROMPT: &str = r#"You convert short natural-language input from a productivity-app user into exactly one structured object by calling exactly one of the provided tools.
 
 You have two tools available:
@@ -1906,13 +1981,39 @@ struct ToolInvocationSurface {
     /// parsed fields the user will confirm or cancel via the proposal card.
     #[serde(skip_serializing_if = "Option::is_none")]
     proposed_event: Option<ParsedCalendarFields>,
+    /// When `status = "proposed"` and `name = "create_alarm"`, the parsed
+    /// alarm fields. The client renders a Create/Cancel card with these
+    /// values and POSTs to `/alarms` on confirm.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    proposed_alarm: Option<ProposedAlarmFields>,
+}
+
+/// Alarm fields a Coach call proposes for the user to confirm. Mirrors the
+/// shape the Android `AlarmEditScreen` needs to prefill its form, then
+/// posts to `/alarms`. Kept loose (label optional, days a bitmask the way
+/// the mobile model stores them) so the model doesn't have to invent
+/// device-specific defaults like `volume_pct`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct ProposedAlarmFields {
+    /// 24-hour local time, "HH:MM".
+    trigger_time_local: String,
+    #[serde(default)]
+    label: Option<String>,
+    /// 7-bit bitmask of weekdays the alarm fires on. Bit 0 = Sunday … bit
+    /// 6 = Saturday. 0 = one-shot (next matching trigger time only).
+    days_of_week: i16,
+    /// One of: "none" | "math" | "shake" | "photo". The mission_config
+    /// payload is left empty on propose — the client fills sensible
+    /// defaults from the user's existing prefs.
+    mission_kind: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
 struct CommittedResource {
-    /// "checklist" (created) | "checklist_complete" (marked done). Tells
-    /// the client which undo endpoint to hit (DELETE /checklist/:id vs
-    /// POST /checklist/:id/uncomplete).
+    /// "checklist" (created) | "checklist_complete" (marked done) |
+    /// "sleep_record" (logged a night). Tells the client which undo
+    /// endpoint to hit (DELETE /checklist/:id, POST
+    /// /checklist/:id/uncomplete, or DELETE /sleep/:id).
     kind: String,
     id: Uuid,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -2335,6 +2436,8 @@ const TOOL_GET_FOCUS_HISTORY: &str = "get_focus_history";
 const TOOL_GET_CALENDAR_EVENTS: &str = "get_calendar_events";
 const TOOL_GET_CHECKLIST: &str = "get_checklist";
 const TOOL_COMPLETE_CHECKLIST_ITEM: &str = "complete_checklist_item";
+const TOOL_LOG_SLEEP_RECORD: &str = "log_sleep_record";
+const TOOL_CREATE_ALARM: &str = "create_alarm";
 // TOOL_CALENDAR and TOOL_CHECKLIST are defined for parse_event above and
 // reused here verbatim — the schema is identical; the only difference is
 // the handler (propose vs. auto-commit).
@@ -2743,6 +2846,16 @@ fn build_chat_tool_config() -> Result<ToolConfiguration, AppError> {
             "Propose a calendar event for the user to confirm. This does NOT write the event — the user will see a Create/Cancel card and decide. Use when the user mentions a specific clock time. Speak as a suggestion, not a fait accompli.",
             calendar_tool_schema(),
         )?,
+        build_one(
+            TOOL_LOG_SLEEP_RECORD,
+            "Log a past night of sleep on the user's behalf. Commits immediately — speak as though it's done (\"Logged last night: 11:30 → 7:05, quality 3.\"). Use when the user wants to backfill a missing night (\"I forgot to log last night, I slept 10:30 to 6:45 quality 4\") or note that they slept badly without going into the Sleep tab. Defaults the target_bedtime / target_wake_time from the user's saved preferences server-side.",
+            sleep_tool_schema(),
+        )?,
+        build_one(
+            TOOL_CREATE_ALARM,
+            "Propose a wake-up alarm for the user to confirm. This does NOT create the alarm — the user will see a Create/Cancel card and decide. Use when the user wants to set an alarm (\"set a 6:30am alarm tomorrow with math\", \"wake me at 7 weekdays\"). Speak as a draft pending user confirmation. Mission kinds: \"none\" | \"math\" | \"shake\" | \"photo\" — pick the user's preferred one if they mention it, default to \"math\" otherwise.",
+            alarm_tool_schema(),
+        )?,
     ];
 
     let mut builder = ToolConfiguration::builder();
@@ -2930,6 +3043,12 @@ async fn run_chat_tool(
         TOOL_CALENDAR => {
             handle_propose_calendar_event(&tool_use_id, &tool_name, &input).await
         }
+        TOOL_LOG_SLEEP_RECORD => {
+            handle_log_sleep_record(state, user_id, &tool_use_id, &tool_name, &input).await
+        }
+        TOOL_CREATE_ALARM => {
+            handle_propose_alarm(&tool_use_id, &tool_name, &input).await
+        }
         other => Err(format!("Unknown tool: {}", other)),
     };
 
@@ -2946,6 +3065,7 @@ async fn run_chat_tool(
                 committed: false,
                 committed_resource: None,
                 proposed_event: None,
+                proposed_alarm: None,
             },
         },
     }
@@ -2972,6 +3092,7 @@ async fn handle_get_today_summary(
             committed: false,
             committed_resource: None,
             proposed_event: None,
+            proposed_alarm: None,
         },
     })
 }
@@ -3031,6 +3152,7 @@ async fn handle_get_sleep_history(
             committed: false,
             committed_resource: None,
             proposed_event: None,
+            proposed_alarm: None,
         },
     })
 }
@@ -3088,6 +3210,7 @@ async fn handle_get_focus_history(
             committed: false,
             committed_resource: None,
             proposed_event: None,
+            proposed_alarm: None,
         },
     })
 }
@@ -3172,6 +3295,7 @@ async fn handle_get_calendar_events(
             committed: false,
             committed_resource: None,
             proposed_event: None,
+            proposed_alarm: None,
         },
     })
 }
@@ -3237,6 +3361,7 @@ async fn handle_get_checklist(
             committed: false,
             committed_resource: None,
             proposed_event: None,
+            proposed_alarm: None,
         },
     })
 }
@@ -3303,6 +3428,7 @@ async fn handle_create_checklist_item(
                 due_date: Some(item.due_date),
             }),
             proposed_event: None,
+            proposed_alarm: None,
         },
     })
 }
@@ -3357,6 +3483,7 @@ async fn handle_complete_checklist_item(
                 due_date: None,
             }),
             proposed_event: None,
+            proposed_alarm: None,
         },
     })
 }
@@ -3400,6 +3527,234 @@ async fn handle_propose_calendar_event(
             committed: false,
             committed_resource: None,
             proposed_event: Some(fields),
+            proposed_alarm: None,
+        },
+    })
+}
+
+/// Auto-commit sleep record. Used by the `log_sleep_record` Coach tool.
+/// The user's saved bed/wake-target preferences are pulled from the JSONB
+/// `users.preferences` blob and used to default the schema's required
+/// fields, with a 23:00 → 07:00 floor if the user hasn't set them yet.
+async fn handle_log_sleep_record(
+    state: &AppState,
+    user_id: Uuid,
+    tool_use_id: &str,
+    tool_name: &str,
+    input: &serde_json::Value,
+) -> Result<ToolRunOutcome, String> {
+    let actual_bedtime: chrono::DateTime<Utc> = input
+        .get("actual_bedtime")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| "missing actual_bedtime".to_string())
+        .and_then(|s| chrono::DateTime::parse_from_rfc3339(s).map_err(|e| format!("bad actual_bedtime: {}", e)))?
+        .with_timezone(&Utc);
+    let actual_wake_time: chrono::DateTime<Utc> = input
+        .get("actual_wake_time")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| "missing actual_wake_time".to_string())
+        .and_then(|s| chrono::DateTime::parse_from_rfc3339(s).map_err(|e| format!("bad actual_wake_time: {}", e)))?
+        .with_timezone(&Utc);
+    if actual_wake_time <= actual_bedtime {
+        return Err("actual_wake_time must be after actual_bedtime".to_string());
+    }
+    let quality_rating: i16 = input
+        .get("quality_rating")
+        .and_then(|v| v.as_i64())
+        .map(|n| n as i16)
+        .ok_or_else(|| "missing quality_rating".to_string())?;
+    if !(1..=5).contains(&quality_rating) {
+        return Err(format!("quality_rating {} out of 1..=5", quality_rating));
+    }
+    let phone_pickups: i32 = input
+        .get("phone_pickups")
+        .and_then(|v| v.as_i64())
+        .map(|n| n.max(0) as i32)
+        .unwrap_or(0);
+    let notes: Option<String> = input
+        .get("notes")
+        .and_then(|v| v.as_str())
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty());
+
+    // Default target_bedtime / target_wake_time from the user's prefs.
+    // The `preferences` JSONB blob carries the keys when the user has set
+    // them via the Sleep tab's preferences screen; fall back to 23:00 /
+    // 07:00 when the user hasn't customised them yet.
+    let prefs: Option<serde_json::Value> = sqlx::query_scalar(
+        "SELECT preferences FROM users WHERE id = $1",
+    )
+    .bind(user_id)
+    .fetch_optional(&state.pool)
+    .await
+    .map_err(|e| format!("db error reading prefs: {}", e))?;
+    let (target_bedtime, target_wake_time) = extract_sleep_targets(prefs.as_ref());
+
+    let record: crate::models::sleep::SleepRecord = sqlx::query_as(
+        "INSERT INTO sleep_records
+            (user_id, target_bedtime, target_wake_time,
+             actual_bedtime, actual_wake_time, quality_rating,
+             phone_pickups, total_phone_minutes, notes)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, NULL, $8)
+         RETURNING *",
+    )
+    .bind(user_id)
+    .bind(target_bedtime)
+    .bind(target_wake_time)
+    .bind(actual_bedtime)
+    .bind(actual_wake_time)
+    .bind(quality_rating)
+    .bind(phone_pickups)
+    .bind(notes.as_deref())
+    .fetch_one(&state.pool)
+    .await
+    .map_err(|e| format!("db error: {}", e))?;
+
+    state
+        .events
+        .publish(user_id, crate::event_bus::SyncEvent::SleepCreated(record.clone()));
+
+    let minutes = actual_wake_time.signed_duration_since(actual_bedtime).num_minutes().max(0);
+    let h = minutes / 60;
+    let m = minutes % 60;
+    let payload = json!({
+        "logged_id": record.id,
+        "duration_minutes": minutes,
+        "quality": quality_rating,
+        "phone_pickups": phone_pickups,
+    })
+    .to_string();
+    Ok(ToolRunOutcome {
+        payload_for_model: payload,
+        bedrock_status: ToolResultStatus::Success,
+        surface: ToolInvocationSurface {
+            id: tool_use_id.to_string(),
+            name: tool_name.to_string(),
+            status: "ok".to_string(),
+            summary: format!("Logged sleep: {}h{:02}, quality {}", h, m, quality_rating),
+            committed: true,
+            committed_resource: Some(CommittedResource {
+                kind: "sleep_record".to_string(),
+                id: record.id,
+                title: Some(format!(
+                    "{} → {}",
+                    actual_bedtime.format("%H:%M"),
+                    actual_wake_time.format("%H:%M")
+                )),
+                due_date: None,
+            }),
+            proposed_event: None,
+            proposed_alarm: None,
+        },
+    })
+}
+
+/// Pulls `target_bedtime` / `target_wake_time` out of the user's
+/// preferences JSONB. Accepts the same `"HH:MM"` shape the mobile prefs
+/// screen writes. Falls back to 23:00 / 07:00 if either is missing or
+/// unparseable — the user can re-set their proper targets on the Sleep
+/// tab, and this default keeps the row valid in the meantime.
+fn extract_sleep_targets(prefs: Option<&serde_json::Value>) -> (chrono::NaiveTime, chrono::NaiveTime) {
+    let default_bed = chrono::NaiveTime::from_hms_opt(23, 0, 0).unwrap();
+    let default_wake = chrono::NaiveTime::from_hms_opt(7, 0, 0).unwrap();
+    let Some(obj) = prefs.and_then(|v| v.as_object()) else {
+        return (default_bed, default_wake);
+    };
+    let parse = |key: &str, fallback: chrono::NaiveTime| -> chrono::NaiveTime {
+        obj.get(key)
+            .and_then(|v| v.as_str())
+            .and_then(|s| chrono::NaiveTime::parse_from_str(s, "%H:%M").ok())
+            .unwrap_or(fallback)
+    };
+    (parse("target_bedtime", default_bed), parse("target_wake_time", default_wake))
+}
+
+/// Propose an alarm — server NEVER writes here. Validates the shape, then
+/// returns the parsed `ProposedAlarmFields` for the client to render in a
+/// Create/Cancel card.
+async fn handle_propose_alarm(
+    tool_use_id: &str,
+    tool_name: &str,
+    input: &serde_json::Value,
+) -> Result<ToolRunOutcome, String> {
+    let trigger_time_local = input
+        .get("trigger_time_local")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| "missing trigger_time_local".to_string())?
+        .to_string();
+    // Validate HH:MM.
+    chrono::NaiveTime::parse_from_str(&trigger_time_local, "%H:%M")
+        .map_err(|_| format!("bad trigger_time_local: {}", trigger_time_local))?;
+    let label = input
+        .get("label")
+        .and_then(|v| v.as_str())
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty());
+    let mission_kind = input
+        .get("mission_kind")
+        .and_then(|v| v.as_str())
+        .unwrap_or("math")
+        .to_string();
+    if !["none", "math", "shake", "photo"].contains(&mission_kind.as_str()) {
+        return Err(format!("unknown mission_kind: {}", mission_kind));
+    }
+    let days_arr = input
+        .get("days_of_week")
+        .and_then(|v| v.as_array())
+        .cloned()
+        .unwrap_or_default();
+    let days_of_week: i16 = days_arr
+        .iter()
+        .filter_map(|v| v.as_str())
+        .fold(0i16, |acc, day| {
+            let bit = match day.to_ascii_lowercase().as_str() {
+                "sun" => 1,
+                "mon" => 2,
+                "tue" => 4,
+                "wed" => 8,
+                "thu" => 16,
+                "fri" => 32,
+                "sat" => 64,
+                _ => 0,
+            };
+            acc | bit
+        });
+
+    let fields = ProposedAlarmFields {
+        trigger_time_local: trigger_time_local.clone(),
+        label,
+        days_of_week,
+        mission_kind: mission_kind.clone(),
+    };
+
+    let summary = if days_of_week == 0 {
+        format!("Proposed: {} alarm one-shot ({})", trigger_time_local, mission_kind)
+    } else {
+        format!(
+            "Proposed: {} alarm ({} repeats, {})",
+            trigger_time_local,
+            days_arr.iter().filter_map(|v| v.as_str()).collect::<Vec<_>>().join("/"),
+            mission_kind,
+        )
+    };
+    let payload = json!({
+        "status": "proposed",
+        "note": "The user will see a Create/Cancel card. You did NOT add this alarm — phrase your reply as a draft pending user confirmation.",
+        "proposed": &fields,
+    })
+    .to_string();
+    Ok(ToolRunOutcome {
+        payload_for_model: payload,
+        bedrock_status: ToolResultStatus::Success,
+        surface: ToolInvocationSurface {
+            id: tool_use_id.to_string(),
+            name: tool_name.to_string(),
+            status: "proposed".to_string(),
+            summary,
+            committed: false,
+            committed_resource: None,
+            proposed_event: None,
+            proposed_alarm: Some(fields),
         },
     })
 }
