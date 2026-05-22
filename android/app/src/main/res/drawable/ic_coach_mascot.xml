@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android port of web-landing/public/mascot.svg. The sleeping-book character
+  is the Ultiq brand mascot; reused here as the Coach avatar on the
+  Dashboard hero card and as the entry point's chat-bubble logo. Keep the
+  ViewBox / colour values in sync with the SVG so the two surfaces stay
+  visually identical.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Pillow -->
+    <path
+        android:fillColor="#A8C5E8"
+        android:pathData="M16,72 Q10,72 10,78 L10,86 Q10,92 16,92 L92,92 Q98,92 98,86 L98,78 Q98,72 92,72 Z" />
+    <!-- Book body -->
+    <path
+        android:fillColor="#D9474C"
+        android:pathData="M18,18 L80,18 L80,78 L18,78 Z" />
+    <!-- Book spine -->
+    <path
+        android:fillColor="#FFF4E6"
+        android:pathData="M80,18 L88,18 L88,78 L80,78 Z" />
+    <!-- Sleeping eyes -->
+    <path
+        android:strokeColor="#2A1B6E"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:pathData="M32,38 Q38,46 44,38 M54,38 Q60,46 66,38" />
+    <!-- Smile -->
+    <path
+        android:strokeColor="#2A1B6E"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round"
+        android:pathData="M37,58 Q49,66 61,58" />
+    <!-- Zz sleep marks -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M70,10 L80,10 L70,20 L80,20 M82,2 L94,2 L82,12 L94,12" />
+</vector>

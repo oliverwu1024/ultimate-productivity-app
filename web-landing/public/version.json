@@ -1,6 +1,6 @@
 {
-  "versionCode": 29,
-  "versionName": "2.9.2",
-  "url": "https://ultiqapp.com/ultiq.2.9.2.apk",
-  "releaseNotes": "Alarm fix: the alarm screen now actually takes over the display when your phone is in active use, not just when it's locked. Previously it only showed as a heads-up notification you had to tap to enter the dismiss mission — easy to miss when half-asleep."
+  "versionCode": 30,
+  "versionName": "2.9.3",
+  "url": "https://ultiqapp.com/ultiq.2.9.3.apk",
+  "releaseNotes": "Coach is now above the fold. The Ultiq mascot sits next to your morning / evening greeting on the Dashboard — one tap to chat, no scrolling past two cards to find it. Subtle breathing animation so it reads as a living, tappable affordance."
 }
