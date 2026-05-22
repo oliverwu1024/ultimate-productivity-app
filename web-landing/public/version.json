@@ -1,6 +1,6 @@
 {
-  "versionCode": 37,
-  "versionName": "2.10.6",
-  "url": "https://ultiqapp.com/ultiq.2.10.6.apk",
-  "releaseNotes": "Sleep card on Dashboard now uses the same absolute-reference language: '+3h 1m vs optimal sleep' (replaces 'vs target') and 'Last week's daily average was Xh Ym' on the second line. Also fixed the calculation — 'last week' now means the previous calendar Mon-Sun, not a rolling 7-day window that was pulling this-week's sessions into the average."
+  "versionCode": 38,
+  "versionName": "2.10.7",
+  "url": "https://ultiqapp.com/ultiq.2.10.7.apk",
+  "releaseNotes": "Solid Night 'vs optimal sleep' was comparing against each record's per-night planned bedtime window instead of your Optimal Sleep preference. With an early alarm + a real night you could see '+3h 1m vs optimal sleep' when your actual was barely +40m. Now reads your Optimal Sleep goal from preferences directly."
 }
