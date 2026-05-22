@@ -92,11 +92,6 @@ fun ChecklistScreen(
     val state by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    // §delete-consistency: every destructive action in the app gets a
-    // confirm dialog (Sleep + Alarms already had one — this brings
-    // Checklist into line). Lives screen-local so a backgrounded screen
-    // forgets the pending row.
-    var pendingDelete by remember { mutableStateOf<ChecklistEntity?>(null) }
 
     LaunchedEffect(state.error) {
         state.error?.let { msg ->
@@ -174,13 +169,21 @@ fun ChecklistScreen(
                 if (state.openItems.isNotEmpty()) {
                     item { SectionLabel("Open") }
                     items(state.openItems, key = { it.id }) { item ->
-                        ChecklistRow(
-                            item = item,
-                            isDoneNow = false,
-                            onToggle = { viewModel.toggleCompleted(item) },
-                            onEdit = { viewModel.openEditDialog(item) },
-                            onDelete = { pendingDelete = item },
-                        )
+                        // §delete-consistency — swipe row to delete with
+                        // confirm dialog. Replaces the previous trash-icon
+                        // + screen-level dialog plumbing.
+                        com.ultiq.app.ui.common.SwipeToDeleteBox(
+                            confirmTitle = "Delete this item?",
+                            confirmBody = "'${item.title}' will be removed.",
+                            onDelete = { viewModel.deleteItem(item) },
+                        ) {
+                            ChecklistRow(
+                                item = item,
+                                isDoneNow = false,
+                                onToggle = { viewModel.toggleCompleted(item) },
+                                onEdit = { viewModel.openEditDialog(item) },
+                            )
+                        }
                     }
                 }
 
@@ -190,7 +193,7 @@ fun ChecklistScreen(
                             items = state.completedItems,
                             onToggle = viewModel::toggleCompleted,
                             onEdit = viewModel::openEditDialog,
-                            onDelete = { pendingDelete = it },
+                            onDelete = viewModel::deleteItem,
                             todayEpochDay = state.selectedDate.toEpochDay(),
                         )
                     }
@@ -242,22 +245,6 @@ fun ChecklistScreen(
             )
         }
 
-        pendingDelete?.let { target ->
-            AlertDialog(
-                onDismissRequest = { pendingDelete = null },
-                title = { Text("Delete this item?") },
-                text = { Text("'${target.title}' will be removed.") },
-                confirmButton = {
-                    TextButton(onClick = {
-                        viewModel.deleteItem(target)
-                        pendingDelete = null
-                    }) { Text("Delete") }
-                },
-                dismissButton = {
-                    TextButton(onClick = { pendingDelete = null }) { Text("Cancel") }
-                },
-            )
-        }
     }
 }
 
@@ -385,7 +372,6 @@ private fun ChecklistRow(
     isDoneNow: Boolean,
     onToggle: () -> Unit,
     onEdit: () -> Unit,
-    onDelete: () -> Unit,
 ) {
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
@@ -445,13 +431,6 @@ private fun ChecklistRow(
                         modifier = Modifier.padding(top = 2.dp),
                     )
                 }
-            }
-            IconButton(onClick = onDelete) {
-                Icon(
-                    Icons.Default.Delete,
-                    "Delete",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
             }
         }
     }
@@ -527,13 +506,18 @@ private fun CompletedSection(
                     } else {
                         item.completed
                     }
-                    ChecklistRow(
-                        item = item,
-                        isDoneNow = doneNow,
-                        onToggle = { onToggle(item) },
-                        onEdit = { onEdit(item) },
+                    com.ultiq.app.ui.common.SwipeToDeleteBox(
+                        confirmTitle = "Delete this item?",
+                        confirmBody = "'${item.title}' will be removed.",
                         onDelete = { onDelete(item) },
-                    )
+                    ) {
+                        ChecklistRow(
+                            item = item,
+                            isDoneNow = doneNow,
+                            onToggle = { onToggle(item) },
+                            onEdit = { onEdit(item) },
+                        )
+                    }
                 }
             }
         }

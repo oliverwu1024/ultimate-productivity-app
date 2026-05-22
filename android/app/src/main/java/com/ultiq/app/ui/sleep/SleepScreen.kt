@@ -724,57 +724,15 @@ private fun SleepRecordItem(
     modifier: Modifier = Modifier,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    var pendingDelete by remember { mutableStateOf(false) }
-    val dismissState = rememberSwipeToDismissBoxState(
-        confirmValueChange = { value ->
-            if (value == SwipeToDismissBoxValue.EndToStart) {
-                pendingDelete = true
-            }
-            // Wait for the dialog before committing — never auto-dismiss the swipe.
-            false
-        }
-    )
+    val zone = ZoneId.systemDefault()
+    val dateStr = Instant.ofEpochMilli(record.actualBedtime).atZone(zone)
+        .format(DateTimeFormatter.ofPattern("EEE, MMM dd"))
 
-    if (pendingDelete) {
-        val zone = ZoneId.systemDefault()
-        val dateStr = Instant.ofEpochMilli(record.actualBedtime).atZone(zone)
-            .format(DateTimeFormatter.ofPattern("EEE, MMM dd"))
-        AlertDialog(
-            onDismissRequest = { pendingDelete = false },
-            title = { Text("Delete sleep record?") },
-            text = { Text("This will permanently remove the record from $dateStr.") },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        pendingDelete = false
-                        onDelete()
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error
-                    )
-                ) { Text("Delete") }
-            },
-            dismissButton = {
-                TextButton(onClick = { pendingDelete = false }) { Text("Cancel") }
-            },
-        )
-    }
-
-    SwipeToDismissBox(
-        state = dismissState,
+    com.ultiq.app.ui.common.SwipeToDeleteBox(
+        confirmTitle = "Delete sleep record?",
+        confirmBody = "This will permanently remove the record from $dateStr.",
+        onDelete = onDelete,
         modifier = modifier,
-        backgroundContent = {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.error, RoundedCornerShape(12.dp))
-                    .padding(horizontal = 20.dp),
-                contentAlignment = Alignment.CenterEnd
-            ) {
-                Icon(Icons.Default.Delete, "Delete", tint = MaterialTheme.colorScheme.onError)
-            }
-        },
-        enableDismissFromStartToEnd = false
     ) {
         Card(
             modifier = Modifier

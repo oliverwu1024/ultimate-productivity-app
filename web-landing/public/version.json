@@ -1,6 +1,6 @@
 {
-  "versionCode": 33,
-  "versionName": "2.10.2",
-  "url": "https://ultiqapp.com/ultiq.2.10.2.apk",
-  "releaseNotes": "\"This week\" now means Monday-through-today everywhere — focus + sleep totals stop quietly resetting at random times. Sleep tab adds a small 2×2 grid of nights logged this week / last week / this month / last month so you can eyeball consistency. The Dashboard \"Coming up\" section now shows today's open checklist items alongside calendar events."
+  "versionCode": 34,
+  "versionName": "2.10.3",
+  "url": "https://ultiqapp.com/ultiq.2.10.3.apk",
+  "releaseNotes": "Delete is now consistent across Sleep, Alarms, Checklist, and Calendar — swipe a row left on any list to delete (with a confirm dialog), or tap an event to edit + delete with a confirm dialog. Replaces the old mix of trash icons, long-press menus, and missing confirms."
 }
