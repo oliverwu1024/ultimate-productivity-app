@@ -40,9 +40,20 @@ import java.time.temporal.ChronoUnit
 
 enum class TimeRange { WEEK, MONTH }
 
+/// Counts of nights logged in each calendar period. Displayed as a small
+/// 2×2 grid above the Sleep stats card so the user can eyeball weekly /
+/// monthly consistency at a glance without scrolling through records.
+data class SleepPeriodCounts(
+    val thisWeek: Int = 0,
+    val lastWeek: Int = 0,
+    val thisMonth: Int = 0,
+    val lastMonth: Int = 0,
+)
+
 data class SleepUiState(
     val records: List<SleepRecordEntity> = emptyList(),
     val stats: SleepStats? = null,
+    val periodCounts: SleepPeriodCounts = SleepPeriodCounts(),
     val isLoading: Boolean = false,
     val error: String? = null,
     val selectedTimeRange: TimeRange = TimeRange.WEEK,
@@ -365,15 +376,49 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
     private fun loadRecords() {
         recordsJob?.cancel()
         recordsJob = viewModelScope.launch {
-            val (start, end) = getRange(_uiState.value.selectedTimeRange)
-            repository.getSleepRecordsBetween(start, end).collect { records ->
+            // Pull the last 60 days regardless of the selected range so the
+            // 2×2 period grid always has Last month coverage. The visible
+            // records list + stats card stay filtered by `selectedTimeRange`.
+            val now = Instant.now()
+            val start60 = now.minus(60, ChronoUnit.DAYS).toEpochMilli()
+            val (rangeStart, _) = getRange(_uiState.value.selectedTimeRange)
+            repository.getSleepRecordsBetween(start60, Long.MAX_VALUE).collect { all ->
                 val target = userPreferences.snapshot().sleepTargetMinutes
+                val visible = all.filter { it.actualBedtime >= rangeStart }
                 _uiState.value = _uiState.value.copy(
-                    records = records,
-                    stats = records.toLocalStats(target)
+                    records = visible,
+                    stats = visible.toLocalStats(target),
+                    periodCounts = computePeriodCounts(all),
                 )
             }
         }
+    }
+
+    /// Map a 60-day record list into the 4 period buckets the Sleep grid
+    /// renders. Buckets use calendar-week (Mon..Sun) and calendar-month
+    /// boundaries in the device's local timezone, matching the Mon-start
+    /// week the rest of the app moved to in v2.10.2.
+    private fun computePeriodCounts(records: List<SleepRecordEntity>): SleepPeriodCounts {
+        val zone = ZoneId.systemDefault()
+        val today = java.time.LocalDate.now(zone)
+        val mondayOfThisWeek = today.minusDays(today.dayOfWeek.value.toLong() - 1)
+        val mondayOfLastWeek = mondayOfThisWeek.minusWeeks(1)
+        val firstOfThisMonth = today.withDayOfMonth(1)
+        val firstOfLastMonth = firstOfThisMonth.minusMonths(1)
+        val lastDayOfLastMonth = firstOfThisMonth.minusDays(1)
+
+        var thisWeek = 0
+        var lastWeek = 0
+        var thisMonth = 0
+        var lastMonth = 0
+        for (r in records) {
+            val day = Instant.ofEpochMilli(r.actualBedtime).atZone(zone).toLocalDate()
+            if (!day.isBefore(mondayOfThisWeek) && !day.isAfter(today)) thisWeek++
+            if (!day.isBefore(mondayOfLastWeek) && day.isBefore(mondayOfThisWeek)) lastWeek++
+            if (!day.isBefore(firstOfThisMonth) && !day.isAfter(today)) thisMonth++
+            if (!day.isBefore(firstOfLastMonth) && !day.isAfter(lastDayOfLastMonth)) lastMonth++
+        }
+        return SleepPeriodCounts(thisWeek, lastWeek, thisMonth, lastMonth)
     }
 
     fun setTimeRange(range: TimeRange) {

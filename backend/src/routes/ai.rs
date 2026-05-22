@@ -2884,7 +2884,15 @@ async fn build_context_card(
         Ok(dt) => (dt.date_naive(), dt.offset().to_string()),
         Err(_) => (Utc::now().date_naive(), "+00:00".to_string()),
     };
-    let week_start_utc = Utc::now() - Duration::days(7);
+    // §wave2 — context card uses the SAME Monday-of-current-week boundary
+    // as sleep/sessions stats. Keeps the snapshot in lockstep with what
+    // the user sees on the Dashboard / Sleep tab; otherwise Coach can
+    // quote a different "this week" number than the cards.
+    use chrono::Datelike;
+    let today_local = today_local; // already computed above
+    let days_since_monday = today_local.weekday().num_days_from_monday() as i64;
+    let this_monday = today_local - chrono::Duration::days(days_since_monday);
+    let week_start_utc = this_monday.and_hms_opt(0, 0, 0).unwrap().and_utc();
 
     // Sleep — last 3 nights.
     let sleep_rows: Vec<(DateTime<Utc>, DateTime<Utc>, i16, i32)> = sqlx::query_as(
@@ -2970,7 +2978,7 @@ async fn build_context_card(
     out.push('\n');
 
     out.push_str(&format!(
-        "**Focus, last 7 days:** {} sessions ({} completed), {} minutes focused.\n\n",
+        "**Focus, this week (Mon–today):** {} sessions ({} completed), {} minutes focused.\n\n",
         focus.0.unwrap_or(0),
         focus.1.unwrap_or(0),
         focus.2.unwrap_or(0),

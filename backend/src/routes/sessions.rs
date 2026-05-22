@@ -2,7 +2,7 @@ use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::routing::{get, post};
 use axum::{Json, Router};
-use chrono::{NaiveDate, Utc};
+use chrono::{Datelike, NaiveDate, Utc};
 use uuid::Uuid;
 
 use crate::config::AppState;
@@ -274,11 +274,13 @@ async fn stats(
 
     let today_start = today.and_hms_opt(0, 0, 0).unwrap().and_utc();
     let today_end = today.and_hms_opt(23, 59, 59).unwrap().and_utc();
-    let week_start = (now - chrono::Duration::days(7))
-        .date_naive()
-        .and_hms_opt(0, 0, 0)
-        .unwrap()
-        .and_utc();
+    // §wave2 — "this week" = Monday-of-current-week, not rolling-7. Sessions
+    // completed earlier today land in `today_start..today_end`, and the
+    // week bucket carries Mon..now so a Sunday-night session is still
+    // counted as "this week" the next morning.
+    let days_since_monday = today.weekday().num_days_from_monday() as i64;
+    let this_monday = today - chrono::Duration::days(days_since_monday);
+    let week_start = this_monday.and_hms_opt(0, 0, 0).unwrap().and_utc();
 
     let range = params.range.as_deref().unwrap_or("week");
     let range_start = match range {

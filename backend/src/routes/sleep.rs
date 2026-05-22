@@ -245,15 +245,39 @@ async fn stats(
 
     let range = params.range.as_deref().unwrap_or("month");
 
+    // §wave2 — "week" now means the CURRENT calendar week (Mon..now). The
+    // old rolling-7-day window is still reachable via `rolling_week` for
+    // any caller that depended on it. Sleep tab calls `this_week` /
+    // `last_week` / `this_month` / `last_month` for the stats grid.
+    let today = now.date_naive();
+    let days_since_monday = today.weekday().num_days_from_monday() as i64;
+    let this_monday = today - chrono::Duration::days(days_since_monday);
+    let last_monday = this_monday - chrono::Duration::days(7);
+    let last_sunday_end = this_monday - chrono::Duration::days(1);
+    let first_of_month = today.with_day(1).unwrap_or(today);
+    let last_month_end = first_of_month - chrono::Duration::days(1);
+    let first_of_last_month = last_month_end.with_day(1).unwrap_or(last_month_end);
+
     let (start, end) = match range {
-        "week" => (now - chrono::Duration::days(7), now),
-        "calendar_week" => {
-            // Current ISO week: Monday 00:00 UTC → now
-            let today = now.date_naive();
-            let days_since_monday = today.weekday().num_days_from_monday() as i64;
-            let monday = today - chrono::Duration::days(days_since_monday);
-            let s = monday.and_hms_opt(0, 0, 0).unwrap().and_utc();
+        "rolling_week" => (now - chrono::Duration::days(7), now),
+        "week" | "this_week" | "calendar_week" => {
+            // Current ISO week: Monday 00:00 UTC → now.
+            let s = this_monday.and_hms_opt(0, 0, 0).unwrap().and_utc();
             (s, now)
+        }
+        "last_week" => {
+            let s = last_monday.and_hms_opt(0, 0, 0).unwrap().and_utc();
+            let e = last_sunday_end.and_hms_opt(23, 59, 59).unwrap().and_utc();
+            (s, e)
+        }
+        "this_month" => {
+            let s = first_of_month.and_hms_opt(0, 0, 0).unwrap().and_utc();
+            (s, now)
+        }
+        "last_month" => {
+            let s = first_of_last_month.and_hms_opt(0, 0, 0).unwrap().and_utc();
+            let e = last_month_end.and_hms_opt(23, 59, 59).unwrap().and_utc();
+            (s, e)
         }
         "custom" => {
             let s = params
