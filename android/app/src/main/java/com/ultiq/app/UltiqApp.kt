@@ -83,7 +83,9 @@ class UltiqApp : Application() {
             checklistDao = db.checklistDao(),
             sleepDao = db.sleepDao(),
             sessionDao = db.sessionDao(),
+            alarmDao = db.alarmDao(),
             alarmScheduler = AlarmScheduler(this),
+            wakeScheduler = com.ultiq.app.alarm.WakeAlarmScheduler(this),
         )
         ProcessLifecycleOwner.get().lifecycle.addObserver(
             object : DefaultLifecycleObserver {
