@@ -1,8 +1,7 @@
 package com.ultiq.app.ui.sleep
 
-import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -52,7 +51,6 @@ import com.ultiq.app.util.OemBatteryGuidance
  * the surrounding [LazyListScope], keeping the parent LazyColumn flat and
  * pageable rather than nesting a second scrollable list.
  */
-@OptIn(ExperimentalFoundationApi::class)
 fun LazyListScope.sleepAlarmsSection(
     alarms: List<AlarmEntity>,
     onCreate: () -> Unit,
@@ -115,13 +113,20 @@ fun LazyListScope.sleepAlarmsSection(
         }
     } else {
         items(alarms, key = { "alarm-${it.id}" }) { alarm ->
-            AlarmRow(
-                alarm = alarm,
-                onToggle = { onToggle(alarm, it) },
-                onClick = { onEdit(alarm.id) },
-                onLongClick = { onRequestDelete(alarm) },
+            // §delete-consistency — swipe row to delete, mirrors Sleep
+            // + Checklist. Tap still edits.
+            com.ultiq.app.ui.common.SwipeToDeleteBox(
+                confirmTitle = "Delete alarm?",
+                confirmBody = "This alarm will be removed from this device and your account. This can't be undone.",
+                onDelete = { onRequestDelete(alarm) },
                 modifier = Modifier.padding(horizontal = 16.dp),
-            )
+            ) {
+                AlarmRow(
+                    alarm = alarm,
+                    onToggle = { onToggle(alarm, it) },
+                    onClick = { onEdit(alarm.id) },
+                )
+            }
         }
         item(key = "alarms-add") {
             OutlinedButton(
@@ -175,13 +180,11 @@ internal fun DeleteAlarmDialog(
     )
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun AlarmRow(
     alarm: AlarmEntity,
     onToggle: (Boolean) -> Unit,
     onClick: () -> Unit,
-    onLongClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -191,7 +194,7 @@ private fun AlarmRow(
         ),
         modifier = modifier
             .fillMaxWidth()
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick),
+            .clickable(onClick = onClick),
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(

@@ -35,18 +35,24 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -76,6 +82,10 @@ import java.util.Locale
 fun CalendarScreen(viewModel: CalendarViewModel = viewModel()) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    // §delete-consistency — the AddEventDialog's Delete button now goes
+    // through a confirm dialog at this layer, matching the other tabs.
+    var pendingDeleteId by remember { mutableStateOf<String?>(null) }
+    var pendingDeleteTitle by remember { mutableStateOf("") }
 
     LaunchedEffect(uiState.error) {
         uiState.error?.let {
@@ -171,7 +181,11 @@ fun CalendarScreen(viewModel: CalendarViewModel = viewModel()) {
                 }
             },
             onDelete = uiState.editingEvent?.let { event ->
-                { viewModel.deleteEvent(event.id) }
+                {
+                    pendingDeleteId = event.id
+                    pendingDeleteTitle = event.title
+                    viewModel.hideDialog()
+                }
             },
             prefilledNewEvent = uiState.aiPrefill,
         )
@@ -184,6 +198,28 @@ fun CalendarScreen(viewModel: CalendarViewModel = viewModel()) {
             error = uiState.aiError,
             onSubmit = { text -> viewModel.submitAiParse(text) },
             onDismiss = { viewModel.dismissAiDialog() },
+        )
+    }
+
+    pendingDeleteId?.let { id ->
+        AlertDialog(
+            onDismissRequest = { pendingDeleteId = null },
+            title = { Text("Delete event?") },
+            text = { Text("'${pendingDeleteTitle}' will be removed from your calendar.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        pendingDeleteId = null
+                        viewModel.deleteEvent(id)
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                    ),
+                ) { Text("Delete") }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDeleteId = null }) { Text("Cancel") }
+            },
         )
     }
 }
