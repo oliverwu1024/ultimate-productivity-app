@@ -1,6 +1,6 @@
 {
-  "versionCode": 26,
-  "versionName": "2.8.0",
-  "url": "https://ultiqapp.com/ultiq.2.8.0.apk",
-  "releaseNotes": "New: a Coach chat for asking about sleep, focus, and weekly planning, plus a daily anomaly check that quietly watches for slow-burn patterns (5+ short nights, focus collapse, sleep-window phone spirals) and pings you when it notices something worth a look."
+  "versionCode": 27,
+  "versionName": "2.9.0",
+  "url": "https://ultiqapp.com/ultiq.2.9.0.apk",
+  "releaseNotes": "Coach can now actually do things. It reads your sleep, focus, calendar, and checklist context before answering, can add checklist items for you (with one-tap undo), and drafts calendar events you confirm before they land. Ask things like 'how did I sleep this week?' or 'add buy groceries for tomorrow'."
 }
