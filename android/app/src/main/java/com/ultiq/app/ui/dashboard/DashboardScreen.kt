@@ -24,7 +24,6 @@ import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Nightlight
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PhoneAndroid
@@ -53,9 +52,21 @@ import android.Manifest
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateIntAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.res.painterResource
+import com.ultiq.app.R
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -172,7 +183,7 @@ fun DashboardScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            item { GreetingHeader() }
+            item { GreetingHeader(onCoachClick = onNavigateToChat) }
 
             if (uiState.showLockOverlayHint) {
                 item {
@@ -318,14 +329,9 @@ fun DashboardScreen(
                 }
             }
 
-            // §9.6 — Coach Chat entry. Stays small + always-visible: it's
-            // the only discoverability surface (no bottom-nav slot) so we
-            // err toward "here when you need it" rather than feature-pushy.
-            item {
-                AnimatedAppear(delayMillis = 225) {
-                    CoachChatCard(onOpen = onNavigateToChat)
-                }
-            }
+            // §9.6 — Coach entry promoted to the GreetingHeader (above the
+            // fold) so the user doesn't have to scroll past two cards to
+            // reach the chat. The old slim row card lived here.
 
             if (uiState.achievementsEarnedCount > 0) {
                 item {
@@ -393,18 +399,71 @@ private fun WebDashboardHint(
 }
 
 @Composable
-private fun GreetingHeader() {
+private fun GreetingHeader(onCoachClick: () -> Unit) {
     val now = LocalTime.now()
-    Column {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                WarmCopy.greeting(now),
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                WarmCopy.greetingSubtitle(now),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Spacer(Modifier.width(12.dp))
+        CoachMascotEntry(onClick = onCoachClick)
+    }
+}
+
+/// Coach entry mascot, parked next to the morning/evening greeting so it's
+/// always above the fold. Idle "breathing" animation gives the avatar a
+/// pulse — subtle enough not to be distracting but enough to read as a
+/// living, tappable affordance rather than dead decoration. Tapping it
+/// opens the Coach chat screen.
+@Composable
+private fun CoachMascotEntry(onClick: () -> Unit) {
+    val transition = rememberInfiniteTransition(label = "coach-breath")
+    val scale by transition.animateFloat(
+        initialValue = 0.97f,
+        targetValue = 1.03f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 2200, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "coach-breath-scale",
+    )
+
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(
+            modifier = Modifier
+                .size(64.dp)
+                .scale(scale)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .border(
+                    width = 2.dp,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f),
+                    shape = CircleShape,
+                )
+                .clickable(onClick = onClick),
+            contentAlignment = Alignment.Center,
+        ) {
+            Image(
+                painter = painterResource(R.drawable.ic_coach_mascot),
+                contentDescription = "Talk to your coach",
+                modifier = Modifier.size(44.dp),
+            )
+        }
+        Spacer(Modifier.height(4.dp))
         Text(
-            WarmCopy.greeting(now),
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold
-        )
-        Text(
-            WarmCopy.greetingSubtitle(now),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            "Coach",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.SemiBold,
         )
     }
 }
@@ -914,47 +973,6 @@ private fun AchievementsCard(earned: Int, total: Int, recent: List<AchievementBa
             if (newest != null) {
                 Text(
                     "Latest: ${newest.name}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-    }
-}
-
-/// §9.6 — Entry point for the Coach Chat screen. Slim row-style card so
-/// it doesn't compete with the weekly insight card visually; the user has
-/// already seen the chat exists by Dashboard #1 and the affordance just
-/// needs to be a clear one-tap-away surface from there on.
-@Composable
-private fun CoachChatCard(onOpen: () -> Unit) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onOpen),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-        ),
-    ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                Icons.AutoMirrored.Filled.Chat,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(22.dp),
-            )
-            Spacer(Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    "Talk to your coach",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                Text(
-                    "Ask about sleep, focus, planning, or anything productivity-shaped.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
