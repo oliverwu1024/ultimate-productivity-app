@@ -86,6 +86,17 @@ class AlarmRingService : Service() {
         // satisfied immediately.
         startInForeground(alarmId)
 
+        // Force the AlarmActivity to the top even when the phone is in
+        // active use. The notification's `setFullScreenIntent` only auto-
+        // launches when the device is in a "compelling" state (locked,
+        // idle screen, DND-ringing) per Android 14+ docs — when the user
+        // is actively using their phone, the OS demotes the FSI to a
+        // heads-up notification and the alarm screen never appears. A
+        // foreground service started from an alarm BroadcastReceiver is
+        // exempt from the background-activity-launch restrictions, so
+        // calling `startActivity` here is allowed and takes the screen.
+        launchAlarmActivity(alarmId)
+
         // §L4: acquire the wake lock FIRST so we keep the CPU alive even if
         // sound/vibration setup throws on this device.
         acquireWakeLock(alarmId)
@@ -171,12 +182,35 @@ class AlarmRingService : Service() {
         }
     }
 
-    private fun startInForeground(alarmId: String) {
-        val tapIntent = Intent(this, AlarmActivity::class.java).apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-            putExtra(EXTRA_ALARM_ID, alarmId)
+    /// Build the Intent that launches AlarmActivity for [alarmId]. Used both
+    /// as the notification's content/full-screen intent and for the direct
+    /// `startActivity` push from `handleStart`.
+    private fun alarmActivityIntent(alarmId: String): Intent = Intent(this, AlarmActivity::class.java).apply {
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        putExtra(EXTRA_ALARM_ID, alarmId)
+    }
+
+    /// Explicit `startActivity` to bring AlarmActivity over the user's
+    /// current app. Required when the phone is actively in use — the
+    /// notification's fullScreenIntent alone won't trigger a takeover in
+    /// that state. The activity itself sets `showWhenLocked` +
+    /// `turnScreenOn` so the locked-phone path still works the same.
+    private fun launchAlarmActivity(alarmId: String) {
+        try {
+            startActivity(alarmActivityIntent(alarmId))
+        } catch (t: Throwable) {
+            // Background-activity-launch restrictions can fire here on
+            // some OEM ROMs even though FGS-from-alarm-receiver is meant
+            // to be exempt. Log and let the notification's fullScreenIntent
+            // remain the fallback — the user still gets the heads-up and
+            // can tap it.
+            Log.w(TAG, "launchAlarmActivity failed for $alarmId: $t")
         }
+    }
+
+    private fun startInForeground(alarmId: String) {
+        val tapIntent = alarmActivityIntent(alarmId)
         val tapPi = PendingIntent.getActivity(
             this,
             FSI_REQUEST_CODE,
