@@ -54,11 +54,24 @@ data class ToolInvocationDto(
     /// Populated when `status = "proposed"` and `name = "create_calendar_event"`.
     /// The parsed fields the user confirms or cancels.
     val proposed_event: ParsedCalendarFieldsDto? = null,
+    /// Populated when `status = "proposed"` and `name = "create_alarm"`.
+    /// The parsed alarm fields the user confirms or cancels.
+    val proposed_alarm: ProposedAlarmFieldsDto? = null,
+)
+
+/// Mirrors backend `ProposedAlarmFields`. `days_of_week` is the same
+/// bitmask the AlarmEntity uses (bit 0 = Sun … bit 6 = Sat, 0 = one-shot).
+data class ProposedAlarmFieldsDto(
+    val trigger_time_local: String,
+    val label: String? = null,
+    val days_of_week: Short,
+    val mission_kind: String,
 )
 
 data class CommittedResourceDto(
-    /// "checklist" (newly created) | "checklist_complete" (marked done).
-    /// Tells the client which undo endpoint to hit.
+    /// "checklist" (newly created) | "checklist_complete" (marked done) |
+    /// "sleep_record" (Coach logged a night). Tells the client which undo
+    /// endpoint to hit.
     val kind: String,
     val id: String,
     val title: String? = null,

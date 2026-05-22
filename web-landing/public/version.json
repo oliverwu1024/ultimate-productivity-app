@@ -1,6 +1,6 @@
 {
-  "versionCode": 30,
-  "versionName": "2.9.3",
-  "url": "https://ultiqapp.com/ultiq.2.9.3.apk",
-  "releaseNotes": "Coach is now above the fold. The Ultiq mascot sits next to your morning / evening greeting on the Dashboard — one tap to chat, no scrolling past two cards to find it. Subtle breathing animation so it reads as a living, tappable affordance."
+  "versionCode": 31,
+  "versionName": "2.10.0",
+  "url": "https://ultiqapp.com/ultiq.2.10.0.apk",
+  "releaseNotes": "Coach can now log sleep + set alarms. Backfill a missing night by saying 'I slept 11:30 to 7am quality 4 yesterday' — Coach logs it immediately with one-tap undo. Or 'set a 6:30am alarm tomorrow with math' — Coach drafts the alarm with a Create / Cancel card on the chat."
 }
