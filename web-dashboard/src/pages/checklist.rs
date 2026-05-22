@@ -1,8 +1,9 @@
 use chrono::{Datelike, Duration, Local, NaiveDate, TimeZone, Utc};
-use leptos::either::EitherOf3;
+use leptos::either::{Either, EitherOf4};
 use leptos::prelude::*;
 use leptos_meta::Title;
 
+use crate::api::ai::{parse_event, ParseEventRequest, ParsedChecklistFields};
 use crate::api::calendar::{
     create_event as create_calendar_event, CreateCalendarEvent, EventCategory, EventPriority,
 };
@@ -11,6 +12,7 @@ use crate::api::checklist::{
     uncomplete_item, update_item, ChecklistItem, CreateChecklistItem, Priority, UpdateChecklistItem,
 };
 use crate::api::sse::{use_sse, SyncEvent};
+use crate::components::ai_parse_dialog::{AiParsePromptDialog, AiSurface};
 use crate::components::layout::AppShell;
 
 /// Thin wrapper to keep the call sites tidy; logic lives on the model.
@@ -23,6 +25,9 @@ enum DialogState {
     Closed,
     Add,
     Edit(ChecklistItem),
+    /// §9.5 — AI quick-add hands its parsed values to the create dialog.
+    /// User still confirms before save.
+    AddPrefilled(ParsedChecklistFields),
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -73,6 +78,11 @@ pub fn ChecklistPage() -> impl IntoView {
     let loading = RwSignal::new(false);
     let error = RwSignal::new(None::<String>);
     let show_completed = RwSignal::new(false);
+
+    // §9.5 — AI quick-add state.
+    let ai_open = RwSignal::new(false);
+    let ai_loading = RwSignal::new(false);
+    let ai_error = RwSignal::new(None::<String>);
 
     let refresh = move || {
         let day = selected_day.get_untracked();
@@ -170,12 +180,23 @@ pub fn ChecklistPage() -> impl IntoView {
             <div class="p-4 md:p-8 max-w-4xl mx-auto">
                 <header class="flex items-center justify-between mb-6">
                     <h1 class="text-3xl font-bold text-ultiq-indigo">"Checklist"</h1>
-                    <button
-                        on:click=move |_| dialog.set(DialogState::Add)
-                        class="px-4 py-2 bg-ultiq-indigo text-ultiq-cream rounded-lg font-medium hover:opacity-90 cursor-pointer"
-                    >
-                        "+ Add item"
-                    </button>
+                    <div class="flex items-center gap-2">
+                        <button
+                            on:click=move |_| {
+                                ai_error.set(None);
+                                ai_open.set(true);
+                            }
+                            class="px-3 py-2 border border-ultiq-indigo/30 text-ultiq-indigo rounded-lg font-medium hover:bg-ultiq-indigo/5 cursor-pointer"
+                        >
+                            "✨ AI"
+                        </button>
+                        <button
+                            on:click=move |_| dialog.set(DialogState::Add)
+                            class="px-4 py-2 bg-ultiq-indigo text-ultiq-cream rounded-lg font-medium hover:opacity-90 cursor-pointer"
+                        >
+                            "+ Add item"
+                        </button>
+                    </div>
                 </header>
 
                 <Show when=move || error.get().is_some()>
@@ -296,23 +317,78 @@ pub fn ChecklistPage() -> impl IntoView {
                 </div>
 
                 {move || match dialog.get() {
-                    DialogState::Closed => EitherOf3::A(view! { <></> }),
-                    DialogState::Add => EitherOf3::B(view! {
+                    DialogState::Closed => EitherOf4::A(view! { <></> }),
+                    DialogState::Add => EitherOf4::B(view! {
                         <ItemDialog
                             existing=None
+                            prefill=None
                             initial_day=selected_day.get_untracked()
                             on_close=move || dialog.set(DialogState::Closed)
                             on_saved=move || { dialog.set(DialogState::Closed); refresh(); }
                         />
                     }),
-                    DialogState::Edit(item) => EitherOf3::C(view! {
+                    DialogState::Edit(item) => EitherOf4::C(view! {
                         <ItemDialog
                             existing=Some(item)
+                            prefill=None
                             initial_day=selected_day.get_untracked()
                             on_close=move || dialog.set(DialogState::Closed)
                             on_saved=move || { dialog.set(DialogState::Closed); refresh(); }
                         />
                     }),
+                    DialogState::AddPrefilled(parsed) => EitherOf4::D(view! {
+                        <ItemDialog
+                            existing=None
+                            prefill=Some(parsed)
+                            initial_day=selected_day.get_untracked()
+                            on_close=move || dialog.set(DialogState::Closed)
+                            on_saved=move || { dialog.set(DialogState::Closed); refresh(); }
+                        />
+                    }),
+                }}
+
+                {move || if ai_open.get() {
+                    Either::Left(view! {
+                        <AiParsePromptDialog
+                            surface=AiSurface::Checklist
+                            loading=ai_loading
+                            error=ai_error
+                            on_submit=move |text| {
+                                if ai_loading.get_untracked() { return; }
+                                ai_loading.set(true);
+                                ai_error.set(None);
+                                let now_local = chrono::Local::now().to_rfc3339();
+                                wasm_bindgen_futures::spawn_local(async move {
+                                    let req = ParseEventRequest {
+                                        text,
+                                        hint: Some("checklist".into()),
+                                        now_local: Some(now_local),
+                                    };
+                                    match parse_event(&req).await {
+                                        Ok(resp) => {
+                                            if let Some(cl) = resp.checklist {
+                                                ai_loading.set(false);
+                                                ai_open.set(false);
+                                                dialog.set(DialogState::AddPrefilled(cl));
+                                            } else {
+                                                ai_loading.set(false);
+                                                ai_error.set(Some(
+                                                    "Couldn't parse that — try rephrasing.".into(),
+                                                ));
+                                            }
+                                        }
+                                        Err(e) => {
+                                            ai_loading.set(false);
+                                            ai_error.set(Some(e.message));
+                                        }
+                                    }
+                                });
+                            }
+                            on_close=move || ai_open.set(false)
+                        />
+                    })
+                } else {
+                    Either::Right(view! { <></> })
                 }}
             </div>
         </AppShell>
@@ -454,6 +530,8 @@ fn schedule_label(item: &ChecklistItem) -> Option<String> {
 #[component]
 fn ItemDialog(
     existing: Option<ChecklistItem>,
+    /// §9.5 — AI-parsed initial state. Only consulted when `existing` is None.
+    prefill: Option<ParsedChecklistFields>,
     initial_day: NaiveDate,
     on_close: impl Fn() + Send + Sync + Copy + 'static,
     on_saved: impl Fn() + Send + Sync + Copy + 'static,
@@ -461,17 +539,33 @@ fn ItemDialog(
     let is_edit = existing.is_some();
     let item_id = existing.as_ref().map(|i| i.id.clone());
 
-    let title = RwSignal::new(existing.as_ref().map(|i| i.title.clone()).unwrap_or_default());
+    // Resolution order: existing → prefill → blank/default.
+    let title = RwSignal::new(
+        existing
+            .as_ref()
+            .map(|i| i.title.clone())
+            .or_else(|| prefill.as_ref().map(|p| p.title.clone()))
+            .unwrap_or_default(),
+    );
     let description = RwSignal::new(
-        existing.as_ref().and_then(|i| i.description.clone()).unwrap_or_default(),
+        existing
+            .as_ref()
+            .and_then(|i| i.description.clone())
+            .or_else(|| prefill.as_ref().and_then(|p| p.description.clone()))
+            .unwrap_or_default(),
     );
     let due_date = RwSignal::new(
-        existing.as_ref().map(|i| i.due_date).unwrap_or(initial_day),
+        existing
+            .as_ref()
+            .map(|i| i.due_date)
+            .or_else(|| prefill.as_ref().map(|p| p.due_date))
+            .unwrap_or(initial_day),
     );
     let estimated_minutes_str = RwSignal::new(
         existing
             .as_ref()
             .and_then(|i| i.estimated_minutes)
+            .or_else(|| prefill.as_ref().and_then(|p| p.estimated_minutes))
             .map(|n| n.to_string())
             .unwrap_or_default(),
     );
@@ -479,6 +573,12 @@ fn ItemDialog(
         existing
             .as_ref()
             .map(|i| i.priority_enum())
+            .or_else(|| {
+                prefill
+                    .as_ref()
+                    .and_then(|p| p.priority)
+                    .map(|n| Priority::from_i16(n as i16))
+            })
             .unwrap_or(Priority::Medium),
     );
 

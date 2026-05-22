@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.ultiq.app.data.local.AppDatabase
 import com.ultiq.app.data.local.entity.ChecklistEntity
 import com.ultiq.app.data.remote.RetrofitClient
+import com.ultiq.app.data.remote.dto.ParseEventRequestDto
 import com.ultiq.app.data.repository.ChecklistRepository
 import com.ultiq.app.util.TokenManager
 import com.ultiq.app.util.UserPreferences
@@ -18,6 +19,7 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.OffsetDateTime
 import java.time.temporal.IsoFields
 import java.time.temporal.TemporalAdjusters
 
@@ -32,6 +34,23 @@ data class ChecklistUiState(
     /** Open items dated yesterday (only meaningful when selectedDate == today
      *  and the user hasn't dismissed the carry-over banner today). */
     val yesterdayOpenItems: List<ChecklistEntity> = emptyList(),
+    // §9.5 — AI quick-add state. `aiPrefill` is handed to the existing
+    // ChecklistEditDialog as initial state when set.
+    val showAiDialog: Boolean = false,
+    val aiLoading: Boolean = false,
+    val aiError: String? = null,
+    val aiPrefill: AiChecklistPrefill? = null,
+)
+
+/// §9.5 — Minimal carrier of the AI-parsed fields the edit dialog needs as
+/// initial state. Stays internal to the checklist surface (separate from the
+/// network DTO) so the dialog can stay un-aware of remote types.
+data class AiChecklistPrefill(
+    val title: String,
+    val description: String?,
+    val dueDate: LocalDate,
+    val priority: Int?,
+    val estimatedMinutes: Int?,
 )
 
 class ChecklistViewModel(application: Application) : AndroidViewModel(application) {
@@ -101,15 +120,90 @@ class ChecklistViewModel(application: Application) : AndroidViewModel(applicatio
     fun jumpToToday() = selectDate(LocalDate.now())
 
     fun openAddDialog() {
-        _uiState.value = _uiState.value.copy(showAddDialog = true, editingItem = null)
+        _uiState.value = _uiState.value.copy(
+            showAddDialog = true,
+            editingItem = null,
+            aiPrefill = null,
+        )
     }
 
     fun openEditDialog(item: ChecklistEntity) {
-        _uiState.value = _uiState.value.copy(showAddDialog = true, editingItem = item)
+        _uiState.value = _uiState.value.copy(
+            showAddDialog = true,
+            editingItem = item,
+            aiPrefill = null,
+        )
     }
 
     fun dismissDialog() {
-        _uiState.value = _uiState.value.copy(showAddDialog = false, editingItem = null)
+        _uiState.value = _uiState.value.copy(
+            showAddDialog = false,
+            editingItem = null,
+            aiPrefill = null,
+        )
+    }
+
+    // ── §9.5 — AI quick-add ─────────────────────────────────────────────
+
+    fun showAiDialog() {
+        _uiState.value = _uiState.value.copy(
+            showAiDialog = true,
+            aiError = null,
+            aiLoading = false,
+        )
+    }
+
+    fun dismissAiDialog() {
+        _uiState.value = _uiState.value.copy(
+            showAiDialog = false,
+            aiError = null,
+            aiLoading = false,
+        )
+    }
+
+    fun submitAiParse(text: String) {
+        if (text.isBlank()) return
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(aiLoading = true, aiError = null)
+            runCatching {
+                api.parseEvent(
+                    ParseEventRequestDto(
+                        text = text,
+                        hint = "checklist",
+                        now_local = OffsetDateTime.now().toString(),
+                    )
+                )
+            }.onSuccess { resp ->
+                val cl = resp.checklist
+                if (cl == null) {
+                    _uiState.value = _uiState.value.copy(
+                        aiLoading = false,
+                        aiError = "Couldn't parse that — try rephrasing.",
+                    )
+                    return@onSuccess
+                }
+                val due = runCatching { LocalDate.parse(cl.due_date) }
+                    .getOrDefault(_uiState.value.selectedDate)
+                _uiState.value = _uiState.value.copy(
+                    aiLoading = false,
+                    showAiDialog = false,
+                    showAddDialog = true,
+                    editingItem = null,
+                    aiPrefill = AiChecklistPrefill(
+                        title = cl.title,
+                        description = cl.description,
+                        dueDate = due,
+                        priority = cl.priority,
+                        estimatedMinutes = cl.estimated_minutes,
+                    ),
+                )
+            }.onFailure { e ->
+                _uiState.value = _uiState.value.copy(
+                    aiLoading = false,
+                    aiError = e.toUserMessage("Couldn't reach the AI service. Try again."),
+                )
+            }
+        }
     }
 
     fun saveItem(

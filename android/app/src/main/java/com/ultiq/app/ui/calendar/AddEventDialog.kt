@@ -76,31 +76,73 @@ fun AddEventDialog(
     editingEvent: CalendarEventEntity?,
     onDismiss: () -> Unit,
     onSave: (CreateCalendarEventDto) -> Unit,
-    onDelete: (() -> Unit)?
+    onDelete: (() -> Unit)?,
+    /// §9.5 — When non-null AND editingEvent is null, the form opens with
+    /// these values instead of blank defaults. Used by the AI quick-add flow
+    /// to pre-fill a freshly-parsed event for the user to confirm.
+    prefilledNewEvent: CreateCalendarEventDto? = null,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val context = LocalContext.current
     val zone = ZoneId.systemDefault()
 
-    // Init state from editing event or defaults
-    val initStart = editingEvent?.let { Instant.ofEpochMilli(it.startTime).atZone(zone).toLocalDateTime() }
-    val initEnd = editingEvent?.let { Instant.ofEpochMilli(it.endTime).atZone(zone).toLocalDateTime() }
+    // Initial start/end resolves in priority order:
+    //  1. editingEvent (user opened the dialog from an existing row)
+    //  2. prefilledNewEvent (user came in via the AI quick-add flow)
+    //  3. blank defaults (now → now+1h on the chosen day)
+    val initStart: java.time.LocalDateTime? = when {
+        editingEvent != null ->
+            Instant.ofEpochMilli(editingEvent.startTime).atZone(zone).toLocalDateTime()
+        prefilledNewEvent != null ->
+            runCatching {
+                Instant.parse(prefilledNewEvent.start_time).atZone(zone).toLocalDateTime()
+            }.getOrNull()
+        else -> null
+    }
+    val initEnd: java.time.LocalDateTime? = when {
+        editingEvent != null ->
+            Instant.ofEpochMilli(editingEvent.endTime).atZone(zone).toLocalDateTime()
+        prefilledNewEvent != null ->
+            runCatching {
+                Instant.parse(prefilledNewEvent.end_time).atZone(zone).toLocalDateTime()
+            }.getOrNull()
+        else -> null
+    }
 
-    // Default new events to "now → now + 1h" on the chosen day. If now+1h
-    // rolls past midnight, the end date follows so the form shows the
-    // correct next-day end (user can still adjust).
     val defaultNow = java.time.LocalDateTime.of(initialDate, LocalTime.now().withSecond(0).withNano(0))
     val defaultEnd = defaultNow.plusHours(1)
 
-    var title by remember { mutableStateOf(editingEvent?.title ?: "") }
-    var description by remember { mutableStateOf(editingEvent?.description ?: "") }
+    var title by remember {
+        mutableStateOf(editingEvent?.title ?: prefilledNewEvent?.title ?: "")
+    }
+    var description by remember {
+        mutableStateOf(editingEvent?.description ?: prefilledNewEvent?.description ?: "")
+    }
     var startDate by remember { mutableStateOf(initStart?.toLocalDate() ?: defaultNow.toLocalDate()) }
     var startTime by remember { mutableStateOf(initStart?.toLocalTime() ?: defaultNow.toLocalTime()) }
     var endDate by remember { mutableStateOf(initEnd?.toLocalDate() ?: defaultEnd.toLocalDate()) }
     var endTime by remember { mutableStateOf(initEnd?.toLocalTime() ?: defaultEnd.toLocalTime()) }
-    var category by remember { mutableStateOf(editingEvent?.category ?: "study") }
-    var priority by remember { mutableStateOf(editingEvent?.priority ?: "medium") }
-    var selectedColor by remember { mutableStateOf(editingEvent?.color ?: "#4A90D9") }
+    // §9.5 — Coerce prefill values against the known chip lists. Backend
+    // validates the AI output too, but if the model ever drifts off-schema
+    // (or a future client sends a bad prefill) we'd silently render a chip
+    // group with nothing selected. Snap to the chip set or fall back.
+    var category by remember {
+        mutableStateOf(
+            editingEvent?.category
+                ?: prefilledNewEvent?.category?.takeIf { it in categories }
+                ?: "study"
+        )
+    }
+    var priority by remember {
+        mutableStateOf(
+            editingEvent?.priority
+                ?: prefilledNewEvent?.priority?.takeIf { it in priorities }
+                ?: "medium"
+        )
+    }
+    var selectedColor by remember {
+        mutableStateOf(editingEvent?.color ?: prefilledNewEvent?.color ?: "#4A90D9")
+    }
     var isRecurring by remember { mutableStateOf(editingEvent?.isRecurring ?: false) }
     var frequency by remember { mutableStateOf(parseFrequency(editingEvent?.recurrenceRule)) }
     var weeklyDays by remember { mutableStateOf(parseWeeklyDays(editingEvent?.recurrenceRule)) }

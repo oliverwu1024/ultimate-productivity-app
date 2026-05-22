@@ -24,6 +24,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.ExpandLess
@@ -47,6 +48,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -71,6 +73,8 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ultiq.app.data.local.entity.ChecklistEntity
+import com.ultiq.app.ui.common.AiParsePromptDialog
+import com.ultiq.app.ui.common.AiParseSurface
 import com.ultiq.app.ui.common.MascotEmptyState
 import com.ultiq.app.ui.copy.WarmCopy
 import kotlinx.coroutines.launch
@@ -112,11 +116,23 @@ fun ChecklistScreen(
             )
         },
         floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = viewModel::openAddDialog,
-                icon = { Icon(Icons.Default.Add, null) },
-                text = { Text("Add") },
-            )
+            // §9.5 — Small "AI" FAB above the main Add FAB.
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                SmallFloatingActionButton(
+                    onClick = viewModel::showAiDialog,
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                ) {
+                    Icon(Icons.Default.AutoAwesome, "Quick add with AI")
+                }
+                ExtendedFloatingActionButton(
+                    onClick = viewModel::openAddDialog,
+                    icon = { Icon(Icons.Default.Add, null) },
+                    text = { Text("Add") },
+                )
+            }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
@@ -183,8 +199,19 @@ fun ChecklistScreen(
             ChecklistEditDialog(
                 editing = state.editingItem,
                 defaultDueDate = state.selectedDate,
+                prefill = state.aiPrefill,
                 onDismiss = viewModel::dismissDialog,
                 onSave = viewModel::saveItem,
+            )
+        }
+
+        if (state.showAiDialog) {
+            AiParsePromptDialog(
+                surface = AiParseSurface.CHECKLIST,
+                loading = state.aiLoading,
+                error = state.aiError,
+                onSubmit = { text -> viewModel.submitAiParse(text) },
+                onDismiss = viewModel::dismissAiDialog,
             )
         }
 
@@ -498,6 +525,9 @@ private enum class ScheduleMode { ONE_OFF, RECURRING, UNTIL_DUE }
 private fun ChecklistEditDialog(
     editing: ChecklistEntity?,
     defaultDueDate: LocalDate,
+    /// §9.5 — AI-parsed values used as initial state when the user came in
+    /// via the AI quick-add flow. Only consulted when `editing` is null.
+    prefill: AiChecklistPrefill?,
     onDismiss: () -> Unit,
     /// `alsoCreateTodayOneOff` is true when the user opted in to the
     /// "include today as well" prompt for a recurring task whose mask
@@ -506,17 +536,29 @@ private fun ChecklistEditDialog(
     onSave: (title: String, description: String?, dueDate: LocalDate, estimatedMinutes: Int?, priority: Int, recurrenceDaysMask: Int, showUntilDue: Boolean, alsoCreateTodayOneOff: Boolean) -> Unit,
 ) {
     val context = LocalContext.current
-    var title by remember { mutableStateOf(editing?.title ?: "") }
-    var description by remember { mutableStateOf(editing?.description ?: "") }
+    var title by remember {
+        mutableStateOf(editing?.title ?: prefill?.title ?: "")
+    }
+    var description by remember {
+        mutableStateOf(editing?.description ?: prefill?.description ?: "")
+    }
     var dueDate by remember {
         mutableStateOf(
-            editing?.dueDateEpochDay?.let(LocalDate::ofEpochDay) ?: defaultDueDate,
+            editing?.dueDateEpochDay?.let(LocalDate::ofEpochDay)
+                ?: prefill?.dueDate
+                ?: defaultDueDate,
         )
     }
     var minutesText by remember {
-        mutableStateOf(editing?.estimatedMinutes?.toString() ?: "")
+        mutableStateOf(
+            editing?.estimatedMinutes?.toString()
+                ?: prefill?.estimatedMinutes?.toString()
+                ?: "",
+        )
     }
-    var priority by remember { mutableStateOf(editing?.priority ?: 1) }
+    var priority by remember {
+        mutableStateOf(editing?.priority ?: prefill?.priority ?: 1)
+    }
 
     val initialMode = remember(editing) {
         when {

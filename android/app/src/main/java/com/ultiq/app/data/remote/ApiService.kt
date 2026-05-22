@@ -23,6 +23,8 @@ import com.ultiq.app.data.remote.dto.SleepStatsDto
 import com.ultiq.app.data.remote.dto.UpdateChecklistItemDto
 import com.ultiq.app.data.remote.dto.UpdateProfileRequest
 import com.ultiq.app.data.remote.dto.UpdateSessionDto
+import com.ultiq.app.data.remote.dto.ParseEventRequestDto
+import com.ultiq.app.data.remote.dto.ParseEventResponseDto
 import com.ultiq.app.data.remote.dto.SessionDebriefRequestDto
 import com.ultiq.app.data.remote.dto.SessionDebriefResponseDto
 import com.ultiq.app.data.remote.dto.UserResponse
@@ -216,4 +218,11 @@ interface ApiService {
         @Path("id") id: String,
         @Body body: SessionDebriefRequestDto,
     ): SessionDebriefResponseDto
+
+    // §9.5 — Parse a free-form sentence into a calendar event or checklist
+    // item via Sonnet tool-calling. `hint` pins the surface the user is on so
+    // the server forces the matching tool. The client pre-fills the existing
+    // create dialog with the response — the user still confirms before save.
+    @POST("ai/parse-event")
+    suspend fun parseEvent(@Body body: ParseEventRequestDto): ParseEventResponseDto
 }

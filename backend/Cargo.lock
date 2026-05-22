@@ -566,6 +566,7 @@ dependencies = [
  "argon2",
  "aws-config",
  "aws-sdk-bedrockruntime",
+ "aws-smithy-types",
  "axum",
  "chrono",
  "dotenvy",

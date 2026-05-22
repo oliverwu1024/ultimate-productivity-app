@@ -7,6 +7,7 @@ import com.ultiq.app.data.local.AppDatabase
 import com.ultiq.app.data.local.entity.CalendarEventEntity
 import com.ultiq.app.data.remote.RetrofitClient
 import com.ultiq.app.data.remote.dto.CreateCalendarEventDto
+import com.ultiq.app.data.remote.dto.ParseEventRequestDto
 import com.ultiq.app.data.repository.CalendarRepository
 import com.ultiq.app.util.AlarmScheduler
 import com.ultiq.app.util.TokenManager
@@ -18,6 +19,7 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
+import java.time.OffsetDateTime
 import java.time.YearMonth
 import java.time.ZoneOffset
 
@@ -31,6 +33,16 @@ data class CalendarUiState(
     val viewMode: ViewMode = ViewMode.MONTH,
     val showAddDialog: Boolean = false,
     val editingEvent: CalendarEventEntity? = null,
+    /// §9.5 — AI-parsed values handed off to the AddEventDialog as initial
+    /// state when the user came in via the AI quick-add flow. Cleared as
+    /// soon as the dialog dismisses so a follow-up manual add starts blank.
+    val aiPrefill: CreateCalendarEventDto? = null,
+    /// §9.5 — Mutually exclusive with `showAddDialog`. True while the user
+    /// is typing in the "describe what you want" dialog and during the
+    /// `parse-event` round-trip.
+    val showAiDialog: Boolean = false,
+    val aiLoading: Boolean = false,
+    val aiError: String? = null,
     val isLoading: Boolean = false,
     val error: String? = null,
 )
@@ -70,15 +82,95 @@ class CalendarViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun showAddDialog() {
-        _uiState.value = _uiState.value.copy(showAddDialog = true, editingEvent = null)
+        _uiState.value = _uiState.value.copy(
+            showAddDialog = true,
+            editingEvent = null,
+            aiPrefill = null,
+        )
     }
 
     fun showEditDialog(event: CalendarEventEntity) {
-        _uiState.value = _uiState.value.copy(showAddDialog = true, editingEvent = event)
+        _uiState.value = _uiState.value.copy(
+            showAddDialog = true,
+            editingEvent = event,
+            aiPrefill = null,
+        )
     }
 
     fun hideDialog() {
-        _uiState.value = _uiState.value.copy(showAddDialog = false, editingEvent = null)
+        _uiState.value = _uiState.value.copy(
+            showAddDialog = false,
+            editingEvent = null,
+            aiPrefill = null,
+        )
+    }
+
+    // ── §9.5 — AI quick-add ─────────────────────────────────────────────
+
+    fun showAiDialog() {
+        _uiState.value = _uiState.value.copy(
+            showAiDialog = true,
+            aiError = null,
+            aiLoading = false,
+        )
+    }
+
+    fun dismissAiDialog() {
+        _uiState.value = _uiState.value.copy(
+            showAiDialog = false,
+            aiError = null,
+            aiLoading = false,
+        )
+    }
+
+    fun submitAiParse(text: String) {
+        if (text.isBlank()) return
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(aiLoading = true, aiError = null)
+            runCatching {
+                api.parseEvent(
+                    ParseEventRequestDto(
+                        text = text,
+                        hint = "calendar",
+                        now_local = OffsetDateTime.now().toString(),
+                    )
+                )
+            }.onSuccess { resp ->
+                val cal = resp.calendar
+                if (cal == null) {
+                    _uiState.value = _uiState.value.copy(
+                        aiLoading = false,
+                        aiError = "Couldn't parse that — try rephrasing.",
+                    )
+                    return@onSuccess
+                }
+                // Hand the parsed fields to the existing AddEventDialog as
+                // initial state. Caller still confirms before save.
+                val prefill = CreateCalendarEventDto(
+                    title = cal.title,
+                    description = cal.description,
+                    start_time = cal.start_time,
+                    end_time = cal.end_time,
+                    category = cal.category,
+                    priority = cal.priority,
+                    is_recurring = false,
+                    recurrence_rule = null,
+                    color = null,
+                )
+                _uiState.value = _uiState.value.copy(
+                    aiLoading = false,
+                    showAiDialog = false,
+                    showAddDialog = true,
+                    editingEvent = null,
+                    aiPrefill = prefill,
+                )
+            }.onFailure { e ->
+                _uiState.value = _uiState.value.copy(
+                    aiLoading = false,
+                    aiError = e.toUserMessage("Couldn't reach the AI service. Try again."),
+                )
+            }
+        }
     }
 
     fun createEvent(dto: CreateCalendarEventDto) {

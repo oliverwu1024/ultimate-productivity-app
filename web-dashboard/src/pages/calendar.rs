@@ -1,15 +1,17 @@
 use std::collections::HashMap;
 
 use chrono::{DateTime, Datelike, Duration, Local, NaiveDate, NaiveDateTime, TimeZone, Utc};
-use leptos::either::EitherOf3;
+use leptos::either::{Either, EitherOf4};
 use leptos::prelude::*;
 use leptos_meta::Title;
 
+use crate::api::ai::{parse_event, ParseEventRequest, ParsedCalendarFields};
 use crate::api::calendar::{
     create_event, delete_event, list_events, update_event, CalendarEvent, CreateCalendarEvent,
     EventCategory, EventPriority,
 };
 use crate::api::sse::{use_sse, SyncEvent};
+use crate::components::ai_parse_dialog::{AiParsePromptDialog, AiSurface};
 use crate::components::layout::AppShell;
 
 #[derive(Clone)]
@@ -17,6 +19,10 @@ enum DialogState {
     Closed,
     Add,
     Edit(CalendarEvent),
+    /// §9.5 — AI quick-add opened the create dialog with these prefilled
+    /// values. The user still confirms before save; behaves identically to
+    /// `Add` apart from the initial form state.
+    AddPrefilled(ParsedCalendarFields),
 }
 
 const MONTH_NAMES: [&str; 12] = [
@@ -90,6 +96,13 @@ pub fn CalendarPage() -> impl IntoView {
     let loading = RwSignal::new(false);
     let error = RwSignal::new(None::<String>);
 
+    // §9.5 — AI quick-add state. `ai_open` controls the prompt dialog;
+    // success replaces the dialog state with `AddPrefilled` and closes the
+    // prompt.
+    let ai_open = RwSignal::new(false);
+    let ai_loading = RwSignal::new(false);
+    let ai_error = RwSignal::new(None::<String>);
+
     let refresh = move || {
         let month = current_month.get_untracked();
         let start = month;
@@ -141,12 +154,23 @@ pub fn CalendarPage() -> impl IntoView {
             <div class="p-4 md:p-8 max-w-6xl mx-auto">
                 <header class="flex items-center justify-between mb-6">
                     <h1 class="text-3xl font-bold text-ultiq-indigo">"Calendar"</h1>
-                    <button
-                        on:click=move |_| dialog.set(DialogState::Add)
-                        class="px-4 py-2 bg-ultiq-indigo text-ultiq-cream rounded-lg font-medium hover:opacity-90 cursor-pointer"
-                    >
-                        "+ Add event"
-                    </button>
+                    <div class="flex items-center gap-2">
+                        <button
+                            on:click=move |_| {
+                                ai_error.set(None);
+                                ai_open.set(true);
+                            }
+                            class="px-3 py-2 border border-ultiq-indigo/30 text-ultiq-indigo rounded-lg font-medium hover:bg-ultiq-indigo/5 cursor-pointer"
+                        >
+                            "✨ AI"
+                        </button>
+                        <button
+                            on:click=move |_| dialog.set(DialogState::Add)
+                            class="px-4 py-2 bg-ultiq-indigo text-ultiq-cream rounded-lg font-medium hover:opacity-90 cursor-pointer"
+                        >
+                            "+ Add event"
+                        </button>
+                    </div>
                 </header>
 
                 <Show when=move || error.get().is_some()>
@@ -258,23 +282,78 @@ pub fn CalendarPage() -> impl IntoView {
                 </section>
 
                 {move || match dialog.get() {
-                    DialogState::Closed => EitherOf3::A(view! { <></> }),
-                    DialogState::Add => EitherOf3::B(view! {
+                    DialogState::Closed => EitherOf4::A(view! { <></> }),
+                    DialogState::Add => EitherOf4::B(view! {
                         <EventDialog
                             existing=None
+                            prefill=None
                             initial_day=selected_day.get_untracked()
                             on_close=move || dialog.set(DialogState::Closed)
                             on_saved=move || { dialog.set(DialogState::Closed); refresh(); }
                         />
                     }),
-                    DialogState::Edit(event) => EitherOf3::C(view! {
+                    DialogState::Edit(event) => EitherOf4::C(view! {
                         <EventDialog
                             existing=Some(event)
+                            prefill=None
                             initial_day=selected_day.get_untracked()
                             on_close=move || dialog.set(DialogState::Closed)
                             on_saved=move || { dialog.set(DialogState::Closed); refresh(); }
                         />
                     }),
+                    DialogState::AddPrefilled(parsed) => EitherOf4::D(view! {
+                        <EventDialog
+                            existing=None
+                            prefill=Some(parsed)
+                            initial_day=selected_day.get_untracked()
+                            on_close=move || dialog.set(DialogState::Closed)
+                            on_saved=move || { dialog.set(DialogState::Closed); refresh(); }
+                        />
+                    }),
+                }}
+
+                {move || if ai_open.get() {
+                    Either::Left(view! {
+                        <AiParsePromptDialog
+                            surface=AiSurface::Calendar
+                            loading=ai_loading
+                            error=ai_error
+                            on_submit=move |text| {
+                                if ai_loading.get_untracked() { return; }
+                                ai_loading.set(true);
+                                ai_error.set(None);
+                                let now_local = chrono::Local::now().to_rfc3339();
+                                wasm_bindgen_futures::spawn_local(async move {
+                                    let req = ParseEventRequest {
+                                        text,
+                                        hint: Some("calendar".into()),
+                                        now_local: Some(now_local),
+                                    };
+                                    match parse_event(&req).await {
+                                        Ok(resp) => {
+                                            if let Some(cal) = resp.calendar {
+                                                ai_loading.set(false);
+                                                ai_open.set(false);
+                                                dialog.set(DialogState::AddPrefilled(cal));
+                                            } else {
+                                                ai_loading.set(false);
+                                                ai_error.set(Some(
+                                                    "Couldn't parse that — try rephrasing.".into(),
+                                                ));
+                                            }
+                                        }
+                                        Err(e) => {
+                                            ai_loading.set(false);
+                                            ai_error.set(Some(e.message));
+                                        }
+                                    }
+                                });
+                            }
+                            on_close=move || ai_open.set(false)
+                        />
+                    })
+                } else {
+                    Either::Right(view! { <></> })
                 }}
             </div>
         </AppShell>
@@ -473,9 +552,36 @@ fn priority_label(p: EventPriority) -> &'static str {
     }
 }
 
+/// §9.5 — Map the lowercase category strings the AI tool returns (matching
+/// the backend's serde rename) back to the dashboard's enum. `EventCategory::
+/// from_str` only accepts PascalCase variants, so we need this dedicated
+/// parser for AI-sourced values.
+fn parsed_category(s: &str) -> Option<EventCategory> {
+    match s {
+        "study" => Some(EventCategory::Study),
+        "project" => Some(EventCategory::Project),
+        "exercise" => Some(EventCategory::Exercise),
+        "personal" => Some(EventCategory::Personal),
+        "other" => Some(EventCategory::Other),
+        _ => None,
+    }
+}
+
+fn parsed_priority(s: &str) -> Option<EventPriority> {
+    match s {
+        "high" => Some(EventPriority::High),
+        "medium" => Some(EventPriority::Medium),
+        "low" => Some(EventPriority::Low),
+        _ => None,
+    }
+}
+
 #[component]
 fn EventDialog(
     existing: Option<CalendarEvent>,
+    /// §9.5 — AI-parsed values used as initial state when the dialog opens
+    /// via the quick-add flow. Only consulted when `existing` is None.
+    prefill: Option<ParsedCalendarFields>,
     initial_day: NaiveDate,
     on_close: impl Fn() + Send + Sync + Copy + 'static,
     on_saved: impl Fn() + Send + Sync + Copy + 'static,
@@ -483,18 +589,57 @@ fn EventDialog(
     let is_edit = existing.is_some();
     let event_id = existing.as_ref().map(|e| e.id.clone());
 
-    let title = RwSignal::new(existing.as_ref().map(|e| e.title.clone()).unwrap_or_default());
+    // Resolution order for each field: existing → prefill → blank/default.
+    let title = RwSignal::new(
+        existing
+            .as_ref()
+            .map(|e| e.title.clone())
+            .or_else(|| prefill.as_ref().map(|p| p.title.clone()))
+            .unwrap_or_default(),
+    );
     let description = RwSignal::new(
-        existing.as_ref().and_then(|e| e.description.clone()).unwrap_or_default(),
+        existing
+            .as_ref()
+            .and_then(|e| e.description.clone())
+            .or_else(|| prefill.as_ref().and_then(|p| p.description.clone()))
+            .unwrap_or_default(),
     );
     let start_time = RwSignal::new(
-        existing.as_ref().map(|e| dt_to_input(e.start_time)).unwrap_or_else(|| default_start_for(initial_day)),
+        existing
+            .as_ref()
+            .map(|e| dt_to_input(e.start_time))
+            .or_else(|| prefill.as_ref().map(|p| dt_to_input(p.start_time)))
+            .unwrap_or_else(|| default_start_for(initial_day)),
     );
     let end_time = RwSignal::new(
-        existing.as_ref().map(|e| dt_to_input(e.end_time)).unwrap_or_else(|| default_end_for(initial_day)),
+        existing
+            .as_ref()
+            .map(|e| dt_to_input(e.end_time))
+            .or_else(|| prefill.as_ref().map(|p| dt_to_input(p.end_time)))
+            .unwrap_or_else(|| default_end_for(initial_day)),
     );
-    let category = RwSignal::new(existing.as_ref().map(|e| e.category).unwrap_or(EventCategory::Study));
-    let priority = RwSignal::new(existing.as_ref().map(|e| e.priority).unwrap_or(EventPriority::Medium));
+    let category = RwSignal::new(
+        existing
+            .as_ref()
+            .map(|e| e.category)
+            .or_else(|| {
+                prefill
+                    .as_ref()
+                    .and_then(|p| parsed_category(&p.category))
+            })
+            .unwrap_or(EventCategory::Study),
+    );
+    let priority = RwSignal::new(
+        existing
+            .as_ref()
+            .map(|e| e.priority)
+            .or_else(|| {
+                prefill
+                    .as_ref()
+                    .and_then(|p| parsed_priority(&p.priority))
+            })
+            .unwrap_or(EventPriority::Medium),
+    );
     let submitting = RwSignal::new(false);
     let dialog_error = RwSignal::new(None::<String>);
 

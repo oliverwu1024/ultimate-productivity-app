@@ -26,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
@@ -36,6 +37,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -57,6 +59,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.material.icons.filled.EventAvailable
 import com.ultiq.app.data.local.entity.CalendarEventEntity
+import com.ultiq.app.ui.common.AiParsePromptDialog
+import com.ultiq.app.ui.common.AiParseSurface
 import com.ultiq.app.ui.common.MascotEmptyState
 import com.ultiq.app.ui.copy.WarmCopy
 import java.time.Instant
@@ -83,8 +87,22 @@ fun CalendarScreen(viewModel: CalendarViewModel = viewModel()) {
     Scaffold(
         topBar = { TopAppBar(title = { Text("Calendar") }) },
         floatingActionButton = {
-            FloatingActionButton(onClick = { viewModel.showAddDialog() }) {
-                Icon(Icons.Default.Add, "Add Event")
+            // §9.5 — Small "AI" FAB stacked above the main "+" FAB. The small
+            // size + accent tint distinguishes the AI quick-add affordance
+            // without competing with the primary action.
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                SmallFloatingActionButton(
+                    onClick = { viewModel.showAiDialog() },
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                ) {
+                    Icon(Icons.Default.AutoAwesome, "Quick add with AI")
+                }
+                FloatingActionButton(onClick = { viewModel.showAddDialog() }) {
+                    Icon(Icons.Default.Add, "Add Event")
+                }
             }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
@@ -154,7 +172,18 @@ fun CalendarScreen(viewModel: CalendarViewModel = viewModel()) {
             },
             onDelete = uiState.editingEvent?.let { event ->
                 { viewModel.deleteEvent(event.id) }
-            }
+            },
+            prefilledNewEvent = uiState.aiPrefill,
+        )
+    }
+
+    if (uiState.showAiDialog) {
+        AiParsePromptDialog(
+            surface = AiParseSurface.CALENDAR,
+            loading = uiState.aiLoading,
+            error = uiState.aiError,
+            onSubmit = { text -> viewModel.submitAiParse(text) },
+            onDismiss = { viewModel.dismissAiDialog() },
         )
     }
 }
