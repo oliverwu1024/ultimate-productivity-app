@@ -263,7 +263,7 @@ fun DashboardScreen(
                     fontWeight = FontWeight.Bold
                 )
             }
-            if (uiState.upcomingEvents.isEmpty()) {
+            if (uiState.upcomingItems.isEmpty()) {
                 item {
                     Text(
                         WarmCopy.upcomingEventsEmpty(),
@@ -272,14 +272,29 @@ fun DashboardScreen(
                     )
                 }
             }
-            items(uiState.upcomingEvents, key = { "${it.id}_${it.startTime}" }) { event ->
-                UpcomingEventItem(
-                    event = event,
-                    onClick = onNavigateToCalendar,
-                    modifier = Modifier.animateItem(),
-                )
+            items(
+                uiState.upcomingItems,
+                key = { item ->
+                    when (item) {
+                        is UpcomingItem.Calendar -> "evt-${item.event.id}-${item.event.startTime}"
+                        is UpcomingItem.Checklist -> "list-${item.item.id}"
+                    }
+                },
+            ) { item ->
+                when (item) {
+                    is UpcomingItem.Calendar -> UpcomingEventItem(
+                        event = item.event,
+                        onClick = onNavigateToCalendar,
+                        modifier = Modifier.animateItem(),
+                    )
+                    is UpcomingItem.Checklist -> UpcomingChecklistItem(
+                        item = item.item,
+                        onClick = onNavigateToChecklist,
+                        modifier = Modifier.animateItem(),
+                    )
+                }
             }
-            if (uiState.upcomingEvents.isNotEmpty()) {
+            if (uiState.upcomingItems.isNotEmpty()) {
                 item {
                     TextButton(onClick = onNavigateToCalendar) {
                         Text("View all")
@@ -727,6 +742,50 @@ private fun ChecklistCard(summary: TodayChecklistSummary?, onClick: () -> Unit) 
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+            }
+        }
+    }
+}
+
+/// Same row treatment as [UpcomingEventItem] but for an open checklist
+/// item due today. Tapping routes the user to the Checklist tab; no
+/// clock-time line because checklist items are day-scoped.
+@Composable
+private fun UpcomingChecklistItem(
+    item: com.ultiq.app.data.local.entity.ChecklistEntity,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(8.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                Icons.Default.Checklist,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(16.dp),
+            )
+            Spacer(Modifier.width(10.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    item.title,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    "Today",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
     }

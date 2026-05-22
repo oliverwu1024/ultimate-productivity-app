@@ -99,10 +99,28 @@ data class AnomalyAlertState(
     val generatedAt: String,
 )
 
+/// One row in the Dashboard "Coming up" section. Calendar events sort by
+/// `startTime`; checklist items have no clock time so we surface them
+/// alongside calendar events for the same day with a dedicated icon.
+sealed interface UpcomingItem {
+    /// Used to sort the combined list. Calendar = real `start_time`;
+    /// checklist = start-of-day epoch millis for the due_date so a
+    /// "buy bananas today" item sorts before any later calendar event.
+    val sortKey: Long
+    data class Calendar(val event: CalendarEventEntity) : UpcomingItem {
+        override val sortKey: Long get() = event.startTime
+    }
+    data class Checklist(val item: com.ultiq.app.data.local.entity.ChecklistEntity) : UpcomingItem {
+        override val sortKey: Long
+            get() = item.dueDateEpochDay * 86_400_000L
+    }
+}
+
 data class DashboardUiState(
     val lastNightSleep: SleepSummary? = null,
     val todayFocus: FocusSummary? = null,
     val upcomingEvents: List<CalendarEventEntity> = emptyList(),
+    val upcomingItems: List<UpcomingItem> = emptyList(),
     val weeklyHighlights: WeeklyHighlights? = null,
     val todayChecklist: TodayChecklistSummary? = null,
     val achievementsEarnedCount: Int = 0,
@@ -415,8 +433,26 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         val today = LocalDate.now()
         val events = calendarRepo.getEventsForRange(today, today.plusDays(7)).firstOrNull() ?: emptyList()
         val now = System.currentTimeMillis()
+        val visibleEvents = events.filter { it.startTime >= now }
+
+        // §wave2 — merge today's open checklist items into the same
+        // "Coming up" list so the user sees the day's commitments in one
+        // place (was calendar-only before).
+        val dayOfWeekBit = 1 shl (today.dayOfWeek.value % 7)
+        val checklistOpen = db.checklistDao()
+            .getByDate(today.toEpochDay(), dayOfWeekBit)
+            .firstOrNull()
+            ?.filter { !it.completed }
+            ?: emptyList()
+
+        val combined: List<UpcomingItem> = (
+            visibleEvents.map(UpcomingItem::Calendar) +
+                checklistOpen.map(UpcomingItem::Checklist)
+            ).sortedBy { it.sortKey }.take(8)
+
         _uiState.value = _uiState.value.copy(
-            upcomingEvents = events.filter { it.startTime >= now }.take(5)
+            upcomingEvents = visibleEvents.take(5),
+            upcomingItems = combined,
         )
     }
 

@@ -1,6 +1,6 @@
 {
-  "versionCode": 32,
-  "versionName": "2.10.1",
-  "url": "https://ultiqapp.com/ultiq.2.10.1.apk",
-  "releaseNotes": "Five fixes on top of v2.10.0. Alarms created via Coach now appear on the Alarm tab instantly. Coach no longer proposes a sleep log AND an alarm in the same turn. Coach can pull two months of history (was capped at 30 days). Toggling one of two alarms with the same time no longer flips the wrong row. Deleting a checklist item now shows a confirm dialog like Sleep and Alarms do."
+  "versionCode": 33,
+  "versionName": "2.10.2",
+  "url": "https://ultiqapp.com/ultiq.2.10.2.apk",
+  "releaseNotes": "\"This week\" now means Monday-through-today everywhere — focus + sleep totals stop quietly resetting at random times. Sleep tab adds a small 2×2 grid of nights logged this week / last week / this month / last month so you can eyeball consistency. The Dashboard \"Coming up\" section now shows today's open checklist items alongside calendar events."
 }

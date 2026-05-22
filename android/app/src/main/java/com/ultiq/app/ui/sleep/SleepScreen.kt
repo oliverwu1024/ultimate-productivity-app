@@ -309,6 +309,13 @@ private fun SleepSubTab(
             )
         }
 
+        // §wave2 — small 2×2 grid of period counts (This week / Last week /
+        // This month / Last month) above the stats card so the user can
+        // eyeball consistency at a glance.
+        item(key = "period-grid") {
+            AnimatedAppear { SleepPeriodGrid(counts = uiState.periodCounts) }
+        }
+
         if (hasStats) {
             item(key = "stats") {
                 AnimatedAppear { StatsRow(uiState.stats!!) }
@@ -546,6 +553,80 @@ private fun SessionControl(
         }
     }
 }
+
+/// 2×2 grid: rows = "This week / This month" and "Last week / Last month",
+/// each cell showing the count of nights logged. Mirrors the layout the
+/// user asked for in v2.10.2 feedback. Lives just above the existing
+/// StatsRow so the at-a-glance counts come first, the per-night averages
+/// come after.
+@Composable
+private fun SleepPeriodGrid(counts: SleepPeriodCounts) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+        ),
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            Row(modifier = Modifier.fillMaxWidth()) {
+                PeriodColumn(
+                    headline = "Week",
+                    currentLabel = "This week",
+                    currentDays = counts.thisWeek,
+                    previousLabel = "Last week",
+                    previousDays = counts.lastWeek,
+                    modifier = Modifier.weight(1f),
+                )
+                Spacer(Modifier.width(12.dp))
+                PeriodColumn(
+                    headline = "Month",
+                    currentLabel = "This month",
+                    currentDays = counts.thisMonth,
+                    previousLabel = "Last month",
+                    previousDays = counts.lastMonth,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PeriodColumn(
+    headline: String,
+    currentLabel: String,
+    currentDays: Int,
+    previousLabel: String,
+    previousDays: Int,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier) {
+        Text(
+            headline,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(currentLabel, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(
+            daysLabel(currentDays),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(previousLabel, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(
+            daysLabel(previousDays),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+        )
+    }
+}
+
+private fun daysLabel(n: Int): String = if (n == 1) "1 day" else "$n days"
 
 @Composable
 private fun StatsRow(stats: SleepStats) {
