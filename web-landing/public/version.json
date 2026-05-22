@@ -1,6 +1,6 @@
 {
-  "versionCode": 25,
-  "versionName": "2.7.3",
-  "url": "https://ultiqapp.com/ultiq.2.7.3.apk",
-  "releaseNotes": "After installing an update, the banner now offers a 'tap to restart Ultiq' button so the new code actually starts running — previously you had to swipe-kill the app and reopen for the new version to take effect."
+  "versionCode": 26,
+  "versionName": "2.8.0",
+  "url": "https://ultiqapp.com/ultiq.2.8.0.apk",
+  "releaseNotes": "New: a Coach chat for asking about sleep, focus, and weekly planning, plus a daily anomaly check that quietly watches for slow-burn patterns (5+ short nights, focus collapse, sleep-window phone spirals) and pings you when it notices something worth a look."
 }
