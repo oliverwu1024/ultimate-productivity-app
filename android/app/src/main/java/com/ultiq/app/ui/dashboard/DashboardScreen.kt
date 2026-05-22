@@ -597,11 +597,24 @@ private fun FocusCard(focus: FocusSummary?, onClick: () -> Unit) {
             val h = f.totalMinutesToday / 60
             val m = f.totalMinutesToday % 60
             val timeStr = if (h > 0) "${h}h ${m}m" else "${m}m"
-            Text(timeStr, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            // §audit-2 — explicit "today" label. The card always shows today's
+            // total; the user reported "looks weird" because the number was
+            // unlabeled and got conflated with the "vs last week" comparison
+            // line below.
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text(timeStr, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    "today",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 4.dp),
+                )
+            }
 
             if (f.vsLastWeek != null) {
                 Text(
-                    f.vsLastWeek,
+                    "${f.vsLastWeek} (daily avg)",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -612,7 +625,7 @@ private fun FocusCard(focus: FocusSummary?, onClick: () -> Unit) {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("${f.sessionsToday} session${if (f.sessionsToday != 1) "s" else ""}", style = MaterialTheme.typography.bodySmall)
+                Text("${f.sessionsToday} session${if (f.sessionsToday != 1) "s" else ""} today", style = MaterialTheme.typography.bodySmall)
 
                 val streakLine = WarmCopy.streakLine(f.currentStreak, f.longestStreak)
                 if (streakLine != null) {

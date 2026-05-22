@@ -1,6 +1,6 @@
 {
-  "versionCode": 34,
-  "versionName": "2.10.3",
-  "url": "https://ultiqapp.com/ultiq.2.10.3.apk",
-  "releaseNotes": "Delete is now consistent across Sleep, Alarms, Checklist, and Calendar — swipe a row left on any list to delete (with a confirm dialog), or tap an event to edit + delete with a confirm dialog. Replaces the old mix of trash icons, long-press menus, and missing confirms."
+  "versionCode": 35,
+  "versionName": "2.10.4",
+  "url": "https://ultiqapp.com/ultiq.2.10.4.apk",
+  "releaseNotes": "Six fixes from the audit. Alarm delete now shows ONE dialog (was double-dialoging). Sleep tab replaced the 2×2 grid with section headers ('This week / Last week' or 'This month / Last month'). Dashboard 'Coming up' is today's calendar events only — checklist items stay in 'Today's plan'. 'Ready to focus?' now labels the number 'today' so it stops reading like a weekly total. Coach can now answer calendar-period questions ('last week', 'this month') via dedicated period-aware tools — no more 'last 7 days' confusion."
 }
