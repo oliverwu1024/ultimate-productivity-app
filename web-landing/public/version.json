@@ -1,6 +1,6 @@
 {
-  "versionCode": 28,
-  "versionName": "2.9.1",
-  "url": "https://ultiqapp.com/ultiq.2.9.1.apk",
-  "releaseNotes": "Coach polish — your message appears the instant you send it instead of after the round-trip, **bold** / *italic* now render properly (no more raw asterisks), and bubbles fade in instead of snapping. The weekly summary footer wording is clearer about the once-a-day cadence."
+  "versionCode": 29,
+  "versionName": "2.9.2",
+  "url": "https://ultiqapp.com/ultiq.2.9.2.apk",
+  "releaseNotes": "Alarm fix: the alarm screen now actually takes over the display when your phone is in active use, not just when it's locked. Previously it only showed as a heads-up notification you had to tap to enter the dismiss mission — easy to miss when half-asleep."
 }
