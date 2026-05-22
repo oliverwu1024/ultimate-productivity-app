@@ -1075,7 +1075,7 @@ private fun AiWeeklyInsightCard(
                     }
                     if (state.cached) {
                         Text(
-                            "Cached — refresh to regenerate (24h cap)",
+                            "Refreshes every 24 hours — your next summary's on its way.",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
