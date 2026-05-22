@@ -114,6 +114,20 @@ async fn main() {
             .expect("valid governor config"),
     );
 
+    // `/ai/**` rate limit. Tighter than the global bucket because every
+    // request fans out into a Bedrock call (or several, for the chat
+    // tool-loop) and downstream dollars. 1 rps with burst 10 smooths to
+    // "10 requests per minute" — plenty for a real interactive user, but
+    // catches retry-loop bugs and abuse before they reach the daily quota.
+    let ai_governor = Arc::new(
+        GovernorConfigBuilder::default()
+            .per_second(1)
+            .burst_size(10)
+            .use_headers()
+            .finish()
+            .expect("valid governor config"),
+    );
+
     let state = AppState { pool, config, email, events, tickets, ai, fcm };
 
     // §9.8 Phase C — daily anomaly scan. No-op unless
@@ -124,6 +138,10 @@ async fn main() {
         .layer(GovernorLayer { config: auth_governor });
     let other_routes = routes::other_routes()
         .layer(GovernorLayer { config: global_governor });
+    // AI sits behind its own governor — strictly tighter than the global
+    // bucket because each request burns Bedrock dollars and quota.
+    let ai_routes = routes::ai_routes()
+        .layer(GovernorLayer { config: ai_governor });
     // `/health` is mounted outside both governors. ALB probes must never
     // be rate-limited — a burst from real traffic depleting the bucket
     // would otherwise 429 the next probe and make ECS kill the task.
@@ -135,6 +153,7 @@ async fn main() {
     // ever follows an external link from a token-bearing URL.
     let app = auth_routes
         .merge(other_routes)
+        .merge(ai_routes)
         .merge(health_routes)
         // 1 MiB hard cap on request bodies — well above the largest legitimate
         // bulk_create payload but cheap to enforce.

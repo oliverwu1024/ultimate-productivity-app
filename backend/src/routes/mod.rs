@@ -43,6 +43,14 @@ pub fn other_routes() -> Router<AppState> {
         .merge(alarms::router())
         .merge(admin::router())
         .merge(sync::router())
-        .merge(ai::router())
         .merge(devices::router())
+}
+
+/// `/ai/**` endpoints sit behind a strict 10-req-per-minute governor in
+/// `main.rs`. Every AI request consumes downstream Bedrock quota and dollars
+/// — a runaway retry loop on a misbehaving client would otherwise be the
+/// most expensive footgun in the codebase, so the per-IP cap is much
+/// tighter than the global 200 rps that covers normal CRUD traffic.
+pub fn ai_routes() -> Router<AppState> {
+    ai::router()
 }

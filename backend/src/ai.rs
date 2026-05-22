@@ -37,7 +37,15 @@ pub const MODEL_HAIKU: &str = "au.anthropic.claude-haiku-4-5-20251001-v1:0";
 
 /// Default per-user-per-day request cap. AI is Pro-tier only at launch, so
 /// this is the Pro limit. Override with `AI_DAILY_REQUEST_CAP` env var.
-pub const DEFAULT_DAILY_REQUEST_CAP: i32 = 30;
+///
+/// Raised from 30 → 500 alongside the Coach tool-loop expansion. Each
+/// tool-using chat turn can spend 1-3 quota tickets (one per Bedrock call
+/// inside the loop), so the per-turn budget moved up by roughly 3× while
+/// the per-day request budget moved up by 16×. The hard cap exists purely
+/// as a blast-radius limit for runaway clients / abuse — actual everyday
+/// usage stays well under it. Cost ceiling at 500/day/user is bounded by
+/// the $20/day CloudWatch billing alarm on Bedrock.
+pub const DEFAULT_DAILY_REQUEST_CAP: i32 = 500;
 
 /// Max characters logged per prompt/response field when sampling.
 const LOG_TRUNCATE_CHARS: usize = 200;
