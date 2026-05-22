@@ -100,6 +100,7 @@ fn SidebarNav() -> impl IntoView {
             <NavLink href="/focus" label="Focus" />
             <NavLink href="/correlations" label="Correlations" />
             <NavLink href="/reports" label="Reports" />
+            <NavLink href="/chat" label="Coach" />
             <Show when=move || auth.user.get().map(|u| u.is_admin).unwrap_or(false)>
                 <NavLink href="/admin" label="Admin" />
             </Show>

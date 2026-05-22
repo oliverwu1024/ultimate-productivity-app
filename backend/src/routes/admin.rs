@@ -2,10 +2,10 @@ use axum::async_trait;
 use axum::extract::{FromRequestParts, State};
 use axum::http::request::Parts;
 use axum::http::StatusCode;
-use axum::routing::get;
+use axum::routing::{get, post};
 use axum::{Json, Router};
 use chrono::{DateTime, NaiveDate, Utc};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::config::AppState;
@@ -16,6 +16,9 @@ pub fn router() -> Router<AppState> {
     Router::new()
         .route("/admin/stats", get(admin_stats))
         .route("/admin/users", get(admin_users))
+        // §9.8 — Debug endpoint to manually verify the FCM end-to-end path
+        // before the daily anomaly scheduler is wired. Keep gated to admins.
+        .route("/admin/test-push", post(admin_test_push))
 }
 
 pub struct AdminUser;
@@ -118,6 +121,53 @@ pub struct AdminUserEntry {
     pub email: String,
     pub created_at: DateTime<Utc>,
     pub is_admin: bool,
+}
+
+// ── §9.8 — Test push ─────────────────────────────────────────────────────
+
+/// Body for `POST /admin/test-push`. `target_user_id` optional — when
+/// omitted, sends to the calling admin's own registered devices, which is
+/// the typical "is FCM wired correctly?" flow.
+#[derive(Debug, Deserialize)]
+pub struct TestPushRequest {
+    pub target_user_id: Option<Uuid>,
+    pub title: String,
+    pub body: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct TestPushResponse {
+    pub delivered: usize,
+}
+
+async fn admin_test_push(
+    State(state): State<AppState>,
+    _admin: AdminUser,
+    claims: Claims,
+    Json(input): Json<TestPushRequest>,
+) -> Result<Json<TestPushResponse>, AppError> {
+    let Some(fcm) = state.fcm.as_ref() else {
+        return Err(AppError::new(
+            StatusCode::SERVICE_UNAVAILABLE,
+            "FCM not configured on this backend",
+        ));
+    };
+    if input.title.trim().is_empty() || input.body.trim().is_empty() {
+        return Err(AppError::new(
+            StatusCode::BAD_REQUEST,
+            "title and body must not be empty",
+        ));
+    }
+    let target = match input.target_user_id {
+        Some(id) => id,
+        None => claims.sub.parse::<Uuid>().map_err(|_| {
+            AppError::new(StatusCode::UNAUTHORIZED, "Invalid token subject")
+        })?,
+    };
+    let delivered = fcm
+        .send_to_user(&state.pool, target, input.title.trim(), input.body.trim(), None)
+        .await?;
+    Ok(Json(TestPushResponse { delivered }))
 }
 
 async fn admin_users(

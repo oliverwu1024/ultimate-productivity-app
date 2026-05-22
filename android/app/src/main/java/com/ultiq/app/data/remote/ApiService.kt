@@ -7,6 +7,10 @@ import com.ultiq.app.data.remote.dto.CalendarEventDto
 import com.ultiq.app.data.remote.dto.CreateAlarmDto
 import com.ultiq.app.data.remote.dto.CreateAlarmEventDto
 import com.ultiq.app.data.remote.dto.ChangePasswordRequest
+import com.ultiq.app.data.remote.dto.ChatMessageDto
+import com.ultiq.app.data.remote.dto.ChatResetResponseDto
+import com.ultiq.app.data.remote.dto.ChatSendRequestDto
+import com.ultiq.app.data.remote.dto.ChatSendResponseDto
 import com.ultiq.app.data.remote.dto.ForgotPasswordRequest
 import com.ultiq.app.data.remote.dto.ResetPasswordRequest
 import com.ultiq.app.data.remote.dto.ChecklistItemDto
@@ -14,7 +18,10 @@ import com.ultiq.app.data.remote.dto.CreateCalendarEventDto
 import com.ultiq.app.data.remote.dto.CreateChecklistItemDto
 import com.ultiq.app.data.remote.dto.CreateSessionDto
 import com.ultiq.app.data.remote.dto.CreateSleepRecordDto
+import com.ultiq.app.data.remote.dto.DeviceTokenResponse
+import com.ultiq.app.data.remote.dto.LatestAnomalyDto
 import com.ultiq.app.data.remote.dto.LoginRequest
+import com.ultiq.app.data.remote.dto.RegisterDeviceTokenRequest
 import com.ultiq.app.data.remote.dto.RegisterRequest
 import com.ultiq.app.data.remote.dto.SessionDto
 import com.ultiq.app.data.remote.dto.SessionStatsDto
@@ -32,6 +39,7 @@ import com.ultiq.app.data.remote.dto.WeeklyInsightDto
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
+import retrofit2.http.HTTP
 import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.PUT
@@ -225,4 +233,30 @@ interface ApiService {
     // create dialog with the response — the user still confirms before save.
     @POST("ai/parse-event")
     suspend fun parseEvent(@Body body: ParseEventRequestDto): ParseEventResponseDto
+
+    // §9.8 — Register this device's FCM token so the backend can target push
+    // notifications. Called after login + every time Firebase rotates the
+    // token via onNewToken. Backend upserts on the token column.
+    @POST("devices/register")
+    suspend fun registerDevice(@Body body: RegisterDeviceTokenRequest): DeviceTokenResponse
+
+    @HTTP(method = "DELETE", path = "devices/register", hasBody = true)
+    suspend fun unregisterDevice(@Body body: RegisterDeviceTokenRequest)
+
+    // §9.8 — Read-only fetch of the latest anomaly alert (last 24h). Pure
+    // DB read, never triggers Bedrock. The Dashboard polls this on load
+    // to render the alert card.
+    @GET("ai/anomaly")
+    suspend fun getLatestAnomaly(): LatestAnomalyDto
+
+    // §9.6 — Coach chat. One active conversation per user; the messages
+    // list endpoint returns empty for a fresh user (no row to fetch).
+    @GET("ai/chat/messages")
+    suspend fun listChatMessages(@Query("limit") limit: Int? = null): List<ChatMessageDto>
+
+    @POST("ai/chat/messages")
+    suspend fun sendChatMessage(@Body body: ChatSendRequestDto): ChatSendResponseDto
+
+    @POST("ai/chat/reset")
+    suspend fun resetChat(): ChatResetResponseDto
 }

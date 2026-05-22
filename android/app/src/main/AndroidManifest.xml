@@ -105,6 +105,16 @@
                 android:value="alarm_ringing" />
         </service>
 
+        <!-- §9.8 — FCM entry point for the §9.8 anomaly push channel.
+             Firebase invokes onNewToken / onMessageReceived on this service. -->
+        <service
+            android:name=".fcm.UltiqMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
         <receiver
             android:name=".receiver.BedtimeReminderReceiver"
             android:exported="false" />

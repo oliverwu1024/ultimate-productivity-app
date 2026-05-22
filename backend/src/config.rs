@@ -3,6 +3,7 @@ use std::env;
 use crate::ai::AiClient;
 use crate::email::EmailClient;
 use crate::event_bus::EventBus;
+use crate::fcm::FcmClient;
 use crate::ticket::TicketStore;
 
 pub const JWT_ISSUER: &str = "ultiq-api";
@@ -49,7 +50,9 @@ pub struct AppState {
     pub email: EmailClient,
     pub events: EventBus,
     pub tickets: TicketStore,
-    // §9.3 scaffolding — first read once §9.4's weekly-insight handler lands.
-    #[allow(dead_code)]
     pub ai: AiClient,
+    /// §9.8 — FCM client. `None` when GOOGLE_APPLICATION_CREDENTIALS is
+    /// unset or the file failed to load (CI, fresh dev). Routes that need
+    /// push must check and return 503 ServiceUnavailable rather than crash.
+    pub fcm: Option<FcmClient>,
 }

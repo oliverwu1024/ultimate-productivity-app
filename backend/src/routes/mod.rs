@@ -4,6 +4,7 @@ pub mod alarms;
 pub mod auth;
 pub mod calendar;
 pub mod checklist;
+pub mod devices;
 pub mod phone_pickups;
 pub mod sessions;
 pub mod sleep;
@@ -43,4 +44,5 @@ pub fn other_routes() -> Router<AppState> {
         .merge(admin::router())
         .merge(sync::router())
         .merge(ai::router())
+        .merge(devices::router())
 }

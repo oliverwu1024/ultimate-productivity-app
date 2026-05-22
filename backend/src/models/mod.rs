@@ -2,6 +2,7 @@ pub mod ai;
 pub mod alarm;
 pub mod calendar;
 pub mod checklist;
+pub mod device_token;
 pub mod phone_pickup;
 pub mod session;
 pub mod sleep;

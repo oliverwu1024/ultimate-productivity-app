@@ -21,6 +21,9 @@ object NotificationHelper {
     const val NOTIFICATION_ID_BEDTIME = 2001
     const val NOTIFICATION_ID_FOCUS = 2002
     const val NOTIFICATION_ID_MORNING_SUMMARY = 2003
+    /// §9.8 — Anomaly insight (FCM-delivered). One notification id keeps
+    /// repeat alerts collapsed into a single row in the tray.
+    const val NOTIFICATION_ID_ANOMALY = 2004
     private const val EVENT_NOTIFICATION_ID_BASE = 30_000
 
     const val EXTRA_DEEP_LINK = "deep_link_target"
@@ -135,6 +138,21 @@ object NotificationHelper {
 
     fun cancelEventReminder(context: Context, eventId: String) {
         NotificationManagerCompat.from(context).cancel(eventNotificationId(eventId))
+    }
+
+    /// §9.8 — Surface an FCM-delivered anomaly alert. Used by
+    /// UltiqMessagingService.onMessageReceived for the foreground case (FCM
+    /// auto-renders the tray notification only when the app is backgrounded,
+    /// so foregrounded alerts otherwise silently disappear).
+    fun showAnomalyAlert(context: Context, title: String, body: String) {
+        notify(
+            context = context,
+            id = NOTIFICATION_ID_ANOMALY,
+            channelId = CHANNEL_REMINDERS,
+            title = title,
+            body = body,
+            deepLink = DEEP_LINK_DASHBOARD,
+        )
     }
 
     fun eventNotificationId(eventId: String): Int =

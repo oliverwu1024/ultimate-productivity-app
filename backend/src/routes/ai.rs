@@ -25,7 +25,7 @@ use aws_sdk_bedrockruntime::types::{
 use aws_smithy_types::{Document, Number};
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
-use axum::routing::post;
+use axum::routing::{get, post};
 use axum::{Json, Router};
 use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
@@ -45,6 +45,16 @@ pub fn router() -> Router<AppState> {
         .route("/ai/weekly-insight", post(weekly_insight))
         .route("/ai/session-debrief/:id", post(session_debrief))
         .route("/ai/parse-event", post(parse_event))
+        .route("/ai/anomaly-check", post(anomaly_check))
+        // §9.8 Phase D — read-only fetch of the latest anomaly alert. Cheap
+        // DB read, never touches Bedrock. Mobile Dashboard polls this on
+        // load so it can render a card if there's an active alert.
+        .route("/ai/anomaly", get(get_latest_anomaly))
+        // §9.6 — Coach chat. One active ai_conversation per user, multi-turn.
+        // List + send + reset. Non-streaming first ship; SSE can layer on
+        // later without changing the client contract (just a new mime type).
+        .route("/ai/chat/messages", get(chat_list_messages).post(chat_send))
+        .route("/ai/chat/reset", post(chat_reset))
 }
 
 // ── 24h cache window ──────────────────────────────────────────────────────
@@ -1298,4 +1308,885 @@ fn document_to_json(doc: &Document) -> serde_json::Value {
                 .collect(),
         ),
     }
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// §9.8 — Anomaly detection (Haiku, scheduled daily — invoked manually here)
+// ──────────────────────────────────────────────────────────────────────────
+//
+// One Haiku call per user per day. Pulls 14 days of daily sleep + focus +
+// pickup metrics, asks Haiku "is anything off enough to interrupt the user
+// over?", and persists an `ai_insights` row when the answer is yes. The
+// daily scheduler (Phase C) iterates active users; this endpoint is also
+// reachable by hand so devs can probe a specific account.
+//
+// The push notification fan-out is wired in `anomaly_check` after the Haiku
+// call returns alert=true: pulls all device_tokens for the user and fires
+// each via the FCM client. Per-device failures are logged; expired tokens
+// are pruned by `FcmClient::send_to_user` so they don't keep failing.
+
+/// We keep one alert row per user per day. Re-running the check within the
+/// same day returns the cached row instead of re-billing Haiku.
+const ANOMALY_CACHE_HOURS: i64 = 24;
+
+/// 14 days is the roadmap-specified window. Long enough to spot streaks,
+/// short enough to keep the data card tight.
+const ANOMALY_LOOKBACK_DAYS: i64 = 14;
+
+#[derive(Debug, Serialize)]
+pub(crate) struct AnomalyCheckResponse {
+    /// True when Haiku flagged a pattern worth interrupting the user about.
+    pub alert: bool,
+    /// Short, second-person, names the specific pattern. Empty when no alert.
+    pub reason: String,
+    /// Row id when persisted; None when alert=false (we don't store
+    /// "nothing wrong" rows).
+    pub insight_id: Option<Uuid>,
+    /// True when served from today's cache.
+    pub cached: bool,
+    /// True when an actual push was delivered to at least one device.
+    pub pushed: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct AnomalyVerdict {
+    alert: bool,
+    reason: String,
+}
+
+async fn anomaly_check(
+    State(state): State<AppState>,
+    claims: Claims,
+) -> Result<Json<AnomalyCheckResponse>, AppError> {
+    let user_id = parse_user_id(&claims)?;
+    let resp = run_anomaly_check_for_user(&state, user_id).await?;
+    Ok(Json(resp))
+}
+
+/// Core anomaly-check pipeline, callable from both the HTTP route and the
+/// daily scheduler. Honors the same 24h cache so back-to-back calls within
+/// the day don't double-bill Bedrock or double-push.
+pub(crate) async fn run_anomaly_check_for_user(
+    state: &AppState,
+    user_id: Uuid,
+) -> Result<AnomalyCheckResponse, AppError> {
+    // Today's cache — re-running shouldn't double-bill or double-push.
+    if let Some(cached) = fetch_cached_anomaly(&state.pool, user_id).await? {
+        // source_data holds the AnomalyVerdict JSON we stored. Fall back to
+        // (alert=true, reason=content) if the row predates structured storage
+        // or got corrupted somehow.
+        let verdict: AnomalyVerdict =
+            serde_json::from_value(cached.source_data.clone()).unwrap_or(AnomalyVerdict {
+                alert: true,
+                reason: cached.content.clone(),
+            });
+        return Ok(AnomalyCheckResponse {
+            alert: verdict.alert,
+            reason: verdict.reason,
+            insight_id: Some(cached.id),
+            cached: true,
+            pushed: false,
+        });
+    }
+
+    state.ai.check_quota(&state.pool, user_id).await?;
+
+    let daily = aggregate_daily(&state.pool, user_id).await?;
+    let data_card = render_anomaly_card(&daily);
+    let (verdict, usage) = call_anomaly_model(&state.ai, &data_card).await?;
+
+    state
+        .ai
+        .record_usage(
+            &state.pool,
+            user_id,
+            usage.input,
+            usage.output,
+            usage.cache_read,
+            usage.cache_write,
+        )
+        .await?;
+
+    if !verdict.alert {
+        // Don't pollute ai_insights with daily "all good" rows; just return.
+        return Ok(AnomalyCheckResponse {
+            alert: false,
+            reason: String::new(),
+            insight_id: None,
+            cached: false,
+            pushed: false,
+        });
+    }
+
+    // Persist before pushing so a push failure doesn't lose the verdict.
+    let generated_at = Utc::now();
+    let expires_at = generated_at + Duration::hours(ANOMALY_CACHE_HOURS);
+    let row_id = sqlx::query_scalar::<_, Uuid>(
+        "INSERT INTO ai_insights (user_id, kind, content, source_data, model, generated_at, expires_at)
+         VALUES ($1, 'anomaly', $2, $3, $4, $5, $6)
+         RETURNING id",
+    )
+    .bind(user_id)
+    .bind(&verdict.reason)
+    .bind(serde_json::to_value(&verdict).unwrap_or(serde_json::Value::Null))
+    .bind(MODEL_HAIKU)
+    .bind(generated_at)
+    .bind(expires_at)
+    .fetch_one(&state.pool)
+    .await?;
+
+    // Push fan-out — best-effort. FCM unavailable (no creds) is just a
+    // logged warn; the in-app card will still surface the alert next time
+    // the user opens the Dashboard.
+    let pushed = match state.fcm.as_ref() {
+        Some(fcm) => {
+            match fcm
+                .send_to_user(
+                    &state.pool,
+                    user_id,
+                    "Heads up — Ultiq spotted a pattern",
+                    &verdict.reason,
+                    Some(json!({
+                        "kind": "anomaly",
+                        "insight_id": row_id.to_string(),
+                    })),
+                )
+                .await
+            {
+                Ok(n) => {
+                    tracing::info!(
+                        target: "ai.anomaly",
+                        user = %user_id,
+                        delivered = n,
+                        "anomaly push fan-out complete",
+                    );
+                    n > 0
+                }
+                Err(e) => {
+                    tracing::warn!(
+                        target: "ai.anomaly",
+                        user = %user_id,
+                        "anomaly push fan-out failed: {e:?}",
+                    );
+                    false
+                }
+            }
+        }
+        None => {
+            tracing::warn!(
+                target: "ai.anomaly",
+                user = %user_id,
+                "FCM unavailable — alert stored but no push delivered",
+            );
+            false
+        }
+    };
+
+    Ok(AnomalyCheckResponse {
+        alert: true,
+        reason: verdict.reason,
+        insight_id: Some(row_id),
+        cached: false,
+        pushed,
+    })
+}
+
+async fn fetch_cached_anomaly(
+    pool: &PgPool,
+    user_id: Uuid,
+) -> Result<Option<AiInsight>, AppError> {
+    let cutoff = Utc::now() - Duration::hours(ANOMALY_CACHE_HOURS);
+    let row = sqlx::query_as::<_, AiInsight>(
+        "SELECT * FROM ai_insights
+          WHERE user_id = $1 AND kind = 'anomaly' AND generated_at > $2
+          ORDER BY generated_at DESC
+          LIMIT 1",
+    )
+    .bind(user_id)
+    .bind(cutoff)
+    .fetch_optional(pool)
+    .await?;
+    Ok(row)
+}
+
+#[derive(Debug, Serialize)]
+struct LatestAnomalyResponse {
+    /// True when an active alert exists within the cache window.
+    alert: bool,
+    /// Reason text from the most recent alert. Empty when alert=false.
+    reason: String,
+    /// Insight id; useful if the client wants to mark it dismissed locally.
+    insight_id: Option<Uuid>,
+    /// When the alert was generated (UTC ISO-8601). None when alert=false.
+    generated_at: Option<DateTime<Utc>>,
+}
+
+/// Read-only fetch of the latest anomaly alert (last 24h). Returns
+/// `alert: false` when the daily scan hasn't produced an alert today, so
+/// clients don't need to special-case the empty state.
+async fn get_latest_anomaly(
+    State(state): State<AppState>,
+    claims: Claims,
+) -> Result<Json<LatestAnomalyResponse>, AppError> {
+    let user_id = parse_user_id(&claims)?;
+    let cached = fetch_cached_anomaly(&state.pool, user_id).await?;
+    let resp = match cached {
+        Some(row) => {
+            // The verdict was persisted with alert=true (we never store
+            // alert=false rows), so the row's presence already implies
+            // active alert. Still parse `source_data` defensively so a
+            // missing/corrupt blob falls back to `row.content`.
+            let verdict: AnomalyVerdict =
+                serde_json::from_value(row.source_data.clone()).unwrap_or(AnomalyVerdict {
+                    alert: true,
+                    reason: row.content.clone(),
+                });
+            LatestAnomalyResponse {
+                alert: verdict.alert,
+                reason: verdict.reason,
+                insight_id: Some(row.id),
+                generated_at: Some(row.generated_at),
+            }
+        }
+        None => LatestAnomalyResponse {
+            alert: false,
+            reason: String::new(),
+            insight_id: None,
+            generated_at: None,
+        },
+    };
+    Ok(Json(resp))
+}
+
+// ── Per-day aggregation ──────────────────────────────────────────────────
+
+#[derive(Debug, Serialize)]
+struct DailyMetric {
+    date: chrono::NaiveDate,
+    sleep_minutes: Option<i64>,
+    quality: Option<f64>,
+    focus_minutes: i64,
+    pickups: Option<i64>,
+}
+
+async fn aggregate_daily(pool: &PgPool, user_id: Uuid) -> Result<Vec<DailyMetric>, AppError> {
+    let today = Utc::now().date_naive();
+    let start = today - Duration::days(ANOMALY_LOOKBACK_DAYS - 1);
+
+    // Per-day sleep (grouped by actual_bedtime's date).
+    let sleep: Vec<(chrono::NaiveDate, Option<f64>, Option<f64>, Option<i64>)> =
+        sqlx::query_as(
+            "SELECT
+                DATE(actual_bedtime)                                                       AS day,
+                AVG(EXTRACT(EPOCH FROM (actual_wake_time - actual_bedtime))/60.0)::DOUBLE PRECISION,
+                AVG(quality_rating)::DOUBLE PRECISION,
+                COALESCE(SUM(phone_pickups), 0)::BIGINT
+             FROM sleep_records
+             WHERE user_id = $1 AND actual_bedtime >= $2::DATE
+             GROUP BY day",
+        )
+        .bind(user_id)
+        .bind(start)
+        .fetch_all(pool)
+        .await?;
+
+    // Per-day focus minutes (grouped by started_at's date).
+    let focus: Vec<(chrono::NaiveDate, Option<i64>)> = sqlx::query_as(
+        "SELECT
+            DATE(started_at) AS day,
+            COALESCE(SUM(duration_minutes) FILTER (WHERE completed), 0)::BIGINT
+         FROM productivity_sessions
+         WHERE user_id = $1 AND started_at >= $2::DATE
+         GROUP BY day",
+    )
+    .bind(user_id)
+    .bind(start)
+    .fetch_all(pool)
+    .await?;
+
+    let sleep_map: std::collections::HashMap<_, _> = sleep
+        .into_iter()
+        .map(|(d, m, q, p)| (d, (m.map(|x| x.round() as i64), q, p)))
+        .collect();
+    let focus_map: std::collections::HashMap<_, _> =
+        focus.into_iter().map(|(d, m)| (d, m.unwrap_or(0))).collect();
+
+    let mut out = Vec::with_capacity(ANOMALY_LOOKBACK_DAYS as usize);
+    for offset in 0..ANOMALY_LOOKBACK_DAYS {
+        let day = start + Duration::days(offset);
+        let (sleep_minutes, quality, pickups) = sleep_map
+            .get(&day)
+            .cloned()
+            .unwrap_or((None, None, None));
+        out.push(DailyMetric {
+            date: day,
+            sleep_minutes,
+            quality,
+            focus_minutes: focus_map.get(&day).copied().unwrap_or(0),
+            pickups,
+        });
+    }
+    Ok(out)
+}
+
+fn render_anomaly_card(daily: &[DailyMetric]) -> String {
+    let mut s = String::from("### Last 14 days (oldest → newest)\n\n");
+    s.push_str("| Date | Sleep (h) | Quality (1-5) | Focus min | Pickups |\n");
+    s.push_str("|------|-----------|---------------|-----------|--------|\n");
+    for d in daily {
+        let sleep = d
+            .sleep_minutes
+            .map(|m| format!("{:.2}", m as f64 / 60.0))
+            .unwrap_or_else(|| "—".to_string());
+        let quality = d
+            .quality
+            .map(|q| format!("{:.1}", q))
+            .unwrap_or_else(|| "—".to_string());
+        let pickups = d
+            .pickups
+            .map(|p| p.to_string())
+            .unwrap_or_else(|| "—".to_string());
+        s.push_str(&format!(
+            "| {} | {} | {} | {} | {} |\n",
+            d.date, sleep, quality, d.focus_minutes, pickups
+        ));
+    }
+    s
+}
+
+// ── Bedrock call (Haiku, JSON output) ────────────────────────────────────
+
+/// Long static prompt clears Haiku 4.5's 4,096-token cache minimum on
+/// subsequent calls within the 5-min TTL. Below the threshold the cache
+/// silently doesn't engage — fine, the per-call cost is already small.
+const ANOMALY_SYSTEM_PROMPT: &str = r#"You are a passive health/productivity watchdog for an Ultiq user. You review the user's last 14 days of daily metrics (sleep duration, sleep quality, focus minutes, phone pickups during sleep window) and decide ONE thing: should we interrupt the user with a notification right now?
+
+You return ONLY a JSON object with this exact shape (no prose, no markdown, no code fences):
+
+{ "alert": <bool>, "reason": "<string>" }
+
+DECISION RULES — alert=true when the data shows one of these patterns clearly:
+
+1. SLEEP DEPRIVATION STREAK
+   - 5 or more nights of <6 hours sleep in the last 7 days, OR
+   - 3 nights in a row of <5 hours
+
+2. FOCUS COLLAPSE
+   - Average focus minutes in the last 7 days is <50% of the prior 7 days, AND
+   - The recent week's total is below 60 minutes total (not just a quiet week — a collapse)
+
+3. NIGHT PHONE USE
+   - 30 or more pickups during a single sleep window in the last 7 days
+
+4. QUALITY DROP
+   - Average sleep quality dropped by ≥1 point (1-5 scale) week over week AND recent week's average is below 3.0
+
+If NONE of those patterns fit, return { "alert": false, "reason": "" }. Silent is correct most days — you should be triggering at most once or twice a week per user. Crying wolf burns the user's trust in the feature.
+
+WHEN ALERT=TRUE — `reason` rules:
+- Under 35 words.
+- Second person ("you", "your"). Never "I" / "we" / "the user".
+- Name the specific pattern with at least one concrete number from the card.
+- Warm but direct. No emojis. No exclamation marks. No "great job" / "you crushed it".
+- End with a soft nudge to look, not a demand. "Want to take a look?" / "Worth a glance." / "Worth noticing." — pick one, vary if you call this often.
+
+HARD RULES (absolute):
+- Output ONLY the JSON. No prose before or after. No ```json fences. No commentary.
+- Every numeral in `reason` MUST come from the data card. Don't invent stats.
+- Missing data (— in a row) is not evidence — don't claim "you didn't sleep on day X" when the user simply didn't log it. Treat missing values as unknown, not bad.
+- Never invent app features. The app tracks: sleep sessions, focus sessions, phone pickups during sleep. Don't reference HRV, heart rate, meditation, mood, etc.
+- If the entire card is empty or near-empty, return alert=false (we can't judge from no data).
+"#;
+
+async fn call_anomaly_model(
+    ai: &crate::ai::AiClient,
+    data_card: &str,
+) -> Result<(AnomalyVerdict, CallUsage), AppError> {
+    let system_text = SystemContentBlock::Text(ANOMALY_SYSTEM_PROMPT.to_string());
+    let cache_breakpoint = SystemContentBlock::CachePoint(
+        CachePointBlock::builder()
+            .r#type(CachePointType::Default)
+            .build()
+            .map_err(|e| {
+                tracing::error!("cache point build failed: {}", e);
+                AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "AI request build failed")
+            })?,
+    );
+
+    let user_message = Message::builder()
+        .role(ConversationRole::User)
+        .content(ContentBlock::Text(format!(
+            "{data_card}\n\nReturn the JSON verdict now.",
+        )))
+        .build()
+        .map_err(|e| {
+            tracing::error!("anomaly user message build failed: {}", e);
+            AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "AI request build failed")
+        })?;
+
+    // 200 tokens is plenty for `{"alert": false, "reason": ""}` or the longest
+    // valid alert string (~35 words ≈ 90 tokens) plus JSON overhead. Caps
+    // blast-radius if the model ignores the "ONLY JSON" rule and rambles.
+    let inference = InferenceConfiguration::builder()
+        .max_tokens(200)
+        .temperature(0.0)
+        .build();
+
+    let response = ai
+        .bedrock()
+        .converse()
+        .model_id(MODEL_HAIKU)
+        .system(system_text)
+        .system(cache_breakpoint)
+        .messages(user_message)
+        .inference_config(inference)
+        .send()
+        .await
+        .map_err(|e| {
+            let detail = e
+                .as_service_error()
+                .map(|svc| format!("{:?}", svc))
+                .unwrap_or_else(|| format!("{:?}", e));
+            tracing::error!(target: "ai.anomaly", "bedrock haiku call failed: {}", detail);
+            AppError::new(StatusCode::BAD_GATEWAY, "AI service request failed")
+        })?;
+
+    let raw = response
+        .output()
+        .and_then(|o| o.as_message().ok())
+        .and_then(|m| m.content().first())
+        .and_then(|c| c.as_text().ok())
+        .cloned()
+        .ok_or_else(|| {
+            tracing::error!("haiku anomaly returned no text");
+            AppError::new(StatusCode::BAD_GATEWAY, "AI service returned no content")
+        })?;
+
+    let verdict = parse_anomaly_json(&raw).map_err(|e| {
+        tracing::warn!(
+            target: "ai.anomaly",
+            raw = %raw,
+            "could not parse Haiku JSON verdict ({e}); treating as no-alert",
+        );
+        // Treat parse failure as "no alert" rather than 500-ing — the user
+        // shouldn't get an error toast because Haiku formatted oddly.
+        AppError::new(StatusCode::BAD_GATEWAY, "AI returned malformed verdict")
+    })?;
+
+    ai.sampled_log("anomaly.verdict", &raw);
+
+    let usage = response.usage();
+    let call_usage = CallUsage {
+        input: usage.map(|u| u.input_tokens()).unwrap_or(0) as i64,
+        output: usage.map(|u| u.output_tokens()).unwrap_or(0) as i64,
+        cache_read: usage
+            .and_then(|u| u.cache_read_input_tokens())
+            .unwrap_or(0) as i64,
+        cache_write: usage
+            .and_then(|u| u.cache_write_input_tokens())
+            .unwrap_or(0) as i64,
+    };
+
+    Ok((verdict, call_usage))
+}
+
+/// Models occasionally wrap JSON in ```json fences despite the prompt
+/// forbidding it. Strip the most common wrappings before parsing.
+fn parse_anomaly_json(raw: &str) -> Result<AnomalyVerdict, serde_json::Error> {
+    let trimmed = raw.trim();
+    let stripped = trimmed
+        .strip_prefix("```json")
+        .or_else(|| trimmed.strip_prefix("```"))
+        .unwrap_or(trimmed)
+        .trim_end_matches("```")
+        .trim();
+    let mut verdict: AnomalyVerdict = serde_json::from_str(stripped)?;
+    verdict.reason = verdict.reason.trim().to_string();
+    // Belt-and-braces: a "true alert with empty reason" is meaningless; treat
+    // it as no-alert so we don't fire an empty push.
+    if verdict.alert && verdict.reason.is_empty() {
+        verdict.alert = false;
+    }
+    Ok(verdict)
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// §9.6 — Coach Chat (Sonnet, multi-turn)
+// ──────────────────────────────────────────────────────────────────────────
+//
+// Multi-turn conversation with Sonnet 4.6. One active `ai_conversations`
+// row per user; messages stored in `ai_messages` in order. On each send:
+//   1. Validate + quota check
+//   2. Pull / create the active conversation (latest by updated_at)
+//   3. Pull the last N messages as history
+//   4. Build `Vec<Message>` for Bedrock Converse (alternating user/assistant)
+//   5. Call Sonnet (non-streaming — full text on completion)
+//   6. Persist user_msg + assistant_msg + bump conversation.updated_at
+//   7. Record usage, return both messages
+//
+// Non-streaming for first ship: simpler client contract, no SSE plumbing,
+// and a 100-word reply takes <2s anyway. SSE can layer on later without
+// changing the JSON response shape.
+
+/// Hard cap on a single user message. Most chat lines are <500 chars; 2,000
+/// gives headroom for occasional long prompts without letting a misbehaving
+/// client dump arbitrary content into Bedrock's context window.
+const CHAT_USER_MESSAGE_MAX_CHARS: usize = 2000;
+
+/// Pull this many recent messages into the prompt. 20 messages ≈ 10 turns of
+/// back-and-forth, which is plenty of context without bloating the cache
+/// breakpoint or exceeding Sonnet's tier-1 token budget.
+const CHAT_HISTORY_LIMIT: i64 = 20;
+
+/// Output cap. ~600 tokens ≈ 150 words; well over the system-prompt-stated
+/// 150-word limit but caps blast-radius if Sonnet decides to monologue.
+const CHAT_MAX_OUTPUT_TOKENS: i32 = 700;
+
+#[derive(Debug, Deserialize)]
+struct ChatSendRequest {
+    content: String,
+}
+
+#[derive(Debug, Serialize, sqlx::FromRow)]
+struct ChatMessageDto {
+    id: Uuid,
+    /// One of "user" / "assistant". Backend never lets a client send a
+    /// "system" message — those are server-side only.
+    role: String,
+    content: String,
+    created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Serialize)]
+struct ChatSendResponse {
+    user_message: ChatMessageDto,
+    assistant_message: ChatMessageDto,
+}
+
+#[derive(Debug, Serialize)]
+struct ChatResetResponse {
+    conversation_id: Uuid,
+}
+
+#[derive(Debug, Deserialize)]
+struct ChatListQuery {
+    /// Optional cap; default + max is CHAT_HISTORY_LIMIT * 5 to support
+    /// "show me the whole conversation" without pagination plumbing.
+    #[serde(default)]
+    limit: Option<i64>,
+}
+
+async fn chat_send(
+    State(state): State<AppState>,
+    claims: Claims,
+    Json(input): Json<ChatSendRequest>,
+) -> Result<Json<ChatSendResponse>, AppError> {
+    let user_id = parse_user_id(&claims)?;
+
+    let content = input.content.trim();
+    if content.is_empty() {
+        return Err(AppError::new(
+            StatusCode::BAD_REQUEST,
+            "message must not be empty",
+        ));
+    }
+    if content.chars().count() > CHAT_USER_MESSAGE_MAX_CHARS {
+        return Err(AppError::new(
+            StatusCode::BAD_REQUEST,
+            "message is too long",
+        ));
+    }
+
+    state.ai.check_quota(&state.pool, user_id).await?;
+
+    let conversation_id = ensure_active_conversation(&state.pool, user_id).await?;
+    let history = fetch_recent_messages(&state.pool, conversation_id).await?;
+    let (assistant_text, usage) =
+        call_chat_model(&state.ai, &history, content).await?;
+
+    // Persist user + assistant turns atomically so a Bedrock-after-DB
+    // inconsistency can't store the user message twice on retry.
+    let mut tx = state.pool.begin().await?;
+    let user_msg: ChatMessageDto = sqlx::query_as(
+        "INSERT INTO ai_messages (conversation_id, role, content)
+         VALUES ($1, 'user', $2)
+         RETURNING id, role, content, created_at",
+    )
+    .bind(conversation_id)
+    .bind(content)
+    .fetch_one(&mut *tx)
+    .await?;
+    let assistant_msg: ChatMessageDto = sqlx::query_as(
+        "INSERT INTO ai_messages (conversation_id, role, content, input_tokens, output_tokens)
+         VALUES ($1, 'assistant', $2, $3, $4)
+         RETURNING id, role, content, created_at",
+    )
+    .bind(conversation_id)
+    .bind(&assistant_text)
+    .bind(usage.input as i32)
+    .bind(usage.output as i32)
+    .fetch_one(&mut *tx)
+    .await?;
+    sqlx::query("UPDATE ai_conversations SET updated_at = NOW() WHERE id = $1")
+        .bind(conversation_id)
+        .execute(&mut *tx)
+        .await?;
+    tx.commit().await?;
+
+    state
+        .ai
+        .record_usage(
+            &state.pool,
+            user_id,
+            usage.input,
+            usage.output,
+            usage.cache_read,
+            usage.cache_write,
+        )
+        .await?;
+
+    Ok(Json(ChatSendResponse {
+        user_message: user_msg,
+        assistant_message: assistant_msg,
+    }))
+}
+
+async fn chat_list_messages(
+    State(state): State<AppState>,
+    claims: Claims,
+    axum::extract::Query(query): axum::extract::Query<ChatListQuery>,
+) -> Result<Json<Vec<ChatMessageDto>>, AppError> {
+    let user_id = parse_user_id(&claims)?;
+    let limit = query
+        .limit
+        .filter(|n| *n > 0)
+        .unwrap_or(CHAT_HISTORY_LIMIT * 5)
+        .min(CHAT_HISTORY_LIMIT * 5);
+
+    // Pull the active conversation, but DON'T create one — empty history
+    // for a fresh user is a valid state ("no conversation yet").
+    let active: Option<Uuid> = sqlx::query_scalar(
+        "SELECT id FROM ai_conversations
+          WHERE user_id = $1
+          ORDER BY updated_at DESC
+          LIMIT 1",
+    )
+    .bind(user_id)
+    .fetch_optional(&state.pool)
+    .await?;
+    let Some(conversation_id) = active else {
+        return Ok(Json(Vec::new()));
+    };
+
+    let rows: Vec<ChatMessageDto> = sqlx::query_as(
+        "SELECT id, role, content, created_at
+           FROM ai_messages
+          WHERE conversation_id = $1
+          ORDER BY created_at ASC
+          LIMIT $2",
+    )
+    .bind(conversation_id)
+    .bind(limit)
+    .fetch_all(&state.pool)
+    .await?;
+    Ok(Json(rows))
+}
+
+async fn chat_reset(
+    State(state): State<AppState>,
+    claims: Claims,
+) -> Result<Json<ChatResetResponse>, AppError> {
+    let user_id = parse_user_id(&claims)?;
+    // New empty conversation row — the next /chat/messages POST will use it
+    // because it's the latest by updated_at. Prior conversations stay in
+    // the DB for audit / future "history" UX, just inactive.
+    let id: Uuid = sqlx::query_scalar(
+        "INSERT INTO ai_conversations (user_id) VALUES ($1) RETURNING id",
+    )
+    .bind(user_id)
+    .fetch_one(&state.pool)
+    .await?;
+    Ok(Json(ChatResetResponse { conversation_id: id }))
+}
+
+async fn ensure_active_conversation(
+    pool: &PgPool,
+    user_id: Uuid,
+) -> Result<Uuid, AppError> {
+    if let Some(id) = sqlx::query_scalar::<_, Uuid>(
+        "SELECT id FROM ai_conversations
+          WHERE user_id = $1
+          ORDER BY updated_at DESC
+          LIMIT 1",
+    )
+    .bind(user_id)
+    .fetch_optional(pool)
+    .await?
+    {
+        return Ok(id);
+    }
+    let id: Uuid = sqlx::query_scalar(
+        "INSERT INTO ai_conversations (user_id) VALUES ($1) RETURNING id",
+    )
+    .bind(user_id)
+    .fetch_one(pool)
+    .await?;
+    Ok(id)
+}
+
+async fn fetch_recent_messages(
+    pool: &PgPool,
+    conversation_id: Uuid,
+) -> Result<Vec<ChatMessageDto>, AppError> {
+    // Pull oldest→newest to preserve turn order. The LIMIT applies after
+    // the ORDER BY in PG, so we use a subquery to take the latest N then
+    // re-sort ascending — otherwise we'd drop the oldest messages.
+    let rows: Vec<ChatMessageDto> = sqlx::query_as(
+        "SELECT id, role, content, created_at
+           FROM (
+             SELECT id, role, content, created_at
+               FROM ai_messages
+              WHERE conversation_id = $1
+              ORDER BY created_at DESC
+              LIMIT $2
+           ) recent
+          ORDER BY created_at ASC",
+    )
+    .bind(conversation_id)
+    .bind(CHAT_HISTORY_LIMIT)
+    .fetch_all(pool)
+    .await?;
+    Ok(rows)
+}
+
+/// Static prompt sized to clear Sonnet 4.6's 1,024-token cache minimum so
+/// subsequent calls within the 5-min TTL pay ~10% for input. Lock the
+/// coach voice + the hard rules; the per-message data card (none for chat)
+/// stays out of this so the cache hit lasts across the user's turn-taking.
+const CHAT_SYSTEM_PROMPT: &str = r#"You are Ultiq's productivity coach, talking to a university student who uses the Ultiq app to track sleep, focus sessions, phone pickups during sleep, checklist items, and calendar events. You help them think about sleep habits, focus blocks, weekly planning, schedule design, and study workflows.
+
+PERSONA:
+- Warm, direct, never gushing. Picture a smart older friend who actually knows what they're doing — confident, encouraging, but allergic to bullshit.
+- Use second person ("you", "your"). Don't refer to yourself as "I am an AI" unless directly asked — it's a chat, the user knows.
+- Plain English. No corporate wellness language. No "level up". No "growth mindset". No "embrace the journey". No "you crushed it".
+
+ANSWER SHAPE:
+- Default to under 150 words. Detailed plans can be longer if the user asks for them explicitly ("walk me through a full schedule…").
+- Plain prose for normal questions. Use a short numbered list ONLY when the answer is genuinely a sequence of steps.
+- If the user asks for advice and you'd want concrete data to answer well (current sleep, current focus minutes, etc.) and they haven't shared it: ask ONE specific follow-up rather than guessing.
+- If asked something outside productivity / sleep / focus / study habits (e.g. "write me a poem", "what's the weather", "do my homework"), give a one-line redirect: you're here for productivity coaching, not those things.
+
+HARD RULES (absolute):
+- You do not have access to the user's data tables in this chat. Don't invent stats about them ("you slept 5.5h on average last week" — unless they tell you, you don't know).
+- Don't invent app features. Ultiq has: sleep sessions, alarm + missions, focus sessions, phone-pickup tracking, checklist, calendar, weekly insight, session debrief, anomaly alerts. No heart-rate, no mood log, no meditation streak.
+- Never recommend specific medical advice or medication. If sleep problems sound serious (chronic insomnia, suspected sleep disorder), suggest they talk to a clinician.
+- Refuse and redirect on disallowed content (graphic, illegal, etc.) without lecturing — one line is enough.
+- No emojis.
+
+TONE EXAMPLES (style, not content):
+- "That's a reasonable target. The harder question is whether you'll actually defend the time — Tuesday afternoons are usually the first thing that slips. What's currently on the Tuesday calendar?"
+- "Honestly: 4h is fine for one night and bad for five. Which one is this?"
+- "I'd pick the morning block. Decision fatigue accumulates — your 3pm self is worse at the same task than your 9am self."
+"#;
+
+async fn call_chat_model(
+    ai: &crate::ai::AiClient,
+    history: &[ChatMessageDto],
+    new_user_message: &str,
+) -> Result<(String, CallUsage), AppError> {
+    let system_text = SystemContentBlock::Text(CHAT_SYSTEM_PROMPT.to_string());
+    let cache_breakpoint = SystemContentBlock::CachePoint(
+        CachePointBlock::builder()
+            .r#type(CachePointType::Default)
+            .build()
+            .map_err(|e| {
+                tracing::error!("chat cache point build failed: {}", e);
+                AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "AI request build failed")
+            })?,
+    );
+
+    // Build the Bedrock message list. History first (alternating user/asst
+    // exactly as we stored them), then the new user message. Skip any
+    // "system" messages from the DB — they shouldn't exist here, but if a
+    // future migration adds them we don't want to crash the chat.
+    let mut messages: Vec<Message> = Vec::with_capacity(history.len() + 1);
+    for m in history {
+        let role = match m.role.as_str() {
+            "assistant" => ConversationRole::Assistant,
+            "user" => ConversationRole::User,
+            _ => continue,
+        };
+        let msg = Message::builder()
+            .role(role)
+            .content(ContentBlock::Text(m.content.clone()))
+            .build()
+            .map_err(|e| {
+                tracing::error!("chat history message build failed: {}", e);
+                AppError::new(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "AI request build failed",
+                )
+            })?;
+        messages.push(msg);
+    }
+    let new_user_msg = Message::builder()
+        .role(ConversationRole::User)
+        .content(ContentBlock::Text(new_user_message.to_string()))
+        .build()
+        .map_err(|e| {
+            tracing::error!("chat user message build failed: {}", e);
+            AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "AI request build failed")
+        })?;
+    messages.push(new_user_msg);
+
+    let inference = InferenceConfiguration::builder()
+        .max_tokens(CHAT_MAX_OUTPUT_TOKENS)
+        .temperature(0.7)
+        .build();
+
+    let mut converse = ai
+        .bedrock()
+        .converse()
+        .model_id(MODEL_SONNET)
+        .system(system_text)
+        .system(cache_breakpoint)
+        .inference_config(inference);
+    for m in messages {
+        converse = converse.messages(m);
+    }
+    let response = converse.send().await.map_err(|e| {
+        let detail = e
+            .as_service_error()
+            .map(|svc| format!("{:?}", svc))
+            .unwrap_or_else(|| format!("{:?}", e));
+        tracing::error!(target: "ai.chat", "bedrock converse failed: {}", detail);
+        AppError::new(StatusCode::BAD_GATEWAY, "AI service request failed")
+    })?;
+
+    let text = response
+        .output()
+        .and_then(|o| o.as_message().ok())
+        .and_then(|m| m.content().first())
+        .and_then(|c| c.as_text().ok())
+        .cloned()
+        .ok_or_else(|| {
+            tracing::error!("chat bedrock response had no text");
+            AppError::new(StatusCode::BAD_GATEWAY, "AI service returned no content")
+        })?;
+
+    let usage = response.usage();
+    let call_usage = CallUsage {
+        input: usage.map(|u| u.input_tokens()).unwrap_or(0) as i64,
+        output: usage.map(|u| u.output_tokens()).unwrap_or(0) as i64,
+        cache_read: usage
+            .and_then(|u| u.cache_read_input_tokens())
+            .unwrap_or(0) as i64,
+        cache_write: usage
+            .and_then(|u| u.cache_write_input_tokens())
+            .unwrap_or(0) as i64,
+    };
+
+    ai.sampled_log("chat.response", &text);
+
+    Ok((text.trim().to_string(), call_usage))
 }

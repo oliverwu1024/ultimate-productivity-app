@@ -4,9 +4,11 @@ mod db;
 mod email;
 mod error;
 mod event_bus;
+mod fcm;
 mod middleware;
 mod models;
 mod routes;
+mod scheduler;
 mod ticket;
 
 use std::sync::Arc;
@@ -50,6 +52,20 @@ async fn main() {
     let events = EventBus::new();
     let tickets = TicketStore::new();
     let ai = ai::AiClient::new().await;
+    // §9.8 — FCM client. Returns None when GOOGLE_APPLICATION_CREDENTIALS
+    // is unset or the file is unreadable (e.g. fresh dev / CI). The backend
+    // continues to start; push-dependent routes 503 instead.
+    let fcm = match fcm::FcmClient::try_new() {
+        Ok(Some(client)) => {
+            tracing::info!(target: "fcm", "FCM client initialised (project={})", client.project_id());
+            Some(client)
+        }
+        Ok(None) => None,
+        Err(e) => {
+            tracing::error!(target: "fcm", "FCM init failed: {e}; push disabled");
+            None
+        }
+    };
 
     // CORS — explicit allowlist (loaded from ALLOWED_ORIGINS env, defaults to
     // app.ultiqapp.com + ultiqapp.com). Android calls don't trigger preflight
@@ -98,7 +114,11 @@ async fn main() {
             .expect("valid governor config"),
     );
 
-    let state = AppState { pool, config, email, events, tickets, ai };
+    let state = AppState { pool, config, email, events, tickets, ai, fcm };
+
+    // §9.8 Phase C — daily anomaly scan. No-op unless
+    // ANOMALY_SCHEDULER_ENABLED=true at task launch.
+    scheduler::spawn(state.clone());
 
     let auth_routes = routes::auth_routes()
         .layer(GovernorLayer { config: auth_governor });

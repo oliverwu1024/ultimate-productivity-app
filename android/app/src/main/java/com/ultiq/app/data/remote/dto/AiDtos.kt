@@ -64,3 +64,17 @@ data class ParsedChecklistFieldsDto(
     val priority: Int? = null,
     val estimated_minutes: Int? = null,
 )
+
+/// §9.8 — Response from GET /ai/anomaly. The daily scheduler stores an
+/// alert row when Haiku flags a pattern; the mobile Dashboard polls this
+/// endpoint to render the alert card (and the FCM push surfaces the same
+/// message in the notification tray).
+///
+/// `alert=false` is the common case — no scary patterns today, no row in
+/// the cache, card stays hidden.
+data class LatestAnomalyDto(
+    val alert: Boolean,
+    val reason: String,
+    val insight_id: String? = null,
+    val generated_at: String? = null,
+)

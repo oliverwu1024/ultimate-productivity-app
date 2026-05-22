@@ -44,6 +44,7 @@ import com.ultiq.app.ui.auth.LoginScreen
 import com.ultiq.app.ui.auth.RegisterScreen
 import com.ultiq.app.ui.auth.ResetPasswordScreen
 import com.ultiq.app.ui.calendar.CalendarScreen
+import com.ultiq.app.ui.chat.ChatScreen
 import com.ultiq.app.ui.checklist.ChecklistScreen
 import com.ultiq.app.ui.checklist.WeeklyPlannerScreen
 import com.ultiq.app.ui.dashboard.DashboardScreen
@@ -85,6 +86,7 @@ sealed class Screen(val route: String) {
     data object Reports : Screen("reports")
     data object ChangePassword : Screen("change_password")
     data object Terms : Screen("terms")
+    data object Chat : Screen("chat")
 }
 
 data class BottomNavItem(
@@ -245,8 +247,12 @@ fun AppNavigation(
                     onNavigateToChecklist = { navigateToTab(navController, Screen.Checklist) },
                     onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
                     onNavigateToReports = { navController.navigate(Screen.Reports.route) },
+                    onNavigateToChat = { navController.navigate(Screen.Chat.route) },
                     onLogout = { authViewModel.logout() }
                 )
+            }
+            composable(Screen.Chat.route) {
+                ChatScreen(onBack = { navController.popBackStack() })
             }
             composable(Screen.Checklist.route) {
                 ChecklistScreen(

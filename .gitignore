@@ -11,6 +11,17 @@ android/*.iml
 android/ultiq-release.jks
 android/keystore.properties
 
+# Firebase config (FCM, §9.8). google-services.json holds project + app IDs
+# and a client API key — repo is public so we don't commit it; each dev
+# downloads their own from the Firebase Console.
+android/app/google-services.json
+
+# Firebase Admin service-account credentials (server-side push send). NEVER
+# commit — full FCM send capability for the project. Prod copy lives in
+# AWS Secrets Manager; local copy lives outside the repo.
+**/firebase-admin*.json
+**/ultiq-firebase-adminsdk*.json
+
 # Built APKs deployed via S3 sync (not via git — too large)
 web-landing/public/*.apk
 

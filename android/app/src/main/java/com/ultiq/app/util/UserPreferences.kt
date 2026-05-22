@@ -47,6 +47,11 @@ data class UserSettings(
     /** Epoch day on which the user last dismissed the "unfinished from yesterday"
      *  carry-over banner. If equal to today's epoch day the banner stays hidden. */
     val lastCarryOverDismissedEpochDay: Long,
+    /** §9.8 — Insight-id of the anomaly alert the user last dismissed from the
+     *  Dashboard card. Empty when nothing's been dismissed. The Dashboard
+     *  hides the card whenever this matches the current insight id, so the
+     *  same alert doesn't keep reappearing within its 24h window. */
+    val dismissedAnomalyInsightId: String,
 )
 
 class UserPreferences(private val context: Context) {
@@ -74,6 +79,7 @@ class UserPreferences(private val context: Context) {
         val FOCUS_PREFS_HINT_SEEN = booleanPreferencesKey("focus_prefs_hint_seen")
         val DASHBOARD_PREFS_HINT_SEEN = booleanPreferencesKey("dashboard_prefs_hint_seen")
         val LOCK_OVERLAY_HINT_SEEN = booleanPreferencesKey("lock_overlay_hint_seen")
+        val DISMISSED_ANOMALY_INSIGHT_ID = stringPreferencesKey("dismissed_anomaly_insight_id")
     }
 
     private val defaults = UserSettings(
@@ -96,6 +102,7 @@ class UserPreferences(private val context: Context) {
         focusPrefsHintSeen = false,
         dashboardPrefsHintSeen = false,
         lockOverlayHintSeen = false,
+        dismissedAnomalyInsightId = "",
     )
 
     val settings: Flow<UserSettings> = context.userDataStore.data.map { prefs ->
@@ -126,6 +133,7 @@ class UserPreferences(private val context: Context) {
             focusPrefsHintSeen = prefs[Keys.FOCUS_PREFS_HINT_SEEN] ?: defaults.focusPrefsHintSeen,
             dashboardPrefsHintSeen = prefs[Keys.DASHBOARD_PREFS_HINT_SEEN] ?: defaults.dashboardPrefsHintSeen,
             lockOverlayHintSeen = prefs[Keys.LOCK_OVERLAY_HINT_SEEN] ?: defaults.lockOverlayHintSeen,
+            dismissedAnomalyInsightId = prefs[Keys.DISMISSED_ANOMALY_INSIGHT_ID] ?: defaults.dismissedAnomalyInsightId,
         )
     }
 
@@ -209,6 +217,10 @@ class UserPreferences(private val context: Context) {
 
     suspend fun setLockOverlayHintSeen(seen: Boolean) {
         context.userDataStore.edit { it[Keys.LOCK_OVERLAY_HINT_SEEN] = seen }
+    }
+
+    suspend fun setDismissedAnomalyInsightId(id: String) {
+        context.userDataStore.edit { it[Keys.DISMISSED_ANOMALY_INSIGHT_ID] = id }
     }
 
     /** Wipe every preference back to defaults — used when deleting the account. */

@@ -67,3 +67,42 @@ pub struct ParsedChecklistFields {
 pub async fn parse_event(req: &ParseEventRequest) -> Result<ParseEventResponse, ApiError> {
     post::<_, ParseEventResponse>("/ai/parse-event", req).await
 }
+
+// ─── §9.6 — Coach Chat ────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ChatMessage {
+    pub id: String,
+    pub role: String,
+    pub content: String,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ChatSendRequest {
+    pub content: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ChatSendResponse {
+    pub user_message: ChatMessage,
+    pub assistant_message: ChatMessage,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ChatResetResponse {
+    pub conversation_id: String,
+}
+
+pub async fn list_chat_messages() -> Result<Vec<ChatMessage>, ApiError> {
+    crate::api::client::get("/ai/chat/messages").await
+}
+
+pub async fn send_chat_message(content: String) -> Result<ChatSendResponse, ApiError> {
+    let req = ChatSendRequest { content };
+    post::<_, ChatSendResponse>("/ai/chat/messages", &req).await
+}
+
+pub async fn reset_chat() -> Result<ChatResetResponse, ApiError> {
+    post::<_, ChatResetResponse>("/ai/chat/reset", &serde_json::json!({})).await
+}

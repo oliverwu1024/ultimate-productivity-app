@@ -1,5 +1,6 @@
 pub mod admin;
 pub mod calendar;
+pub mod chat;
 pub mod checklist;
 pub mod correlations;
 pub mod focus;

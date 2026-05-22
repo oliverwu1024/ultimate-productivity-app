@@ -5,6 +5,9 @@ plugins {
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
     id("com.google.devtools.ksp")
+    // §9.8 — Generates the Firebase init resources from google-services.json.
+    // Must be listed AFTER com.android.application.
+    id("com.google.gms.google-services")
 }
 
 val keystoreProps = Properties().apply {
@@ -130,4 +133,17 @@ dependencies {
     implementation("androidx.camera:camera-camera2:$cameraX")
     implementation("androidx.camera:camera-lifecycle:$cameraX")
     implementation("androidx.camera:camera-view:$cameraX")
+
+    // Firebase Cloud Messaging — §9.8 anomaly detection push channel. BoM
+    // pins all Firebase artefact versions to one tested set; only request
+    // the messaging library (we don't use Auth, Firestore, Crashlytics, etc).
+    // BoM 34.x merged the `-ktx` Kotlin extensions into the main artefact,
+    // so we depend on `firebase-messaging` (no -ktx suffix).
+    implementation(platform("com.google.firebase:firebase-bom:34.13.0"))
+    implementation("com.google.firebase:firebase-messaging")
+
+    // Lets us `.await()` Firebase's Task<T> results inside suspend functions
+    // (Firebase's Android APIs are Task-based; coroutines play-services adds
+    // the bridge). Used by FcmTokenSyncer.
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.9.0")
 }

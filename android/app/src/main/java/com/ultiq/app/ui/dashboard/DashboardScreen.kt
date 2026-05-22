@@ -24,7 +24,9 @@ import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Nightlight
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
@@ -96,6 +98,7 @@ fun DashboardScreen(
     onNavigateToChecklist: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToReports: () -> Unit,
+    onNavigateToChat: () -> Unit,
     onLogout: () -> Unit,
     viewModel: DashboardViewModel = viewModel()
 ) {
@@ -290,12 +293,37 @@ fun DashboardScreen(
                 }
             }
 
+            // §9.8 — Anomaly alert card. Renders only when the daily scan
+            // flagged something for this user AND the user hasn't dismissed
+            // that specific insight locally. Placed above the weekly insight
+            // because it's higher-priority (something needs attention) and
+            // self-hiding (most days nothing shows up at all).
+            uiState.anomalyAlert?.let { alert ->
+                item {
+                    AnimatedAppear(delayMillis = 210) {
+                        AnomalyAlertCard(
+                            reason = alert.reason,
+                            onDismiss = { viewModel.dismissAnomalyAlert() },
+                        )
+                    }
+                }
+            }
+
             item {
                 AnimatedAppear(delayMillis = 220) {
                     AiWeeklyInsightCard(
                         state = uiState.weeklyInsight,
                         onRefresh = { viewModel.loadWeeklyInsight(force = true) },
                     )
+                }
+            }
+
+            // §9.6 — Coach Chat entry. Stays small + always-visible: it's
+            // the only discoverability surface (no bottom-nav slot) so we
+            // err toward "here when you need it" rather than feature-pushy.
+            item {
+                AnimatedAppear(delayMillis = 225) {
+                    CoachChatCard(onOpen = onNavigateToChat)
                 }
             }
 
@@ -890,6 +918,97 @@ private fun AchievementsCard(earned: Int, total: Int, recent: List<AchievementBa
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+        }
+    }
+}
+
+/// §9.6 — Entry point for the Coach Chat screen. Slim row-style card so
+/// it doesn't compete with the weekly insight card visually; the user has
+/// already seen the chat exists by Dashboard #1 and the affordance just
+/// needs to be a clear one-tap-away surface from there on.
+@Composable
+private fun CoachChatCard(onOpen: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onOpen),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+        ),
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                Icons.AutoMirrored.Filled.Chat,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(22.dp),
+            )
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    "Talk to your coach",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    "Ask about sleep, focus, planning, or anything productivity-shaped.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+/// §9.8 — Anomaly alert card. Surfaced when the daily Haiku scan flagged
+/// a pattern worth interrupting the user about. Distinct visual treatment
+/// from the weekly insight (tertiary container, leading icon) so it reads
+/// as "needs attention" not "here's a summary". One dismiss button —
+/// dismissed alerts hide for the rest of the 24h cache window via local
+/// DataStore, no server round-trip.
+@Composable
+private fun AnomalyAlertCard(
+    reason: String,
+    onDismiss: () -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+        ),
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Default.Notifications,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                    modifier = Modifier.size(20.dp),
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    "Heads up",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f),
+                )
+                TextButton(onClick = onDismiss) {
+                    Text(
+                        "Dismiss",
+                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                    )
+                }
+            }
+            Spacer(Modifier.height(4.dp))
+            Text(
+                reason,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onTertiaryContainer,
+            )
         }
     }
 }

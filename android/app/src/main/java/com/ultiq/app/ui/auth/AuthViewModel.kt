@@ -10,6 +10,7 @@ import com.ultiq.app.data.remote.dto.ForgotPasswordRequest
 import com.ultiq.app.data.remote.dto.LoginRequest
 import com.ultiq.app.data.remote.dto.RegisterRequest
 import com.ultiq.app.data.remote.dto.ResetPasswordRequest
+import com.ultiq.app.fcm.FcmTokenSyncer
 import com.ultiq.app.util.TokenManager
 import com.ultiq.app.util.UserPreferences
 import com.ultiq.app.util.toUserMessage
@@ -36,6 +37,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     private val tokenManager = TokenManager(application)
     private val api: ApiService = RetrofitClient.create(tokenManager)
     private val userPreferences = UserPreferences(application)
+    private val fcmTokenSyncer = FcmTokenSyncer(application)
 
     private val _uiState = MutableStateFlow(AuthUiState())
     val uiState: StateFlow<AuthUiState> = _uiState
@@ -70,6 +72,10 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                         isLoggedIn = true,
                         isCheckingAuth = false,
                     )
+                    // §9.8 — Existing session: re-sync the FCM token so users
+                    // who installed Ultiq before this feature shipped get
+                    // registered the first time they relaunch.
+                    fcmTokenSyncer.syncIfLoggedIn()
                 } catch (_: Exception) {
                     tokenManager.clearToken()
                     _uiState.value = _uiState.value.copy(
@@ -103,6 +109,10 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                     isLoggedIn = true,
                     isCheckingAuth = false,
                 )
+                // §9.8 — Tell the backend where to deliver future anomaly
+                // push notifications for this device. Non-blocking; failure
+                // is logged + retried on the next login / token rotation.
+                fcmTokenSyncer.syncIfLoggedIn()
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
@@ -130,6 +140,8 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                     isLoggedIn = true,
                     isCheckingAuth = false,
                 )
+                // §9.8 — Same as login: register this device for push.
+                fcmTokenSyncer.syncIfLoggedIn()
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
@@ -141,6 +153,10 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
 
     fun logout() {
         viewModelScope.launch {
+            // §9.8 — Scrub this device's FCM row before clearing the auth
+            // token so the unregister call has a JWT to authenticate with.
+            // Non-fatal if it fails.
+            fcmTokenSyncer.unregister()
             tokenManager.clearToken()
             _uiState.value = _uiState.value.copy(
                 isLoggedIn = false,

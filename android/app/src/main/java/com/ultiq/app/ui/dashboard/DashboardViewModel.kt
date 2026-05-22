@@ -90,6 +90,15 @@ sealed class WeeklyInsightState {
     data class Error(val message: String) : WeeklyInsightState()
 }
 
+/// §9.8 — Anomaly alert from the daily scheduler. Only renders when
+/// `alert=true` AND the user hasn't dismissed this specific insight_id
+/// locally (one alert per day max, dismiss is per-alert).
+data class AnomalyAlertState(
+    val reason: String,
+    val insightId: String,
+    val generatedAt: String,
+)
+
 data class DashboardUiState(
     val lastNightSleep: SleepSummary? = null,
     val todayFocus: FocusSummary? = null,
@@ -111,6 +120,8 @@ data class DashboardUiState(
     val lockOverlayHintSeen: Boolean = true,
     /** §9.4 AI weekly insight card. */
     val weeklyInsight: WeeklyInsightState = WeeklyInsightState.Idle,
+    /** §9.8 anomaly alert card. Null = no active alert (or dismissed). */
+    val anomalyAlert: AnomalyAlertState? = null,
 ) {
     /**
      * Show the lock&overlay hint on the dashboard when at least one of
@@ -162,6 +173,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         observeTodayChecklist()
         observeAchievements()
         loadWeeklyInsight()
+        loadAnomalyAlert()
     }
 
     /// Fetch the AI weekly insight. Server returns a cached row if it's
@@ -201,6 +213,44 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun dismissLockOverlayHint() = viewModelScope.launch {
         userPreferences.setLockOverlayHintSeen(true)
+    }
+
+    /// §9.8 — Pull the latest anomaly alert (if any) and surface it as a
+    /// Dashboard card. Read-only — never triggers Bedrock. Honours the
+    /// "user dismissed this specific insight" flag so the same alert
+    /// doesn't keep reappearing within its 24h cache window.
+    fun loadAnomalyAlert() {
+        viewModelScope.launch {
+            runCatching { api.getLatestAnomaly() }
+                .onSuccess { resp ->
+                    val id = resp.insight_id
+                    val genAt = resp.generated_at
+                    val dismissedId = userPreferences.snapshot().dismissedAnomalyInsightId
+                    val show = resp.alert &&
+                        id != null &&
+                        genAt != null &&
+                        resp.reason.isNotBlank() &&
+                        dismissedId != id
+                    _uiState.value = _uiState.value.copy(
+                        anomalyAlert = if (show) {
+                            AnomalyAlertState(resp.reason, id!!, genAt!!)
+                        } else null,
+                    )
+                }
+                .onFailure {
+                    // Silent — anomaly card is non-critical; a transient
+                    // network failure just hides it until next refresh.
+                    _uiState.value = _uiState.value.copy(anomalyAlert = null)
+                }
+        }
+    }
+
+    fun dismissAnomalyAlert() {
+        val alert = _uiState.value.anomalyAlert ?: return
+        viewModelScope.launch {
+            userPreferences.setDismissedAnomalyInsightId(alert.insightId)
+            _uiState.value = _uiState.value.copy(anomalyAlert = null)
+        }
     }
 
     /**

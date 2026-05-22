@@ -70,6 +70,19 @@ jobs:
           task-definition: task-def.json
           container-name: ${{ env.CONTAINER_NAME }}
           image: ${{ steps.build.outputs.image }}
+          # §9.8 — Daily anomaly scan is opt-in. Setting these here keeps the
+          # config in source control (rather than hand-edited in the AWS
+          # console where it drifts). The scheduler is off by default in
+          # `scheduler::spawn`, so missing the env var means "no scan".
+          #
+          # CAUTION: ANOMALY_SCHEDULER_ENABLED=true on every task assumes the
+          # service runs a single task. If `desired_count` ever bumps >1,
+          # split this off (one task with the env var, the rest without) or
+          # switch to EventBridge → Lambda — otherwise the scan double-fires
+          # and double-bills Bedrock.
+          environment-variables: |
+            ANOMALY_SCHEDULER_ENABLED=true
+            ANOMALY_SCAN_HOUR_UTC=22
 
       - name: Deploy to ECS
         uses: aws-actions/amazon-ecs-deploy-task-definition@a310a830f5c14e583e35d84e4e1ec7dd177c3c9c # v2.6.2

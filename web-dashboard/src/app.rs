@@ -7,6 +7,7 @@ use crate::api::sse;
 use crate::auth::{provide_auth, use_auth, AuthContext};
 use crate::pages::admin::AdminPage;
 use crate::pages::calendar::CalendarPage;
+use crate::pages::chat::ChatPage;
 use crate::pages::checklist::ChecklistPage;
 use crate::pages::correlations::CorrelationsPage;
 use crate::pages::focus::FocusPage;
@@ -50,6 +51,7 @@ pub fn App() -> impl IntoView {
                 <Route path=path!("/focus") view=FocusPage />
                 <Route path=path!("/correlations") view=CorrelationsPage />
                 <Route path=path!("/reports") view=ReportsPage />
+                <Route path=path!("/chat") view=ChatPage />
                 <Route path=path!("/admin") view=AdminPage />
             </Routes>
         </Router>
