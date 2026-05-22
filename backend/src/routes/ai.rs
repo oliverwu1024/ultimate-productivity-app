@@ -2438,6 +2438,11 @@ const TOOL_GET_CHECKLIST: &str = "get_checklist";
 const TOOL_COMPLETE_CHECKLIST_ITEM: &str = "complete_checklist_item";
 const TOOL_LOG_SLEEP_RECORD: &str = "log_sleep_record";
 const TOOL_CREATE_ALARM: &str = "create_alarm";
+/// §audit-2 — calendar-period reads. `get_sleep_history(days=7)` returns a
+/// rolling 7-day window which is NOT "last week" — when the user asks
+/// "how did I sleep last week", the model should use these tools instead.
+const TOOL_GET_SLEEP_PERIOD: &str = "get_sleep_period";
+const TOOL_GET_FOCUS_PERIOD: &str = "get_focus_period";
 // TOOL_CALENDAR and TOOL_CHECKLIST are defined for parse_event above and
 // reused here verbatim — the schema is identical; the only difference is
 // the handler (propose vs. auto-commit).
@@ -2474,10 +2479,16 @@ YOU HAVE TOOLS. USE THEM.
 
 Read tools (look at the user's actual data):
 - get_today_summary — refreshes the snapshot at the top of this turn. Use only when you've just completed a write and want to confirm the new state. Otherwise, the snapshot at the top of the user message is already fresh.
-- get_sleep_history(days) — last N nights with bedtime, wake, duration, quality (1..5), and phone pickups during the sleep window.
-- get_focus_history(days) — per-day focus minutes and completed-session counts.
+- get_sleep_history(days) — last N nights with bedtime, wake, duration, quality (1..5), and phone pickups. This is a ROLLING N-day window — NOT the same as "last week" or "this month". For named calendar periods, use get_sleep_period.
+- get_sleep_period(period) — calendar-period sleep stats + records. Period ∈ {this_week, last_week, this_month, last_month}. ALWAYS use this when the user names a calendar period ("how did I sleep last week", "this month's sleep", etc.). Returns count + averages + the actual nights; if zero records, returns a friendly note (not an error).
+- get_focus_history(days) — rolling N-day focus history.
+- get_focus_period(period) — calendar-period focus stats. Same rule as get_sleep_period: USE THIS when the user names a calendar period.
 - get_calendar_events(start_date, end_date) — events in a date range. Range capped at 90 days.
 - get_checklist(date) — checklist items due on a specific day. Each item includes its id so you can complete it.
+
+PERIOD-QUESTION RULE (this is the most common Coach failure mode — do this right):
+- "last week" / "this week" / "this month" / "last month" / "in May" → call get_sleep_period or get_focus_period, NOT get_sleep_history(days=7). A 7-day rolling window is NOT the same as the previous Mon..Sun.
+- "the last 10 days" / "this past week" / "the past 30 days" → that IS a rolling window; use get_sleep_history(days=N).
 
 Write tools (act on the user's behalf):
 - create_checklist_item — adds a checklist item. Commits immediately. Speak as though it's done ("Added 'Buy bananas' to today's list.").
@@ -2852,6 +2863,34 @@ fn build_chat_tool_config() -> Result<ToolConfiguration, AppError> {
             calendar_tool_schema(),
         )?,
         build_one(
+            TOOL_GET_SLEEP_PERIOD,
+            "Fetch sleep records for a NAMED calendar period (this_week / last_week / this_month / last_month). Use this when the user asks \"how did I sleep last week\" or \"this month\" — `get_sleep_history(days)` returns a rolling N-day window and is NOT the same as \"last week\" (which means previous Mon..Sun). Returns the records in that period plus aggregate stats; if the period had zero records, returns counts of 0 and a friendly note (NOT an error).",
+            json!({
+                "type": "object",
+                "properties": {
+                    "period": {
+                        "type": "string",
+                        "enum": ["this_week", "last_week", "this_month", "last_month"]
+                    }
+                },
+                "required": ["period"]
+            }),
+        )?,
+        build_one(
+            TOOL_GET_FOCUS_PERIOD,
+            "Fetch focus-session activity for a NAMED calendar period (this_week / last_week / this_month / last_month). Same rules as get_sleep_period — pick this over `get_focus_history(days)` when the user names a calendar period.",
+            json!({
+                "type": "object",
+                "properties": {
+                    "period": {
+                        "type": "string",
+                        "enum": ["this_week", "last_week", "this_month", "last_month"]
+                    }
+                },
+                "required": ["period"]
+            }),
+        )?,
+        build_one(
             TOOL_LOG_SLEEP_RECORD,
             "Log a past night of sleep on the user's behalf. Commits immediately — speak as though it's done (\"Logged last night: 11:30 → 7:05, quality 3.\"). Use when the user wants to backfill a missing night (\"I forgot to log last night, I slept 10:30 to 6:45 quality 4\") or note that they slept badly without going into the Sleep tab. Defaults the target_bedtime / target_wake_time from the user's saved preferences server-side.",
             sleep_tool_schema(),
@@ -3055,6 +3094,12 @@ async fn run_chat_tool(
         }
         TOOL_CALENDAR => {
             handle_propose_calendar_event(&tool_use_id, &tool_name, &input).await
+        }
+        TOOL_GET_SLEEP_PERIOD => {
+            handle_get_sleep_period(state, user_id, &tool_use_id, &tool_name, &input).await
+        }
+        TOOL_GET_FOCUS_PERIOD => {
+            handle_get_focus_period(state, user_id, &tool_use_id, &tool_name, &input).await
         }
         TOOL_LOG_SLEEP_RECORD => {
             handle_log_sleep_record(state, user_id, &tool_use_id, &tool_name, &input).await
@@ -3768,6 +3813,221 @@ async fn handle_propose_alarm(
             committed_resource: None,
             proposed_event: None,
             proposed_alarm: Some(fields),
+        },
+    })
+}
+
+/// Resolve a named calendar period into [start_utc, end_utc] bounds.
+/// `now_local` carries the user's local-date so a Sunday-night question
+/// about "this week" still bucket-by-Monday in their timezone.
+fn calendar_period_bounds(
+    period: &str,
+    now_local: &str,
+) -> Result<(chrono::DateTime<Utc>, chrono::DateTime<Utc>, String), String> {
+    use chrono::Datelike;
+    let today = match chrono::DateTime::parse_from_rfc3339(now_local) {
+        Ok(dt) => dt.date_naive(),
+        Err(_) => Utc::now().date_naive(),
+    };
+    let now_utc = Utc::now();
+    let days_since_monday = today.weekday().num_days_from_monday() as i64;
+    let this_monday = today - chrono::Duration::days(days_since_monday);
+    let last_monday = this_monday - chrono::Duration::days(7);
+    let last_sunday = this_monday - chrono::Duration::days(1);
+    let first_of_month = today.with_day(1).ok_or("invalid first-of-month")?;
+    let last_month_end = first_of_month - chrono::Duration::days(1);
+    let first_of_last_month = last_month_end
+        .with_day(1)
+        .ok_or("invalid first-of-last-month")?;
+
+    let (start_date, end_date, label) = match period {
+        "this_week" => (this_monday, today, format!("this week ({}..{})", this_monday, today)),
+        "last_week" => (last_monday, last_sunday, format!("last week ({}..{})", last_monday, last_sunday)),
+        "this_month" => (first_of_month, today, format!("this month ({}..{})", first_of_month, today)),
+        "last_month" => (first_of_last_month, last_month_end, format!("last month ({}..{})", first_of_last_month, last_month_end)),
+        other => return Err(format!("unknown period: {}", other)),
+    };
+    let start = start_date.and_hms_opt(0, 0, 0).unwrap().and_utc();
+    // For periods that include "today", cap end at the current instant so
+    // we don't pull a record from tonight that hasn't happened yet.
+    let end = if end_date >= today {
+        now_utc
+    } else {
+        end_date.and_hms_opt(23, 59, 59).unwrap().and_utc()
+    };
+    Ok((start, end, label))
+}
+
+async fn handle_get_sleep_period(
+    state: &AppState,
+    user_id: Uuid,
+    tool_use_id: &str,
+    tool_name: &str,
+    input: &serde_json::Value,
+) -> Result<ToolRunOutcome, String> {
+    let period = input
+        .get("period")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| "missing period".to_string())?;
+    // §audit-2 — read `now_local` from the model's per-turn arg if it sent
+    // one (it doesn't currently, but fine). Fall back to UTC date.
+    let now_local = Utc::now().to_rfc3339();
+    let (start, end, label) = calendar_period_bounds(period, &now_local)?;
+    let rows: Vec<(Uuid, chrono::DateTime<Utc>, chrono::DateTime<Utc>, i16, i32)> = sqlx::query_as(
+        "SELECT id, actual_bedtime, actual_wake_time, quality_rating, phone_pickups
+           FROM sleep_records
+          WHERE user_id = $1 AND actual_bedtime >= $2 AND actual_bedtime <= $3
+          ORDER BY actual_bedtime DESC",
+    )
+    .bind(user_id)
+    .bind(start)
+    .bind(end)
+    .fetch_all(&state.pool)
+    .await
+    .map_err(|e| format!("db error: {}", e))?;
+    let count = rows.len();
+    let total_minutes: i64 = rows
+        .iter()
+        .map(|(_, b, w, _, _)| w.signed_duration_since(*b).num_minutes().max(0))
+        .sum();
+    let avg_minutes: i64 = if count > 0 { total_minutes / count as i64 } else { 0 };
+    let avg_quality: f64 = if count > 0 {
+        rows.iter().map(|(_, _, _, q, _)| *q as f64).sum::<f64>() / count as f64
+    } else {
+        0.0
+    };
+    let serializable: Vec<_> = rows
+        .iter()
+        .map(|(id, bed, wake, q, p)| {
+            let mins = wake.signed_duration_since(*bed).num_minutes().max(0);
+            json!({
+                "id": id,
+                "bedtime": bed.to_rfc3339(),
+                "wake_time": wake.to_rfc3339(),
+                "duration_minutes": mins,
+                "quality": q,
+                "phone_pickups": p,
+            })
+        })
+        .collect();
+    // Friendly empty payload — model can quote "no records in last month"
+    // instead of falling back to a different period silently.
+    let note = if count == 0 {
+        format!("No sleep records logged in {}.", label)
+    } else {
+        format!(
+            "{} nights logged in {}. avg duration {}h{:02}, avg quality {:.1}/5.",
+            count,
+            label,
+            avg_minutes / 60,
+            avg_minutes % 60,
+            avg_quality,
+        )
+    };
+    let payload = json!({
+        "period": period,
+        "label": label,
+        "count": count,
+        "avg_duration_minutes": avg_minutes,
+        "avg_quality": avg_quality,
+        "records": serializable,
+        "note": note,
+    })
+    .to_string();
+    Ok(ToolRunOutcome {
+        payload_for_model: payload,
+        bedrock_status: ToolResultStatus::Success,
+        surface: ToolInvocationSurface {
+            id: tool_use_id.to_string(),
+            name: tool_name.to_string(),
+            status: "ok".to_string(),
+            summary: if count == 0 {
+                format!("No sleep records for {}", period.replace('_', " "))
+            } else {
+                format!("Pulled {} nights for {}", count, period.replace('_', " "))
+            },
+            committed: false,
+            committed_resource: None,
+            proposed_event: None,
+            proposed_alarm: None,
+        },
+    })
+}
+
+async fn handle_get_focus_period(
+    state: &AppState,
+    user_id: Uuid,
+    tool_use_id: &str,
+    tool_name: &str,
+    input: &serde_json::Value,
+) -> Result<ToolRunOutcome, String> {
+    let period = input
+        .get("period")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| "missing period".to_string())?;
+    let now_local = Utc::now().to_rfc3339();
+    let (start, end, label) = calendar_period_bounds(period, &now_local)?;
+    let rows: Vec<(chrono::NaiveDate, i64, i64)> = sqlx::query_as(
+        "SELECT (started_at AT TIME ZONE 'UTC')::DATE AS day,
+                COUNT(*) FILTER (WHERE completed)::BIGINT AS completed_count,
+                COALESCE(SUM(duration_minutes) FILTER (WHERE completed), 0)::BIGINT AS total_minutes
+           FROM productivity_sessions
+          WHERE user_id = $1 AND started_at >= $2 AND started_at <= $3
+          GROUP BY day
+          ORDER BY day DESC",
+    )
+    .bind(user_id)
+    .bind(start)
+    .bind(end)
+    .fetch_all(&state.pool)
+    .await
+    .map_err(|e| format!("db error: {}", e))?;
+    let total_minutes: i64 = rows.iter().map(|(_, _, m)| *m).sum();
+    let total_sessions: i64 = rows.iter().map(|(_, c, _)| *c).sum();
+    let day_count = rows.len();
+    let by_day: Vec<_> = rows
+        .iter()
+        .map(|(d, c, m)| {
+            json!({
+                "date": d.to_string(),
+                "completed_sessions": c,
+                "focus_minutes": m,
+            })
+        })
+        .collect();
+    let note = if total_sessions == 0 {
+        format!("No focus sessions in {}.", label)
+    } else {
+        format!(
+            "{} sessions in {}, totalling {} minutes across {} day(s).",
+            total_sessions, label, total_minutes, day_count
+        )
+    };
+    Ok(ToolRunOutcome {
+        payload_for_model: json!({
+            "period": period,
+            "label": label,
+            "total_sessions": total_sessions,
+            "total_minutes": total_minutes,
+            "active_days": day_count,
+            "by_day": by_day,
+            "note": note,
+        })
+        .to_string(),
+        bedrock_status: ToolResultStatus::Success,
+        surface: ToolInvocationSurface {
+            id: tool_use_id.to_string(),
+            name: tool_name.to_string(),
+            status: "ok".to_string(),
+            summary: if total_sessions == 0 {
+                format!("No focus sessions in {}", period.replace('_', " "))
+            } else {
+                format!("Pulled {} sessions for {}", total_sessions, period.replace('_', " "))
+            },
+            committed: false,
+            committed_resource: None,
+            proposed_event: None,
+            proposed_alarm: None,
         },
     })
 }

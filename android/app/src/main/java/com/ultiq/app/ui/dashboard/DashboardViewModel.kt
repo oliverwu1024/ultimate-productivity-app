@@ -430,29 +430,18 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     private suspend fun loadUpcomingEvents() {
+        // §audit-2 — Coming up = TODAY's calendar events only. Checklist
+        // items live in the existing "Today's plan" card above; mixing
+        // them in here was wrong (and the previous window let tomorrow's
+        // tasks leak in). Empty state says "no calendar events planned
+        // today" via the WarmCopy helper.
         val today = LocalDate.now()
-        val events = calendarRepo.getEventsForRange(today, today.plusDays(7)).firstOrNull() ?: emptyList()
+        val events = calendarRepo.getEventsForRange(today, today).firstOrNull() ?: emptyList()
         val now = System.currentTimeMillis()
         val visibleEvents = events.filter { it.startTime >= now }
-
-        // §wave2 — merge today's open checklist items into the same
-        // "Coming up" list so the user sees the day's commitments in one
-        // place (was calendar-only before).
-        val dayOfWeekBit = 1 shl (today.dayOfWeek.value % 7)
-        val checklistOpen = db.checklistDao()
-            .getByDate(today.toEpochDay(), dayOfWeekBit)
-            .firstOrNull()
-            ?.filter { !it.completed }
-            ?: emptyList()
-
-        val combined: List<UpcomingItem> = (
-            visibleEvents.map(UpcomingItem::Calendar) +
-                checklistOpen.map(UpcomingItem::Checklist)
-            ).sortedBy { it.sortKey }.take(8)
-
         _uiState.value = _uiState.value.copy(
-            upcomingEvents = visibleEvents.take(5),
-            upcomingItems = combined,
+            upcomingEvents = visibleEvents,
+            upcomingItems = visibleEvents.map(UpcomingItem::Calendar),
         )
     }
 

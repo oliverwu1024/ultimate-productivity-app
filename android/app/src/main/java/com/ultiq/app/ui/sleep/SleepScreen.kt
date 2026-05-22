@@ -104,7 +104,6 @@ fun SleepScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val alarms by alarmsViewModel.alarms.collectAsState()
-    var pendingDeleteAlarm by remember { mutableStateOf<AlarmEntity?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
     // Sub-tab state — local, no need to round-trip through the VM.
     // rememberSaveable so popping back from AlarmEditScreen returns to the
@@ -166,7 +165,7 @@ fun SleepScreen(
                     onCreateAlarm = onCreateAlarm,
                     onEditAlarm = onEditAlarm,
                     alarmsViewModel = alarmsViewModel,
-                    onRequestDelete = { pendingDeleteAlarm = it },
+                    onDelete = { alarmsViewModel.delete(it) },
                 )
             }
         }
@@ -209,17 +208,6 @@ fun SleepScreen(
             description = id.description,
             icon = id.icon,
             onDismiss = { viewModel.dismissAchievementCelebration() },
-        )
-    }
-
-    // Delete-alarm confirmation
-    pendingDeleteAlarm?.let { target ->
-        DeleteAlarmDialog(
-            onConfirm = {
-                alarmsViewModel.delete(target)
-                pendingDeleteAlarm = null
-            },
-            onCancel = { pendingDeleteAlarm = null },
         )
     }
 
@@ -309,13 +297,6 @@ private fun SleepSubTab(
             )
         }
 
-        // §wave2 — small 2×2 grid of period counts (This week / Last week /
-        // This month / Last month) above the stats card so the user can
-        // eyeball consistency at a glance.
-        item(key = "period-grid") {
-            AnimatedAppear { SleepPeriodGrid(counts = uiState.periodCounts) }
-        }
-
         if (hasStats) {
             item(key = "stats") {
                 AnimatedAppear { StatsRow(uiState.stats!!) }
@@ -359,18 +340,75 @@ private fun SleepSubTab(
                 MascotEmptyState(title = title, body = body)
             }
         } else {
-            items(uiState.records, key = { it.id }) { record ->
-                SleepRecordItem(
-                    record = record,
-                    onDelete = { viewModel.deleteRecord(record.id) },
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp)
-                        .animateItem(),
-                )
+            // §audit-2 — group records into calendar-period sections so the
+            // user sees "This week / Last week" or "This month / Last month"
+            // depending on the selected sub-tab, instead of one flat list.
+            val sections = groupRecordsByPeriod(uiState.records, uiState.selectedTimeRange)
+            sections.forEach { (header, recs) ->
+                item(key = "sec-$header") {
+                    Text(
+                        header,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(start = 20.dp, top = 16.dp, bottom = 4.dp),
+                    )
+                }
+                items(recs, key = { it.id }) { record ->
+                    SleepRecordItem(
+                        record = record,
+                        onDelete = { viewModel.deleteRecord(record.id) },
+                        modifier = Modifier
+                            .padding(horizontal = 16.dp)
+                            .animateItem(),
+                    )
+                }
             }
             item(key = "bottom-spacer") {
                 Spacer(modifier = Modifier.height(16.dp))
             }
+        }
+    }
+}
+
+/// Partitions a window of sleep records into two named buckets:
+/// - When viewing **Week**, buckets are "This week" (Mon..today) and
+///   "Last week" (previous Mon..Sun). Older rows are dropped from the
+///   list — the user can switch to Month for older history.
+/// - When viewing **Month**, buckets are "This month" (1st..today) and
+///   "Last month" (full previous calendar month).
+/// Returns sections in display order, omitting empty ones so the user
+/// doesn't see an empty "Last week" header on a brand-new account.
+private fun groupRecordsByPeriod(
+    records: List<SleepRecordEntity>,
+    range: TimeRange,
+): List<Pair<String, List<SleepRecordEntity>>> {
+    val zone = ZoneId.systemDefault()
+    val today = java.time.LocalDate.now(zone)
+    fun dayOf(r: SleepRecordEntity): java.time.LocalDate =
+        Instant.ofEpochMilli(r.actualBedtime).atZone(zone).toLocalDate()
+
+    return when (range) {
+        TimeRange.WEEK -> {
+            val mondayOfThisWeek = today.minusDays(today.dayOfWeek.value.toLong() - 1)
+            val mondayOfLastWeek = mondayOfThisWeek.minusWeeks(1)
+            val sundayOfLastWeek = mondayOfThisWeek.minusDays(1)
+            val thisWeek = records.filter { val d = dayOf(it); !d.isBefore(mondayOfThisWeek) && !d.isAfter(today) }
+            val lastWeek = records.filter { val d = dayOf(it); !d.isBefore(mondayOfLastWeek) && !d.isAfter(sundayOfLastWeek) }
+            listOfNotNull(
+                "This week".takeIf { thisWeek.isNotEmpty() }?.let { it to thisWeek },
+                "Last week".takeIf { lastWeek.isNotEmpty() }?.let { it to lastWeek },
+            )
+        }
+        TimeRange.MONTH -> {
+            val firstOfThisMonth = today.withDayOfMonth(1)
+            val firstOfLastMonth = firstOfThisMonth.minusMonths(1)
+            val lastOfLastMonth = firstOfThisMonth.minusDays(1)
+            val thisMonth = records.filter { val d = dayOf(it); !d.isBefore(firstOfThisMonth) && !d.isAfter(today) }
+            val lastMonth = records.filter { val d = dayOf(it); !d.isBefore(firstOfLastMonth) && !d.isAfter(lastOfLastMonth) }
+            listOfNotNull(
+                "This month".takeIf { thisMonth.isNotEmpty() }?.let { it to thisMonth },
+                "Last month".takeIf { lastMonth.isNotEmpty() }?.let { it to lastMonth },
+            )
         }
     }
 }
@@ -381,7 +419,7 @@ private fun AlarmsSubTab(
     onCreateAlarm: () -> Unit,
     onEditAlarm: (String) -> Unit,
     alarmsViewModel: AlarmsViewModel,
-    onRequestDelete: (AlarmEntity) -> Unit,
+    onDelete: (AlarmEntity) -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -393,7 +431,7 @@ private fun AlarmsSubTab(
             onCreate = onCreateAlarm,
             onEdit = onEditAlarm,
             onToggle = { alarm, enabled -> alarmsViewModel.setEnabled(alarm, enabled) },
-            onRequestDelete = onRequestDelete,
+            onDelete = onDelete,
             onTestAlarm = { kind -> alarmsViewModel.scheduleTestAlarm(kind) },
         )
     }
@@ -553,80 +591,6 @@ private fun SessionControl(
         }
     }
 }
-
-/// 2×2 grid: rows = "This week / This month" and "Last week / Last month",
-/// each cell showing the count of nights logged. Mirrors the layout the
-/// user asked for in v2.10.2 feedback. Lives just above the existing
-/// StatsRow so the at-a-glance counts come first, the per-night averages
-/// come after.
-@Composable
-private fun SleepPeriodGrid(counts: SleepPeriodCounts) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-        ),
-    ) {
-        Column(modifier = Modifier.padding(14.dp)) {
-            Row(modifier = Modifier.fillMaxWidth()) {
-                PeriodColumn(
-                    headline = "Week",
-                    currentLabel = "This week",
-                    currentDays = counts.thisWeek,
-                    previousLabel = "Last week",
-                    previousDays = counts.lastWeek,
-                    modifier = Modifier.weight(1f),
-                )
-                Spacer(Modifier.width(12.dp))
-                PeriodColumn(
-                    headline = "Month",
-                    currentLabel = "This month",
-                    currentDays = counts.thisMonth,
-                    previousLabel = "Last month",
-                    previousDays = counts.lastMonth,
-                    modifier = Modifier.weight(1f),
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun PeriodColumn(
-    headline: String,
-    currentLabel: String,
-    currentDays: Int,
-    previousLabel: String,
-    previousDays: Int,
-    modifier: Modifier = Modifier,
-) {
-    Column(modifier = modifier) {
-        Text(
-            headline,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.primary,
-            fontWeight = FontWeight.SemiBold,
-        )
-        Spacer(Modifier.height(8.dp))
-        Text(currentLabel, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(
-            daysLabel(currentDays),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-        )
-        Spacer(Modifier.height(8.dp))
-        Text(previousLabel, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(
-            daysLabel(previousDays),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-        )
-    }
-}
-
-private fun daysLabel(n: Int): String = if (n == 1) "1 day" else "$n days"
 
 @Composable
 private fun StatsRow(stats: SleepStats) {

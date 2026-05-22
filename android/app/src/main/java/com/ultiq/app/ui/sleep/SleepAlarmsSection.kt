@@ -56,7 +56,11 @@ fun LazyListScope.sleepAlarmsSection(
     onCreate: () -> Unit,
     onEdit: (String) -> Unit,
     onToggle: (AlarmEntity, Boolean) -> Unit,
-    onRequestDelete: (AlarmEntity) -> Unit,
+    /// Fires after the user confirms in the swipe-to-delete dialog —
+    /// no further confirmation needed at the parent (was double-dialoging
+    /// when `onRequestDelete` opened a second dialog on top of the swipe
+    /// one in v2.10.3).
+    onDelete: (AlarmEntity) -> Unit,
     onTestAlarm: (String) -> Unit,
 ) {
     item(key = "alarms-header") {
@@ -118,7 +122,7 @@ fun LazyListScope.sleepAlarmsSection(
             com.ultiq.app.ui.common.SwipeToDeleteBox(
                 confirmTitle = "Delete alarm?",
                 confirmBody = "This alarm will be removed from this device and your account. This can't be undone.",
-                onDelete = { onRequestDelete(alarm) },
+                onDelete = { onDelete(alarm) },
                 modifier = Modifier.padding(horizontal = 16.dp),
             ) {
                 AlarmRow(
