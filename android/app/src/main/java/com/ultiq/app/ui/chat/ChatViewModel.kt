@@ -113,15 +113,41 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     fun send(text: String) {
         val trimmed = text.trim()
         if (trimmed.isEmpty() || _uiState.value.isSending) return
+
+        // Optimistic insert: show the user's bubble + a "thinking…" indicator
+        // immediately. The server round-trip can take a few seconds on a
+        // cold-cached first turn; without this the chat feels broken until
+        // the response lands.
+        val optimisticId = "local-${java.util.UUID.randomUUID()}"
+        val optimisticTurn = ChatTurn.UserText(
+            ChatMessageDto(
+                id = optimisticId,
+                role = "user",
+                content = trimmed,
+                created_at = OffsetDateTime.now().toString(),
+            )
+        )
+        _uiState.value = _uiState.value.copy(
+            turns = _uiState.value.turns + optimisticTurn,
+            isSending = true,
+            error = null,
+        )
+
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isSending = true, error = null)
             val now = OffsetDateTime.now().toString()
             runCatching {
                 api.sendChatMessage(ChatSendRequestDto(content = trimmed, now_local = now))
             }
                 .onSuccess { resp ->
-                    val newTurns = buildList {
-                        add(ChatTurn.UserText(resp.user_message))
+                    // Replace the optimistic turn with the server-persisted
+                    // one (so the id stabilises) and append tool turns + the
+                    // assistant reply in order.
+                    val withReplacedUser = _uiState.value.turns.map { turn ->
+                        if (turn is ChatTurn.UserText && turn.message.id == optimisticId) {
+                            ChatTurn.UserText(resp.user_message)
+                        } else turn
+                    }
+                    val appendTurns = buildList {
                         for (inv in resp.tool_invocations) {
                             if (inv.status == "proposed" && inv.proposed_event != null) {
                                 add(ChatTurn.CalendarProposal(invocation = inv))
@@ -132,10 +158,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                         add(ChatTurn.AssistantText(resp.assistant_message))
                     }
                     _uiState.value = _uiState.value.copy(
-                        turns = _uiState.value.turns + newTurns,
+                        turns = withReplacedUser + appendTurns,
                         isSending = false,
                     )
-                    // Surface undo cues for any auto-committed writes.
                     for (inv in resp.tool_invocations) {
                         val r = inv.committed_resource
                         if (inv.committed && r != null) {
@@ -144,7 +169,13 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 }
                 .onFailure { e ->
+                    // Roll the optimistic bubble back on failure so the user
+                    // can edit + retry without a phantom message lingering.
+                    val rolled = _uiState.value.turns.filterNot {
+                        it is ChatTurn.UserText && it.message.id == optimisticId
+                    }
                     _uiState.value = _uiState.value.copy(
+                        turns = rolled,
                         isSending = false,
                         error = e.toUserMessage("Couldn't reach the coach. Try again."),
                     )

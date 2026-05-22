@@ -1,6 +1,6 @@
 {
-  "versionCode": 27,
-  "versionName": "2.9.0",
-  "url": "https://ultiqapp.com/ultiq.2.9.0.apk",
-  "releaseNotes": "Coach can now actually do things. It reads your sleep, focus, calendar, and checklist context before answering, can add checklist items for you (with one-tap undo), and drafts calendar events you confirm before they land. Ask things like 'how did I sleep this week?' or 'add buy groceries for tomorrow'."
+  "versionCode": 28,
+  "versionName": "2.9.1",
+  "url": "https://ultiqapp.com/ultiq.2.9.1.apk",
+  "releaseNotes": "Coach polish — your message appears the instant you send it instead of after the round-trip, **bold** / *italic* now render properly (no more raw asterisks), and bubbles fade in instead of snapping. The weekly summary footer wording is clearer about the once-a-day cadence."
 }

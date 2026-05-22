@@ -124,45 +124,70 @@ pub fn ChatPage() -> impl IntoView {
             return;
         }
 
-        sending.set(true);
-        error.set(None);
+        // Optimistic insert: drop a temporary user bubble + flip into the
+        // "thinking…" state immediately. Without this the bubble doesn't
+        // appear until after the server round-trip lands, which makes the
+        // first turn of a fresh chat feel hung.
         let payload = trimmed.to_string();
         input.set(String::new());
+        let optimistic_id = format!("local-{}", web_sys::js_sys::Math::random());
+        let optimistic = ChatMessage {
+            id: optimistic_id.clone(),
+            role: "user".to_string(),
+            content: payload.clone(),
+            created_at: chrono::Utc::now(),
+        };
+        turns.update(|t| t.push(ChatTurn::UserText(optimistic)));
+        sending.set(true);
+        error.set(None);
+
         let now_local = chrono::Local::now().to_rfc3339();
         wasm_bindgen_futures::spawn_local(async move {
             match send_chat_message(payload, Some(now_local)).await {
                 Ok(resp) => {
-                    let mut new_turns: Vec<ChatTurn> = Vec::new();
-                    new_turns.push(ChatTurn::UserText(resp.user_message));
                     let mut first_committed: Option<UndoBanner> = None;
-                    for inv in resp.tool_invocations.into_iter() {
-                        if inv.status == "proposed" && inv.proposed_event.is_some() {
-                            new_turns.push(ChatTurn::CalendarProposal {
-                                invocation: inv,
-                                state: ProposalState::Pending,
-                            });
-                        } else {
-                            // Stage the most-recent committed resource for the
-                            // undo banner before we move the invocation into
-                            // the ToolStatus turn.
-                            if inv.committed {
-                                if let Some(res) = inv.committed_resource.clone() {
-                                    first_committed = Some(UndoBanner {
-                                        resource: res,
-                                        message: inv.summary.clone(),
-                                    });
-                                }
-                            }
-                            new_turns.push(ChatTurn::ToolStatus(inv));
+                    turns.update(|t| {
+                        // Replace the optimistic stub with the server-persisted
+                        // user message (stable id, real created_at).
+                        if let Some(idx) = t.iter().position(|x| matches!(
+                            x, ChatTurn::UserText(m) if m.id == optimistic_id
+                        )) {
+                            t[idx] = ChatTurn::UserText(resp.user_message);
                         }
-                    }
-                    new_turns.push(ChatTurn::AssistantText(resp.assistant_message));
-                    turns.update(|t| t.extend(new_turns));
+                        // Then append the tool turns and the assistant reply
+                        // in order.
+                        for inv in resp.tool_invocations.into_iter() {
+                            if inv.status == "proposed" && inv.proposed_event.is_some() {
+                                t.push(ChatTurn::CalendarProposal {
+                                    invocation: inv,
+                                    state: ProposalState::Pending,
+                                });
+                            } else {
+                                if inv.committed {
+                                    if let Some(res) = inv.committed_resource.clone() {
+                                        first_committed = Some(UndoBanner {
+                                            resource: res,
+                                            message: inv.summary.clone(),
+                                        });
+                                    }
+                                }
+                                t.push(ChatTurn::ToolStatus(inv));
+                            }
+                        }
+                        t.push(ChatTurn::AssistantText(resp.assistant_message));
+                    });
                     if first_committed.is_some() {
                         undo_banner.set(first_committed);
                     }
                 }
-                Err(e) => error.set(Some(e.message)),
+                Err(e) => {
+                    // Roll the optimistic bubble back so the user can retry
+                    // without a phantom message hanging in the conversation.
+                    turns.update(|t| t.retain(|x| !matches!(
+                        x, ChatTurn::UserText(m) if m.id == optimistic_id
+                    )));
+                    error.set(Some(e.message));
+                }
             }
             sending.set(false);
         });
@@ -343,7 +368,7 @@ pub fn ChatPage() -> impl IntoView {
                                         }).collect_view()
                                     }}
                                     <Show when=move || sending.get()>
-                                        <div class="flex">
+                                        <div class="flex coach-turn-in">
                                             <div class="mr-auto bg-white text-ultiq-indigo/60 rounded-2xl rounded-bl-sm shadow px-4 py-2.5 text-sm italic">
                                                 "thinking…"
                                             </div>
@@ -440,7 +465,7 @@ pub fn ChatPage() -> impl IntoView {
 
 fn render_user_bubble(m: ChatMessage, key: String) -> AnyView {
     view! {
-        <div class="flex" data-key=key>
+        <div class="flex coach-turn-in" data-key=key>
             <div class="ml-auto bg-ultiq-indigo text-ultiq-cream rounded-2xl rounded-br-sm max-w-[80%] px-4 py-2.5 whitespace-pre-wrap break-words">
                 {m.content}
             </div>
@@ -450,14 +475,91 @@ fn render_user_bubble(m: ChatMessage, key: String) -> AnyView {
 }
 
 fn render_assistant_bubble(m: ChatMessage, key: String) -> AnyView {
+    let segments = parse_inline_markdown(&m.content);
     view! {
-        <div class="flex" data-key=key>
+        <div class="flex coach-turn-in" data-key=key>
             <div class="mr-auto bg-white text-ultiq-indigo rounded-2xl rounded-bl-sm shadow max-w-[80%] px-4 py-2.5 whitespace-pre-wrap break-words">
-                {m.content}
+                <span class="md">
+                    {segments.into_iter().map(render_segment).collect_view()}
+                </span>
             </div>
         </div>
     }
     .into_any()
+}
+
+/// Inline-Markdown token used by the assistant-bubble renderer. Server
+/// forbids tables/headers/etc., so we only need to recognise the three
+/// inline forms (bold, italic, code) — everything else passes through as
+/// plain text.
+#[derive(Debug, Clone)]
+enum MdSegment {
+    Plain(String),
+    Bold(String),
+    Italic(String),
+    Code(String),
+}
+
+fn parse_inline_markdown(text: &str) -> Vec<MdSegment> {
+    let bytes = text.as_bytes();
+    let n = bytes.len();
+    let mut out: Vec<MdSegment> = Vec::new();
+    let mut plain = String::new();
+    let mut i = 0;
+    let flush_plain = |plain: &mut String, out: &mut Vec<MdSegment>| {
+        if !plain.is_empty() {
+            out.push(MdSegment::Plain(std::mem::take(plain)));
+        }
+    };
+    while i < n {
+        // **bold**
+        if i + 1 < n && bytes[i] == b'*' && bytes[i + 1] == b'*' {
+            if let Some(end_rel) = text[i + 2..].find("**") {
+                let end = i + 2 + end_rel;
+                flush_plain(&mut plain, &mut out);
+                out.push(MdSegment::Bold(text[i + 2..end].to_string()));
+                i = end + 2;
+                continue;
+            }
+        }
+        // *italic* (skip when adjacent to another star — that's bold)
+        if bytes[i] == b'*' {
+            let prev = if i == 0 { 0 } else { bytes[i - 1] };
+            let next = if i + 1 < n { bytes[i + 1] } else { 0 };
+            if prev != b'*' && next != b'*' {
+                if let Some(end_rel) = text[i + 1..].find('*') {
+                    let end = i + 1 + end_rel;
+                    flush_plain(&mut plain, &mut out);
+                    out.push(MdSegment::Italic(text[i + 1..end].to_string()));
+                    i = end + 1;
+                    continue;
+                }
+            }
+        }
+        // `code`
+        if bytes[i] == b'`' {
+            if let Some(end_rel) = text[i + 1..].find('`') {
+                let end = i + 1 + end_rel;
+                flush_plain(&mut plain, &mut out);
+                out.push(MdSegment::Code(text[i + 1..end].to_string()));
+                i = end + 1;
+                continue;
+            }
+        }
+        plain.push(text[i..].chars().next().unwrap());
+        i += text[i..].chars().next().unwrap().len_utf8();
+    }
+    flush_plain(&mut plain, &mut out);
+    out
+}
+
+fn render_segment(seg: MdSegment) -> AnyView {
+    match seg {
+        MdSegment::Plain(t) => view! { <>{t}</> }.into_any(),
+        MdSegment::Bold(t) => view! { <strong>{t}</strong> }.into_any(),
+        MdSegment::Italic(t) => view! { <em>{t}</em> }.into_any(),
+        MdSegment::Code(t) => view! { <code>{t}</code> }.into_any(),
+    }
 }
 
 fn render_tool_pill(inv: ToolInvocation, key: String) -> AnyView {
@@ -481,7 +583,7 @@ fn render_tool_pill(inv: ToolInvocation, key: String) -> AnyView {
         "·"
     };
     view! {
-        <div class="flex" data-key=key>
+        <div class="flex coach-turn-in" data-key=key>
             <div class={format!("{} max-w-[80%] px-3 py-1.5 rounded-full text-xs flex items-center gap-1.5", classes)}>
                 <span aria-hidden="true">{icon}</span>
                 <span>{inv.summary}</span>
@@ -510,7 +612,7 @@ where
     let inv_id_for_cancel = invocation.id.clone();
     let body = format_proposal_body(&event);
     view! {
-        <div class="flex" data-key=key>
+        <div class="flex coach-turn-in" data-key=key>
             <div class="mr-auto max-w-[80%] bg-white border-2 border-ultiq-indigo/20 rounded-2xl p-4 space-y-2">
                 <div class="text-xs uppercase tracking-wide font-semibold text-ultiq-indigo/70">
                     "Proposed event"

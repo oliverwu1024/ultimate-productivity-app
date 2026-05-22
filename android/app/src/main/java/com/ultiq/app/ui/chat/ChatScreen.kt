@@ -1,5 +1,8 @@
 package com.ultiq.app.ui.chat
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -17,6 +20,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -58,7 +62,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ultiq.app.data.remote.dto.ChatMessageDto
@@ -77,9 +87,6 @@ fun ChatScreen(
     val listState = rememberLazyListState()
     var showResetDialog by remember { mutableStateOf(false) }
 
-    // Auto-scroll to the bottom whenever the turn count changes so the
-    // user sees the assistant's reply (and any tool pills) without
-    // manual scrolling.
     LaunchedEffect(state.turns.size) {
         if (state.turns.isNotEmpty()) {
             listState.animateScrollToItem(state.turns.size - 1)
@@ -93,8 +100,6 @@ fun ChatScreen(
         }
     }
 
-    // Subscribe once for the lifetime of the screen — undo cues from
-    // auto-committed writes drive the snackbar's Undo action.
     LaunchedEffect(Unit) {
         viewModel.undoCues.collect { cue ->
             val result = snackbarHost.showSnackbar(
@@ -162,20 +167,22 @@ fun ChatScreen(
                                 count = state.turns.size,
                                 key = { i -> state.turns[i].key },
                             ) { i ->
-                                when (val t = state.turns[i]) {
-                                    is ChatTurn.UserText -> ChatBubble(t.message)
-                                    is ChatTurn.AssistantText -> ChatBubble(t.message)
-                                    is ChatTurn.ToolStatus -> ToolStatusPill(t.invocation)
-                                    is ChatTurn.CalendarProposal -> CalendarProposalCard(
-                                        invocation = t.invocation,
-                                        state = t.state,
-                                        onCreate = { viewModel.confirmCalendarProposal(t.invocation.id) },
-                                        onCancel = { viewModel.cancelCalendarProposal(t.invocation.id) },
-                                    )
+                                AnimatedTurn {
+                                    when (val t = state.turns[i]) {
+                                        is ChatTurn.UserText -> ChatBubble(t.message)
+                                        is ChatTurn.AssistantText -> ChatBubble(t.message)
+                                        is ChatTurn.ToolStatus -> ToolStatusPill(t.invocation)
+                                        is ChatTurn.CalendarProposal -> CalendarProposalCard(
+                                            invocation = t.invocation,
+                                            state = t.state,
+                                            onCreate = { viewModel.confirmCalendarProposal(t.invocation.id) },
+                                            onCancel = { viewModel.cancelCalendarProposal(t.invocation.id) },
+                                        )
+                                    }
                                 }
                             }
                             if (state.isSending) {
-                                item { TypingIndicator() }
+                                item { AnimatedTurn { TypingIndicator() } }
                             }
                         }
                     }
@@ -212,6 +219,23 @@ fun ChatScreen(
     }
 }
 
+/// Wraps each LazyColumn item with a fade + slide-in + placement spring so
+/// new turns settle in instead of snapping. `animateItem()` (Compose 1.7+)
+/// handles entrance, placement, and removal at the item level.
+@Composable
+private fun LazyItemScope.AnimatedTurn(content: @Composable () -> Unit) {
+    Box(
+        modifier = Modifier.animateItem(
+            fadeInSpec = tween(durationMillis = 240),
+            placementSpec = spring(
+                stiffness = Spring.StiffnessMediumLow,
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+            ),
+            fadeOutSpec = tween(durationMillis = 120),
+        ),
+    ) { content() }
+}
+
 @Composable
 private fun ChatBubble(message: ChatMessageDto) {
     val isUser = message.role == "user"
@@ -231,6 +255,11 @@ private fun ChatBubble(message: ChatMessageDto) {
     } else {
         RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomEnd = 16.dp, bottomStart = 4.dp)
     }
+    // Assistant turns render inline Markdown (**bold**, *italic*, `code`).
+    // User turns stay plain — they typed it, no point parsing their input.
+    val styled = remember(message.content, isUser) {
+        if (isUser) AnnotatedString(message.content) else parseInlineMarkdown(message.content)
+    }
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = alignment,
@@ -241,11 +270,64 @@ private fun ChatBubble(message: ChatMessageDto) {
             modifier = Modifier.widthIn(max = 320.dp),
         ) {
             Text(
-                message.content,
+                styled,
                 style = MaterialTheme.typography.bodyMedium,
                 color = textColor,
                 modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
             )
+        }
+    }
+}
+
+/// Tiny inline-Markdown parser. Handles `**bold**`, `*italic*`, and
+/// `` `code` `` inside a single paragraph of text. Everything else
+/// passes through as plain text. Deliberately doesn't handle tables,
+/// headers, links, or images — the system prompt forbids those and we
+/// don't want to bring in a full Markdown library for a chat bubble.
+private fun parseInlineMarkdown(text: String): AnnotatedString = buildAnnotatedString {
+    var i = 0
+    val n = text.length
+    while (i < n) {
+        when {
+            i + 1 < n && text[i] == '*' && text[i + 1] == '*' -> {
+                // **bold**
+                val end = text.indexOf("**", startIndex = i + 2)
+                if (end > i + 1) {
+                    withStyle(SpanStyle(fontWeight = FontWeight.SemiBold)) {
+                        append(text.substring(i + 2, end))
+                    }
+                    i = end + 2
+                } else {
+                    append(text[i]); i++
+                }
+            }
+            text[i] == '*' -> {
+                // *italic*
+                val end = text.indexOf('*', startIndex = i + 1)
+                if (end > i) {
+                    withStyle(SpanStyle(fontStyle = FontStyle.Italic)) {
+                        append(text.substring(i + 1, end))
+                    }
+                    i = end + 1
+                } else {
+                    append(text[i]); i++
+                }
+            }
+            text[i] == '`' -> {
+                // `code`
+                val end = text.indexOf('`', startIndex = i + 1)
+                if (end > i) {
+                    withStyle(SpanStyle(fontFamily = FontFamily.Monospace)) {
+                        append(text.substring(i + 1, end))
+                    }
+                    i = end + 1
+                } else {
+                    append(text[i]); i++
+                }
+            }
+            else -> {
+                append(text[i]); i++
+            }
         }
     }
 }
@@ -256,9 +338,6 @@ private fun ToolStatusPill(invocation: ToolInvocationDto) {
     val isRead = name.startsWith("get_")
     val isError = invocation.status == "error"
 
-    // Read tools: muted grey. Committed writes: soft green. Errors: muted
-    // amber. Keeps the chat from feeling busy when the model fires off a
-    // chain of reads.
     val (bg, fg, icon) = when {
         isError -> Triple(
             MaterialTheme.colorScheme.errorContainer,
@@ -266,7 +345,7 @@ private fun ToolStatusPill(invocation: ToolInvocationDto) {
             Icons.Default.ErrorOutline,
         )
         invocation.committed -> Triple(
-            Color(0xFFE6F4EA), // soft mint
+            Color(0xFFE6F4EA),
             Color(0xFF1E5631),
             Icons.Default.Check,
         )
@@ -404,9 +483,6 @@ private fun CalendarProposalCard(
 }
 
 private fun formatTimeRange(fields: ParsedCalendarFieldsDto): String {
-    // Backend hands UTC strings; render them in the device's local tz so
-    // the user sees their own time. Failing to parse falls through to the
-    // raw strings so we never crash the chat over a date format quirk.
     return try {
         val start = OffsetDateTime.parse(fields.start_time)
             .atZoneSameInstant(java.time.ZoneId.systemDefault())

@@ -208,7 +208,7 @@ pub fn OverviewPage() -> impl IntoView {
                                         }).collect::<Vec<_>>()}
                                         <Show when=move || cached>
                                             <p class="text-xs text-ultiq-indigo/40 pt-2">
-                                                "Cached — refresh to regenerate (24h cap)"
+                                                "Refreshes every 24 hours — your next summary's on its way."
                                             </p>
                                         </Show>
                                     </div>

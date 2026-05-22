@@ -121,3 +121,30 @@ textarea::placeholder {
 
 /* Calendar grid divider */
 .dark .grid-cols-7.gap-px.bg-ultiq-indigo\/10 { background-color: rgb(51 65 85); }
+
+/* ─── Coach chat — turn enter animation ─────────────────────────────────
+   Fade + small slide-up when a new chat turn appears. Used on every turn
+   variant (user bubble, assistant bubble, tool pill, proposal card,
+   typing indicator). Kept short so the conversation still feels snappy. */
+@keyframes coach-turn-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.coach-turn-in {
+  animation: coach-turn-in 240ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+/* ─── Coach assistant bubble — Markdown render ──────────────────────────
+   Server forbids tables/headers but allows inline **bold**, *italic*, and
+   inline `code`. The Leptos page emits a <span class="md"> wrapping the
+   parsed segments and we style the few inline elements that can appear. */
+.md strong { font-weight: 600; }
+.md em     { font-style: italic; }
+.md code   {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  background-color: rgba(42, 27, 110, 0.08);
+  padding: 0 4px;
+  border-radius: 4px;
+  font-size: 0.92em;
+}
+.dark .md code { background-color: rgba(241, 245, 249, 0.12); }
