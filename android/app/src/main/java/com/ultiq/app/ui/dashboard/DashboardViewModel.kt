@@ -374,7 +374,14 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
 
         val durationMs = last.actualWakeTime - last.actualBedtime
         val durationMins = (durationMs / 60_000).toInt()
-        val targetMins = computeTargetMinutes(last)
+        // §optimal-sleep-target — compare against the user's "Optimal
+        // sleep" preference (a single goal duration, e.g. 8h = 480 min),
+        // NOT against the per-record `target_wake_time − target_bedtime`
+        // window. The per-record window was the *planned* schedule for
+        // that night and is often a partial-night value (an alarm at 5am
+        // gave one user a target window of 5h 43m, which made an 8h 44m
+        // sleep read as "+3h 1m vs optimal sleep" — wildly off).
+        val targetMins = userPreferences.snapshot().sleepTargetMinutes
         val diffMins = durationMins - targetMins
 
         // §sleep-card-calc — "Last week" = previous calendar Mon..Sun, NOT
@@ -552,15 +559,6 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             runCatching { checklistRepo.sync() }
             _uiState.value = _uiState.value.copy(lastSyncTime = System.currentTimeMillis())
         } catch (_: Exception) { }
-    }
-
-    private fun computeTargetMinutes(record: SleepRecordEntity): Int {
-        val bed = record.targetBedtime.split(":")
-        val wake = record.targetWakeTime.split(":")
-        val bedSecs = bed[0].toInt() * 3600 + bed[1].toInt() * 60
-        val wakeSecs = wake[0].toInt() * 3600 + wake[1].toInt() * 60
-        val targetSecs = if (wakeSecs >= bedSecs) wakeSecs - bedSecs else 86400 + wakeSecs - bedSecs
-        return targetSecs / 60
     }
 
     private fun computeStreak(dateDayMillis: List<Long>, todayStartMillis: Long): Int {
