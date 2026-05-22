@@ -554,16 +554,29 @@ private fun SleepCard(sleep: SleepSummary?, onClick: () -> Unit) {
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
+                    // §sleep-card-copy — labels now reference "optimal
+                    // sleep" (matching the term used in Sleep prefs),
+                    // not the engineering-y "target". Same direction
+                    // colours as before.
                     val vsColor = if (sleep.vsTargetMinutes >= 0) Color(0xFF4CAF50) else MaterialTheme.colorScheme.error
-                    Text("vs target: ${sleep.vsTarget}", style = MaterialTheme.typography.bodySmall, color = vsColor)
+                    Text(
+                        "${sleep.vsTarget} vs optimal sleep",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = vsColor,
+                    )
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.PhoneAndroid, null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(" ${sleep.phonePickups}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
-                if (sleep.vsLastWeek != null) {
+                // §sleep-card-copy — absolute reference instead of the
+                // ambiguous delta line. Matches the focus card pattern.
+                sleep.lastWeekDailyAvgMinutes?.let { avgMins ->
+                    val ah = avgMins / 60
+                    val am = avgMins % 60
+                    val avgStr = if (ah > 0) "${ah}h ${am}m" else "${am}m"
                     Text(
-                        sleep.vsLastWeek,
+                        "Last week's daily average was $avgStr",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
