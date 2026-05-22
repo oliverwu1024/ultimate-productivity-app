@@ -1,6 +1,6 @@
 {
-  "versionCode": 36,
-  "versionName": "2.10.5",
-  "url": "https://ultiqapp.com/ultiq.2.10.5.apk",
-  "releaseNotes": "Ready-to-focus comparison line now reads 'Last week's daily average was Xh Ym' instead of the ambiguous '-Xh Ym vs last week (daily avg)' diff. Easier to read as a reference point."
+  "versionCode": 37,
+  "versionName": "2.10.6",
+  "url": "https://ultiqapp.com/ultiq.2.10.6.apk",
+  "releaseNotes": "Sleep card on Dashboard now uses the same absolute-reference language: '+3h 1m vs optimal sleep' (replaces 'vs target') and 'Last week's daily average was Xh Ym' on the second line. Also fixed the calculation — 'last week' now means the previous calendar Mon-Sun, not a rolling 7-day window that was pulling this-week's sessions into the average."
 }

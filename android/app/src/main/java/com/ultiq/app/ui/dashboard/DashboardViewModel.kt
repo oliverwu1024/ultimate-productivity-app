@@ -29,12 +29,21 @@ import java.time.LocalDate
 import java.time.ZoneId
 import kotlin.math.roundToInt
 
+/// What gets cached on the Dashboard's last-night card. `vsTarget` is
+/// formatted relative to the user's optimal sleep time (set in Sleep
+/// preferences); `lastWeekDailyAvgMinutes` is the avg duration over the
+/// preceding 7 nights (today excluded), used by the card to render
+/// "Last week's daily average was Xh Ym" as an absolute reference.
 data class SleepSummary(
     val duration: String,
     val durationMinutes: Int,
     val quality: Int,
     val vsTarget: String,
     val vsTargetMinutes: Int,
+    /// Last week's daily-average sleep duration in minutes. Null when the
+    /// past week had no logged nights — the card suppresses the subline
+    /// in that case rather than rendering "0m".
+    val lastWeekDailyAvgMinutes: Int? = null,
     val phonePickups: Int,
     val vsLastWeek: String? = null,
     val rankPhrase: String? = null,
@@ -368,22 +377,42 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         val targetMins = computeTargetMinutes(last)
         val diffMins = durationMins - targetMins
 
-        // Comparison data: last 7 days excluding tonight, and last 30 days for ranking.
-        val weekAgo = now - 7 * 86_400_000L
-        val monthAgo = now - 30 * 86_400_000L
-        val past7 = sleepDao.getRecordsBetween(weekAgo, now).firstOrNull().orEmpty()
+        // §sleep-card-calc — "Last week" = previous calendar Mon..Sun, NOT
+        // the rolling 7 days from now. User reported last calendar week
+        // had ~14 minutes of focus but the card showed a 1h+ daily avg
+        // because the rolling window pulled in this-week's sessions too.
+        // Same bug bit the sleep daily-avg subline.
+        val zoneCard = ZoneId.systemDefault()
+        val todayLocal = LocalDate.now(zoneCard)
+        val mondayThisWeek = todayLocal.minusDays(todayLocal.dayOfWeek.value.toLong() - 1)
+        val mondayLastWeek = mondayThisWeek.minusWeeks(1)
+        val lastWeekStartMs = mondayLastWeek.atStartOfDay(zoneCard).toInstant().toEpochMilli()
+        val lastWeekEndMs = mondayThisWeek.atStartOfDay(zoneCard).toInstant().toEpochMilli() - 1
+
+        val lastWeekRecords = sleepDao.getRecordsBetween(lastWeekStartMs, lastWeekEndMs)
+            .firstOrNull().orEmpty()
             .filter { it.id != last.id }
+        val lastWeekMinutes = lastWeekRecords.map { ((it.actualWakeTime - it.actualBedtime) / 60_000).toInt() }
+        // Avg over logged nights (skips unlogged nights) — averaging
+        // across all 7 nights would dilute the number if the user
+        // missed a few nights of logging.
+        val lastWeekDailyAvg = if (lastWeekMinutes.isNotEmpty()) lastWeekMinutes.average().toInt() else null
+
+        // Past-30-day rolling window is fine for the rank phrase ("Top
+        // quarter this month") — that one was always meant to be a
+        // recency-weighted comparison, not a calendar one.
+        val monthAgo = now - 30 * 86_400_000L
         val past30 = sleepDao.getRecordsBetween(monthAgo, now).firstOrNull().orEmpty()
             .filter { it.id != last.id }
-
-        val past7Minutes = past7.map { ((it.actualWakeTime - it.actualBedtime) / 60_000).toInt() }
-        val vsLastWeek = Comparisons.vsLastWeekMinutes(durationMins, past7Minutes)
-
         val past30Minutes = past30.map { ((it.actualWakeTime - it.actualBedtime) / 60_000.0) }
         val rankPhrase = if (past30.size >= 4) {
             val rank = Comparisons.rankAmong(durationMins.toDouble(), past30Minutes, largerIsBetter = true)
             Comparisons.rankPhrase(rank, "this month")
         } else null
+
+        // Keep the delta string available for any other surface that still
+        // wants it; the SleepCard no longer renders it.
+        val vsLastWeek = Comparisons.vsLastWeekMinutes(durationMins, lastWeekMinutes)
 
         _uiState.value = _uiState.value.copy(
             lastNightSleep = SleepSummary(
@@ -392,6 +421,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                 quality = last.qualityRating,
                 vsTarget = if (diffMins >= 0) "+${formatDuration(diffMins)}" else "-${formatDuration(-diffMins)}",
                 vsTargetMinutes = diffMins,
+                lastWeekDailyAvgMinutes = lastWeekDailyAvg,
                 phonePickups = last.phonePickups,
                 vsLastWeek = vsLastWeek,
                 rankPhrase = rankPhrase,
@@ -412,12 +442,23 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         val streak = computeStreak(dates, todayStart)
         val longestStreak = computeLongestStreak(dates)
 
-        // Last 7 days (excluding today) average for comparison.
-        val weekAgo = todayStart - 7 * 86_400_000L
-        val past7Minutes = sessionDao.getTotalFocusMinutes(weekAgo, todayStart - 1) ?: 0
-        val past7DailyAvg = past7Minutes / 7
-        val vsLastWeek = if (past7Minutes > 0) {
-            Comparisons.vsLastWeekMinutes(totalMinutesToday, listOf(past7DailyAvg))
+        // §focus-card-calc — "Last week" = previous calendar Mon..Sun
+        // (NOT rolling 7 days from now). The previous code pulled the
+        // last 7 days, which on a Wednesday included this-week's Mon
+        // and Tue and inflated the average. Daily average = total /
+        // 7 so unlogged days count as 0 (the user explicitly wanted
+        // this — they reported "14 mins total last Mon-Sun" and
+        // expected a tiny daily avg, not the 14m-per-logged-day
+        // version).
+        val todayLocal = LocalDate.now(zone)
+        val mondayThisWeek = todayLocal.minusDays(todayLocal.dayOfWeek.value.toLong() - 1)
+        val mondayLastWeek = mondayThisWeek.minusWeeks(1)
+        val lastWeekStartMs = mondayLastWeek.atStartOfDay(zone).toInstant().toEpochMilli()
+        val lastWeekEndMs = mondayThisWeek.atStartOfDay(zone).toInstant().toEpochMilli() - 1
+        val lastWeekMinutes = sessionDao.getTotalFocusMinutes(lastWeekStartMs, lastWeekEndMs) ?: 0
+        val lastWeekDailyAvg = lastWeekMinutes / 7
+        val vsLastWeek = if (lastWeekMinutes > 0) {
+            Comparisons.vsLastWeekMinutes(totalMinutesToday, listOf(lastWeekDailyAvg))
         } else null
 
         _uiState.value = _uiState.value.copy(
@@ -428,7 +469,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                 longestStreak = longestStreak,
                 phonePickupsToday = completed.sumOf { it.phonePickups },
                 vsLastWeek = vsLastWeek,
-                lastWeekDailyAvgMinutes = if (past7Minutes > 0) past7DailyAvg else null,
+                lastWeekDailyAvgMinutes = if (lastWeekMinutes > 0) lastWeekDailyAvg else null,
             )
         )
     }
