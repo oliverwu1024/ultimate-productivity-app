@@ -1,6 +1,7 @@
 package com.ultiq.app.ui.chat
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,8 +22,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.RestartAlt
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -30,10 +36,13 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -48,9 +57,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ultiq.app.data.remote.dto.ChatMessageDto
+import com.ultiq.app.data.remote.dto.ParsedCalendarFieldsDto
+import com.ultiq.app.data.remote.dto.ToolInvocationDto
+import java.time.OffsetDateTime
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,11 +77,12 @@ fun ChatScreen(
     val listState = rememberLazyListState()
     var showResetDialog by remember { mutableStateOf(false) }
 
-    // Auto-scroll to the bottom whenever a new message lands so the user
-    // sees the assistant's reply without manual scrolling.
-    LaunchedEffect(state.messages.size) {
-        if (state.messages.isNotEmpty()) {
-            listState.animateScrollToItem(state.messages.size - 1)
+    // Auto-scroll to the bottom whenever the turn count changes so the
+    // user sees the assistant's reply (and any tool pills) without
+    // manual scrolling.
+    LaunchedEffect(state.turns.size) {
+        if (state.turns.isNotEmpty()) {
+            listState.animateScrollToItem(state.turns.size - 1)
         }
     }
 
@@ -75,6 +90,22 @@ fun ChatScreen(
         state.error?.let {
             snackbarHost.showSnackbar(it)
             viewModel.clearError()
+        }
+    }
+
+    // Subscribe once for the lifetime of the screen — undo cues from
+    // auto-committed writes drive the snackbar's Undo action.
+    LaunchedEffect(Unit) {
+        viewModel.undoCues.collect { cue ->
+            val result = snackbarHost.showSnackbar(
+                message = cue.message,
+                actionLabel = "Undo",
+                duration = SnackbarDuration.Long,
+                withDismissAction = true,
+            )
+            if (result == SnackbarResult.ActionPerformed) {
+                viewModel.undo(cue.resource)
+            }
         }
     }
 
@@ -90,7 +121,7 @@ fun ChatScreen(
                 actions = {
                     IconButton(
                         onClick = { showResetDialog = true },
-                        enabled = !state.isSending && state.messages.isNotEmpty(),
+                        enabled = !state.isSending && state.turns.isNotEmpty(),
                     ) {
                         Icon(Icons.Default.RestartAlt, contentDescription = "Start a new chat")
                     }
@@ -117,7 +148,7 @@ fun ChatScreen(
                             contentAlignment = Alignment.Center,
                         ) { CircularProgressIndicator() }
                     }
-                    state.messages.isEmpty() -> {
+                    state.turns.isEmpty() -> {
                         EmptyState()
                     }
                     else -> {
@@ -127,7 +158,22 @@ fun ChatScreen(
                             contentPadding = PaddingValues(16.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            items(state.messages)
+                            items(
+                                count = state.turns.size,
+                                key = { i -> state.turns[i].key },
+                            ) { i ->
+                                when (val t = state.turns[i]) {
+                                    is ChatTurn.UserText -> ChatBubble(t.message)
+                                    is ChatTurn.AssistantText -> ChatBubble(t.message)
+                                    is ChatTurn.ToolStatus -> ToolStatusPill(t.invocation)
+                                    is ChatTurn.CalendarProposal -> CalendarProposalCard(
+                                        invocation = t.invocation,
+                                        state = t.state,
+                                        onCreate = { viewModel.confirmCalendarProposal(t.invocation.id) },
+                                        onCancel = { viewModel.cancelCalendarProposal(t.invocation.id) },
+                                    )
+                                }
+                            }
                             if (state.isSending) {
                                 item { TypingIndicator() }
                             }
@@ -166,17 +212,6 @@ fun ChatScreen(
     }
 }
 
-private fun androidx.compose.foundation.lazy.LazyListScope.items(
-    messages: List<ChatMessageDto>,
-) {
-    items(
-        count = messages.size,
-        key = { i -> messages[i].id },
-    ) { i ->
-        ChatBubble(message = messages[i])
-    }
-}
-
 @Composable
 private fun ChatBubble(message: ChatMessageDto) {
     val isUser = message.role == "user"
@@ -212,6 +247,181 @@ private fun ChatBubble(message: ChatMessageDto) {
                 modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
             )
         }
+    }
+}
+
+@Composable
+private fun ToolStatusPill(invocation: ToolInvocationDto) {
+    val name = invocation.name
+    val isRead = name.startsWith("get_")
+    val isError = invocation.status == "error"
+
+    // Read tools: muted grey. Committed writes: soft green. Errors: muted
+    // amber. Keeps the chat from feeling busy when the model fires off a
+    // chain of reads.
+    val (bg, fg, icon) = when {
+        isError -> Triple(
+            MaterialTheme.colorScheme.errorContainer,
+            MaterialTheme.colorScheme.onErrorContainer,
+            Icons.Default.ErrorOutline,
+        )
+        invocation.committed -> Triple(
+            Color(0xFFE6F4EA), // soft mint
+            Color(0xFF1E5631),
+            Icons.Default.Check,
+        )
+        isRead -> Triple(
+            MaterialTheme.colorScheme.surfaceVariant,
+            MaterialTheme.colorScheme.onSurfaceVariant,
+            Icons.Default.Search,
+        )
+        else -> Triple(
+            MaterialTheme.colorScheme.surfaceVariant,
+            MaterialTheme.colorScheme.onSurfaceVariant,
+            Icons.Default.Check,
+        )
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Start,
+    ) {
+        Surface(
+            shape = RoundedCornerShape(14.dp),
+            color = bg,
+            modifier = Modifier.widthIn(max = 320.dp),
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    icon,
+                    contentDescription = null,
+                    tint = fg,
+                    modifier = Modifier.size(14.dp),
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    invocation.summary,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = fg,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CalendarProposalCard(
+    invocation: ToolInvocationDto,
+    state: ProposalState,
+    onCreate: () -> Unit,
+    onCancel: () -> Unit,
+) {
+    val event = invocation.proposed_event ?: return
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Start,
+    ) {
+        Card(
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface,
+            ),
+            modifier = Modifier
+                .widthIn(max = 320.dp)
+                .border(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
+                    shape = RoundedCornerShape(14.dp),
+                ),
+        ) {
+            Column(modifier = Modifier.padding(14.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.CalendarMonth,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        "Proposed event",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    event.title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    formatTimeRange(event),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (!event.description.isNullOrBlank()) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        event.description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+                Spacer(Modifier.height(10.dp))
+                when (state) {
+                    ProposalState.Pending -> Row(horizontalArrangement = Arrangement.End) {
+                        Spacer(Modifier.weight(1f))
+                        OutlinedButton(onClick = onCancel) { Text("Cancel") }
+                        Spacer(Modifier.width(8.dp))
+                        Button(onClick = onCreate) { Text("Create") }
+                    }
+                    ProposalState.Creating -> Row(verticalAlignment = Alignment.CenterVertically) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(14.dp),
+                            strokeWidth = 1.5.dp,
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text("Creating…", style = MaterialTheme.typography.bodySmall)
+                    }
+                    ProposalState.Created -> Text(
+                        "✓ Added to your calendar",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    ProposalState.Cancelled -> Text(
+                        "Cancelled",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun formatTimeRange(fields: ParsedCalendarFieldsDto): String {
+    // Backend hands UTC strings; render them in the device's local tz so
+    // the user sees their own time. Failing to parse falls through to the
+    // raw strings so we never crash the chat over a date format quirk.
+    return try {
+        val start = OffsetDateTime.parse(fields.start_time)
+            .atZoneSameInstant(java.time.ZoneId.systemDefault())
+        val end = OffsetDateTime.parse(fields.end_time)
+            .atZoneSameInstant(java.time.ZoneId.systemDefault())
+        val sameDay = start.toLocalDate() == end.toLocalDate()
+        val dateFmt = java.time.format.DateTimeFormatter.ofPattern("EEE d MMM")
+        val timeFmt = java.time.format.DateTimeFormatter.ofPattern("HH:mm")
+        if (sameDay) {
+            "${start.format(dateFmt)} · ${start.format(timeFmt)} – ${end.format(timeFmt)}"
+        } else {
+            "${start.format(dateFmt)} ${start.format(timeFmt)} → ${end.format(dateFmt)} ${end.format(timeFmt)}"
+        }
+    } catch (_: Exception) {
+        "${fields.start_time} → ${fields.end_time}"
     }
 }
 
@@ -262,8 +472,9 @@ private fun EmptyState() {
                 )
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    "Ask about sleep habits, focus blocks, weekly planning, or anything " +
-                        "you'd want a thoughtful friend to think through with you.",
+                    "Ask about sleep, focus blocks, or weekly planning. The coach can " +
+                        "look at your data, add checklist items for you, and draft " +
+                        "calendar events you confirm before they land.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

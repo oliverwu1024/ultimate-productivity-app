@@ -20,7 +20,8 @@ use std::collections::HashSet;
 use aws_sdk_bedrockruntime::types::{
     CachePointBlock, CachePointType, ContentBlock, ConversationRole, InferenceConfiguration,
     Message, SpecificToolChoice, SystemContentBlock, Tool, ToolChoice, ToolConfiguration,
-    ToolInputSchema, ToolSpecification,
+    ToolInputSchema, ToolResultBlock, ToolResultContentBlock, ToolResultStatus, ToolSpecification,
+    ToolUseBlock,
 };
 use aws_smithy_types::{Document, Number};
 use axum::extract::{Path, State};
@@ -781,7 +782,7 @@ struct ParseEventResponse {
     checklist: Option<ParsedChecklistFields>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct ParsedCalendarFields {
     title: String,
     #[serde(default)]
@@ -1845,6 +1846,13 @@ const CHAT_MAX_OUTPUT_TOKENS: i32 = 700;
 #[derive(Debug, Deserialize)]
 struct ChatSendRequest {
     content: String,
+    /// User's current local time as RFC-3339 with offset. Anchors relative
+    /// dates ("tomorrow", "next monday") when the chat tool-loop is enabled
+    /// and the model needs to commit a calendar event or checklist item.
+    /// Falls back to UTC now if missing — older clients pre-dating the
+    /// tool-loop omit it entirely.
+    #[serde(default)]
+    now_local: Option<String>,
 }
 
 #[derive(Debug, Serialize, sqlx::FromRow)]
@@ -1861,6 +1869,56 @@ struct ChatMessageDto {
 struct ChatSendResponse {
     user_message: ChatMessageDto,
     assistant_message: ChatMessageDto,
+    /// Tool calls that ran inside the Coach loop. Empty when tools are
+    /// disabled (`AI_CHAT_TOOLS_ENABLED` false) or when the model answered
+    /// without needing any. Clients render these inline: read-tool status
+    /// pills, write-tool commit confirmations with an undo affordance, and
+    /// inline confirm cards for proposed calendar events.
+    #[serde(default)]
+    tool_invocations: Vec<ToolInvocationSurface>,
+}
+
+/// What the chat handler bubbles up to the client for each tool the model
+/// called. Distinct from the internal Bedrock ToolUseBlock — that one is
+/// re-fed to the model; this one is the UI's view of the same event.
+#[derive(Debug, Clone, Serialize)]
+struct ToolInvocationSurface {
+    /// Bedrock-generated tool_use_id. Stable per invocation; clients use it
+    /// as a list-diff key.
+    id: String,
+    /// Tool name from the schema (e.g. "create_checklist_item").
+    name: String,
+    /// "ok" | "error" | "proposed". `proposed` is exclusive to
+    /// `create_calendar_event` — the server did NOT write a row and the
+    /// client must show a Create/Cancel confirm card.
+    status: String,
+    /// One-line human summary for the UI pill ("Looking at your sleep…",
+    /// "Added: Buy groceries"). Always populated.
+    summary: String,
+    /// True iff the server actually wrote a row for this invocation.
+    /// Always false for read tools and for proposed calendar events.
+    committed: bool,
+    /// When `committed = true`, identifies the resource so the client can
+    /// hook up an Undo affordance.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    committed_resource: Option<CommittedResource>,
+    /// When `status = "proposed"` and `name = "create_calendar_event"`, the
+    /// parsed fields the user will confirm or cancel via the proposal card.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    proposed_event: Option<ParsedCalendarFields>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct CommittedResource {
+    /// "checklist" (created) | "checklist_complete" (marked done). Tells
+    /// the client which undo endpoint to hit (DELETE /checklist/:id vs
+    /// POST /checklist/:id/uncomplete).
+    kind: String,
+    id: Uuid,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    title: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    due_date: Option<chrono::NaiveDate>,
 }
 
 #[derive(Debug, Serialize)]
@@ -1897,12 +1955,67 @@ async fn chat_send(
         ));
     }
 
+    // Quota check once at the top — the tool loop may consume several
+    // tickets per send (one per Bedrock call), but we never want to
+    // reject mid-loop and leave the model in a half-state. The N tickets
+    // get recorded one-by-one inside the loop.
     state.ai.check_quota(&state.pool, user_id).await?;
 
     let conversation_id = ensure_active_conversation(&state.pool, user_id).await?;
     let history = fetch_recent_messages(&state.pool, conversation_id).await?;
-    let (assistant_text, usage) =
-        call_chat_model(&state.ai, &history, content).await?;
+
+    // Anchor for relative-date resolution inside tool calls. We swallow
+    // parse errors deliberately — falling back to UTC now is safer than
+    // 500-ing the user's chat over a client clock glitch.
+    let now_local = match input.now_local.as_deref() {
+        Some(s) => match DateTime::parse_from_rfc3339(s) {
+            Ok(dt) => dt.to_rfc3339(),
+            Err(_) => Utc::now().to_rfc3339(),
+        },
+        None => Utc::now().to_rfc3339(),
+    };
+
+    // Feature flag: keep the vanilla chat path live until both clients
+    // ship the tool-aware UI. Flipping the env var promotes the new path
+    // without a redeploy. Older clients send no `now_local` and ignore
+    // the `tool_invocations` field, so they remain functional under
+    // either branch.
+    let tools_enabled = std::env::var("AI_CHAT_TOOLS_ENABLED")
+        .ok()
+        .map(|v| v == "true" || v == "1")
+        .unwrap_or(false);
+
+    let assistant_text: String;
+    let tool_invocations: Vec<ToolInvocationSurface>;
+    let total_input: i64;
+    let total_output: i64;
+    if tools_enabled {
+        let outcome =
+            call_chat_model_with_tools(&state, user_id, &history, content, &now_local).await?;
+        assistant_text = outcome.text;
+        tool_invocations = outcome.invocations;
+        total_input = outcome.total_input_tokens;
+        total_output = outcome.total_output_tokens;
+        // `record_usage` was already called per-iteration inside the loop;
+        // nothing left to do quota-side here.
+    } else {
+        let (text, usage) = call_chat_model(&state.ai, &history, content).await?;
+        assistant_text = text;
+        tool_invocations = Vec::new();
+        total_input = usage.input;
+        total_output = usage.output;
+        state
+            .ai
+            .record_usage(
+                &state.pool,
+                user_id,
+                usage.input,
+                usage.output,
+                usage.cache_read,
+                usage.cache_write,
+            )
+            .await?;
+    }
 
     // Persist user + assistant turns atomically so a Bedrock-after-DB
     // inconsistency can't store the user message twice on retry.
@@ -1923,8 +2036,8 @@ async fn chat_send(
     )
     .bind(conversation_id)
     .bind(&assistant_text)
-    .bind(usage.input as i32)
-    .bind(usage.output as i32)
+    .bind(total_input as i32)
+    .bind(total_output as i32)
     .fetch_one(&mut *tx)
     .await?;
     sqlx::query("UPDATE ai_conversations SET updated_at = NOW() WHERE id = $1")
@@ -1933,21 +2046,10 @@ async fn chat_send(
         .await?;
     tx.commit().await?;
 
-    state
-        .ai
-        .record_usage(
-            &state.pool,
-            user_id,
-            usage.input,
-            usage.output,
-            usage.cache_read,
-            usage.cache_write,
-        )
-        .await?;
-
     Ok(Json(ChatSendResponse {
         user_message: user_msg,
         assistant_message: assistant_msg,
+        tool_invocations,
     }))
 }
 
@@ -2189,4 +2291,1107 @@ async fn call_chat_model(
     ai.sampled_log("chat.response", &text);
 
     Ok((text.trim().to_string(), call_usage))
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// §9.x — Coach tool loop (chat-with-tools, hybrid context, auto-commit + propose)
+// ──────────────────────────────────────────────────────────────────────────
+//
+// Gated by AI_CHAT_TOOLS_ENABLED. The model gets eight tools:
+//   Read:  get_today_summary, get_sleep_history, get_focus_history,
+//          get_calendar_events, get_checklist
+//   Write: create_checklist_item   (auto-commit + SSE)
+//          complete_checklist_item (auto-commit + SSE)
+//          create_calendar_event   (PROPOSED only — never writes here;
+//                                   the client confirms via Create/Cancel)
+//
+// Each turn pre-loads a "today + last 3 days" context card into the user
+// message so the model has grounded numbers without spending a read-tool
+// round-trip on common questions. The card is rendered fresh per call and
+// intentionally NOT cached: stale snapshots are worse UX than the ~300
+// input tokens. The system prompt + tool definitions ARE cached (system
+// block cache point), so loop iterations 2+ hit the cache.
+//
+// Tool-use blocks are NOT persisted to ai_messages — only the user-typed
+// text and the final assistant text. Across turns the model loses the
+// tool-call detail; that's fine, the next turn re-pulls the snapshot and
+// can re-call any tool it needs.
+
+/// Tripwire for runaway loops. Realistic ceiling is 2-3 iterations.
+const MAX_TOOL_ITERATIONS: usize = 6;
+
+/// Output cap per loop iteration. Slightly higher than the no-tools path
+/// because tool-using replies often include a brief reference to a result.
+const CHAT_TOOLS_MAX_OUTPUT_TOKENS: i32 = 900;
+
+/// Soft cap on `get_calendar_events` range to defend against the model
+/// asking for "the whole year". 90 days is well over any reasonable
+/// scheduling question.
+const CALENDAR_RANGE_MAX_DAYS: i64 = 90;
+
+const TOOL_GET_TODAY_SUMMARY: &str = "get_today_summary";
+const TOOL_GET_SLEEP_HISTORY: &str = "get_sleep_history";
+const TOOL_GET_FOCUS_HISTORY: &str = "get_focus_history";
+const TOOL_GET_CALENDAR_EVENTS: &str = "get_calendar_events";
+const TOOL_GET_CHECKLIST: &str = "get_checklist";
+const TOOL_COMPLETE_CHECKLIST_ITEM: &str = "complete_checklist_item";
+// TOOL_CALENDAR and TOOL_CHECKLIST are defined for parse_event above and
+// reused here verbatim — the schema is identical; the only difference is
+// the handler (propose vs. auto-commit).
+
+struct ChatToolLoopOutcome {
+    text: String,
+    invocations: Vec<ToolInvocationSurface>,
+    total_input_tokens: i64,
+    total_output_tokens: i64,
+}
+
+struct ToolRunOutcome {
+    /// JSON-serialised payload the model sees in its tool_result block.
+    payload_for_model: String,
+    /// Bedrock-side status. Success keeps the loop natural; Error is fed
+    /// back to the model so it can acknowledge or retry.
+    bedrock_status: ToolResultStatus,
+    /// Client-facing record of what the tool did.
+    surface: ToolInvocationSurface,
+}
+
+/// System prompt for the tools-enabled chat path. Sized > 1,024 tokens so
+/// the cache point catches it. Replaces the un-grounded `CHAT_SYSTEM_PROMPT`
+/// rule "you do not have access to the user's data tables" with the
+/// opposite: you DO have tools, USE them.
+const CHAT_SYSTEM_PROMPT_TOOLS: &str = r#"You are Ultiq's productivity coach, talking to a university student who uses the Ultiq app to track sleep, focus sessions, phone pickups, checklist items, and calendar events. You help them think about sleep habits, focus blocks, weekly planning, schedule design, and study workflows.
+
+PERSONA:
+- Warm, direct, never gushing. Picture a smart older friend who actually knows what they're doing — confident, encouraging, but allergic to bullshit.
+- Use second person ("you", "your"). Don't introduce yourself as an AI unless directly asked — it's a chat, the user knows.
+- Plain English. No corporate wellness language. No "level up". No "growth mindset". No "embrace the journey". No "you crushed it". No emojis.
+
+YOU HAVE TOOLS. USE THEM.
+
+Read tools (look at the user's actual data):
+- get_today_summary — refreshes the snapshot at the top of this turn. Use only when you've just completed a write and want to confirm the new state. Otherwise, the snapshot at the top of the user message is already fresh.
+- get_sleep_history(days) — last N nights with bedtime, wake, duration, quality (1..5), and phone pickups during the sleep window.
+- get_focus_history(days) — per-day focus minutes and completed-session counts.
+- get_calendar_events(start_date, end_date) — events in a date range. Range capped at 90 days.
+- get_checklist(date) — checklist items due on a specific day. Each item includes its id so you can complete it.
+
+Write tools (act on the user's behalf):
+- create_checklist_item — adds a checklist item. Commits immediately. Speak as though it's done ("Added 'Buy bananas' to today's list.").
+- complete_checklist_item(item_id) — marks an existing item done. Commits immediately. The id comes from get_checklist or get_today_summary.
+- create_calendar_event — PROPOSES an event for the user to confirm. You did NOT add it — the user will see a Create/Cancel card and decide. Phrase your reply as a draft ("I've drafted a 4pm study block — tap Create if that works.").
+
+TOOL-USE RULES:
+- The context snapshot at the start of the user message is server-generated truth. Trust it. Don't call a read tool just to re-fetch what's already there.
+- If the user asks something needing data beyond the snapshot ("how did I sleep two weeks ago", "what's on next friday"), call the matching read tool first.
+- Never fabricate stats. If you don't have it and a tool would give it to you, call the tool.
+- Don't narrate tool calls. Don't say "I'll check your sleep tool now." Just call it and answer.
+- Don't call the same read tool twice in a turn with the same arguments.
+
+CHECKLIST vs CALENDAR (mirror the parse-event rule):
+- Specific clock time mentioned → calendar event (proposed).
+- Day-only, "remind me to…", "add a task to…", or vague "next friday" without a time → checklist item.
+- For relative dates, anchor on the local-time field in the snapshot footer.
+
+ANSWER SHAPE:
+- Default under 150 words. Detailed plans can be longer if the user explicitly asks ("walk me through a full schedule…").
+- Plain prose for normal questions. Use a short numbered list ONLY when the answer is genuinely a sequence of steps.
+- For off-topic asks (poetry, weather, "do my homework"), one-line redirect — you're here for productivity coaching, not those things.
+
+HARD RULES (absolute):
+- Don't invent app features. Ultiq has: sleep sessions, alarm + missions, focus sessions, phone-pickup tracking, checklist, calendar, weekly insight, session debrief, anomaly alerts, Coach (you). No heart-rate, no mood log, no meditation streak.
+- Never recommend specific medical advice or medication. If sleep problems sound serious (chronic insomnia, suspected sleep disorder), suggest they talk to a clinician.
+- Refuse and redirect on disallowed content (graphic, illegal, etc.) without lecturing — one line is enough.
+
+TONE EXAMPLES (style, not content):
+- "That's a reasonable target. The harder question is whether you'll actually defend the time — Tuesday afternoons are usually the first thing that slips. What's currently on the Tuesday calendar?"
+- "Honestly: 4h is fine for one night and bad for five. Which one is this?"
+- "I'd pick the morning block. Decision fatigue accumulates — your 3pm self is worse at the same task than your 9am self."
+- "Added 'Lab report — section 3' to today. Anything else?"
+- "I've drafted a 9-10am focus block for Wednesday — tap Create if that works, or I can shift it."
+"#;
+
+async fn call_chat_model_with_tools(
+    state: &AppState,
+    user_id: Uuid,
+    history: &[ChatMessageDto],
+    new_user_message: &str,
+    now_local: &str,
+) -> Result<ChatToolLoopOutcome, AppError> {
+    let system_text = SystemContentBlock::Text(CHAT_SYSTEM_PROMPT_TOOLS.to_string());
+    let cache_breakpoint = SystemContentBlock::CachePoint(
+        CachePointBlock::builder()
+            .r#type(CachePointType::Default)
+            .build()
+            .map_err(|e| {
+                tracing::error!("chat tools cache point build failed: {}", e);
+                AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "AI request build failed")
+            })?,
+    );
+
+    let tool_config = build_chat_tool_config()?;
+    let context_card = build_context_card(&state.pool, user_id, now_local).await?;
+
+    // Compose messages. The context card is the leading user-role block —
+    // outside the cached prefix because it changes daily.
+    let mut messages: Vec<Message> = Vec::with_capacity(history.len() + 2);
+    let context_msg = Message::builder()
+        .role(ConversationRole::User)
+        .content(ContentBlock::Text(context_card))
+        .build()
+        .map_err(|e| {
+            tracing::error!("chat context message build failed: {}", e);
+            AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "AI request build failed")
+        })?;
+    messages.push(context_msg);
+    for m in history {
+        let role = match m.role.as_str() {
+            "assistant" => ConversationRole::Assistant,
+            "user" => ConversationRole::User,
+            _ => continue,
+        };
+        let msg = Message::builder()
+            .role(role)
+            .content(ContentBlock::Text(m.content.clone()))
+            .build()
+            .map_err(|e| {
+                tracing::error!("chat history message build failed: {}", e);
+                AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "AI request build failed")
+            })?;
+        messages.push(msg);
+    }
+    let new_user_msg = Message::builder()
+        .role(ConversationRole::User)
+        .content(ContentBlock::Text(new_user_message.to_string()))
+        .build()
+        .map_err(|e| {
+            tracing::error!("chat new user message build failed: {}", e);
+            AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "AI request build failed")
+        })?;
+    messages.push(new_user_msg);
+
+    let inference = InferenceConfiguration::builder()
+        .max_tokens(CHAT_TOOLS_MAX_OUTPUT_TOKENS)
+        .temperature(0.7)
+        .build();
+
+    let mut invocations: Vec<ToolInvocationSurface> = Vec::new();
+    let mut total_input: i64 = 0;
+    let mut total_output: i64 = 0;
+    let mut final_text: Option<String> = None;
+
+    for iteration in 0..MAX_TOOL_ITERATIONS {
+        let mut converse = state
+            .ai
+            .bedrock()
+            .converse()
+            .model_id(MODEL_SONNET)
+            .system(system_text.clone())
+            .system(cache_breakpoint.clone())
+            .tool_config(tool_config.clone())
+            .inference_config(inference.clone());
+        for m in &messages {
+            converse = converse.messages(m.clone());
+        }
+        let response = converse.send().await.map_err(|e| {
+            let detail = e
+                .as_service_error()
+                .map(|svc| format!("{:?}", svc))
+                .unwrap_or_else(|| format!("{:?}", e));
+            tracing::error!(
+                target: "ai.chat",
+                iteration,
+                "bedrock converse failed: {}",
+                detail
+            );
+            AppError::new(StatusCode::BAD_GATEWAY, "AI service request failed")
+        })?;
+
+        let usage = response.usage();
+        let in_t = usage.map(|u| u.input_tokens()).unwrap_or(0) as i64;
+        let out_t = usage.map(|u| u.output_tokens()).unwrap_or(0) as i64;
+        let cache_read = usage
+            .and_then(|u| u.cache_read_input_tokens())
+            .unwrap_or(0) as i64;
+        let cache_write = usage
+            .and_then(|u| u.cache_write_input_tokens())
+            .unwrap_or(0) as i64;
+        total_input += in_t;
+        total_output += out_t;
+        tracing::info!(
+            target: "ai.chat",
+            iter = iteration,
+            input = in_t,
+            output = out_t,
+            cache_read,
+            cache_write,
+            "chat tool loop iter"
+        );
+
+        // Record this Bedrock call as one quota ticket before continuing.
+        // The cap check at the top reserved capacity; this is just the
+        // bookkeeping side.
+        state
+            .ai
+            .record_usage(&state.pool, user_id, in_t, out_t, cache_read, cache_write)
+            .await?;
+
+        let message = response
+            .output()
+            .and_then(|o| o.as_message().ok())
+            .ok_or_else(|| {
+                tracing::error!("chat bedrock response had no message");
+                AppError::new(StatusCode::BAD_GATEWAY, "AI service returned no content")
+            })?
+            .clone();
+
+        // Collect any tool_use blocks the model emitted in this turn.
+        let tool_uses: Vec<ToolUseBlock> = message
+            .content()
+            .iter()
+            .filter_map(|c| c.as_tool_use().ok().cloned())
+            .collect();
+
+        if tool_uses.is_empty() {
+            // No tools — take the first text block as the final reply.
+            let text = message
+                .content()
+                .iter()
+                .find_map(|c| c.as_text().ok())
+                .cloned()
+                .unwrap_or_default();
+            final_text = Some(text.trim().to_string());
+            break;
+        }
+
+        // Append the model's tool-using turn verbatim — Bedrock requires
+        // it for tool_result chaining on the next call.
+        messages.push(message);
+
+        // Run each tool. Build a single user-role message containing all
+        // tool_result blocks (the SDK / API expects them batched in one
+        // user turn before the next assistant call).
+        let mut result_msg_builder = Message::builder().role(ConversationRole::User);
+        for tu in &tool_uses {
+            let outcome = run_chat_tool(state, user_id, tu, now_local).await;
+            invocations.push(outcome.surface.clone());
+            let trb = ToolResultBlock::builder()
+                .tool_use_id(tu.tool_use_id().to_string())
+                .content(ToolResultContentBlock::Text(outcome.payload_for_model))
+                .status(outcome.bedrock_status)
+                .build()
+                .map_err(|e| {
+                    tracing::error!("chat tool_result build failed: {}", e);
+                    AppError::new(
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        "AI tool result build failed",
+                    )
+                })?;
+            result_msg_builder = result_msg_builder.content(ContentBlock::ToolResult(trb));
+        }
+        let result_msg = result_msg_builder.build().map_err(|e| {
+            tracing::error!("chat tool result message build failed: {}", e);
+            AppError::new(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "AI request build failed",
+            )
+        })?;
+        messages.push(result_msg);
+        // Loop again so the model can use the tool results.
+    }
+
+    let text = final_text.unwrap_or_else(|| {
+        tracing::warn!(
+            target: "ai.chat",
+            iters = MAX_TOOL_ITERATIONS,
+            "chat tool loop exhausted iterations without final text"
+        );
+        "Sorry — I got tangled up looking at your data. Could you ask me again, maybe a bit more specifically?".to_string()
+    });
+
+    state.ai.sampled_log("chat.tools.response", &text);
+
+    Ok(ChatToolLoopOutcome {
+        text,
+        invocations,
+        total_input_tokens: total_input,
+        total_output_tokens: total_output,
+    })
+}
+
+fn build_chat_tool_config() -> Result<ToolConfiguration, AppError> {
+    fn build_one(
+        name: &str,
+        description: &str,
+        schema: serde_json::Value,
+    ) -> Result<Tool, AppError> {
+        Ok(Tool::ToolSpec(
+            ToolSpecification::builder()
+                .name(name)
+                .description(description)
+                .input_schema(ToolInputSchema::Json(json_to_document(&schema)))
+                .build()
+                .map_err(|e| {
+                    tracing::error!("chat tool {} build failed: {}", name, e);
+                    AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "AI tool build failed")
+                })?,
+        ))
+    }
+
+    let tools = vec![
+        build_one(
+            TOOL_GET_TODAY_SUMMARY,
+            "Fetch a fresh snapshot of the user's state (sleep last 3 nights, focus week-to-date, today's checklist with ids, next 3 calendar events). The same snapshot is already in the user message at the start of this turn — only call this after a write, to confirm the updated state.",
+            json!({ "type": "object", "properties": {}, "required": [] }),
+        )?,
+        build_one(
+            TOOL_GET_SLEEP_HISTORY,
+            "Fetch the user's sleep records for the last N nights (1..=30). Each row has bedtime, wake time, duration in minutes, quality rating (1..5), and phone pickups during the sleep window.",
+            json!({
+                "type": "object",
+                "properties": {
+                    "days": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 30,
+                        "description": "How many days of sleep history to fetch."
+                    }
+                },
+                "required": ["days"]
+            }),
+        )?,
+        build_one(
+            TOOL_GET_FOCUS_HISTORY,
+            "Fetch the user's focus-session activity for the last N days (1..=30). Returns per-day completed-session count and total focused minutes.",
+            json!({
+                "type": "object",
+                "properties": {
+                    "days": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 30,
+                        "description": "How many days of focus history to fetch."
+                    }
+                },
+                "required": ["days"]
+            }),
+        )?,
+        build_one(
+            TOOL_GET_CALENDAR_EVENTS,
+            "Fetch calendar events in a date range. Each event has id, title, start, end (UTC ISO-8601), category, and priority. Range cannot exceed 90 days.",
+            json!({
+                "type": "object",
+                "properties": {
+                    "start_date": {
+                        "type": "string",
+                        "format": "date",
+                        "description": "Inclusive start date in the user's local timezone (YYYY-MM-DD)."
+                    },
+                    "end_date": {
+                        "type": "string",
+                        "format": "date",
+                        "description": "Inclusive end date in the user's local timezone (YYYY-MM-DD). Must be on or after start_date. Range capped at 90 days."
+                    }
+                },
+                "required": ["start_date", "end_date"]
+            }),
+        )?,
+        build_one(
+            TOOL_GET_CHECKLIST,
+            "Fetch checklist items due on a specific date. Each item has id, title, description, priority (0=low / 1=medium / 2=high), completed flag, and estimated minutes.",
+            json!({
+                "type": "object",
+                "properties": {
+                    "date": {
+                        "type": "string",
+                        "format": "date",
+                        "description": "Local date (YYYY-MM-DD) in the user's timezone."
+                    }
+                },
+                "required": ["date"]
+            }),
+        )?,
+        build_one(
+            TOOL_CHECKLIST,
+            "Add a checklist item for the user. Commits immediately. Use for to-do items with a due date but no specific clock time. Speak as though it's done.",
+            checklist_tool_schema(),
+        )?,
+        build_one(
+            TOOL_COMPLETE_CHECKLIST_ITEM,
+            "Mark an existing checklist item as done. The item_id comes from get_checklist or get_today_summary. Commits immediately.",
+            json!({
+                "type": "object",
+                "properties": {
+                    "item_id": {
+                        "type": "string",
+                        "description": "UUID of the checklist item to mark complete."
+                    }
+                },
+                "required": ["item_id"]
+            }),
+        )?,
+        build_one(
+            TOOL_CALENDAR,
+            "Propose a calendar event for the user to confirm. This does NOT write the event — the user will see a Create/Cancel card and decide. Use when the user mentions a specific clock time. Speak as a suggestion, not a fait accompli.",
+            calendar_tool_schema(),
+        )?,
+    ];
+
+    let mut builder = ToolConfiguration::builder();
+    for t in tools {
+        builder = builder.tools(t);
+    }
+    builder.build().map_err(|e| {
+        tracing::error!("chat tool configuration build failed: {}", e);
+        AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "AI tool build failed")
+    })
+}
+
+/// Builds the "today + last 3 days" snapshot card. Rendered fresh per
+/// chat turn and never cached. Target size ~300 tokens.
+async fn build_context_card(
+    pool: &PgPool,
+    user_id: Uuid,
+    now_local: &str,
+) -> Result<String, AppError> {
+    let (today_local, offset_str) = match DateTime::parse_from_rfc3339(now_local) {
+        Ok(dt) => (dt.date_naive(), dt.offset().to_string()),
+        Err(_) => (Utc::now().date_naive(), "+00:00".to_string()),
+    };
+    let week_start_utc = Utc::now() - Duration::days(7);
+
+    // Sleep — last 3 nights.
+    let sleep_rows: Vec<(DateTime<Utc>, DateTime<Utc>, i16, i32)> = sqlx::query_as(
+        "SELECT actual_bedtime, actual_wake_time, quality_rating, phone_pickups
+           FROM sleep_records
+          WHERE user_id = $1
+          ORDER BY actual_bedtime DESC
+          LIMIT 3",
+    )
+    .bind(user_id)
+    .fetch_all(pool)
+    .await?;
+
+    // Focus — last 7 days aggregate.
+    let focus: (Option<i64>, Option<i64>, Option<i64>) = sqlx::query_as(
+        "SELECT
+            COUNT(*)::BIGINT,
+            COUNT(*) FILTER (WHERE completed)::BIGINT,
+            COALESCE(SUM(duration_minutes) FILTER (WHERE completed), 0)::BIGINT
+         FROM productivity_sessions
+         WHERE user_id = $1 AND started_at >= $2",
+    )
+    .bind(user_id)
+    .bind(week_start_utc)
+    .fetch_one(pool)
+    .await?;
+
+    // Today's checklist.
+    let checklist_today: Vec<(Uuid, String, i16, bool, Option<i32>)> = sqlx::query_as(
+        "SELECT id, title, priority, completed, estimated_minutes
+           FROM checklist_items
+          WHERE user_id = $1 AND due_date = $2
+          ORDER BY completed ASC, priority DESC, created_at ASC
+          LIMIT 10",
+    )
+    .bind(user_id)
+    .bind(today_local)
+    .fetch_all(pool)
+    .await?;
+
+    // Next 3 upcoming calendar events from today's local-midnight onward.
+    let day_start_utc = today_local.and_hms_opt(0, 0, 0).unwrap().and_utc();
+    let calendar_next: Vec<(String, DateTime<Utc>, DateTime<Utc>, String, String)> =
+        sqlx::query_as(
+            "SELECT title, start_time, end_time, category::TEXT, priority::TEXT
+               FROM calendar_events
+              WHERE user_id = $1 AND start_time >= $2
+              ORDER BY start_time ASC
+              LIMIT 3",
+        )
+        .bind(user_id)
+        .bind(day_start_utc)
+        .fetch_all(pool)
+        .await?;
+
+    // Render.
+    let mut out = String::with_capacity(800);
+    out.push_str("### Context snapshot — ");
+    out.push_str(&today_local.to_string());
+    out.push_str(" (user offset ");
+    out.push_str(&offset_str);
+    out.push_str(")\n\n");
+
+    out.push_str("**Sleep — last 3 nights (newest first)**\n");
+    if sleep_rows.is_empty() {
+        out.push_str("(no sleep records yet)\n");
+    } else {
+        for (bedtime, wake, quality, pickups) in &sleep_rows {
+            let minutes = wake.signed_duration_since(*bedtime).num_minutes().max(0);
+            let h = minutes / 60;
+            let m = minutes % 60;
+            out.push_str(&format!(
+                "- {} → {} ({}h{:02}, quality {}, {} pickups)\n",
+                bedtime.format("%Y-%m-%d %H:%M"),
+                wake.format("%H:%M"),
+                h,
+                m,
+                quality,
+                pickups
+            ));
+        }
+    }
+    out.push('\n');
+
+    out.push_str(&format!(
+        "**Focus, last 7 days:** {} sessions ({} completed), {} minutes focused.\n\n",
+        focus.0.unwrap_or(0),
+        focus.1.unwrap_or(0),
+        focus.2.unwrap_or(0),
+    ));
+
+    out.push_str("**Today's checklist**\n");
+    if checklist_today.is_empty() {
+        out.push_str("(no items due today)\n");
+    } else {
+        for (id, title, priority, completed, est) in &checklist_today {
+            let mark = if *completed { "✓" } else { "·" };
+            let est_str = est.map(|m| format!(", ~{}m", m)).unwrap_or_default();
+            out.push_str(&format!(
+                "- {} {} (id={}, priority={}{})\n",
+                mark, title, id, priority, est_str
+            ));
+        }
+    }
+    out.push('\n');
+
+    out.push_str("**Next 3 calendar events**\n");
+    if calendar_next.is_empty() {
+        out.push_str("(none scheduled)\n");
+    } else {
+        for (title, start, end, category, priority) in &calendar_next {
+            out.push_str(&format!(
+                "- {} → {} — {} ({}, {})\n",
+                start.format("%Y-%m-%d %H:%M"),
+                end.format("%H:%M"),
+                title,
+                category,
+                priority
+            ));
+        }
+    }
+    out.push('\n');
+
+    out.push_str(&format!("User local time: {}\n", now_local));
+
+    Ok(out)
+}
+
+async fn run_chat_tool(
+    state: &AppState,
+    user_id: Uuid,
+    tu: &ToolUseBlock,
+    now_local: &str,
+) -> ToolRunOutcome {
+    let tool_name = tu.name().to_string();
+    let tool_use_id = tu.tool_use_id().to_string();
+    let input = document_to_json(tu.input());
+
+    let dispatched: Result<ToolRunOutcome, String> = match tool_name.as_str() {
+        TOOL_GET_TODAY_SUMMARY => {
+            handle_get_today_summary(state, user_id, &tool_use_id, &tool_name, now_local).await
+        }
+        TOOL_GET_SLEEP_HISTORY => {
+            handle_get_sleep_history(state, user_id, &tool_use_id, &tool_name, &input).await
+        }
+        TOOL_GET_FOCUS_HISTORY => {
+            handle_get_focus_history(state, user_id, &tool_use_id, &tool_name, &input).await
+        }
+        TOOL_GET_CALENDAR_EVENTS => {
+            handle_get_calendar_events(state, user_id, &tool_use_id, &tool_name, &input).await
+        }
+        TOOL_GET_CHECKLIST => {
+            handle_get_checklist(state, user_id, &tool_use_id, &tool_name, &input).await
+        }
+        TOOL_CHECKLIST => {
+            handle_create_checklist_item(state, user_id, &tool_use_id, &tool_name, &input).await
+        }
+        TOOL_COMPLETE_CHECKLIST_ITEM => {
+            handle_complete_checklist_item(state, user_id, &tool_use_id, &tool_name, &input).await
+        }
+        TOOL_CALENDAR => {
+            handle_propose_calendar_event(&tool_use_id, &tool_name, &input).await
+        }
+        other => Err(format!("Unknown tool: {}", other)),
+    };
+
+    match dispatched {
+        Ok(o) => o,
+        Err(msg) => ToolRunOutcome {
+            payload_for_model: json!({ "error": msg }).to_string(),
+            bedrock_status: ToolResultStatus::Error,
+            surface: ToolInvocationSurface {
+                id: tool_use_id,
+                name: tool_name,
+                status: "error".to_string(),
+                summary: msg,
+                committed: false,
+                committed_resource: None,
+                proposed_event: None,
+            },
+        },
+    }
+}
+
+async fn handle_get_today_summary(
+    state: &AppState,
+    user_id: Uuid,
+    tool_use_id: &str,
+    tool_name: &str,
+    now_local: &str,
+) -> Result<ToolRunOutcome, String> {
+    let card = build_context_card(&state.pool, user_id, now_local)
+        .await
+        .map_err(|e| format!("snapshot failed: {}", e.message))?;
+    Ok(ToolRunOutcome {
+        payload_for_model: card,
+        bedrock_status: ToolResultStatus::Success,
+        surface: ToolInvocationSurface {
+            id: tool_use_id.to_string(),
+            name: tool_name.to_string(),
+            status: "ok".to_string(),
+            summary: "Refreshed today's snapshot".to_string(),
+            committed: false,
+            committed_resource: None,
+            proposed_event: None,
+        },
+    })
+}
+
+async fn handle_get_sleep_history(
+    state: &AppState,
+    user_id: Uuid,
+    tool_use_id: &str,
+    tool_name: &str,
+    input: &serde_json::Value,
+) -> Result<ToolRunOutcome, String> {
+    let days = input
+        .get("days")
+        .and_then(|v| v.as_i64())
+        .ok_or_else(|| "missing days".to_string())?;
+    let days = days.clamp(1, 30);
+    let since = Utc::now() - Duration::days(days);
+    let rows: Vec<(Uuid, DateTime<Utc>, DateTime<Utc>, i16, i32)> = sqlx::query_as(
+        "SELECT id, actual_bedtime, actual_wake_time, quality_rating, phone_pickups
+           FROM sleep_records
+          WHERE user_id = $1 AND actual_bedtime >= $2
+          ORDER BY actual_bedtime DESC",
+    )
+    .bind(user_id)
+    .bind(since)
+    .fetch_all(&state.pool)
+    .await
+    .map_err(|e| format!("db error: {}", e))?;
+    let serializable: Vec<_> = rows
+        .iter()
+        .map(|(id, bed, wake, q, p)| {
+            let mins = wake.signed_duration_since(*bed).num_minutes().max(0);
+            json!({
+                "id": id,
+                "bedtime": bed.to_rfc3339(),
+                "wake_time": wake.to_rfc3339(),
+                "duration_minutes": mins,
+                "quality": q,
+                "phone_pickups": p,
+            })
+        })
+        .collect();
+    let payload = json!({ "days": days, "records": serializable }).to_string();
+    let summary = if rows.is_empty() {
+        format!("No sleep records in the last {} days", days)
+    } else {
+        format!("Pulled {} nights", rows.len())
+    };
+    Ok(ToolRunOutcome {
+        payload_for_model: payload,
+        bedrock_status: ToolResultStatus::Success,
+        surface: ToolInvocationSurface {
+            id: tool_use_id.to_string(),
+            name: tool_name.to_string(),
+            status: "ok".to_string(),
+            summary,
+            committed: false,
+            committed_resource: None,
+            proposed_event: None,
+        },
+    })
+}
+
+async fn handle_get_focus_history(
+    state: &AppState,
+    user_id: Uuid,
+    tool_use_id: &str,
+    tool_name: &str,
+    input: &serde_json::Value,
+) -> Result<ToolRunOutcome, String> {
+    let days = input
+        .get("days")
+        .and_then(|v| v.as_i64())
+        .ok_or_else(|| "missing days".to_string())?;
+    let days = days.clamp(1, 30);
+    let since = Utc::now() - Duration::days(days);
+    let rows: Vec<(chrono::NaiveDate, i64, i64)> = sqlx::query_as(
+        "SELECT (started_at AT TIME ZONE 'UTC')::DATE AS day,
+                COUNT(*) FILTER (WHERE completed)::BIGINT AS completed_count,
+                COALESCE(SUM(duration_minutes) FILTER (WHERE completed), 0)::BIGINT AS total_minutes
+           FROM productivity_sessions
+          WHERE user_id = $1 AND started_at >= $2
+          GROUP BY day
+          ORDER BY day DESC",
+    )
+    .bind(user_id)
+    .bind(since)
+    .fetch_all(&state.pool)
+    .await
+    .map_err(|e| format!("db error: {}", e))?;
+    let serializable: Vec<_> = rows
+        .iter()
+        .map(|(day, count, minutes)| {
+            json!({
+                "date": day.to_string(),
+                "completed_sessions": count,
+                "focus_minutes": minutes,
+            })
+        })
+        .collect();
+    let summary = if rows.is_empty() {
+        format!("No focus sessions in the last {} days", days)
+    } else {
+        format!("Pulled focus for {} days", rows.len())
+    };
+    Ok(ToolRunOutcome {
+        payload_for_model: json!({ "days": days, "by_day": serializable }).to_string(),
+        bedrock_status: ToolResultStatus::Success,
+        surface: ToolInvocationSurface {
+            id: tool_use_id.to_string(),
+            name: tool_name.to_string(),
+            status: "ok".to_string(),
+            summary,
+            committed: false,
+            committed_resource: None,
+            proposed_event: None,
+        },
+    })
+}
+
+async fn handle_get_calendar_events(
+    state: &AppState,
+    user_id: Uuid,
+    tool_use_id: &str,
+    tool_name: &str,
+    input: &serde_json::Value,
+) -> Result<ToolRunOutcome, String> {
+    let start_s = input
+        .get("start_date")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| "missing start_date".to_string())?;
+    let end_s = input
+        .get("end_date")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| "missing end_date".to_string())?;
+    let start_d: chrono::NaiveDate = start_s
+        .parse()
+        .map_err(|_| format!("bad start_date: {}", start_s))?;
+    let end_d: chrono::NaiveDate = end_s
+        .parse()
+        .map_err(|_| format!("bad end_date: {}", end_s))?;
+    if end_d < start_d {
+        return Err("end_date is before start_date".to_string());
+    }
+    if (end_d - start_d).num_days() > CALENDAR_RANGE_MAX_DAYS {
+        return Err(format!(
+            "range exceeds {} days; pick a smaller window",
+            CALENDAR_RANGE_MAX_DAYS
+        ));
+    }
+    let start_utc = start_d.and_hms_opt(0, 0, 0).unwrap().and_utc();
+    let end_utc = end_d.and_hms_opt(23, 59, 59).unwrap().and_utc();
+    let rows: Vec<(Uuid, String, DateTime<Utc>, DateTime<Utc>, String, String)> = sqlx::query_as(
+        "SELECT id, title, start_time, end_time, category::TEXT, priority::TEXT
+           FROM calendar_events
+          WHERE user_id = $1
+            AND start_time >= $2
+            AND start_time <= $3
+          ORDER BY start_time ASC",
+    )
+    .bind(user_id)
+    .bind(start_utc)
+    .bind(end_utc)
+    .fetch_all(&state.pool)
+    .await
+    .map_err(|e| format!("db error: {}", e))?;
+    let serializable: Vec<_> = rows
+        .iter()
+        .map(|(id, title, start, end, category, priority)| {
+            json!({
+                "id": id,
+                "title": title,
+                "start": start.to_rfc3339(),
+                "end": end.to_rfc3339(),
+                "category": category,
+                "priority": priority,
+            })
+        })
+        .collect();
+    let summary = if rows.is_empty() {
+        format!("No events from {} to {}", start_d, end_d)
+    } else {
+        format!("Found {} events", rows.len())
+    };
+    Ok(ToolRunOutcome {
+        payload_for_model: json!({
+            "start_date": start_s,
+            "end_date": end_s,
+            "events": serializable,
+        })
+        .to_string(),
+        bedrock_status: ToolResultStatus::Success,
+        surface: ToolInvocationSurface {
+            id: tool_use_id.to_string(),
+            name: tool_name.to_string(),
+            status: "ok".to_string(),
+            summary,
+            committed: false,
+            committed_resource: None,
+            proposed_event: None,
+        },
+    })
+}
+
+async fn handle_get_checklist(
+    state: &AppState,
+    user_id: Uuid,
+    tool_use_id: &str,
+    tool_name: &str,
+    input: &serde_json::Value,
+) -> Result<ToolRunOutcome, String> {
+    let date_s = input
+        .get("date")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| "missing date".to_string())?;
+    let date: chrono::NaiveDate = date_s
+        .parse()
+        .map_err(|_| format!("bad date: {}", date_s))?;
+    let rows: Vec<(
+        Uuid,
+        String,
+        Option<String>,
+        i16,
+        bool,
+        Option<i32>,
+    )> = sqlx::query_as(
+        "SELECT id, title, description, priority, completed, estimated_minutes
+           FROM checklist_items
+          WHERE user_id = $1 AND due_date = $2
+          ORDER BY completed ASC, priority DESC, created_at ASC",
+    )
+    .bind(user_id)
+    .bind(date)
+    .fetch_all(&state.pool)
+    .await
+    .map_err(|e| format!("db error: {}", e))?;
+    let serializable: Vec<_> = rows
+        .iter()
+        .map(|(id, title, desc, priority, completed, est)| {
+            json!({
+                "id": id,
+                "title": title,
+                "description": desc,
+                "priority": priority,
+                "completed": completed,
+                "estimated_minutes": est,
+            })
+        })
+        .collect();
+    let summary = if rows.is_empty() {
+        format!("No checklist items on {}", date_s)
+    } else {
+        format!("{} items on {}", rows.len(), date_s)
+    };
+    Ok(ToolRunOutcome {
+        payload_for_model: json!({ "date": date_s, "items": serializable }).to_string(),
+        bedrock_status: ToolResultStatus::Success,
+        surface: ToolInvocationSurface {
+            id: tool_use_id.to_string(),
+            name: tool_name.to_string(),
+            status: "ok".to_string(),
+            summary,
+            committed: false,
+            committed_resource: None,
+            proposed_event: None,
+        },
+    })
+}
+
+async fn handle_create_checklist_item(
+    state: &AppState,
+    user_id: Uuid,
+    tool_use_id: &str,
+    tool_name: &str,
+    input: &serde_json::Value,
+) -> Result<ToolRunOutcome, String> {
+    // Re-use the same parsed shape as parse_event so validation stays
+    // in lockstep.
+    let fields: ParsedChecklistFields =
+        serde_json::from_value(input.clone()).map_err(|e| format!("bad input: {}", e))?;
+    let title = fields.title.trim().to_string();
+    if title.is_empty() {
+        return Err("title is empty".to_string());
+    }
+    let priority = fields.priority.unwrap_or(1);
+    if !(0..=2).contains(&priority) {
+        return Err(format!("priority {} out of 0..=2", priority));
+    }
+    let item: crate::models::checklist::ChecklistItem = sqlx::query_as(
+        "INSERT INTO checklist_items
+            (user_id, title, description, due_date, estimated_minutes, priority,
+             recurrence_days_mask, show_until_due)
+         VALUES ($1, $2, $3, $4, $5, $6, 0, false)
+         RETURNING *",
+    )
+    .bind(user_id)
+    .bind(&title)
+    .bind(fields.description.as_deref().map(str::trim))
+    .bind(fields.due_date)
+    .bind(fields.estimated_minutes)
+    .bind(priority)
+    .fetch_one(&state.pool)
+    .await
+    .map_err(|e| format!("db error: {}", e))?;
+
+    state
+        .events
+        .publish(user_id, crate::event_bus::SyncEvent::ChecklistCreated(item.clone()));
+
+    let payload = json!({
+        "created_id": item.id,
+        "title": item.title,
+        "due_date": item.due_date,
+    })
+    .to_string();
+    Ok(ToolRunOutcome {
+        payload_for_model: payload,
+        bedrock_status: ToolResultStatus::Success,
+        surface: ToolInvocationSurface {
+            id: tool_use_id.to_string(),
+            name: tool_name.to_string(),
+            status: "ok".to_string(),
+            summary: format!("Added: {}", item.title),
+            committed: true,
+            committed_resource: Some(CommittedResource {
+                kind: "checklist".to_string(),
+                id: item.id,
+                title: Some(item.title.clone()),
+                due_date: Some(item.due_date),
+            }),
+            proposed_event: None,
+        },
+    })
+}
+
+async fn handle_complete_checklist_item(
+    state: &AppState,
+    user_id: Uuid,
+    tool_use_id: &str,
+    tool_name: &str,
+    input: &serde_json::Value,
+) -> Result<ToolRunOutcome, String> {
+    let id_s = input
+        .get("item_id")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| "missing item_id".to_string())?;
+    let item_id: Uuid = id_s
+        .parse()
+        .map_err(|_| format!("bad item_id: {}", id_s))?;
+    let item: Option<crate::models::checklist::ChecklistItem> = sqlx::query_as(
+        "UPDATE checklist_items
+            SET completed = TRUE, completed_at = NOW(), updated_at = NOW()
+          WHERE id = $1 AND user_id = $2
+        RETURNING *",
+    )
+    .bind(item_id)
+    .bind(user_id)
+    .fetch_optional(&state.pool)
+    .await
+    .map_err(|e| format!("db error: {}", e))?;
+    let item = item.ok_or_else(|| format!("no checklist item with id {}", id_s))?;
+    state
+        .events
+        .publish(user_id, crate::event_bus::SyncEvent::ChecklistUpdated(item.clone()));
+    let payload = json!({
+        "completed_id": item.id,
+        "title": item.title,
+    })
+    .to_string();
+    Ok(ToolRunOutcome {
+        payload_for_model: payload,
+        bedrock_status: ToolResultStatus::Success,
+        surface: ToolInvocationSurface {
+            id: tool_use_id.to_string(),
+            name: tool_name.to_string(),
+            status: "ok".to_string(),
+            summary: format!("Marked done: {}", item.title),
+            committed: true,
+            committed_resource: Some(CommittedResource {
+                kind: "checklist_complete".to_string(),
+                id: item.id,
+                title: Some(item.title.clone()),
+                due_date: None,
+            }),
+            proposed_event: None,
+        },
+    })
+}
+
+async fn handle_propose_calendar_event(
+    tool_use_id: &str,
+    tool_name: &str,
+    input: &serde_json::Value,
+) -> Result<ToolRunOutcome, String> {
+    let fields: ParsedCalendarFields =
+        serde_json::from_value(input.clone()).map_err(|e| format!("bad input: {}", e))?;
+    if fields.title.trim().is_empty() {
+        return Err("title is empty".to_string());
+    }
+    if fields.end_time <= fields.start_time {
+        return Err("end_time must be after start_time".to_string());
+    }
+    // Server NEVER writes here. The model is told this in the prompt, and
+    // we reinforce it in the tool result so the model phrases the reply as
+    // a draft pending user confirmation.
+    let summary = format!(
+        "Proposed: {} {} → {}",
+        fields.title,
+        fields.start_time.format("%Y-%m-%d %H:%M"),
+        fields.end_time.format("%H:%M"),
+    );
+    let payload = json!({
+        "status": "proposed",
+        "note": "The user will see a Create/Cancel card. You did NOT add this event — phrase your reply as a draft pending user confirmation.",
+        "proposed": &fields,
+    })
+    .to_string();
+    Ok(ToolRunOutcome {
+        payload_for_model: payload,
+        bedrock_status: ToolResultStatus::Success,
+        surface: ToolInvocationSurface {
+            id: tool_use_id.to_string(),
+            name: tool_name.to_string(),
+            status: "proposed".to_string(),
+            summary,
+            committed: false,
+            committed_resource: None,
+            proposed_event: Some(fields),
+        },
+    })
 }

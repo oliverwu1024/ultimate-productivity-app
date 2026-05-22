@@ -1,9 +1,14 @@
-// §9.6 — Coach Chat page (web mirror of the Android ChatScreen).
+// §9.x — Coach Chat page (web mirror of the Android ChatScreen).
 //
-// Single active conversation per user; server tracks it via the latest
-// `ai_conversations.updated_at`. We load history on mount, append both
-// turns after each send, auto-scroll to the bottom on new messages, and
-// expose a "Start fresh" affordance that calls POST /ai/chat/reset.
+// One active conversation per user; the server tracks it via the latest
+// `ai_conversations.updated_at`. We load history on mount, append both the
+// user turn and the assistant's reply after each send, auto-scroll to the
+// bottom, and expose a "Start fresh" affordance that calls /ai/chat/reset.
+//
+// When the backend tool loop is enabled (AI_CHAT_TOOLS_ENABLED=true), each
+// send may also surface read-tool status pills, committed write-tool
+// confirmations with an undo affordance, and inline calendar proposal
+// cards that the user confirms via Create / Cancel.
 
 use leptos::ev::SubmitEvent;
 use leptos::html::Div;
@@ -11,20 +16,65 @@ use leptos::prelude::*;
 use leptos_meta::Title;
 use wasm_bindgen::JsCast;
 
-use crate::api::ai::{list_chat_messages, reset_chat, send_chat_message, ChatMessage};
+use crate::api::ai::{
+    list_chat_messages, reset_chat, send_chat_message, ChatMessage, CommittedResource,
+    ParsedCalendarFields, ToolInvocation,
+};
+use crate::api::calendar::{
+    create_event, CreateCalendarEvent, EventCategory, EventPriority,
+};
+use crate::api::checklist::{delete_item, uncomplete_item};
 use crate::components::layout::AppShell;
+
+#[derive(Debug, Clone)]
+enum ChatTurn {
+    UserText(ChatMessage),
+    AssistantText(ChatMessage),
+    ToolStatus(ToolInvocation),
+    CalendarProposal {
+        invocation: ToolInvocation,
+        state: ProposalState,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum ProposalState {
+    Pending,
+    Creating,
+    Created,
+    Cancelled,
+}
+
+impl ChatTurn {
+    fn key(&self) -> String {
+        match self {
+            ChatTurn::UserText(m) => format!("u:{}", m.id),
+            ChatTurn::AssistantText(m) => format!("a:{}", m.id),
+            ChatTurn::ToolStatus(t) => format!("t:{}", t.id),
+            ChatTurn::CalendarProposal { invocation, .. } => format!("p:{}", invocation.id),
+        }
+    }
+}
+
+/// Snackbar-style banner shown after auto-committed writes. Persists until
+/// dismissed or the undo button is tapped. Stays simple — one slot for now;
+/// if Coach starts firing many writes per turn we'd queue them.
+#[derive(Debug, Clone)]
+struct UndoBanner {
+    resource: CommittedResource,
+    message: String,
+}
 
 #[component]
 pub fn ChatPage() -> impl IntoView {
-    let messages: RwSignal<Vec<ChatMessage>> = RwSignal::new(Vec::new());
+    let turns: RwSignal<Vec<ChatTurn>> = RwSignal::new(Vec::new());
     let input = RwSignal::new(String::new());
     let loading_history = RwSignal::new(true);
     let sending = RwSignal::new(false);
     let error = RwSignal::new(None::<String>);
     let confirm_reset = RwSignal::new(false);
+    let undo_banner = RwSignal::new(None::<UndoBanner>);
 
-    // Bottom-anchor ref for auto-scroll. Re-fires every time the message
-    // count changes so the user always sees the latest turn.
     let bottom_ref = NodeRef::<Div>::new();
 
     let refresh_history = move || {
@@ -32,7 +82,19 @@ pub fn ChatPage() -> impl IntoView {
         error.set(None);
         wasm_bindgen_futures::spawn_local(async move {
             match list_chat_messages().await {
-                Ok(list) => messages.set(list),
+                Ok(list) => {
+                    let mapped = list
+                        .into_iter()
+                        .map(|m| {
+                            if m.role == "user" {
+                                ChatTurn::UserText(m)
+                            } else {
+                                ChatTurn::AssistantText(m)
+                            }
+                        })
+                        .collect::<Vec<_>>();
+                    turns.set(mapped);
+                }
                 Err(e) => error.set(Some(e.message)),
             }
             loading_history.set(false);
@@ -41,11 +103,10 @@ pub fn ChatPage() -> impl IntoView {
 
     Effect::new(move |_| refresh_history());
 
-    // Auto-scroll: depend on message count so we run after every append.
+    // Auto-scroll to the bottom whenever the turn count changes.
     Effect::new(move |_| {
-        let _ = messages.with(|m| m.len());
+        let _ = turns.with(|m| m.len());
         if let Some(el) = bottom_ref.get() {
-            // Cast Element to HtmlElement so scroll_into_view is available.
             if let Ok(html_el) = el.dyn_into::<web_sys::HtmlElement>() {
                 html_el.scroll_into_view_with_bool(false);
             }
@@ -54,22 +115,52 @@ pub fn ChatPage() -> impl IntoView {
 
     let on_submit = move |ev: SubmitEvent| {
         ev.prevent_default();
-        if sending.get_untracked() { return; }
+        if sending.get_untracked() {
+            return;
+        }
         let text = input.get_untracked();
         let trimmed = text.trim();
-        if trimmed.is_empty() { return; }
+        if trimmed.is_empty() {
+            return;
+        }
 
         sending.set(true);
         error.set(None);
         let payload = trimmed.to_string();
         input.set(String::new());
+        let now_local = chrono::Local::now().to_rfc3339();
         wasm_bindgen_futures::spawn_local(async move {
-            match send_chat_message(payload).await {
+            match send_chat_message(payload, Some(now_local)).await {
                 Ok(resp) => {
-                    messages.update(|m| {
-                        m.push(resp.user_message);
-                        m.push(resp.assistant_message);
-                    });
+                    let mut new_turns: Vec<ChatTurn> = Vec::new();
+                    new_turns.push(ChatTurn::UserText(resp.user_message));
+                    let mut first_committed: Option<UndoBanner> = None;
+                    for inv in resp.tool_invocations.into_iter() {
+                        if inv.status == "proposed" && inv.proposed_event.is_some() {
+                            new_turns.push(ChatTurn::CalendarProposal {
+                                invocation: inv,
+                                state: ProposalState::Pending,
+                            });
+                        } else {
+                            // Stage the most-recent committed resource for the
+                            // undo banner before we move the invocation into
+                            // the ToolStatus turn.
+                            if inv.committed {
+                                if let Some(res) = inv.committed_resource.clone() {
+                                    first_committed = Some(UndoBanner {
+                                        resource: res,
+                                        message: inv.summary.clone(),
+                                    });
+                                }
+                            }
+                            new_turns.push(ChatTurn::ToolStatus(inv));
+                        }
+                    }
+                    new_turns.push(ChatTurn::AssistantText(resp.assistant_message));
+                    turns.update(|t| t.extend(new_turns));
+                    if first_committed.is_some() {
+                        undo_banner.set(first_committed);
+                    }
                 }
                 Err(e) => error.set(Some(e.message)),
             }
@@ -82,10 +173,115 @@ pub fn ChatPage() -> impl IntoView {
         error.set(None);
         wasm_bindgen_futures::spawn_local(async move {
             match reset_chat().await {
-                Ok(_) => messages.set(Vec::new()),
+                Ok(_) => {
+                    turns.set(Vec::new());
+                    undo_banner.set(None);
+                }
                 Err(e) => error.set(Some(e.message)),
             }
             sending.set(false);
+        });
+    };
+
+    // ── Calendar proposal handlers ────────────────────────────────────────
+
+    let confirm_proposal = move |inv_id: String| {
+        let mut staged_event: Option<ParsedCalendarFields> = None;
+        turns.update(|t| {
+            if let Some(idx) = t.iter().position(|x| {
+                matches!(x, ChatTurn::CalendarProposal { invocation, state }
+                    if invocation.id == inv_id && *state == ProposalState::Pending)
+            }) {
+                if let ChatTurn::CalendarProposal { invocation, state } = &t[idx] {
+                    staged_event = invocation.proposed_event.clone();
+                    let new_t = ChatTurn::CalendarProposal {
+                        invocation: invocation.clone(),
+                        state: if staged_event.is_some() {
+                            ProposalState::Creating
+                        } else {
+                            state.clone()
+                        },
+                    };
+                    t[idx] = new_t;
+                }
+            }
+        });
+        let Some(fields) = staged_event else {
+            return;
+        };
+        let body = parsed_to_create(&fields);
+        wasm_bindgen_futures::spawn_local(async move {
+            match create_event(&body).await {
+                Ok(_) => {
+                    turns.update(|t| {
+                        if let Some(idx) = t.iter().position(|x| {
+                            matches!(x, ChatTurn::CalendarProposal { invocation, .. }
+                                if invocation.id == inv_id)
+                        }) {
+                            if let ChatTurn::CalendarProposal { invocation, .. } = &t[idx] {
+                                t[idx] = ChatTurn::CalendarProposal {
+                                    invocation: invocation.clone(),
+                                    state: ProposalState::Created,
+                                };
+                            }
+                        }
+                    });
+                }
+                Err(e) => {
+                    turns.update(|t| {
+                        if let Some(idx) = t.iter().position(|x| {
+                            matches!(x, ChatTurn::CalendarProposal { invocation, .. }
+                                if invocation.id == inv_id)
+                        }) {
+                            if let ChatTurn::CalendarProposal { invocation, .. } = &t[idx] {
+                                t[idx] = ChatTurn::CalendarProposal {
+                                    invocation: invocation.clone(),
+                                    state: ProposalState::Pending,
+                                };
+                            }
+                        }
+                    });
+                    error.set(Some(format!("Couldn't create the event: {}", e.message)));
+                }
+            }
+        });
+    };
+
+    let cancel_proposal = move |inv_id: String| {
+        turns.update(|t| {
+            if let Some(idx) = t.iter().position(|x| {
+                matches!(x, ChatTurn::CalendarProposal { invocation, state }
+                    if invocation.id == inv_id && *state == ProposalState::Pending)
+            }) {
+                if let ChatTurn::CalendarProposal { invocation, .. } = &t[idx] {
+                    t[idx] = ChatTurn::CalendarProposal {
+                        invocation: invocation.clone(),
+                        state: ProposalState::Cancelled,
+                    };
+                }
+            }
+        });
+    };
+
+    // ── Undo committed write ──────────────────────────────────────────────
+
+    let do_undo = move || {
+        let Some(banner) = undo_banner.get_untracked() else {
+            return;
+        };
+        undo_banner.set(None);
+        wasm_bindgen_futures::spawn_local(async move {
+            let res = match banner.resource.kind.as_str() {
+                "checklist" => delete_item(&banner.resource.id).await.map(|_| ()),
+                "checklist_complete" => uncomplete_item(&banner.resource.id).await.map(|_| ()),
+                _ => Ok(()),
+            };
+            if let Err(e) = res {
+                error.set(Some(format!(
+                    "Undo failed: {} — you may need to remove it manually.",
+                    e.message
+                )));
+            }
         });
     };
 
@@ -98,7 +294,7 @@ pub fn ChatPage() -> impl IntoView {
                     <button
                         on:click=move |_| confirm_reset.set(true)
                         class="text-sm px-3 py-1.5 border border-ultiq-indigo/20 text-ultiq-indigo rounded hover:bg-ultiq-indigo/5 cursor-pointer disabled:opacity-50"
-                        prop:disabled=move || sending.get() || messages.with(|m| m.is_empty())
+                        prop:disabled=move || sending.get() || turns.with(|m| m.is_empty())
                     >
                         "Start fresh"
                     </button>
@@ -116,33 +312,36 @@ pub fn ChatPage() -> impl IntoView {
                             view! {
                                 <div class="flex justify-center py-8 text-ultiq-indigo/50">"Loading…"</div>
                             }.into_any()
-                        } else if messages.with(|m| m.is_empty()) {
+                        } else if turns.with(|m| m.is_empty()) {
                             view! {
                                 <div class="max-w-md mx-auto mt-12 p-6 bg-white rounded-2xl shadow text-ultiq-indigo">
                                     <h2 class="text-lg font-semibold mb-2">"Talk to your coach"</h2>
                                     <p class="text-sm text-ultiq-indigo/70">
-                                        "Ask about sleep habits, focus blocks, weekly planning, or anything you'd want a thoughtful friend to think through with you."
+                                        "Ask about sleep, focus blocks, or weekly planning. The coach can look at your data, add checklist items, and draft calendar events you confirm before they land."
                                     </p>
                                 </div>
                             }.into_any()
                         } else {
+                            let confirm_h = confirm_proposal.clone();
+                            let cancel_h = cancel_proposal.clone();
                             view! {
                                 <div class="max-w-2xl mx-auto space-y-3">
-                                    {move || messages.get().into_iter().map(|m| {
-                                        let is_user = m.role == "user";
-                                        let bubble_class = if is_user {
-                                            "ml-auto bg-ultiq-indigo text-ultiq-cream rounded-2xl rounded-br-sm"
-                                        } else {
-                                            "mr-auto bg-white text-ultiq-indigo rounded-2xl rounded-bl-sm shadow"
-                                        };
-                                        view! {
-                                            <div class="flex">
-                                                <div class={format!("{} max-w-[80%] px-4 py-2.5 whitespace-pre-wrap break-words", bubble_class)}>
-                                                    {m.content}
-                                                </div>
-                                            </div>
-                                        }
-                                    }).collect_view()}
+                                    {move || {
+                                        let list = turns.get();
+                                        list.into_iter().map(|turn| {
+                                            let k = turn.key();
+                                            match turn {
+                                                ChatTurn::UserText(m) => render_user_bubble(m, k),
+                                                ChatTurn::AssistantText(m) => render_assistant_bubble(m, k),
+                                                ChatTurn::ToolStatus(inv) => render_tool_pill(inv, k),
+                                                ChatTurn::CalendarProposal { invocation, state } => {
+                                                    let cf = confirm_h.clone();
+                                                    let cc = cancel_h.clone();
+                                                    render_proposal_card(invocation, state, k, cf, cc)
+                                                }
+                                            }
+                                        }).collect_view()
+                                    }}
                                     <Show when=move || sending.get()>
                                         <div class="flex">
                                             <div class="mr-auto bg-white text-ultiq-indigo/60 rounded-2xl rounded-bl-sm shadow px-4 py-2.5 text-sm italic">
@@ -150,13 +349,35 @@ pub fn ChatPage() -> impl IntoView {
                                             </div>
                                         </div>
                                     </Show>
-                                    // Anchor used by the auto-scroll effect.
                                     <div node_ref=bottom_ref />
                                 </div>
                             }.into_any()
                         }
                     }}
                 </main>
+
+                // Undo banner — single slot, appears above the composer
+                // when the Coach committed a write.
+                <Show when=move || undo_banner.get().is_some()>
+                    <div class="px-4 md:px-8 py-2 bg-ultiq-indigo/5 border-t border-ultiq-indigo/10 flex items-center justify-between text-sm text-ultiq-indigo">
+                        <span>{move || undo_banner.get().map(|b| b.message).unwrap_or_default()}</span>
+                        <div class="flex items-center gap-2">
+                            <button
+                                on:click=move |_| do_undo()
+                                class="font-semibold underline hover:opacity-80 cursor-pointer"
+                            >
+                                "Undo"
+                            </button>
+                            <button
+                                on:click=move |_| undo_banner.set(None)
+                                class="text-ultiq-indigo/50 hover:opacity-80 cursor-pointer"
+                                aria-label="Dismiss"
+                            >
+                                "✕"
+                            </button>
+                        </div>
+                    </div>
+                </Show>
 
                 <form
                     on:submit=on_submit
@@ -214,3 +435,171 @@ pub fn ChatPage() -> impl IntoView {
         </AppShell>
     }
 }
+
+// ── Render helpers ────────────────────────────────────────────────────────
+
+fn render_user_bubble(m: ChatMessage, key: String) -> AnyView {
+    view! {
+        <div class="flex" data-key=key>
+            <div class="ml-auto bg-ultiq-indigo text-ultiq-cream rounded-2xl rounded-br-sm max-w-[80%] px-4 py-2.5 whitespace-pre-wrap break-words">
+                {m.content}
+            </div>
+        </div>
+    }
+    .into_any()
+}
+
+fn render_assistant_bubble(m: ChatMessage, key: String) -> AnyView {
+    view! {
+        <div class="flex" data-key=key>
+            <div class="mr-auto bg-white text-ultiq-indigo rounded-2xl rounded-bl-sm shadow max-w-[80%] px-4 py-2.5 whitespace-pre-wrap break-words">
+                {m.content}
+            </div>
+        </div>
+    }
+    .into_any()
+}
+
+fn render_tool_pill(inv: ToolInvocation, key: String) -> AnyView {
+    let is_read = inv.name.starts_with("get_");
+    let classes = if inv.status == "error" {
+        "mr-auto bg-ultiq-red/10 text-ultiq-red"
+    } else if inv.committed {
+        "mr-auto bg-emerald-100 text-emerald-800"
+    } else if is_read {
+        "mr-auto bg-ultiq-indigo/5 text-ultiq-indigo/70"
+    } else {
+        "mr-auto bg-ultiq-indigo/5 text-ultiq-indigo/70"
+    };
+    let icon = if inv.status == "error" {
+        "⚠"
+    } else if inv.committed {
+        "✓"
+    } else if is_read {
+        "⌕"
+    } else {
+        "·"
+    };
+    view! {
+        <div class="flex" data-key=key>
+            <div class={format!("{} max-w-[80%] px-3 py-1.5 rounded-full text-xs flex items-center gap-1.5", classes)}>
+                <span aria-hidden="true">{icon}</span>
+                <span>{inv.summary}</span>
+            </div>
+        </div>
+    }
+    .into_any()
+}
+
+fn render_proposal_card<F1, F2>(
+    invocation: ToolInvocation,
+    state: ProposalState,
+    key: String,
+    on_create: F1,
+    on_cancel: F2,
+) -> AnyView
+where
+    F1: Fn(String) + Clone + 'static,
+    F2: Fn(String) + Clone + 'static,
+{
+    let event = match invocation.proposed_event.clone() {
+        Some(e) => e,
+        None => return ().into_any(),
+    };
+    let inv_id_for_create = invocation.id.clone();
+    let inv_id_for_cancel = invocation.id.clone();
+    let body = format_proposal_body(&event);
+    view! {
+        <div class="flex" data-key=key>
+            <div class="mr-auto max-w-[80%] bg-white border-2 border-ultiq-indigo/20 rounded-2xl p-4 space-y-2">
+                <div class="text-xs uppercase tracking-wide font-semibold text-ultiq-indigo/70">
+                    "Proposed event"
+                </div>
+                <div class="text-base font-semibold text-ultiq-indigo">{event.title.clone()}</div>
+                <div class="text-sm text-ultiq-indigo/70">{body}</div>
+                {match state {
+                    ProposalState::Pending => view! {
+                        <div class="flex gap-2 pt-2">
+                            <button
+                                class="flex-1 px-3 py-1.5 border border-ultiq-indigo/20 text-ultiq-indigo rounded-lg text-sm hover:bg-ultiq-indigo/5 cursor-pointer"
+                                on:click=move |_| on_cancel(inv_id_for_cancel.clone())
+                            >
+                                "Cancel"
+                            </button>
+                            <button
+                                class="flex-1 px-3 py-1.5 bg-ultiq-indigo text-ultiq-cream rounded-lg text-sm font-medium hover:opacity-90 cursor-pointer"
+                                on:click=move |_| on_create(inv_id_for_create.clone())
+                            >
+                                "Create"
+                            </button>
+                        </div>
+                    }.into_any(),
+                    ProposalState::Creating => view! {
+                        <div class="text-sm text-ultiq-indigo/60 pt-1">"Creating…"</div>
+                    }.into_any(),
+                    ProposalState::Created => view! {
+                        <div class="text-sm text-emerald-700 font-medium pt-1">"✓ Added to your calendar"</div>
+                    }.into_any(),
+                    ProposalState::Cancelled => view! {
+                        <div class="text-sm text-ultiq-indigo/50 pt-1">"Cancelled"</div>
+                    }.into_any(),
+                }}
+            </div>
+        </div>
+    }
+    .into_any()
+}
+
+fn format_proposal_body(fields: &ParsedCalendarFields) -> String {
+    // Display in the user's local TZ via chrono::Local conversion. Failing
+    // to parse falls back to the raw UTC strings.
+    let start_local = fields.start_time.with_timezone(&chrono::Local);
+    let end_local = fields.end_time.with_timezone(&chrono::Local);
+    let same_day = start_local.date_naive() == end_local.date_naive();
+    if same_day {
+        format!(
+            "{} · {} – {} · {}",
+            start_local.format("%a %d %b"),
+            start_local.format("%H:%M"),
+            end_local.format("%H:%M"),
+            fields.category
+        )
+    } else {
+        format!(
+            "{} {} → {} {} · {}",
+            start_local.format("%a %d %b"),
+            start_local.format("%H:%M"),
+            end_local.format("%a %d %b"),
+            end_local.format("%H:%M"),
+            fields.category
+        )
+    }
+}
+
+fn parsed_to_create(fields: &ParsedCalendarFields) -> CreateCalendarEvent {
+    let category = parse_category(&fields.category).unwrap_or(EventCategory::Other);
+    let priority = parse_priority(&fields.priority).unwrap_or(EventPriority::Medium);
+    CreateCalendarEvent {
+        title: fields.title.clone(),
+        description: fields.description.clone(),
+        start_time: fields.start_time,
+        end_time: fields.end_time,
+        category,
+        priority,
+        is_recurring: false,
+        recurrence_rule: None,
+        color: None,
+        is_done: Some(false),
+    }
+}
+
+fn parse_category(s: &str) -> Option<EventCategory> {
+    // Backend emits lowercase ("study"/"project"/…); the web enum
+    // deserialises via rename_all = lowercase, so route through serde.
+    serde_json::from_value(serde_json::Value::String(s.to_string())).ok()
+}
+
+fn parse_priority(s: &str) -> Option<EventPriority> {
+    serde_json::from_value(serde_json::Value::String(s.to_string())).ok()
+}
+
