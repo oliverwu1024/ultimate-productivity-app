@@ -47,6 +47,9 @@ data class FocusSummary(
     val longestStreak: Int,
     val phonePickupsToday: Int,
     val vsLastWeek: String? = null,
+    /// Last week's daily-average focus minutes. Null when last week had
+    /// no sessions (suppress the subline rather than showing "0m").
+    val lastWeekDailyAvgMinutes: Int? = null,
 )
 
 data class WeeklyHighlights(
@@ -425,6 +428,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                 longestStreak = longestStreak,
                 phonePickupsToday = completed.sumOf { it.phonePickups },
                 vsLastWeek = vsLastWeek,
+                lastWeekDailyAvgMinutes = if (past7Minutes > 0) past7DailyAvg else null,
             )
         )
     }

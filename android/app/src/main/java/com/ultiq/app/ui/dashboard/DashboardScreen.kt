@@ -597,10 +597,6 @@ private fun FocusCard(focus: FocusSummary?, onClick: () -> Unit) {
             val h = f.totalMinutesToday / 60
             val m = f.totalMinutesToday % 60
             val timeStr = if (h > 0) "${h}h ${m}m" else "${m}m"
-            // §audit-2 — explicit "today" label. The card always shows today's
-            // total; the user reported "looks weird" because the number was
-            // unlabeled and got conflated with the "vs last week" comparison
-            // line below.
             Row(verticalAlignment = Alignment.Bottom) {
                 Text(timeStr, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.width(6.dp))
@@ -612,9 +608,15 @@ private fun FocusCard(focus: FocusSummary?, onClick: () -> Unit) {
                 )
             }
 
-            if (f.vsLastWeek != null) {
+            // §audit-2 round-2 — read as an absolute reference point rather
+            // than a delta. User found the "-1h 11m vs last week (daily
+            // avg)" string ambiguous about which direction was up.
+            f.lastWeekDailyAvgMinutes?.let { avgMins ->
+                val ah = avgMins / 60
+                val am = avgMins % 60
+                val avgStr = if (ah > 0) "${ah}h ${am}m" else "${am}m"
                 Text(
-                    "${f.vsLastWeek} (daily avg)",
+                    "Last week's daily average was $avgStr",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

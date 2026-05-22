@@ -1,6 +1,6 @@
 {
-  "versionCode": 35,
-  "versionName": "2.10.4",
-  "url": "https://ultiqapp.com/ultiq.2.10.4.apk",
-  "releaseNotes": "Six fixes from the audit. Alarm delete now shows ONE dialog (was double-dialoging). Sleep tab replaced the 2×2 grid with section headers ('This week / Last week' or 'This month / Last month'). Dashboard 'Coming up' is today's calendar events only — checklist items stay in 'Today's plan'. 'Ready to focus?' now labels the number 'today' so it stops reading like a weekly total. Coach can now answer calendar-period questions ('last week', 'this month') via dedicated period-aware tools — no more 'last 7 days' confusion."
+  "versionCode": 36,
+  "versionName": "2.10.5",
+  "url": "https://ultiqapp.com/ultiq.2.10.5.apk",
+  "releaseNotes": "Ready-to-focus comparison line now reads 'Last week's daily average was Xh Ym' instead of the ambiguous '-Xh Ym vs last week (daily avg)' diff. Easier to read as a reference point."
 }
