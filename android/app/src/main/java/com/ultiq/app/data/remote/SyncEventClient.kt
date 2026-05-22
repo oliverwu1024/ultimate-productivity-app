@@ -2,6 +2,8 @@ package com.ultiq.app.data.remote
 
 import android.util.Log
 import com.ultiq.app.BuildConfig
+import com.ultiq.app.alarm.WakeAlarmScheduler
+import com.ultiq.app.data.local.dao.AlarmDao
 import com.ultiq.app.data.local.dao.CalendarEventDao
 import com.ultiq.app.data.local.dao.ChecklistDao
 import com.ultiq.app.data.local.dao.SessionDao
@@ -41,7 +43,14 @@ class SyncEventClient(
     private val checklistDao: ChecklistDao,
     private val sleepDao: SleepDao,
     private val sessionDao: SessionDao,
+    private val alarmDao: AlarmDao,
+    /// Schedules calendar-event reminders.
     private val alarmScheduler: AlarmScheduler? = null,
+    /// Schedules wake-up alarms (AlarmManager intents). Needed when a
+    /// new alarm arrives via SSE so the local alarm queue stays in sync —
+    /// otherwise a Coach-created alarm would show up in the UI but never
+    /// actually fire.
+    private val wakeScheduler: WakeAlarmScheduler? = null,
 ) {
     private val scope = CoroutineScope(Dispatchers.IO)
     private var eventSource: EventSource? = null
@@ -166,6 +175,24 @@ class SyncEventClient(
                 is SyncEvent.SessionCreated -> sessionDao.insert(event.session.toEntity())
                 is SyncEvent.SessionUpdated -> sessionDao.insert(event.session.toEntity())
                 is SyncEvent.SessionDeleted -> sessionDao.deleteById(event.id)
+                is SyncEvent.AlarmCreated -> {
+                    val entity = event.alarm.toEntity()
+                    alarmDao.insertAlarm(entity)
+                    // Schedule the AlarmManager intent locally — otherwise the
+                    // alarm appears in the UI but never fires. Required when
+                    // an alarm is created from another surface (Coach chat
+                    // commit, or a different device) and arrives here via SSE.
+                    wakeScheduler?.schedule(entity)
+                }
+                is SyncEvent.AlarmUpdated -> {
+                    val entity = event.alarm.toEntity()
+                    alarmDao.insertAlarm(entity)
+                    wakeScheduler?.schedule(entity)
+                }
+                is SyncEvent.AlarmDeleted -> {
+                    wakeScheduler?.cancel(event.id)
+                    alarmDao.deleteAlarmById(event.id)
+                }
             }
         } catch (e: Exception) {
             if (BuildConfig.DEBUG) Log.e(TAG, "applyEvent failed for ${event.javaClass.simpleName}", e)

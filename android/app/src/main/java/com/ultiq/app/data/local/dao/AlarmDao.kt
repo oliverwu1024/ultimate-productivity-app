@@ -16,7 +16,14 @@ interface AlarmDao {
 
     // ── alarms ──────────────────────────────────────────────────────────────
 
-    @Query("SELECT * FROM alarms ORDER BY triggerHour, triggerMinute")
+    // §two-alarms-same-time: the `id` tiebreaker is load-bearing. Without
+    // it, two alarms with the same trigger time tie in the ORDER BY, the
+    // tie breaks non-deterministically per Flow re-emission, and the rows
+    // visually swap in the LazyColumn whenever any one of them updates.
+    // The user's toggle gets routed correctly by `key = alarm.id`, but the
+    // row appears to "jump" to a different position, looking like the
+    // wrong toggle responded.
+    @Query("SELECT * FROM alarms ORDER BY triggerHour, triggerMinute, id")
     fun getAllAlarms(): Flow<List<AlarmEntity>>
 
     @Query("SELECT * FROM alarms WHERE enabled = 1")

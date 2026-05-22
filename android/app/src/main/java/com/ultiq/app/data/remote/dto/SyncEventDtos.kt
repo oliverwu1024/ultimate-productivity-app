@@ -20,6 +20,9 @@ sealed class SyncEvent {
     data class SessionCreated(val session: SessionDto) : SyncEvent()
     data class SessionUpdated(val session: SessionDto) : SyncEvent()
     data class SessionDeleted(val id: String) : SyncEvent()
+    data class AlarmCreated(val alarm: AlarmDto) : SyncEvent()
+    data class AlarmUpdated(val alarm: AlarmDto) : SyncEvent()
+    data class AlarmDeleted(val id: String) : SyncEvent()
 }
 
 private data class IdPayload(val id: String)
@@ -71,6 +74,19 @@ fun parseSyncEvent(json: String): SyncEvent? {
             "SessionDeleted" -> SyncEvent.SessionDeleted(
                 gson.fromJson(data, IdPayload::class.java).id
             )
+            "AlarmCreated" -> SyncEvent.AlarmCreated(
+                gson.fromJson(data, AlarmDto::class.java)
+            )
+            "AlarmUpdated" -> SyncEvent.AlarmUpdated(
+                gson.fromJson(data, AlarmDto::class.java)
+            )
+            "AlarmDeleted" -> SyncEvent.AlarmDeleted(
+                gson.fromJson(data, IdPayload::class.java).id
+            )
+            // §9.8 `AlarmEventLogged` is telemetry-only (alarm firing
+            // history). The mobile clients write their own copies of those
+            // rows from `AlarmRingService`, so we don't need to mirror the
+            // server's event back into Room.
             else -> null
         }
     } catch (_: Exception) {

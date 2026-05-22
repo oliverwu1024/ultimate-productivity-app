@@ -2496,6 +2496,11 @@ CHECKLIST vs CALENDAR (mirror the parse-event rule):
 - Day-only, "remind me to…", "add a task to…", or vague "next friday" without a time → checklist item.
 - For relative dates, anchor on the local-time field in the snapshot footer.
 
+SLEEP LOG vs ALARM (these two tools get confused — be precise):
+- The user describing a PAST night ("I slept 11pm to 7am quality 4", "forgot to log last night, 10:30 to 6:45") → log_sleep_record ONLY. The clock times in the user's message are bedtime/wake, not an alarm time.
+- The user setting a FUTURE wake-up ("set a 6:30am alarm tomorrow", "wake me at 7 weekdays") → create_alarm ONLY.
+- NEVER call both log_sleep_record AND create_alarm in the same turn. If the user mentions sleeping AND wanting to set a wake-up, log the sleep first, then ask a follow-up about the alarm — don't pre-emptively propose one.
+
 ANSWER SHAPE:
 - Default under 150 words. Detailed plans can be longer if the user explicitly asks ("walk me through a full schedule…").
 - Plain prose for normal questions. Use a short numbered list ONLY when the answer is genuinely a sequence of steps.
@@ -2757,15 +2762,15 @@ fn build_chat_tool_config() -> Result<ToolConfiguration, AppError> {
         )?,
         build_one(
             TOOL_GET_SLEEP_HISTORY,
-            "Fetch the user's sleep records for the last N nights (1..=30). Each row has bedtime, wake time, duration in minutes, quality rating (1..5), and phone pickups during the sleep window.",
+            "Fetch the user's sleep records for the last N nights (1..=60 — use 60 for a roughly-two-month view). Each row has bedtime, wake time, duration in minutes, quality rating (1..5), and phone pickups during the sleep window.",
             json!({
                 "type": "object",
                 "properties": {
                     "days": {
                         "type": "integer",
                         "minimum": 1,
-                        "maximum": 30,
-                        "description": "How many days of sleep history to fetch."
+                        "maximum": 60,
+                        "description": "How many days of sleep history to fetch. Cap is 60 — use a higher value for trend questions, smaller for recent recall."
                     }
                 },
                 "required": ["days"]
@@ -2773,15 +2778,15 @@ fn build_chat_tool_config() -> Result<ToolConfiguration, AppError> {
         )?,
         build_one(
             TOOL_GET_FOCUS_HISTORY,
-            "Fetch the user's focus-session activity for the last N days (1..=30). Returns per-day completed-session count and total focused minutes.",
+            "Fetch the user's focus-session activity for the last N days (1..=60). Returns per-day completed-session count and total focused minutes.",
             json!({
                 "type": "object",
                 "properties": {
                     "days": {
                         "type": "integer",
                         "minimum": 1,
-                        "maximum": 30,
-                        "description": "How many days of focus history to fetch."
+                        "maximum": 60,
+                        "description": "How many days of focus history to fetch. Cap is 60."
                     }
                 },
                 "required": ["days"]
@@ -3108,7 +3113,7 @@ async fn handle_get_sleep_history(
         .get("days")
         .and_then(|v| v.as_i64())
         .ok_or_else(|| "missing days".to_string())?;
-    let days = days.clamp(1, 30);
+    let days = days.clamp(1, 60);
     let since = Utc::now() - Duration::days(days);
     let rows: Vec<(Uuid, DateTime<Utc>, DateTime<Utc>, i16, i32)> = sqlx::query_as(
         "SELECT id, actual_bedtime, actual_wake_time, quality_rating, phone_pickups
@@ -3168,7 +3173,7 @@ async fn handle_get_focus_history(
         .get("days")
         .and_then(|v| v.as_i64())
         .ok_or_else(|| "missing days".to_string())?;
-    let days = days.clamp(1, 30);
+    let days = days.clamp(1, 60);
     let since = Utc::now() - Duration::days(days);
     let rows: Vec<(chrono::NaiveDate, i64, i64)> = sqlx::query_as(
         "SELECT (started_at AT TIME ZONE 'UTC')::DATE AS day,

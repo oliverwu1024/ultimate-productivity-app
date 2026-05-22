@@ -92,6 +92,11 @@ fun ChecklistScreen(
     val state by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    // §delete-consistency: every destructive action in the app gets a
+    // confirm dialog (Sleep + Alarms already had one — this brings
+    // Checklist into line). Lives screen-local so a backgrounded screen
+    // forgets the pending row.
+    var pendingDelete by remember { mutableStateOf<ChecklistEntity?>(null) }
 
     LaunchedEffect(state.error) {
         state.error?.let { msg ->
@@ -174,7 +179,7 @@ fun ChecklistScreen(
                             isDoneNow = false,
                             onToggle = { viewModel.toggleCompleted(item) },
                             onEdit = { viewModel.openEditDialog(item) },
-                            onDelete = { viewModel.deleteItem(item) },
+                            onDelete = { pendingDelete = item },
                         )
                     }
                 }
@@ -185,7 +190,7 @@ fun ChecklistScreen(
                             items = state.completedItems,
                             onToggle = viewModel::toggleCompleted,
                             onEdit = viewModel::openEditDialog,
-                            onDelete = viewModel::deleteItem,
+                            onDelete = { pendingDelete = it },
                             todayEpochDay = state.selectedDate.toEpochDay(),
                         )
                     }
@@ -233,6 +238,23 @@ fun ChecklistScreen(
                 },
                 dismissButton = {
                     TextButton(onClick = viewModel::dismissWeeklyPrompt) { Text("Skip") }
+                },
+            )
+        }
+
+        pendingDelete?.let { target ->
+            AlertDialog(
+                onDismissRequest = { pendingDelete = null },
+                title = { Text("Delete this item?") },
+                text = { Text("'${target.title}' will be removed.") },
+                confirmButton = {
+                    TextButton(onClick = {
+                        viewModel.deleteItem(target)
+                        pendingDelete = null
+                    }) { Text("Delete") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { pendingDelete = null }) { Text("Cancel") }
                 },
             )
         }
