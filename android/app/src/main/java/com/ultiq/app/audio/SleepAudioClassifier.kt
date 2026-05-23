@@ -66,8 +66,19 @@ class SleepAudioClassifier private constructor(
     private var captureJob: Job? = null
     private var streamStartedAt: Long = 0L
 
-    fun start() {
-        Log.d(TAG, "start() entered")
+    /**
+     * Initialise MediaPipe + AudioRecord and start the capture loop.
+     *
+     * Returns true when the pipeline is actually live (classifier built,
+     * AudioRecord recording, capture loop scheduled). Returns false on any
+     * failure — caller should treat the classifier as dead and revert any
+     * UI state that assumed audio tracking is active. Uses Log.i for the
+     * happy-path breadcrumbs so they survive R8's stripping of Log.d in
+     * release builds (added in v2.11.3 after the previous Log.d-only
+     * pipeline was undebuggable from production logcat).
+     */
+    fun start(): Boolean {
+        Log.i(TAG, "start() entered")
         val cls = try {
             val options = AudioClassifier.AudioClassifierOptions.builder()
                 .setBaseOptions(
@@ -79,14 +90,14 @@ class SleepAudioClassifier private constructor(
                 .setResultListener { result -> onClassifierResult(result) }
                 .setErrorListener { error -> Log.e(TAG, "MediaPipe error listener fired", error) }
                 .build()
-            Log.d(TAG, "AudioClassifierOptions built")
+            Log.i(TAG, "AudioClassifierOptions built")
             AudioClassifier.createFromOptions(context, options)
         } catch (e: Throwable) {
             Log.e(TAG, "MediaPipe classifier init failed — yamnet.tflite missing from assets?", e)
-            return
+            return false
         }
         classifier = cls
-        Log.d(TAG, "AudioClassifier created from options")
+        Log.i(TAG, "AudioClassifier created from options")
 
         // Use MediaPipe's factory so the AudioRecord matches the model's
         // expected sample rate, channel layout, and buffer size exactly.
@@ -99,15 +110,15 @@ class SleepAudioClassifier private constructor(
         } catch (e: Throwable) {
             Log.e(TAG, "createAudioRecord() threw", e)
             teardown()
-            return
+            return false
         }
         audioRecord = recorder
-        Log.d(TAG, "createAudioRecord() returned, state=${recorder.state}")
+        Log.i(TAG, "createAudioRecord() returned, state=${recorder.state}")
 
         if (recorder.state != AudioRecord.STATE_INITIALIZED) {
             Log.e(TAG, "AudioRecord failed to init (state=${recorder.state})")
             teardown()
-            return
+            return false
         }
 
         streamStartedAt = System.currentTimeMillis()
@@ -116,9 +127,9 @@ class SleepAudioClassifier private constructor(
         } catch (e: Throwable) {
             Log.e(TAG, "AudioRecord.startRecording() threw", e)
             teardown()
-            return
+            return false
         }
-        Log.d(TAG, "AudioRecord.startRecording() returned, recordingState=${recorder.recordingState}")
+        Log.i(TAG, "AudioRecord.startRecording() returned, recordingState=${recorder.recordingState}")
 
         captureJob = scope.launch {
             // Read parameters from the AudioRecord MediaPipe gave us — they're
@@ -132,7 +143,7 @@ class SleepAudioClassifier private constructor(
             val sampleRate = recorder.sampleRate
             val channelCount = recorder.channelCount
             val readSamples = (sampleRate / 4) * channelCount  // ~250 ms / read
-            Log.d(
+            Log.i(
                 TAG,
                 "capture loop started: sampleRate=$sampleRate channelCount=$channelCount " +
                     "readSamples=$readSamples bufferSizeFrames=${recorder.bufferSizeInFrames} " +
@@ -170,12 +181,13 @@ class SleepAudioClassifier private constructor(
                 }
                 iterations += 1
                 if (iterations == 1 || iterations % 20 == 0) {
-                    Log.d(TAG, "classifyAsync iter=$iterations streamMs=$streamMs read=$read")
+                    Log.i(TAG, "classifyAsync iter=$iterations streamMs=$streamMs read=$read")
                 }
             }
-            Log.d(TAG, "capture loop exited (iterations=$iterations)")
+            Log.i(TAG, "capture loop exited (iterations=$iterations)")
         }
-        Log.d(TAG, "start() complete")
+        Log.i(TAG, "start() complete — pipeline live")
+        return true
     }
 
     /**
