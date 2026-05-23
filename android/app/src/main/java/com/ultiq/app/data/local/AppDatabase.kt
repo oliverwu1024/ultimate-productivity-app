@@ -11,6 +11,7 @@ import com.ultiq.app.data.local.dao.AlarmDao
 import com.ultiq.app.data.local.dao.CalendarEventDao
 import com.ultiq.app.data.local.dao.ChecklistDao
 import com.ultiq.app.data.local.dao.SessionDao
+import com.ultiq.app.data.local.dao.SleepAudioEventDao
 import com.ultiq.app.data.local.dao.SleepDao
 import com.ultiq.app.data.local.entity.AchievementEntity
 import com.ultiq.app.data.local.entity.AlarmEntity
@@ -19,6 +20,7 @@ import com.ultiq.app.data.local.entity.AlarmTombstoneEntity
 import com.ultiq.app.data.local.entity.CalendarEventEntity
 import com.ultiq.app.data.local.entity.ChecklistEntity
 import com.ultiq.app.data.local.entity.SessionEntity
+import com.ultiq.app.data.local.entity.SleepAudioEventEntity
 import com.ultiq.app.data.local.entity.SleepRecordEntity
 import com.ultiq.app.util.DatabaseSecurity
 import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
@@ -33,8 +35,9 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
         AlarmEntity::class,
         AlarmEventEntity::class,
         AlarmTombstoneEntity::class,
+        SleepAudioEventEntity::class,
     ],
-    version = 9,
+    version = 10,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -44,6 +47,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun achievementDao(): AchievementDao
     abstract fun checklistDao(): ChecklistDao
     abstract fun alarmDao(): AlarmDao
+    abstract fun sleepAudioEventDao(): SleepAudioEventDao
 
     companion object {
         @Volatile
@@ -176,6 +180,33 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        // §10 — Sleep audio events (snore + cough). YAMNet runs on-device
+        // during sleep sessions; events are debounced and persisted locally,
+        // then batch-synced to the backend at session-end. Raw audio is
+        // never written to disk.
+        private val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """CREATE TABLE IF NOT EXISTS `sleep_audio_events` (
+                        `id` TEXT NOT NULL,
+                        `userId` TEXT NOT NULL,
+                        `sleepRecordId` TEXT NOT NULL,
+                        `eventType` TEXT NOT NULL,
+                        `startedAt` INTEGER NOT NULL,
+                        `endedAt` INTEGER NOT NULL,
+                        `peakConfidence` REAL NOT NULL,
+                        `createdAt` INTEGER NOT NULL,
+                        `isSynced` INTEGER NOT NULL DEFAULT 0,
+                        PRIMARY KEY(`id`)
+                    )"""
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_sleep_audio_events_sleepRecordId_startedAt` " +
+                        "ON `sleep_audio_events` (`sleepRecordId`, `startedAt`)"
+                )
+            }
+        }
+
         private val MIGRATION_6_7 = object : Migration(6, 7) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(
@@ -264,6 +295,7 @@ abstract class AppDatabase : RoomDatabase() {
                     MIGRATION_6_7,
                     MIGRATION_7_8,
                     MIGRATION_8_9,
+                    MIGRATION_9_10,
                 )
                 // Legacy DB has been dropped if it existed; if Room can't
                 // open the file (corrupt / version mismatch from a prior

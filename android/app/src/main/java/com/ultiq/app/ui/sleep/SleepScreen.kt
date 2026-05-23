@@ -27,6 +27,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
@@ -37,6 +38,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -186,6 +188,11 @@ fun SleepScreen(
         EndSleepDialog(
             durationMinutes = durationMs / 60_000,
             pickupEvents = uiState.endedPickupEvents,
+            audioEvents = uiState.endedAudioEvents,
+            aiRatingLoading = uiState.aiRatingLoading,
+            aiRatingResult = uiState.aiRatingResult,
+            aiRatingError = uiState.aiRatingError,
+            onRequestAiRating = { viewModel.requestAiSleepRating() },
             onSave = { quality, notes -> viewModel.saveSessionRecord(quality, notes) },
             onDismiss = { viewModel.dismissEndSleepDialog() }
         )
@@ -297,6 +304,21 @@ private fun SleepSubTab(
             )
         }
 
+        // §10 — Show the on-device snore + cough counts for the latest sleep
+        // session. Card hides when neither type fired during the night, so
+        // users who don't snore / never enable the toggle never see it.
+        if (uiState.tonightSnoreCount > 0 || uiState.tonightCoughCount > 0) {
+            item(key = "tonight-sounds") {
+                AnimatedAppear {
+                    TonightSoundsCard(
+                        snoreCount = uiState.tonightSnoreCount,
+                        coughCount = uiState.tonightCoughCount,
+                        bedtimeMs = uiState.tonightSleepBedtimeMs,
+                    )
+                }
+            }
+        }
+
         if (hasStats) {
             item(key = "stats") {
                 AnimatedAppear { StatsRow(uiState.stats!!) }
@@ -356,6 +378,8 @@ private fun SleepSubTab(
                 items(recs, key = { it.id }) { record ->
                     SleepRecordItem(
                         record = record,
+                        details = uiState.recordDetails[record.id],
+                        onExpand = { viewModel.fetchRecordDetails(record.id) },
                         onDelete = { viewModel.deleteRecord(record.id) },
                         modifier = Modifier
                             .padding(horizontal = 16.dp)
@@ -684,6 +708,8 @@ private fun StatCard(
 @Composable
 private fun SleepRecordItem(
     record: SleepRecordEntity,
+    details: SleepRecordDetails?,
+    onExpand: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -701,7 +727,14 @@ private fun SleepRecordItem(
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { expanded = !expanded },
+                .clickable {
+                    val nextExpanded = !expanded
+                    expanded = nextExpanded
+                    // §10 — Lazy-fetch pickup + snore/cough detail on first
+                    // expansion. The ViewModel caches by record id so
+                    // collapsing + re-expanding doesn't refire the request.
+                    if (nextExpanded) onExpand()
+                },
             shape = RoundedCornerShape(12.dp)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
@@ -760,6 +793,11 @@ private fun SleepRecordItem(
                         if (!record.isSynced) {
                             Text("Not synced", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 4.dp))
                         }
+                        // §10 — Lazy-loaded detail: pickup timeline + snore /
+                        // cough event list. The ViewModel fetches pickups from
+                        // backend and audio events from Room when the user
+                        // first expands the card.
+                        RecordDetailSection(details = details, zone = zone, timeFormat = timeFormat)
                     }
                 }
             }
@@ -772,6 +810,128 @@ private fun DetailRow(label: String, value: String) {
     Row(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
         Text("$label: ", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(value, style = MaterialTheme.typography.bodySmall)
+    }
+}
+
+/// §10 — Lazy-loaded detail section beneath the existing target/actual rows.
+/// Renders pickup timeline + snore + cough event lists for the record. Hidden
+/// before [details] is loaded; "Loading…" placeholder while in flight; quiet
+/// if loaded but empty (record had no pickups or sounds).
+@Composable
+private fun RecordDetailSection(
+    details: SleepRecordDetails?,
+    zone: ZoneId,
+    timeFormat: DateTimeFormatter,
+) {
+    if (details == null) return
+    if (details.loading) {
+        Text(
+            "Loading details…",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 8.dp),
+        )
+        return
+    }
+    if (!details.loaded) return
+
+    val pickups = details.pickups
+    val snores = details.audioEvents.filter { it.eventType == "snore" }
+    val coughs = details.audioEvents.filter { it.eventType == "cough" }
+    if (pickups.isEmpty() && snores.isEmpty() && coughs.isEmpty()) return
+
+    HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp))
+
+    if (pickups.isNotEmpty()) {
+        Text(
+            "Phone pickups",
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        pickups.forEachIndexed { index, p ->
+            val time = Instant.ofEpochMilli(p.pickedUpAt).atZone(zone).format(timeFormat)
+            val durMins = p.durationSeconds / 60
+            val durSecs = p.durationSeconds % 60
+            val durText = if (durMins > 0) "${durMins}m ${durSecs}s" else "${durSecs}s"
+            DetailEventRow(
+                icon = Icons.Default.PhoneAndroid,
+                label = "#${index + 1} at $time",
+                trailing = durText,
+            )
+        }
+    }
+
+    if (snores.isNotEmpty()) {
+        if (pickups.isNotEmpty()) Spacer(Modifier.height(8.dp))
+        val totalSnoreSecs = snores.sumOf { (it.endedAt - it.startedAt) / 1000L }
+        Text(
+            "Snoring · ${snores.size} episode${if (snores.size != 1) "s" else ""} (${totalSnoreSecs}s)",
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        snores.forEachIndexed { index, e ->
+            val time = Instant.ofEpochMilli(e.startedAt).atZone(zone).format(timeFormat)
+            val durSec = ((e.endedAt - e.startedAt) / 1000L).coerceAtLeast(1L)
+            DetailEventRow(
+                icon = Icons.Default.GraphicEq,
+                label = "#${index + 1} at $time",
+                trailing = "${durSec}s",
+            )
+        }
+    }
+
+    if (coughs.isNotEmpty()) {
+        if (snores.isNotEmpty() || pickups.isNotEmpty()) Spacer(Modifier.height(8.dp))
+        val totalCoughSecs = coughs.sumOf { (it.endedAt - it.startedAt) / 1000L }
+        Text(
+            "Coughing · ${coughs.size} episode${if (coughs.size != 1) "s" else ""} (${totalCoughSecs}s)",
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        coughs.forEachIndexed { index, e ->
+            val time = Instant.ofEpochMilli(e.startedAt).atZone(zone).format(timeFormat)
+            val durSec = ((e.endedAt - e.startedAt) / 1000L).coerceAtLeast(1L)
+            DetailEventRow(
+                icon = Icons.Default.GraphicEq,
+                label = "#${index + 1} at $time",
+                trailing = "${durSec}s",
+            )
+        }
+    }
+}
+
+@Composable
+private fun DetailEventRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    trailing: String,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                icon,
+                null,
+                modifier = Modifier.size(14.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                "  $label",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+        Text(
+            trailing,
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
@@ -830,4 +990,86 @@ private fun SetSessionTargetDialog(
             TextButton(onClick = onDismiss) { Text("Cancel") }
         },
     )
+}
+
+/**
+ * §10 — Renders the snore + cough counts captured by on-device YAMNet
+ * during the user's most recent sleep session. Hidden by SleepScreen when
+ * neither count is > 0, so users who never snore / never enable tracking
+ * never see this surface.
+ */
+@Composable
+private fun TonightSoundsCard(
+    snoreCount: Int,
+    coughCount: Int,
+    bedtimeMs: Long,
+) {
+    val date = java.time.Instant.ofEpochMilli(bedtimeMs)
+        .atZone(java.time.ZoneId.systemDefault())
+        .toLocalDate()
+    val today = java.time.LocalDate.now()
+    // Most-recent sleep is conceptually "last night" regardless of clock
+    // time — same-day test sessions still belong to the user's most recent
+    // sleep period. Older records show the date so the user can tell which
+    // night they're looking at.
+    val label = if (date >= today.minusDays(1)) {
+        "Last night"
+    } else {
+        date.format(java.time.format.DateTimeFormatter.ofPattern("EEE, MMM d"))
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Default.GraphicEq,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp),
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    "Sleep sounds — $label",
+                    style = MaterialTheme.typography.titleMedium,
+                )
+            }
+            Spacer(Modifier.height(12.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                if (snoreCount > 0) {
+                    SoundCountTile("Snoring", snoreCount, Modifier.weight(1f))
+                }
+                if (coughCount > 0) {
+                    SoundCountTile("Cough", coughCount, Modifier.weight(1f))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SoundCountTile(label: String, count: Int, modifier: Modifier = Modifier) {
+    Column(modifier = modifier) {
+        Text(
+            count.toString(),
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.primary,
+        )
+        Text(
+            "$label ${if (count == 1) "episode" else "episodes"}",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
 }

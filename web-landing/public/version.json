@@ -1,6 +1,6 @@
 {
-  "versionCode": 38,
-  "versionName": "2.10.7",
-  "url": "https://ultiqapp.com/ultiq.2.10.7.apk",
-  "releaseNotes": "Solid Night 'vs optimal sleep' was comparing against each record's per-night planned bedtime window instead of your Optimal Sleep preference. With an early alarm + a real night you could see '+3h 1m vs optimal sleep' when your actual was barely +40m. Now reads your Optimal Sleep goal from preferences directly."
+  "versionCode": 39,
+  "versionName": "2.11.0",
+  "url": "https://ultiqapp.com/ultiq.2.11.0.apk",
+  "releaseNotes": "On-device snore + cough detection during sleep (audio analysed locally — never uploaded). End Sleep dialog shows the per-pickup + snore + cough timeline and offers a one-tap AI sleep quality rating. Tap any past sleep record to expand the full timeline."
 }

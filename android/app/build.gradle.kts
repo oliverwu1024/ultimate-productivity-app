@@ -23,8 +23,8 @@ android {
         applicationId = "com.ultiq.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 38
-        versionName = "2.10.7"
+        versionCode = 39
+        versionName = "2.11.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -40,6 +40,13 @@ android {
 
     buildTypes {
         debug {
+            // §dogfood — install side-by-side with the production APK.
+            // Different applicationId = separate app on device with separate
+            // data / token store / Room DB; the "Ultiq Debug" label makes the
+            // two distinguishable in the launcher and in Settings → Apps.
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+            resValue("string", "app_name", "Ultiq Debug")
             buildConfigField("String", "API_BASE_URL", "\"http://192.168.1.119:8080/\"")
         }
         release {
@@ -146,4 +153,10 @@ dependencies {
     // (Firebase's Android APIs are Task-based; coroutines play-services adds
     // the bridge). Used by FcmTokenSyncer.
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.9.0")
+
+    // §10 — MediaPipe Audio Classifier with bundled YAMNet model for on-device
+    // snore + cough detection during sleep sessions. Audio never leaves the
+    // phone; only labels + timestamps + confidences are persisted. Model file
+    // `yamnet.tflite` must live at `app/src/main/assets/yamnet.tflite`.
+    implementation("com.google.mediapipe:tasks-audio:0.10.21")
 }

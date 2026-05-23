@@ -6,4 +6,5 @@ pub mod device_token;
 pub mod phone_pickup;
 pub mod session;
 pub mod sleep;
+pub mod sleep_audio;
 pub mod user;

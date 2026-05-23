@@ -9,9 +9,11 @@ import com.google.gson.JsonObject
 import com.ultiq.app.alarm.WakeAlarmScheduler
 import com.ultiq.app.data.local.AppDatabase
 import com.ultiq.app.data.local.entity.AlarmEntity
+import com.ultiq.app.data.local.entity.SleepAudioEventEntity
 import com.ultiq.app.data.local.entity.SleepRecordEntity
 import com.ultiq.app.data.remote.RetrofitClient
 import com.ultiq.app.data.remote.dto.CreateSleepRecordDto
+import com.ultiq.app.data.remote.dto.SleepRatingRequestDto
 import com.ultiq.app.data.remote.dto.SleepStats
 import com.ultiq.app.data.remote.dto.toLocalStats
 import com.ultiq.app.data.repository.SleepRepository
@@ -81,6 +83,48 @@ data class SleepUiState(
     val showSleepExplainer: Boolean = false,
     // Live UserPreferences snapshot, used by the SLEEP PREFERENCES section.
     val settings: UserSettings? = null,
+    // §10 — counts of debounced YAMNet events for the most-recent sleep_record,
+    // rendered as the "Tonight's sounds" card on the Sleep tab when at least
+    // one event was captured.
+    val tonightSnoreCount: Int = 0,
+    val tonightCoughCount: Int = 0,
+    val tonightSleepRecordId: String? = null,
+    val tonightSleepBedtimeMs: Long = 0L,
+    // §10 — Audio events snapshotted at session end for the End Sleep dialog
+    // so it can render snore/cough counts alongside the pickup summary.
+    val endedAudioEvents: List<SleepAudioEventEntity> = emptyList(),
+    // §10 — AI sleep rating state for the End Sleep dialog. Loading flips
+    // true between the button tap and the response; on success, result holds
+    // (rating, reasoning); on failure, error holds a user-facing message.
+    val aiRatingLoading: Boolean = false,
+    val aiRatingResult: AiSleepRating? = null,
+    val aiRatingError: String? = null,
+    // §10 — Lazily-loaded detail for each past sleep_record, keyed by record id.
+    // Populated on first expansion in the records list; subsequent expansions
+    // hit the cache. Loading + audio events + pickup events are all bundled
+    // so SleepRecordItem only reads one entry.
+    val recordDetails: Map<String, SleepRecordDetails> = emptyMap(),
+)
+
+/// §10 — Haiku's 1-5 rating + one-line reasoning for the just-ended session.
+data class AiSleepRating(
+    val rating: Int,
+    val reasoning: String,
+)
+
+/// §10 — Expanded detail for a single sleep_record on the Sleep tab. Pickup
+/// events come from the backend (`/phone-pickups?sleep_id=…`), audio events
+/// come from Room. Both populate together on first expansion.
+data class SleepRecordDetails(
+    val loading: Boolean = false,
+    val loaded: Boolean = false,
+    val pickups: List<RecordPickupDetail> = emptyList(),
+    val audioEvents: List<SleepAudioEventEntity> = emptyList(),
+)
+
+data class RecordPickupDetail(
+    val pickedUpAt: Long,
+    val durationSeconds: Int,
 )
 
 private const val NEAREST_ALARM_HORIZON_HOURS = 24
@@ -95,7 +139,12 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
     private val achievementChecker = AchievementChecker(
         db.achievementDao(), db.sleepDao(), db.sessionDao(), userPreferences,
     )
-    private val repository = SleepRepository(db.sleepDao(), api, achievementChecker)
+    private val repository = SleepRepository(
+        sleepDao = db.sleepDao(),
+        apiService = api,
+        achievementChecker = achievementChecker,
+        sleepAudioEventDao = db.sleepAudioEventDao(),
+    )
 
     private val _uiState = MutableStateFlow(SleepUiState())
     val uiState: StateFlow<SleepUiState> = _uiState
@@ -163,6 +212,18 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
     fun setSleepLockoutGraceMinutes(minutes: Int) = viewModelScope.launch {
         userPreferences.setSleepLockoutGraceMinutes(minutes)
         pushPrefs { addProperty("sleep_lockout_grace_minutes", minutes) }
+    }
+
+    /**
+     * §10 — Toggle on-device snore + cough tracking during sleep sessions.
+     * The Compose layer is responsible for ensuring RECORD_AUDIO is granted
+     * before flipping this to true; the SleepTrackingService also re-checks
+     * the permission at session start and silently skips audio capture if
+     * the user revoked it via system settings.
+     */
+    fun setAudioTrackingEnabled(enabled: Boolean) = viewModelScope.launch {
+        userPreferences.setAudioTrackingEnabled(enabled)
+        pushPrefs { addProperty("audio_tracking_enabled", enabled) }
     }
 
     /**
@@ -312,13 +373,134 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
 
     fun endSleepSession() {
         val context = getApplication<Application>()
-        // Snapshot the data before stopping
+        // Snapshot the data before stopping. §10 — audio events were
+        // accumulated in the service's static state during the session; copy
+        // them out here so the End Sleep dialog can render snore/cough counts
+        // and so the AI sleep-rating call can use them in its stats prompt.
         _uiState.value = _uiState.value.copy(
             endedSessionStart = SleepTrackingService.sessionStartTime.value,
             endedPickupEvents = SleepTrackingService.pickupEvents.value,
-            showEndSleepDialog = true
+            endedAudioEvents = SleepTrackingService.pendingAudioEvents.value,
+            showEndSleepDialog = true,
+            // Clear any leftover AI rating from a prior dialog session.
+            aiRatingLoading = false,
+            aiRatingResult = null,
+            aiRatingError = null,
         )
         context.stopService(Intent(context, SleepTrackingService::class.java))
+    }
+
+    /**
+     * §10 — Request a Haiku-generated 1-5 sleep rating for the session
+     * captured in [SleepUiState.endedSessionStart] + [endedPickupEvents] +
+     * [endedAudioEvents]. The result lives in [SleepUiState.aiRatingResult]
+     * for the End Sleep dialog to render and offer as a one-tap fill of the
+     * self-rate stars. Re-tapping while loading is a no-op.
+     */
+    fun requestAiSleepRating() {
+        val state = _uiState.value
+        if (state.aiRatingLoading) return
+
+        val actualMinutes =
+            ((System.currentTimeMillis() - state.endedSessionStart) / 60_000L).coerceAtLeast(0L)
+
+        // Target duration from the session's target bedtime → target wake
+        // window the user confirmed at session start. Wake earlier than
+        // bedtime means the target crosses midnight, so wrap +24h.
+        val bMinutes = state.sessionTargetBedtime.toSecondOfDay() / 60
+        val wMinutes = state.sessionTargetWakeTime.toSecondOfDay() / 60
+        val targetMinutes = if (wMinutes > bMinutes) {
+            (wMinutes - bMinutes).toLong()
+        } else {
+            (wMinutes + 24 * 60 - bMinutes).toLong()
+        }.coerceAtLeast(1L)
+
+        val pickupCount = state.endedPickupEvents.size
+        val pickupSeconds = state.endedPickupEvents.sumOf { it.durationSeconds }
+        val pickupMinutes = pickupSeconds / 60
+        val snoreCount = state.endedAudioEvents.count { it.eventType == "snore" }
+        val coughCount = state.endedAudioEvents.count { it.eventType == "cough" }
+
+        _uiState.value = _uiState.value.copy(aiRatingLoading = true, aiRatingError = null)
+        viewModelScope.launch {
+            runCatching {
+                api.aiSleepRating(
+                    SleepRatingRequestDto(
+                        actual_minutes = actualMinutes,
+                        target_minutes = targetMinutes,
+                        pickup_count = pickupCount,
+                        pickup_minutes = pickupMinutes,
+                        snore_count = snoreCount,
+                        cough_count = coughCount,
+                    )
+                )
+            }.fold(
+                onSuccess = { resp ->
+                    _uiState.value = _uiState.value.copy(
+                        aiRatingLoading = false,
+                        aiRatingResult = AiSleepRating(resp.rating, resp.reasoning),
+                        aiRatingError = null,
+                    )
+                },
+                onFailure = { e ->
+                    _uiState.value = _uiState.value.copy(
+                        aiRatingLoading = false,
+                        aiRatingResult = null,
+                        aiRatingError = e.toUserMessage("AI rating unavailable. Try again or rate yourself."),
+                    )
+                },
+            )
+        }
+    }
+
+    fun clearAiRating() {
+        _uiState.value = _uiState.value.copy(
+            aiRatingLoading = false,
+            aiRatingResult = null,
+            aiRatingError = null,
+        )
+    }
+
+    /**
+     * §10 — Lazily fetch pickup + snore/cough detail for a past sleep_record
+     * when the user taps to expand its card. Audio events come from Room
+     * (already cached locally by Phase 10 §10.5); pickups come from the
+     * backend over the wire. Subsequent expansions short-circuit on the
+     * cached `loaded=true` flag.
+     */
+    fun fetchRecordDetails(recordId: String) {
+        val existing = _uiState.value.recordDetails[recordId]
+        if (existing?.loaded == true || existing?.loading == true) return
+
+        _uiState.value = _uiState.value.copy(
+            recordDetails = _uiState.value.recordDetails +
+                (recordId to SleepRecordDetails(loading = true)),
+        )
+
+        viewModelScope.launch {
+            val audioEvents = runCatching {
+                db.sleepAudioEventDao().getBySleepRecord(recordId)
+            }.getOrDefault(emptyList())
+
+            val pickups = runCatching {
+                repository.getPickupsForSleep(recordId).map { dto ->
+                    RecordPickupDetail(
+                        pickedUpAt = Instant.parse(dto.picked_up_at).toEpochMilli(),
+                        durationSeconds = dto.duration_seconds,
+                    )
+                }.sortedBy { it.pickedUpAt }
+            }.getOrDefault(emptyList())
+
+            _uiState.value = _uiState.value.copy(
+                recordDetails = _uiState.value.recordDetails +
+                    (recordId to SleepRecordDetails(
+                        loading = false,
+                        loaded = true,
+                        pickups = pickups,
+                        audioEvents = audioEvents,
+                    )),
+            )
+        }
     }
 
     fun saveSessionRecord(qualityRating: Int, notes: String?) {
@@ -342,7 +524,45 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
                 notes = notes
             )
 
+            // §10 — snapshot the audio events the service captured during
+            // this session before they're cleared. We pass the freshly-
+            // created sleep_record.id back to the repository so the events
+            // can be stamped + persisted + uploaded as a batch.
+            val capturedAudioEvents = SleepTrackingService.pendingAudioEvents.value
+
             val result = repository.createSleepRecord(dto, userId)
+
+            result.getOrNull()?.let { record ->
+                if (capturedAudioEvents.isNotEmpty()) {
+                    runCatching {
+                        repository.saveAudioEvents(
+                            sleepRecordId = record.id,
+                            userId = userId,
+                            events = capturedAudioEvents,
+                        )
+                    }
+                    // §10 — Refresh the "Sleep sounds" card immediately. The
+                    // records Flow already emitted (when the sleep_record was
+                    // inserted), and at that moment audio events weren't in
+                    // Room yet, so the collector wrote counts=0. The Flow
+                    // doesn't re-emit on audio-events-only writes, so without
+                    // this explicit refresh the card stays stuck at 0 until
+                    // some unrelated Flow trigger fires (next sync, etc.) —
+                    // observed as a ~1 min delay during dogfood.
+                    updateTonightAudioCounts(record)
+                }
+                // §10 — Upload the per-pickup detail so the past-records
+                // expansion can render the full timeline. Failure here is
+                // non-fatal: the sleep_record already carries the count +
+                // total_minutes summary.
+                if (state.endedPickupEvents.isNotEmpty()) {
+                    runCatching {
+                        repository.savePickupEvents(record.id, state.endedPickupEvents)
+                    }
+                }
+            }
+            SleepTrackingService.pendingAudioEvents.value = emptyList()
+
             _uiState.value = _uiState.value.copy(
                 isLoading = false,
                 error = result.exceptionOrNull()?.toUserMessage("Couldn't save sleep. Try again.")
@@ -388,8 +608,35 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
                     records = records,
                     stats = records.toLocalStats(target),
                 )
+                updateTonightAudioCounts(records.firstOrNull())
             }
         }
+    }
+
+    /**
+     * §10 — Refresh "Tonight's sounds" counts whenever the records list
+     * changes. The "tonight" record is just the most-recent sleep_record;
+     * if it has no audio events the card hides via the count == 0 check.
+     */
+    private suspend fun updateTonightAudioCounts(latest: SleepRecordEntity?) {
+        if (latest == null) {
+            _uiState.value = _uiState.value.copy(
+                tonightSnoreCount = 0,
+                tonightCoughCount = 0,
+                tonightSleepRecordId = null,
+                tonightSleepBedtimeMs = 0L,
+            )
+            return
+        }
+        val dao = db.sleepAudioEventDao()
+        val snore = runCatching { dao.countByType(latest.id, "snore") }.getOrDefault(0)
+        val cough = runCatching { dao.countByType(latest.id, "cough") }.getOrDefault(0)
+        _uiState.value = _uiState.value.copy(
+            tonightSnoreCount = snore,
+            tonightCoughCount = cough,
+            tonightSleepRecordId = latest.id,
+            tonightSleepBedtimeMs = latest.actualBedtime,
+        )
     }
 
     private fun calendarRangeStartMillis(range: TimeRange): Long {

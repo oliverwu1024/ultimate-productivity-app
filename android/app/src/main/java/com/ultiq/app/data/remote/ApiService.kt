@@ -25,6 +25,10 @@ import com.ultiq.app.data.remote.dto.RegisterDeviceTokenRequest
 import com.ultiq.app.data.remote.dto.RegisterRequest
 import com.ultiq.app.data.remote.dto.SessionDto
 import com.ultiq.app.data.remote.dto.SessionStatsDto
+import com.ultiq.app.data.remote.dto.BatchCreatePhonePickupsDto
+import com.ultiq.app.data.remote.dto.BatchCreateSleepAudioEventsDto
+import com.ultiq.app.data.remote.dto.PhonePickupDto
+import com.ultiq.app.data.remote.dto.SleepAudioEventDto
 import com.ultiq.app.data.remote.dto.SleepRecordDto
 import com.ultiq.app.data.remote.dto.SleepStatsDto
 import com.ultiq.app.data.remote.dto.UpdateChecklistItemDto
@@ -34,6 +38,8 @@ import com.ultiq.app.data.remote.dto.ParseEventRequestDto
 import com.ultiq.app.data.remote.dto.ParseEventResponseDto
 import com.ultiq.app.data.remote.dto.SessionDebriefRequestDto
 import com.ultiq.app.data.remote.dto.SessionDebriefResponseDto
+import com.ultiq.app.data.remote.dto.SleepRatingRequestDto
+import com.ultiq.app.data.remote.dto.SleepRatingResponseDto
 import com.ultiq.app.data.remote.dto.UserResponse
 import com.ultiq.app.data.remote.dto.WeeklyInsightDto
 import retrofit2.http.Body
@@ -101,6 +107,33 @@ interface ApiService {
         @Query("start") start: String?,
         @Query("end") end: String?
     ): SleepStatsDto
+
+    // §10 — On-device YAMNet detects snore/cough events during a sleep session;
+    // the client batches them and uploads at session-end. Raw audio never
+    // leaves the phone — only labels + timestamps + confidence are sent.
+    @POST("sleep-audio-events/batch")
+    suspend fun batchCreateSleepAudioEvents(
+        @Body body: BatchCreateSleepAudioEventsDto
+    ): List<SleepAudioEventDto>
+
+    @GET("sleep-audio-events")
+    suspend fun getSleepAudioEvents(
+        @Query("sleep_record_id") sleepRecordId: String
+    ): List<SleepAudioEventDto>
+
+    // §10 — Phone-pickup batch upload + lookup. Same pattern as sleep audio
+    // events: client buffers individual events during the session, uploads
+    // at save time, fetches them back when expanding a past record to show
+    // the full per-pickup timeline.
+    @POST("phone-pickups/batch")
+    suspend fun batchCreatePhonePickups(
+        @Body body: BatchCreatePhonePickupsDto
+    ): List<PhonePickupDto>
+
+    @GET("phone-pickups")
+    suspend fun getPhonePickupsForSleep(
+        @Query("sleep_id") sleepRecordId: String
+    ): List<PhonePickupDto>
 
     @POST("sessions")
     suspend fun createSession(@Body request: CreateSessionDto): SessionDto
@@ -248,6 +281,12 @@ interface ApiService {
     // to render the alert card.
     @GET("ai/anomaly")
     suspend fun getLatestAnomaly(): LatestAnomalyDto
+
+    // §10 — One-shot AI rating for a sleep session. Server hands the stats
+    // to Haiku and returns a 1-5 rating + one-line justification. The End
+    // Sleep dialog uses this as a suggestion alongside self-rate stars.
+    @POST("ai/sleep-rating")
+    suspend fun aiSleepRating(@Body body: SleepRatingRequestDto): SleepRatingResponseDto
 
     // §9.6 — Coach chat. One active conversation per user; the messages
     // list endpoint returns empty for a fresh user (no row to fetch).

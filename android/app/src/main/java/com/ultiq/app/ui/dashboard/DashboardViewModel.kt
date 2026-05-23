@@ -170,7 +170,11 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     private val sleepDao = db.sleepDao()
     private val sessionDao = db.sessionDao()
     private val achievementDao = db.achievementDao()
-    private val sleepRepo = SleepRepository(sleepDao, api)
+    private val sleepRepo = SleepRepository(
+        sleepDao = sleepDao,
+        apiService = api,
+        sleepAudioEventDao = db.sleepAudioEventDao(),
+    )
     private val sessionRepo = SessionRepository(sessionDao, api)
     private val calendarRepo = CalendarRepository(db.calendarEventDao(), api, AlarmScheduler(application))
     private val checklistRepo = ChecklistRepository(db.checklistDao(), api)

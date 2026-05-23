@@ -56,6 +56,10 @@ pub fn router() -> Router<AppState> {
         // later without changing the client contract (just a new mime type).
         .route("/ai/chat/messages", get(chat_list_messages).post(chat_send))
         .route("/ai/chat/reset", post(chat_reset))
+        // §10 — Bedrock Haiku rates a single sleep session (1-5 + 1-line
+        // reasoning). Used by the End Sleep dialog to offer an AI-suggested
+        // rating alongside the self-rate stars.
+        .route("/ai/sleep-rating", post(sleep_rating))
 }
 
 // ── 24h cache window ──────────────────────────────────────────────────────
@@ -733,6 +737,214 @@ fit rather than guessing 'other'."
     };
 
     Ok((tag, call_usage))
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// §10 — AI sleep rating (Haiku one-shot)
+// ──────────────────────────────────────────────────────────────────────────
+//
+// User just ended a sleep session. The End Sleep dialog passes the session
+// stats inline (no DB lookup — events aren't persisted yet) and asks Haiku
+// for a 1-5 quality rating + a one-line reason. The user can accept the
+// AI suggestion or override with self-rate stars. No DB writes here; the
+// returned rating is just a suggestion until the user hits Save.
+
+const SLEEP_RATING_REASONING_MAX_CHARS: usize = 120;
+
+#[derive(Debug, Deserialize)]
+struct SleepRatingRequest {
+    actual_minutes: i64,
+    target_minutes: i64,
+    pickup_count: i32,
+    pickup_minutes: i32,
+    snore_count: i32,
+    cough_count: i32,
+}
+
+#[derive(Debug, Serialize)]
+struct SleepRatingResponse {
+    rating: i32,
+    reasoning: String,
+}
+
+async fn sleep_rating(
+    State(state): State<AppState>,
+    claims: Claims,
+    Json(input): Json<SleepRatingRequest>,
+) -> Result<Json<SleepRatingResponse>, AppError> {
+    let user_id = parse_user_id(&claims)?;
+
+    if input.actual_minutes < 0 || input.target_minutes <= 0 {
+        return Err(AppError::new(
+            StatusCode::BAD_REQUEST,
+            "actual_minutes / target_minutes invalid",
+        ));
+    }
+    if input.pickup_count < 0
+        || input.pickup_minutes < 0
+        || input.snore_count < 0
+        || input.cough_count < 0
+    {
+        return Err(AppError::new(
+            StatusCode::BAD_REQUEST,
+            "counts must be non-negative",
+        ));
+    }
+
+    state.ai.check_quota(&state.pool, user_id).await?;
+
+    let (rating, reasoning, usage) = call_sleep_rating_haiku(&state.ai, &input).await?;
+
+    state
+        .ai
+        .record_usage(
+            &state.pool,
+            user_id,
+            usage.input,
+            usage.output,
+            usage.cache_read,
+            usage.cache_write,
+        )
+        .await?;
+
+    Ok(Json(SleepRatingResponse { rating, reasoning }))
+}
+
+async fn call_sleep_rating_haiku(
+    ai: &crate::ai::AiClient,
+    input: &SleepRatingRequest,
+) -> Result<(i32, String, CallUsage), AppError> {
+    let actual_h = input.actual_minutes / 60;
+    let actual_m = input.actual_minutes % 60;
+    let target_h = input.target_minutes / 60;
+    let target_m = input.target_minutes % 60;
+
+    let system = SystemContentBlock::Text(
+        "You rate a single night's sleep on a 1-5 integer scale based on the \
+provided stats: total duration vs target, phone pickups during the session, \
+and on-device-detected snoring + coughing episode counts.\n\
+\n\
+Rating heuristic (informative, not strict):\n\
+- 5 = sleep met or exceeded target, ≤ 1 brief pickup, minimal snoring / coughing\n\
+- 4 = within 30 min of target, ≤ 3 pickups, some snoring / coughing acceptable\n\
+- 3 = noticeable shortfall OR several pickups OR clear snoring\n\
+- 2 = significant shortfall (~1-2 h short) OR frequent pickups OR lots of snoring\n\
+- 1 = severe shortfall AND/OR many pickups AND/OR extensive snoring / coughing\n\
+\n\
+Reply with EXACTLY ONE LINE in this format:\n\
+RATING|REASONING\n\
+\n\
+Where:\n\
+- RATING is a single integer from 1 to 5 (no decimals, no text)\n\
+- REASONING is one short sentence ≤ 100 chars explaining the rating\n\
+- The pipe character `|` is the only separator\n\
+\n\
+Examples:\n\
+4|Solid 7h sleep with minimal phone use; a few snoring episodes kept it from a 5.\n\
+2|Only 4h of sleep with several phone pickups during the session.\n\
+\n\
+Output ONLY that line. No greeting, no JSON, no quotes, no extra explanation."
+            .to_string(),
+    );
+
+    let prompt = format!(
+        "Slept: {actual_h}h {actual_m}m (target {target_h}h {target_m}m)\n\
+Phone pickups: {} times totalling {} minutes\n\
+Snoring episodes: {}\n\
+Coughing episodes: {}",
+        input.pickup_count, input.pickup_minutes, input.snore_count, input.cough_count,
+    );
+
+    let user_msg = Message::builder()
+        .role(ConversationRole::User)
+        .content(ContentBlock::Text(prompt))
+        .build()
+        .map_err(|e| {
+            tracing::error!("sleep_rating user message build failed: {}", e);
+            AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "AI request build failed")
+        })?;
+
+    let inference = InferenceConfiguration::builder()
+        .max_tokens(80)
+        .temperature(0.2)
+        .build();
+
+    let response = ai
+        .bedrock()
+        .converse()
+        .model_id(MODEL_HAIKU)
+        .system(system)
+        .messages(user_msg)
+        .inference_config(inference)
+        .send()
+        .await
+        .map_err(|e| {
+            let detail = e
+                .as_service_error()
+                .map(|svc| format!("{:?}", svc))
+                .unwrap_or_else(|| format!("{:?}", e));
+            tracing::error!(target: "ai.sleep_rating", "bedrock haiku call failed: {}", detail);
+            AppError::new(StatusCode::BAD_GATEWAY, "AI service request failed")
+        })?;
+
+    let raw = response
+        .output()
+        .and_then(|o| o.as_message().ok())
+        .and_then(|m| m.content().first())
+        .and_then(|c| c.as_text().ok())
+        .cloned()
+        .ok_or_else(|| {
+            tracing::error!("haiku returned no text");
+            AppError::new(StatusCode::BAD_GATEWAY, "AI service returned no content")
+        })?;
+
+    let (rating, reasoning) = parse_sleep_rating_line(&raw);
+
+    let usage_obj = response.usage();
+    let call_usage = CallUsage {
+        input: usage_obj.map(|u| u.input_tokens()).unwrap_or(0) as i64,
+        output: usage_obj.map(|u| u.output_tokens()).unwrap_or(0) as i64,
+        cache_read: usage_obj
+            .and_then(|u| u.cache_read_input_tokens())
+            .unwrap_or(0) as i64,
+        cache_write: usage_obj
+            .and_then(|u| u.cache_write_input_tokens())
+            .unwrap_or(0) as i64,
+    };
+
+    ai.sampled_log("sleep_rating.response", &raw);
+
+    Ok((rating, reasoning, call_usage))
+}
+
+/// Parse "N|reasoning" from a single line. Lenient — if Haiku drifts off
+/// format we clamp to 3 + a generic reason rather than 502 the user.
+fn parse_sleep_rating_line(raw: &str) -> (i32, String) {
+    let line = raw.trim().lines().next().unwrap_or("").trim();
+    let (rating_part, reasoning_part) = match line.split_once('|') {
+        Some((r, why)) => (r.trim(), why.trim()),
+        None => return (3, "AI rating unavailable — based on your session stats.".to_string()),
+    };
+    let rating = rating_part
+        .chars()
+        .filter(|c| c.is_ascii_digit())
+        .collect::<String>()
+        .parse::<i32>()
+        .ok()
+        .filter(|r| (1..=5).contains(r))
+        .unwrap_or(3);
+    let mut reasoning: String = reasoning_part.trim_matches('"').to_string();
+    if reasoning.chars().count() > SLEEP_RATING_REASONING_MAX_CHARS {
+        reasoning = reasoning
+            .chars()
+            .take(SLEEP_RATING_REASONING_MAX_CHARS)
+            .collect::<String>()
+            + "…";
+    }
+    if reasoning.is_empty() {
+        reasoning = "Based on your session stats.".to_string();
+    }
+    (rating, reasoning)
 }
 
 // ──────────────────────────────────────────────────────────────────────────

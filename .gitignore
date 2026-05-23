@@ -13,8 +13,11 @@ android/keystore.properties
 
 # Firebase config (FCM, §9.8). google-services.json holds project + app IDs
 # and a client API key — repo is public so we don't commit it; each dev
-# downloads their own from the Firebase Console.
+# downloads their own from the Firebase Console. The variant-specific copy
+# at src/debug/ (added for side-by-side dogfood installs via
+# applicationIdSuffix=".debug") is also gitignored.
 android/app/google-services.json
+android/app/src/debug/google-services.json
 
 # Firebase Admin service-account credentials (server-side push send). NEVER
 # commit — full FCM send capability for the project. Prod copy lives in
