@@ -9,6 +9,20 @@ data class ReleaseNote(
 object ReleaseNotes {
     val history: List<ReleaseNote> = listOf(
         ReleaseNote(
+            versionName = "2.12.0",
+            versionCode = 49,
+            summary = "Calendar polish bundle. Fixed the stray horizontal line on multi-day " +
+                "events in the month grid — the ribbon now sits below the date circle as a " +
+                "full-width stripe that visually continues across consecutive cells. New " +
+                "Today pill on the month header (only visible when off-month) to jump back. " +
+                "Long-press any date cell to open the add-event dialog with that date " +
+                "pre-selected. Swipe-left on any event in the day list to delete (matches " +
+                "the project-wide swipe pattern used by Sleep / Alarms / Checklist). New " +
+                "All-day toggle in the add/edit dialog — hides the time pickers and saves " +
+                "as midnight-to-end-of-day in your local zone. Deferred: per-event reminder " +
+                "offsets (needs schema change), Material 3 native pickers, conflict warnings.",
+        ),
+        ReleaseNote(
             versionName = "2.11.9",
             versionCode = 48,
             summary = "Calendar quality-of-life: end date/time now auto-shifts with the " +

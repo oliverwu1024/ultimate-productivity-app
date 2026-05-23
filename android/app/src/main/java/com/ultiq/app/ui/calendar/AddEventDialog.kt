@@ -122,6 +122,21 @@ fun AddEventDialog(
     var startTime by remember { mutableStateOf(initStart?.toLocalTime() ?: defaultNow.toLocalTime()) }
     var endDate by remember { mutableStateOf(initEnd?.toLocalDate() ?: defaultEnd.toLocalDate()) }
     var endTime by remember { mutableStateOf(initEnd?.toLocalTime() ?: defaultEnd.toLocalTime()) }
+    // v2.12.0 — All-day events. Schema has no is_all_day column so we
+    // detect / store the flag purely by timestamp pattern: start = 00:00:00
+    // and end = 23:59:* (any second value, since some clients send 23:59:00
+    // and others 23:59:59). When toggled on, time pickers hide + save
+    // forces midnight-to-end-of-day; when toggled off, restore to the
+    // last explicit time the user picked (or default to now / now+1h).
+    var isAllDay by remember {
+        mutableStateOf(
+            initStart != null && initEnd != null &&
+                initStart.toLocalTime() == LocalTime.MIDNIGHT &&
+                initEnd.toLocalTime().hour == 23 && initEnd.toLocalTime().minute == 59
+        )
+    }
+    var savedStartTime by remember { mutableStateOf(startTime) }
+    var savedEndTime by remember { mutableStateOf(endTime) }
 
     // v2.11.9 — Google-Calendar-style delta-shift: when the user changes
     // start date or time, end shifts by the same delta so the original
@@ -202,7 +217,32 @@ fun AddEventDialog(
                 maxLines = 4
             )
 
-            // Start date + time
+            // v2.12.0 — All-day toggle. When on, hides the time pickers and
+            // saves with start = 00:00 / end = 23:59 on the picked dates.
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("All day", style = MaterialTheme.typography.labelLarge)
+                Switch(
+                    checked = isAllDay,
+                    onCheckedChange = { newValue ->
+                        if (newValue) {
+                            savedStartTime = startTime
+                            savedEndTime = endTime
+                            startTime = LocalTime.MIDNIGHT
+                            endTime = LocalTime.of(23, 59)
+                        } else {
+                            startTime = savedStartTime
+                            endTime = savedEndTime
+                        }
+                        isAllDay = newValue
+                    },
+                )
+            }
+
+            // Start date (+ time when not all-day)
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 ClickableField(
                     label = "Start Date",
@@ -214,19 +254,21 @@ fun AddEventDialog(
                     },
                     modifier = Modifier.weight(1f)
                 )
-                ClickableField(
-                    label = "Start Time",
-                    value = startTime.format(timeFormat),
-                    onClick = {
-                        TimePickerDialog(context, { _, h, m ->
-                            shiftStartTo(startDate, LocalTime.of(h, m))
-                        }, startTime.hour, startTime.minute, false).show()
-                    },
-                    modifier = Modifier.weight(1f)
-                )
+                if (!isAllDay) {
+                    ClickableField(
+                        label = "Start Time",
+                        value = startTime.format(timeFormat),
+                        onClick = {
+                            TimePickerDialog(context, { _, h, m ->
+                                shiftStartTo(startDate, LocalTime.of(h, m))
+                            }, startTime.hour, startTime.minute, false).show()
+                        },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
             }
 
-            // End date + time
+            // End date (+ time when not all-day)
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 ClickableField(
                     label = "End Date",
@@ -238,16 +280,18 @@ fun AddEventDialog(
                     },
                     modifier = Modifier.weight(1f)
                 )
-                ClickableField(
-                    label = "End Time",
-                    value = endTime.format(timeFormat),
-                    onClick = {
-                        TimePickerDialog(context, { _, h, m ->
-                            endTime = LocalTime.of(h, m)
-                        }, endTime.hour, endTime.minute, false).show()
-                    },
-                    modifier = Modifier.weight(1f)
-                )
+                if (!isAllDay) {
+                    ClickableField(
+                        label = "End Time",
+                        value = endTime.format(timeFormat),
+                        onClick = {
+                            TimePickerDialog(context, { _, h, m ->
+                                endTime = LocalTime.of(h, m)
+                            }, endTime.hour, endTime.minute, false).show()
+                        },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
             }
 
             // Category
