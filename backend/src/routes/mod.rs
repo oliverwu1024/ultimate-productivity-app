@@ -8,6 +8,7 @@ pub mod devices;
 pub mod phone_pickups;
 pub mod sessions;
 pub mod sleep;
+pub mod sleep_audio;
 pub mod sync;
 pub mod validation;
 
@@ -36,6 +37,7 @@ pub fn auth_routes() -> Router<AppState> {
 pub fn other_routes() -> Router<AppState> {
     Router::new()
         .merge(sleep::router())
+        .merge(sleep_audio::router())
         .merge(phone_pickups::router())
         .merge(sessions::router())
         .merge(calendar::router())

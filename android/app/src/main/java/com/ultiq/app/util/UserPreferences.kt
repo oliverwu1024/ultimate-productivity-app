@@ -52,6 +52,11 @@ data class UserSettings(
      *  hides the card whenever this matches the current insight id, so the
      *  same alert doesn't keep reappearing within its 24h window. */
     val dismissedAnomalyInsightId: String,
+    /** §10 — Enable on-device snore + cough detection during sleep sessions.
+     *  Off by default. Toggling on requires the RECORD_AUDIO runtime
+     *  permission; the SleepTrackingService only starts the mic loop when
+     *  this flag is true AND the permission is granted at session start. */
+    val audioTrackingEnabled: Boolean,
 )
 
 class UserPreferences(private val context: Context) {
@@ -80,6 +85,7 @@ class UserPreferences(private val context: Context) {
         val DASHBOARD_PREFS_HINT_SEEN = booleanPreferencesKey("dashboard_prefs_hint_seen")
         val LOCK_OVERLAY_HINT_SEEN = booleanPreferencesKey("lock_overlay_hint_seen")
         val DISMISSED_ANOMALY_INSIGHT_ID = stringPreferencesKey("dismissed_anomaly_insight_id")
+        val AUDIO_TRACKING_ENABLED = booleanPreferencesKey("audio_tracking_enabled")
     }
 
     private val defaults = UserSettings(
@@ -103,6 +109,7 @@ class UserPreferences(private val context: Context) {
         dashboardPrefsHintSeen = false,
         lockOverlayHintSeen = false,
         dismissedAnomalyInsightId = "",
+        audioTrackingEnabled = false,
     )
 
     val settings: Flow<UserSettings> = context.userDataStore.data.map { prefs ->
@@ -134,6 +141,7 @@ class UserPreferences(private val context: Context) {
             dashboardPrefsHintSeen = prefs[Keys.DASHBOARD_PREFS_HINT_SEEN] ?: defaults.dashboardPrefsHintSeen,
             lockOverlayHintSeen = prefs[Keys.LOCK_OVERLAY_HINT_SEEN] ?: defaults.lockOverlayHintSeen,
             dismissedAnomalyInsightId = prefs[Keys.DISMISSED_ANOMALY_INSIGHT_ID] ?: defaults.dismissedAnomalyInsightId,
+            audioTrackingEnabled = prefs[Keys.AUDIO_TRACKING_ENABLED] ?: defaults.audioTrackingEnabled,
         )
     }
 
@@ -223,6 +231,10 @@ class UserPreferences(private val context: Context) {
         context.userDataStore.edit { it[Keys.DISMISSED_ANOMALY_INSIGHT_ID] = id }
     }
 
+    suspend fun setAudioTrackingEnabled(enabled: Boolean) {
+        context.userDataStore.edit { it[Keys.AUDIO_TRACKING_ENABLED] = enabled }
+    }
+
     /** Wipe every preference back to defaults — used when deleting the account. */
     suspend fun clearAll() {
         context.userDataStore.edit { it.clear() }
@@ -267,6 +279,9 @@ class UserPreferences(private val context: Context) {
             }
             server.get("sleep_target_minutes")?.takeIf { !it.isJsonNull }?.asInt?.let {
                 prefs[Keys.SLEEP_TARGET_MINUTES] = it.coerceIn(180, 900)
+            }
+            server.get("audio_tracking_enabled")?.takeIf { !it.isJsonNull }?.asBoolean?.let {
+                prefs[Keys.AUDIO_TRACKING_ENABLED] = it
             }
         }
     }

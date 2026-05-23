@@ -19,7 +19,11 @@ class SyncWorker(
         val db = AppDatabase.getInstance(applicationContext)
 
         val syncManager = SyncManager(
-            sleepRepo = SleepRepository(db.sleepDao(), api),
+            sleepRepo = SleepRepository(
+                sleepDao = db.sleepDao(),
+                apiService = api,
+                sleepAudioEventDao = db.sleepAudioEventDao(),
+            ),
             sessionRepo = SessionRepository(db.sessionDao(), api),
             calendarRepo = CalendarRepository(db.calendarEventDao(), api, AlarmScheduler(applicationContext)),
             alarmRepo = AlarmRepository(applicationContext, db.alarmDao(), api),

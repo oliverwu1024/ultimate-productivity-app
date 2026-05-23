@@ -7,10 +7,17 @@ use uuid::Uuid;
 use crate::config::AppState;
 use crate::error::AppError;
 use crate::middleware::auth::Claims;
-use crate::models::phone_pickup::{CreatePhonePickup, PhonePickup};
+use crate::models::phone_pickup::{BatchCreatePhonePickups, CreatePhonePickup, PhonePickup};
+
+// One sleep session usually produces 0-20 pickups (heavy sleepers push the
+// upper end). 1000 is the abuse cap — a malicious client shouldn't be able
+// to flood the table from a single sync. Mirrors the sleep_audio batch cap.
+const MAX_PICKUP_BATCH: usize = 1000;
 
 pub fn router() -> Router<AppState> {
-    Router::new().route("/phone-pickups", post(create).get(list))
+    Router::new()
+        .route("/phone-pickups", post(create).get(list))
+        .route("/phone-pickups/batch", post(batch_create))
 }
 
 #[derive(serde::Deserialize)]
@@ -82,6 +89,75 @@ async fn create(
     .await?;
 
     Ok((StatusCode::CREATED, Json(pickup)))
+}
+
+async fn batch_create(
+    State(state): State<AppState>,
+    claims: Claims,
+    Json(input): Json<BatchCreatePhonePickups>,
+) -> Result<(StatusCode, Json<Vec<PhonePickup>>), AppError> {
+    let user_id = parse_user_id(&claims)?;
+
+    if input.events.is_empty() {
+        return Ok((StatusCode::CREATED, Json(Vec::new())));
+    }
+    if input.events.len() > MAX_PICKUP_BATCH {
+        return Err(AppError::new(
+            StatusCode::BAD_REQUEST,
+            format!("batch too large (max {} events)", MAX_PICKUP_BATCH),
+        ));
+    }
+
+    // Sleep_record ownership check (same pattern as the single insert).
+    let owns: Option<(Uuid,)> = sqlx::query_as(
+        "SELECT id FROM sleep_records WHERE id = $1 AND user_id = $2",
+    )
+    .bind(input.sleep_record_id)
+    .bind(user_id)
+    .fetch_optional(&state.pool)
+    .await?;
+    if owns.is_none() {
+        return Err(AppError::new(
+            StatusCode::FORBIDDEN,
+            "Invalid sleep_record_id",
+        ));
+    }
+
+    for e in &input.events {
+        if e.duration_seconds < 0 {
+            return Err(AppError::new(
+                StatusCode::BAD_REQUEST,
+                "duration_seconds must be non-negative",
+            ));
+        }
+        crate::routes::validation::cap_chars_opt(
+            &e.app_category,
+            crate::routes::validation::MAX_TITLE_CHARS,
+            "app_category",
+        )?;
+    }
+
+    // Single multi-row INSERT — one round-trip to RDS regardless of batch
+    // size. Same QueryBuilder pattern as the sleep_audio batch route.
+    let mut qb = sqlx::QueryBuilder::<sqlx::Postgres>::new(
+        "INSERT INTO phone_pickups \
+         (user_id, sleep_record_id, picked_up_at, duration_seconds, app_category) ",
+    );
+    qb.push_values(input.events.iter(), |mut b, e| {
+        b.push_bind(user_id)
+            .push_bind(input.sleep_record_id)
+            .push_bind(e.picked_up_at)
+            .push_bind(e.duration_seconds)
+            .push_bind(&e.app_category);
+    });
+    qb.push(" RETURNING *");
+
+    let rows = qb
+        .build_query_as::<PhonePickup>()
+        .fetch_all(&state.pool)
+        .await?;
+
+    Ok((StatusCode::CREATED, Json(rows)))
 }
 
 async fn list(

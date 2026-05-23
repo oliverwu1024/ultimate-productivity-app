@@ -5,6 +5,12 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <!-- §10 — On-device snore + cough detection during sleep sessions via
+         MediaPipe YAMNet. Mic + MICROPHONE foreground-service type are
+         only used while the user is in an active sleep session AND has
+         turned the toggle on in Sleep Preferences. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"
         tools:ignore="ProtectedPermissions" />
@@ -80,7 +86,7 @@
 
         <service
             android:name=".service.SleepTrackingService"
-            android:foregroundServiceType="specialUse"
+            android:foregroundServiceType="specialUse|microphone"
             android:exported="false">
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"

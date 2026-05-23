@@ -78,3 +78,22 @@ data class LatestAnomalyDto(
     val insight_id: String? = null,
     val generated_at: String? = null,
 )
+
+/// §10 — Body for POST /ai/sleep-rating. The End Sleep dialog passes its
+/// in-memory session stats; backend hands them to Haiku, no DB lookup needed.
+data class SleepRatingRequestDto(
+    val actual_minutes: Long,
+    val target_minutes: Long,
+    val pickup_count: Int,
+    val pickup_minutes: Int,
+    val snore_count: Int,
+    val cough_count: Int,
+)
+
+/// §10 — Response: integer rating 1-5 plus a one-line justification. The
+/// dialog renders the reasoning and offers a "Use this rating" button that
+/// fills the self-rate stars.
+data class SleepRatingResponseDto(
+    val rating: Int,
+    val reasoning: String,
+)

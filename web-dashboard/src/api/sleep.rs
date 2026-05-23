@@ -44,3 +44,25 @@ pub async fn fetch_stats(range: &str) -> Result<SleepStats, ApiError> {
     let path = format!("/sleep/stats?range={}", range);
     get(&path).await
 }
+
+/// §10 — On-device YAMNet event row, one per debounced snore / cough episode
+/// during a sleep session. Audio never leaves the phone; only labels +
+/// timestamps + peak confidence are persisted server-side.
+#[derive(Debug, Clone, Deserialize)]
+pub struct SleepAudioEvent {
+    pub id: String,
+    pub user_id: String,
+    pub sleep_record_id: String,
+    pub event_type: String,
+    pub started_at: DateTime<Utc>,
+    pub ended_at: DateTime<Utc>,
+    pub peak_confidence: f32,
+    pub created_at: DateTime<Utc>,
+}
+
+pub async fn list_audio_events_for_record(
+    sleep_record_id: &str,
+) -> Result<Vec<SleepAudioEvent>, ApiError> {
+    let path = format!("/sleep-audio-events?sleep_record_id={}", sleep_record_id);
+    get(&path).await
+}

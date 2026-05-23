@@ -16,6 +16,9 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.ultiq.app.MainActivity
 import com.ultiq.app.alarm.AlarmRingService
+import com.ultiq.app.audio.SleepAudioClassifier
+import com.ultiq.app.audio.SleepAudioEventAggregator
+import com.ultiq.app.data.local.entity.SleepAudioEventEntity
 import com.ultiq.app.ui.lockout.LockoutMode
 import com.ultiq.app.ui.lockout.LockoutOverlayController
 import com.ultiq.app.util.LockoutNotifier
@@ -49,12 +52,21 @@ class SleepTrackingService : Service() {
         val pickupEvents = MutableStateFlow<List<PickupEvent>>(emptyList())
         val sessionUnlockCount = MutableStateFlow(0)
 
+        // §10 — Audio events accumulated during the current sleep session.
+        // Carries placeholder userId / sleepRecordId; SleepRepository rewrites
+        // these with the real sleep_record id when persisting to Room at
+        // session-end. Buffer is cleared at each session start.
+        val pendingAudioEvents = MutableStateFlow<List<SleepAudioEventEntity>>(emptyList())
+        val audioTrackingActive = MutableStateFlow(false)
+
         private var lastScreenOnTime: Long? = null
     }
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private lateinit var userPreferences: UserPreferences
     private var foregroundWatcherJob: Job? = null
+    private var audioClassifier: SleepAudioClassifier? = null
+    private var audioAggregator: SleepAudioEventAggregator? = null
 
     private val screenReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -125,13 +137,15 @@ class SleepTrackingService : Service() {
         pickupEvents.value = emptyList()
         sessionUnlockCount.value = 0
         sessionStartTime.value = System.currentTimeMillis()
+        pendingAudioEvents.value = emptyList()
+        audioTrackingActive.value = false
         lastScreenOnTime = null
         isRunning.value = true
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            startForeground(NOTIFICATION_ID, createNotification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+            startForeground(NOTIFICATION_ID, createNotification(audioActive = false), ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
         } else {
-            startForeground(NOTIFICATION_ID, createNotification())
+            startForeground(NOTIFICATION_ID, createNotification(audioActive = false))
         }
 
         val filter = IntentFilter().apply {
@@ -150,8 +164,73 @@ class SleepTrackingService : Service() {
         // Pop the gate immediately so the user feels the session has begun.
         showLockoutNow()
         startForegroundWatcher()
+        maybeStartAudioTracking()
 
         return START_STICKY
+    }
+
+    /** §10 — Reads `audioTrackingEnabled` + mic permission asynchronously
+     *  (DataStore is suspending). If both are true, upgrades the foreground
+     *  service type to include MICROPHONE on Android 14+ and starts the
+     *  YAMNet capture loop. No-ops otherwise. */
+    private fun maybeStartAudioTracking() {
+        serviceScope.launch {
+            val enabled = try {
+                userPreferences.snapshot().audioTrackingEnabled
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to read audio tracking pref", e)
+                false
+            }
+            if (!enabled) return@launch
+            if (!SleepAudioClassifier.isMicPermitted(applicationContext)) {
+                Log.w(TAG, "Audio tracking on but RECORD_AUDIO not granted — skipping")
+                return@launch
+            }
+
+            // Upgrade FGS type so the mic loop is allowed (Android 14+).
+            // Pre-14 doesn't enforce per-type, so the SPECIAL_USE startForeground
+            // from onStartCommand is sufficient.
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                try {
+                    startForeground(
+                        NOTIFICATION_ID,
+                        createNotification(audioActive = true),
+                        ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE or
+                            ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE,
+                    )
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to add MICROPHONE service type — audio tracking aborted", e)
+                    return@launch
+                }
+            }
+
+            // userId + sleepRecordId are stamped at session-end by the
+            // SleepRepository when the actual sleep_record row is created;
+            // the aggregator emits with placeholders that get rewritten.
+            val agg = SleepAudioEventAggregator(
+                userId = "",
+                sleepRecordId = "",
+                onEventReady = { event ->
+                    pendingAudioEvents.value = pendingAudioEvents.value + event
+                    Log.d(
+                        TAG,
+                        "Audio event: ${event.eventType} @${event.startedAt} → ${event.endedAt} " +
+                            "(peak conf=${event.peakConfidence})",
+                    )
+                },
+            )
+            audioAggregator = agg
+
+            val classifier = SleepAudioClassifier.create(applicationContext, agg)
+            if (classifier == null) {
+                Log.w(TAG, "SleepAudioClassifier.create returned null")
+                return@launch
+            }
+            audioClassifier = classifier
+            classifier.start()
+            audioTrackingActive.value = true
+            Log.d(TAG, "Audio tracking started")
+        }
     }
 
     private fun startForegroundWatcher() {
@@ -225,6 +304,18 @@ class SleepTrackingService : Service() {
             lastScreenOnTime = null
         }
 
+        // Tear down the audio loop. shutdown() flushes any in-flight event
+        // through the aggregator so it ends up in pendingAudioEvents before
+        // SleepRepository reads it at session-end.
+        try {
+            audioClassifier?.shutdown()
+        } catch (e: Exception) {
+            Log.w(TAG, "audioClassifier shutdown failed", e)
+        }
+        audioClassifier = null
+        audioAggregator = null
+        audioTrackingActive.value = false
+
         try {
             unregisterReceiver(screenReceiver)
         } catch (_: Exception) { }
@@ -251,7 +342,7 @@ class SleepTrackingService : Service() {
         manager.createNotificationChannel(channel)
     }
 
-    private fun createNotification(): Notification {
+    private fun createNotification(audioActive: Boolean): Notification {
         val tapIntent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
         }
@@ -259,8 +350,9 @@ class SleepTrackingService : Service() {
             this, 0, tapIntent, PendingIntent.FLAG_IMMUTABLE
         )
 
+        val title = if (audioActive) "Tracking sleep + sounds" else "Sleep tracking active"
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Sleep tracking active")
+            .setContentTitle(title)
             .setContentText("Tap to open app")
             .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
             .setOngoing(true)

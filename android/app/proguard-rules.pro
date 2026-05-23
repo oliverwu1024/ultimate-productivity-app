@@ -72,3 +72,25 @@
 # --- App entry points ---------------------------------------------------------
 -keep class com.ultiq.app.UltiqApp { *; }
 -keep class com.ultiq.app.MainActivity { *; }
+
+# --- MediaPipe Tasks Audio (YAMNet snore + cough detection, Phase 10) --------
+# MediaPipe's transitive deps include AutoValue + javapoet, which are
+# compile-time codegen tools that reference `javax.lang.model.*` (Java
+# Compiler API — only present in the JDK at build time, not on Android at
+# runtime). R8 sees the missing classes and refuses to minify. They're
+# unreachable at runtime; the -dontwarn lines tell R8 that's expected.
+-dontwarn javax.lang.model.**
+-dontwarn autovalue.shaded.**
+-dontwarn com.google.auto.value.**
+# Keep the MediaPipe Tasks Audio public surface — the AudioClassifier
+# instance methods + their callbacks are invoked by reflection from the
+# native bridge, and minification was renaming them out from under us.
+-keep class com.google.mediapipe.tasks.audio.** { *; }
+-keep class com.google.mediapipe.tasks.components.containers.** { *; }
+-keep class com.google.mediapipe.tasks.core.** { *; }
+-keep class com.google.mediapipe.framework.** { *; }
+# MediaPipe's GraphProfiler + Graph reference protobuf classes for
+# profiling + graph templates we don't use. The protos aren't on the
+# classpath (they ship as separate optional artifacts); -dontwarn keeps
+# R8 from failing on the missing-but-unreachable references.
+-dontwarn com.google.mediapipe.proto.**
