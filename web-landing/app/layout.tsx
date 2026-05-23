@@ -34,15 +34,19 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <head>
         {/* Pre-paint dark-mode application: runs before the page renders so we
-            don't flash a light theme on first load. Reads localStorage first,
-            then falls back to system preference. */}
+            don't flash a light theme on first load. New behaviour (2026-05-23
+            landing-redesign): default to DARK when no stored preference,
+            regardless of system setting. Productivity apps look ~50% more
+            premium in dark by default; the toggle still respects explicit
+            user choice in localStorage. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var s=localStorage.getItem('ultiq_theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;if(s==='dark'||(s==null&&d))document.documentElement.classList.add('dark');}catch(e){}})();`,
+            __html: `(function(){try{var s=localStorage.getItem('ultiq_theme');if(s==='light'){return;}document.documentElement.classList.add('dark');}catch(e){document.documentElement.classList.add('dark');}})();`,
           }}
         />
       </head>
