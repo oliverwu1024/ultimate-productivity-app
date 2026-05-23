@@ -79,6 +79,7 @@ class SleepAudioClassifier private constructor(
      */
     fun start(): Boolean {
         Log.i(TAG, "start() entered")
+        AudioInitStatus.set("Building classifier options…")
         val cls = try {
             val options = AudioClassifier.AudioClassifierOptions.builder()
                 .setBaseOptions(
@@ -91,13 +92,16 @@ class SleepAudioClassifier private constructor(
                 .setErrorListener { error -> Log.e(TAG, "MediaPipe error listener fired", error) }
                 .build()
             Log.i(TAG, "AudioClassifierOptions built")
+            AudioInitStatus.set("Loading YAMNet model…")
             AudioClassifier.createFromOptions(context, options)
         } catch (e: Throwable) {
             Log.e(TAG, "MediaPipe classifier init failed — yamnet.tflite missing from assets?", e)
+            AudioInitStatus.setError("MediaPipe classifier init", e)
             return false
         }
         classifier = cls
         Log.i(TAG, "AudioClassifier created from options")
+        AudioInitStatus.set("Classifier built. Acquiring AudioRecord…")
 
         // Use MediaPipe's factory so the AudioRecord matches the model's
         // expected sample rate, channel layout, and buffer size exactly.
@@ -109,6 +113,7 @@ class SleepAudioClassifier private constructor(
             cls.createAudioRecord()
         } catch (e: Throwable) {
             Log.e(TAG, "createAudioRecord() threw", e)
+            AudioInitStatus.setError("createAudioRecord()", e)
             teardown()
             return false
         }
@@ -117,6 +122,7 @@ class SleepAudioClassifier private constructor(
 
         if (recorder.state != AudioRecord.STATE_INITIALIZED) {
             Log.e(TAG, "AudioRecord failed to init (state=${recorder.state})")
+            AudioInitStatus.set("AudioRecord didn't initialise (state=${recorder.state} — check mic permission + that no other app is using the mic).")
             teardown()
             return false
         }
@@ -126,10 +132,12 @@ class SleepAudioClassifier private constructor(
             recorder.startRecording()
         } catch (e: Throwable) {
             Log.e(TAG, "AudioRecord.startRecording() threw", e)
+            AudioInitStatus.setError("AudioRecord.startRecording()", e)
             teardown()
             return false
         }
         Log.i(TAG, "AudioRecord.startRecording() returned, recordingState=${recorder.recordingState}")
+        AudioInitStatus.set("Recording — capture loop starting…")
 
         captureJob = scope.launch {
             // Read parameters from the AudioRecord MediaPipe gave us — they're
@@ -187,6 +195,7 @@ class SleepAudioClassifier private constructor(
             Log.i(TAG, "capture loop exited (iterations=$iterations)")
         }
         Log.i(TAG, "start() complete — pipeline live")
+        AudioInitStatus.set("Pipeline live — listening for snore + cough.")
         return true
     }
 

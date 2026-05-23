@@ -9,6 +9,15 @@ data class ReleaseNote(
 object ReleaseNotes {
     val history: List<ReleaseNote> = listOf(
         ReleaseNote(
+            versionName = "2.11.4",
+            versionCode = 43,
+            summary = "Sleep Preferences gets a 'Last audio attempt' status card right " +
+                "below the audio toggle. Surfaces the same information adb logcat would " +
+                "show — what step succeeded, what step failed, the exception class + " +
+                "message — but on the phone itself. Lets us actually diagnose why audio " +
+                "tracking silently fails without needing a USB cable.",
+        ),
+        ReleaseNote(
             versionName = "2.11.3",
             versionCode = 42,
             summary = "Diagnostic + UX patch on top of v2.11.2. SleepAudioClassifier.start() " +
