@@ -24,6 +24,7 @@ import com.ultiq.app.ui.lockout.LockoutOverlayController
 import com.ultiq.app.util.LockoutNotifier
 import com.ultiq.app.util.PhoneUsageTracker
 import com.ultiq.app.util.UserPreferences
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -62,7 +63,17 @@ class SleepTrackingService : Service() {
         private var lastScreenOnTime: Long? = null
     }
 
-    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    // §10.x — Backstop for any unhandled throwable inside a launched coroutine.
+    // Without this, an Error (e.g. NoClassDefFoundError from R8-stripped
+    // MediaPipe internals) propagating up from maybeStartAudioTracking would
+    // hit the default uncaught-exception handler and crash the whole app
+    // process when the user tapped Start Sleep. The handler logs at ERROR
+    // level so the same condition still surfaces in logcat — it just no
+    // longer takes the app down with it.
+    private val serviceExceptionHandler = CoroutineExceptionHandler { _, throwable ->
+        Log.e(TAG, "Uncaught throwable in serviceScope coroutine — swallowed to keep the service alive", throwable)
+    }
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO + serviceExceptionHandler)
     private lateinit var userPreferences: UserPreferences
     private var foregroundWatcherJob: Job? = null
     private var audioClassifier: SleepAudioClassifier? = null
@@ -172,12 +183,19 @@ class SleepTrackingService : Service() {
     /** §10 — Reads `audioTrackingEnabled` + mic permission asynchronously
      *  (DataStore is suspending). If both are true, upgrades the foreground
      *  service type to include MICROPHONE on Android 14+ and starts the
-     *  YAMNet capture loop. No-ops otherwise. */
+     *  YAMNet capture loop. No-ops otherwise.
+     *
+     *  Defense-in-depth: every step is wrapped in a `Throwable` (not just
+     *  `Exception`) catch so an Error from a broken MediaPipe class load
+     *  in release-build minified APKs degrades to "audio tracking off" rather
+     *  than crashing the app. v2.11.0/v2.11.1 had this path throw an
+     *  unhandled `Error` (R8 stripped AutoValue subclasses) which propagated
+     *  to the default uncaught-exception handler and killed the process. */
     private fun maybeStartAudioTracking() {
         serviceScope.launch {
             val enabled = try {
                 userPreferences.snapshot().audioTrackingEnabled
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Log.w(TAG, "Failed to read audio tracking pref", e)
                 false
             }
@@ -198,7 +216,7 @@ class SleepTrackingService : Service() {
                         ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE or
                             ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE,
                     )
-                } catch (e: Exception) {
+                } catch (e: Throwable) {
                     Log.e(TAG, "Failed to add MICROPHONE service type — audio tracking aborted", e)
                     return@launch
                 }
@@ -207,27 +225,44 @@ class SleepTrackingService : Service() {
             // userId + sleepRecordId are stamped at session-end by the
             // SleepRepository when the actual sleep_record row is created;
             // the aggregator emits with placeholders that get rewritten.
-            val agg = SleepAudioEventAggregator(
-                userId = "",
-                sleepRecordId = "",
-                onEventReady = { event ->
-                    pendingAudioEvents.value = pendingAudioEvents.value + event
-                    Log.d(
-                        TAG,
-                        "Audio event: ${event.eventType} @${event.startedAt} → ${event.endedAt} " +
-                            "(peak conf=${event.peakConfidence})",
-                    )
-                },
-            )
+            val agg = try {
+                SleepAudioEventAggregator(
+                    userId = "",
+                    sleepRecordId = "",
+                    onEventReady = { event ->
+                        pendingAudioEvents.value = pendingAudioEvents.value + event
+                        Log.d(
+                            TAG,
+                            "Audio event: ${event.eventType} @${event.startedAt} → ${event.endedAt} " +
+                                "(peak conf=${event.peakConfidence})",
+                        )
+                    },
+                )
+            } catch (e: Throwable) {
+                Log.e(TAG, "Aggregator init failed", e)
+                return@launch
+            }
             audioAggregator = agg
 
-            val classifier = SleepAudioClassifier.create(applicationContext, agg)
+            val classifier = try {
+                SleepAudioClassifier.create(applicationContext, agg)
+            } catch (e: Throwable) {
+                Log.e(TAG, "SleepAudioClassifier.create threw", e)
+                null
+            }
             if (classifier == null) {
                 Log.w(TAG, "SleepAudioClassifier.create returned null")
                 return@launch
             }
             audioClassifier = classifier
-            classifier.start()
+            try {
+                classifier.start()
+            } catch (e: Throwable) {
+                Log.e(TAG, "classifier.start() threw — audio tracking disabled this session", e)
+                audioClassifier = null
+                audioAggregator = null
+                return@launch
+            }
             audioTrackingActive.value = true
             Log.d(TAG, "Audio tracking started")
         }

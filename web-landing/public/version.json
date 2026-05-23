@@ -1,6 +1,6 @@
 {
-  "versionCode": 40,
-  "versionName": "2.11.1",
-  "url": "https://ultiqapp.com/ultiq.2.11.1.apk",
-  "releaseNotes": "Fixes on-device snore + cough detection in the release build — release-build R8 was stripping the MediaPipe result classes that the YAMNet pipeline needs. Update if you turned on Sleep sounds in v2.11.0 and saw no events."
+  "versionCode": 41,
+  "versionName": "2.11.2",
+  "url": "https://ultiqapp.com/ultiq.2.11.2.apk",
+  "releaseNotes": "Hotfix: the app could crash when starting a sleep session if Sleep sounds was enabled, because MediaPipe init was throwing an Error (not an Exception) that propagated up and killed the process. Now contained — failed audio init just disables tracking for the session instead of crashing."
 }
