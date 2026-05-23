@@ -9,6 +9,17 @@ data class ReleaseNote(
 object ReleaseNotes {
     val history: List<ReleaseNote> = listOf(
         ReleaseNote(
+            versionName = "2.11.2",
+            versionCode = 41,
+            summary = "Hotfix: the app could crash when starting a sleep session if " +
+                "audio tracking had been enabled and MediaPipe's classifier classes had " +
+                "been stripped by R8 — an Error (not an Exception) propagated up through " +
+                "the launched coroutine to the default uncaught-exception handler. Audio " +
+                "init paths now catch every Throwable, the service's coroutine scope has " +
+                "a backstop CoroutineExceptionHandler, and a failed classifier start just " +
+                "disables audio tracking for that session instead of killing the app.",
+        ),
+        ReleaseNote(
             versionName = "2.11.1",
             versionCode = 40,
             summary = "Fixes on-device snore + cough detection in the release build. " +

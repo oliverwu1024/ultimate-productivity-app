@@ -81,7 +81,7 @@ class SleepAudioClassifier private constructor(
                 .build()
             Log.d(TAG, "AudioClassifierOptions built")
             AudioClassifier.createFromOptions(context, options)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Log.e(TAG, "MediaPipe classifier init failed — yamnet.tflite missing from assets?", e)
             return
         }
@@ -96,7 +96,7 @@ class SleepAudioClassifier private constructor(
         // AudioFlinger accept.
         val recorder = try {
             cls.createAudioRecord()
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Log.e(TAG, "createAudioRecord() threw", e)
             teardown()
             return
@@ -113,7 +113,7 @@ class SleepAudioClassifier private constructor(
         streamStartedAt = System.currentTimeMillis()
         try {
             recorder.startRecording()
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Log.e(TAG, "AudioRecord.startRecording() threw", e)
             teardown()
             return
@@ -156,7 +156,7 @@ class SleepAudioClassifier private constructor(
                 }
                 val data = try {
                     AudioData.create(format, read)
-                } catch (e: Exception) {
+                } catch (e: Throwable) {
                     Log.w(TAG, "AudioData.create failed for $read samples", e)
                     continue
                 }
@@ -164,7 +164,7 @@ class SleepAudioClassifier private constructor(
                 val streamMs = System.currentTimeMillis() - streamStartedAt
                 try {
                     classifier?.classifyAsync(data, streamMs)
-                } catch (e: Exception) {
+                } catch (e: Throwable) {
                     Log.e(TAG, "classifyAsync failed at iter=$iterations", e)
                     break
                 }
@@ -200,7 +200,7 @@ class SleepAudioClassifier private constructor(
                 recorder.stop()
             }
             recorder?.release()
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Log.w(TAG, "AudioRecord cleanup failed", e)
         }
 
@@ -208,14 +208,14 @@ class SleepAudioClassifier private constructor(
         classifier = null
         try {
             cls?.close()
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Log.w(TAG, "AudioClassifier close failed", e)
         }
 
         runBlocking {
             try {
                 aggregator.flushAll()
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Log.w(TAG, "Final aggregator flush failed", e)
             }
         }
@@ -257,7 +257,7 @@ class SleepAudioClassifier private constructor(
             scope.launch {
                 try {
                     aggregator.onClassification(timestampMs, snoreConf, coughConf)
-                } catch (e: Exception) {
+                } catch (e: Throwable) {
                     Log.w(TAG, "aggregator.onClassification failed", e)
                 }
             }
