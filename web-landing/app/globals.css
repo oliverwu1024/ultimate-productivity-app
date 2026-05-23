@@ -35,16 +35,83 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Dark-mode overlay — remap commonly-used brand utility classes */
+/* §landing-redesign — utilities for the visual punch-up. */
+
+/* Subtle "breathing" loop — used on the mascot so the static SVG feels alive. */
+@keyframes ultiq-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.035); }
+}
+.animate-breathe { animation: ultiq-breathe 4.2s ease-in-out infinite; }
+
+/* Phone-mockup float + tiny tilt — the hero's WOW element. */
+@keyframes ultiq-float {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50% { transform: translateY(-10px) rotate(2deg); }
+}
+.animate-float { animation: ultiq-float 8s ease-in-out infinite; }
+
+/* Slow drift for the gradient-mesh blobs (each blob gets its own delay/duration via inline style). */
+@keyframes ultiq-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(40px, -30px) scale(1.08); }
+  66% { transform: translate(-30px, 40px) scale(0.95); }
+}
+.animate-drift { animation: ultiq-drift 22s ease-in-out infinite; }
+
+/* Soft dotted-grid background — barely there in light mode, slightly more visible in dark.
+   Linear / Vercel / Cron all use a variant of this. */
+.bg-ultiq-grid {
+  background-image: radial-gradient(circle, rgba(42, 27, 110, 0.07) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+.dark .bg-ultiq-grid {
+  background-image: radial-gradient(circle, rgba(241, 245, 249, 0.05) 1px, transparent 1px);
+}
+
+/* Brand gradient text — used on the hero H1. */
+.text-gradient-hero {
+  background-image: linear-gradient(135deg, #2A1B6E 0%, #D9474C 55%, #FFC83D 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.dark .text-gradient-hero {
+  background-image: linear-gradient(135deg, #A8C5E8 0%, #D9474C 50%, #FFC83D 100%);
+}
+
+/* Glow halo behind cards / CTAs. */
+.ultiq-glow {
+  box-shadow:
+    0 25px 50px -12px rgba(42, 27, 110, 0.25),
+    0 0 0 1px rgba(42, 27, 110, 0.05);
+}
+.dark .ultiq-glow {
+  box-shadow:
+    0 25px 50px -12px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(241, 245, 249, 0.08),
+    0 0 40px -8px rgba(168, 197, 232, 0.18);
+}
+
+/* Dark-mode overlay — remap commonly-used brand utility classes.
+ * The text remaps go slate-100 → slate-200 → slate-300 → slate-400 as the
+ * opacity drops, so visual weight is preserved across modes. Any new opacity
+ * value used in markup MUST get an entry here or the text disappears against
+ * the dark night-900 background. */
 .dark .bg-ultiq-cream { background-color: var(--color-ultiq-night-900); }
 .dark .bg-ultiq-cream\/80 { background-color: rgb(14 10 36 / 0.85); }
 .dark .bg-ultiq-cream\/60 { background-color: rgb(14 10 36 / 0.7); }
-.dark .text-ultiq-indigo { color: rgb(241 245 249); }
-.dark .text-ultiq-indigo\/80 { color: rgb(226 232 240); }
-.dark .text-ultiq-indigo\/75 { color: rgb(226 232 240); }
-.dark .text-ultiq-indigo\/70 { color: rgb(203 213 225); }
-.dark .text-ultiq-indigo\/60 { color: rgb(148 163 184); }
-.dark .text-ultiq-indigo\/50 { color: rgb(148 163 184); }
+.dark .text-ultiq-indigo { color: rgb(241 245 249); }                /* slate-100 */
+.dark .text-ultiq-indigo\/85 { color: rgb(241 245 249); }            /* slate-100 */
+.dark .text-ultiq-indigo\/80 { color: rgb(226 232 240); }            /* slate-200 */
+.dark .text-ultiq-indigo\/75 { color: rgb(226 232 240); }            /* slate-200 */
+.dark .text-ultiq-indigo\/70 { color: rgb(203 213 225); }            /* slate-300 */
+.dark .text-ultiq-indigo\/65 { color: rgb(203 213 225); }            /* slate-300 */
+.dark .text-ultiq-indigo\/60 { color: rgb(148 163 184); }            /* slate-400 */
+.dark .text-ultiq-indigo\/55 { color: rgb(148 163 184); }            /* slate-400 */
+.dark .text-ultiq-indigo\/50 { color: rgb(148 163 184); }            /* slate-400 */
+.dark .text-ultiq-indigo\/45 { color: rgb(100 116 139); }            /* slate-500 */
+.dark .text-ultiq-indigo\/40 { color: rgb(100 116 139); }            /* slate-500 */
 .dark .border-ultiq-indigo\/20,
 .dark .border-ultiq-indigo\/15,
 .dark .border-ultiq-indigo\/10 { border-color: var(--color-ultiq-night-700); }
@@ -55,3 +122,7 @@ body {
 .dark .bg-ultiq-blue\/40 { background-color: rgb(168 197 232 / 0.18); }
 .dark .bg-ultiq-red\/15 { background-color: rgb(217 71 76 / 0.18); }
 .dark .bg-ultiq-red\/5 { background-color: rgb(217 71 76 / 0.12); }
+
+/* The dark variant of the brand gradient also needs an indigo override so the
+ * "Rest, repeat." line stays readable (it inherits from text-ultiq-indigo/85). */
+.dark .text-ultiq-cream\/60 { color: rgb(148 163 184); }
