@@ -9,6 +9,18 @@ data class ReleaseNote(
 object ReleaseNotes {
     val history: List<ReleaseNote> = listOf(
         ReleaseNote(
+            versionName = "2.13.1",
+            versionCode = 55,
+            summary = "Reminders are now multi-select per event. Pick any combination of " +
+                "5 min / 15 min / 30 min / 1 hr / 2 hr / 4 hr / 1 day / 2 days / 1 week " +
+                "before — Ultiq schedules a separate notification for each. New options " +
+                "2 hr, 4 hr, 2 days and 1 week join the list. Picker still has Default " +
+                "(single 15-min reminder) and None (opt out) shortcuts. Schema change: " +
+                "the reminder_minutes column went from a single integer to an array, " +
+                "Room migration 11 → 12 converts existing scalar values to single-element " +
+                "lists in place.",
+        ),
+        ReleaseNote(
             versionName = "2.13.0",
             versionCode = 54,
             summary = "Per-event reminder offset is now picker-driven instead of hard-coded " +

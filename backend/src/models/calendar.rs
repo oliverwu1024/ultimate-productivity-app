@@ -59,10 +59,12 @@ pub struct CalendarEvent {
     pub recurrence_rule: Option<String>,
     pub color: String,
     pub is_done: bool,
-    /// Minutes before start_time to fire the local reminder notification.
-    /// NULL = client default (currently 15 min on Android). v2.13.0+ clients
-    /// send an explicit value from the picker; pre-2.13 rows stay NULL.
-    pub reminder_minutes: Option<i32>,
+    /// Minutes-before-start_time offsets for each reminder notification.
+    /// v2.13.1 widened this from a single Option<i32> to an array so a user
+    /// can attach multiple reminders to one event ("1 day before AND 1 hour
+    /// before"). NULL = client default (single 15-min reminder); empty array
+    /// = explicit opt-out; non-empty = explicit list.
+    pub reminder_minutes: Option<Vec<i32>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -83,7 +85,8 @@ pub struct CreateCalendarEvent {
     /// stored value on update. New clients always send it.
     pub is_done: Option<bool>,
     /// Same Optional contract as is_done: omitted = preserve existing stored
-    /// value (server COALESCEs); explicit Some(_) = update.
+    /// value (server COALESCEs); explicit Some(_) = update. v2.13.1 widened
+    /// from Option<i32> to Option<Vec<i32>> for multi-reminder support.
     #[serde(default)]
-    pub reminder_minutes: Option<i32>,
+    pub reminder_minutes: Option<Vec<i32>>,
 }

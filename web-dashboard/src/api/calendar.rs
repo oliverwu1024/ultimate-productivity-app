@@ -119,12 +119,12 @@ pub struct CalendarEvent {
     /// is_done migration yet.
     #[serde(default)]
     pub is_done: bool,
-    /// v2.13.0 — per-event reminder offset (minutes before start_time).
-    /// Optional because pre-2.13 rows return null and pre-2.13 clients
-    /// don't send the field at all. Null → client default (15 min in
-    /// AlarmScheduler).
+    /// v2.13.1 — Per-event reminder offsets (minutes-before-start), as an
+    /// array so a single event can carry multiple reminders ("1 day +
+    /// 1 hour"). Null = use client default; empty array = explicit
+    /// opt-out; non-empty = the user's explicit picks.
     #[serde(default)]
-    pub reminder_minutes: Option<i32>,
+    pub reminder_minutes: Option<Vec<i32>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -145,9 +145,11 @@ pub struct CreateCalendarEvent {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub is_done: Option<bool>,
     /// Same Optional contract: omitted = backend preserves stored value
-    /// (COALESCE). Send Some(0) to opt out of reminders for this event.
+    /// (COALESCE). Some(vec![]) = explicit opt-out; Some(vec![15, 60]) =
+    /// two reminders 15 min and 1 hr before. v2.13.1 widened from
+    /// Option<i32> to Option<Vec<i32>> for multi-reminder support.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub reminder_minutes: Option<i32>,
+    pub reminder_minutes: Option<Vec<i32>>,
 }
 
 pub async fn list_events(start: NaiveDate, end: NaiveDate) -> Result<Vec<CalendarEvent>, ApiError> {

@@ -68,17 +68,21 @@ import java.time.format.DateTimeFormatter
 
 private val categories = listOf("study", "project", "exercise", "personal", "other")
 private val priorities = listOf("high", "medium", "low")
-// v2.13.0 — Reminder picker options. First element of each pair is the
-// stored minutes value (null = "default → 15 min in scheduler", 0 = "no
-// reminder, opt-out"); second is the visible chip label.
-private val reminderOptions: List<Pair<Int?, String>> = listOf(
-    null to "Default",
-    0 to "None",
+// v2.13.1 — Reminder offset palette (minutes-before-start). Multi-select:
+// the picker lets the user attach any combination of these to an event
+// ("1 day before AND 1 hour before AND 5 min before"). Keep the values
+// aligned with AlarmScheduler.KNOWN_REMINDER_OFFSETS — that constant is
+// what cancellation walks to clear every PendingIntent for an event.
+private val reminderOffsetOptions: List<Pair<Int, String>> = listOf(
     5 to "5 min",
     15 to "15 min",
     30 to "30 min",
     60 to "1 hr",
+    120 to "2 hr",
+    240 to "4 hr",
     1440 to "1 day",
+    2880 to "2 days",
+    10080 to "1 week",
 )
 private val colorOptions = listOf(
     "#4A90D9", "#E67E22", "#2ECC71", "#9B59B6", "#95A5A6",
@@ -206,10 +210,12 @@ fun AddEventDialog(
         mutableStateOf(editingEvent?.color ?: prefilledNewEvent?.color ?: "#4A90D9")
     }
     var isRecurring by remember { mutableStateOf(editingEvent?.isRecurring ?: false) }
-    // v2.13.0 — Per-event reminder offset. Null = "use default" (15 min,
-    // pre-2.13 behaviour). Picker options below; 0 = "None" (opt-out).
+    // v2.13.1 — Per-event reminder offsets, list-valued. Null = "use client
+    // default" (single 15-min reminder); empty list = explicit opt-out;
+    // non-empty = the user's exact picks. Multi-select FilterChip group
+    // below tracks this through Default / None / per-offset chips.
     var reminderMinutes by remember {
-        mutableStateOf<Int?>(editingEvent?.reminderMinutes)
+        mutableStateOf<List<Int>?>(editingEvent?.reminderMinutes)
     }
     var frequency by remember { mutableStateOf(parseFrequency(editingEvent?.recurrenceRule)) }
     var weeklyDays by remember { mutableStateOf(parseWeeklyDays(editingEvent?.recurrenceRule)) }
@@ -440,15 +446,43 @@ fun AddEventDialog(
                 }
             }
 
-            // v2.13.0 — Reminder offset picker. null = "Default (15 min)",
-            // 0 = "None" (opt-out, scheduler skips), and explicit values for
-            // common offsets. Matches the picker shape on the web.
-            Text("Reminder", style = MaterialTheme.typography.labelLarge)
+            // v2.13.1 — Multi-select reminder picker. Three modes:
+            //   • Default chip → reminderMinutes = null   (single 15-min
+            //     reminder via AlarmScheduler.EVENT_LEAD_MINUTES fallback).
+            //   • None chip → reminderMinutes = emptyList() (explicit opt-out).
+            //   • One or more offset chips → reminderMinutes = listOf(...)
+            //     in chip-row order. Selecting any specific offset auto-
+            //     clears Default/None; selecting Default/None clears the
+            //     explicit list.
+            Text("Reminders", style = MaterialTheme.typography.labelLarge)
+            val currentList = reminderMinutes
+            val isDefault = currentList == null
+            val isNone = currentList?.isEmpty() == true
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                reminderOptions.forEach { (mins, label) ->
+                FilterChip(
+                    selected = isDefault,
+                    onClick = { reminderMinutes = null },
+                    label = { Text("Default") }
+                )
+                FilterChip(
+                    selected = isNone,
+                    onClick = { reminderMinutes = emptyList() },
+                    label = { Text("None") }
+                )
+                reminderOffsetOptions.forEach { (mins, label) ->
+                    val checked = currentList?.contains(mins) == true
                     FilterChip(
-                        selected = reminderMinutes == mins,
-                        onClick = { reminderMinutes = mins },
+                        selected = checked,
+                        onClick = {
+                            val base = currentList?.toMutableList() ?: mutableListOf()
+                            if (checked) {
+                                base.remove(mins)
+                            } else {
+                                base.add(mins)
+                                base.sort()
+                            }
+                            reminderMinutes = base
+                        },
                         label = { Text(label) }
                     )
                 }
