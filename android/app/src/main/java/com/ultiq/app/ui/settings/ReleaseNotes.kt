@@ -9,6 +9,16 @@ data class ReleaseNote(
 object ReleaseNotes {
     val history: List<ReleaseNote> = listOf(
         ReleaseNote(
+            versionName = "2.12.4",
+            versionCode = 53,
+            summary = "Multi-day event ribbons in the month grid now use a deterministic " +
+                "per-event palette (hash of event id → fixed palette slot) so two " +
+                "overlapping multi-day events always render in visually distinct colors. " +
+                "Every Study-category event defaulted to the same blue, which meant " +
+                "overlapping ribbons were indistinguishable. The user-picked color on " +
+                "each event card (left border in the day list) is unchanged.",
+        ),
+        ReleaseNote(
             versionName = "2.12.3",
             versionCode = 52,
             summary = "Diagnostic patch: SyncEventClient (the existing SSE client that powers " +

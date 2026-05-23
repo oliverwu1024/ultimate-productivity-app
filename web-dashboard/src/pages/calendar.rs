@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use chrono::{DateTime, Datelike, Duration, Local, NaiveDate, NaiveDateTime, TimeZone, Utc};
+use chrono::{DateTime, Datelike, Duration, Local, NaiveDate, NaiveDateTime, TimeZone, Timelike, Utc};
 use leptos::either::{Either, EitherOf4};
 use leptos::prelude::*;
 use leptos_meta::Title;
@@ -77,6 +77,27 @@ fn event_spans_day(event: &CalendarEvent, day: NaiveDate) -> bool {
 /// extends past midnight in the user's timezone.
 fn is_multi_day(event: &CalendarEvent) -> bool {
     local_date(event.start_time) != local_date(event.end_time)
+}
+
+/// v2.12.4 — Deterministic palette for multi-day ribbon colors. The
+/// user-chosen `event.color` still drives the left border on each event
+/// card in the day list, but ribbons on the month grid use a hash-of-id
+/// palette slot so two overlapping multi-day events never share a stripe
+/// (every Study-category event defaults to the same blue — ribbons were
+/// visually identical before this).
+const MULTI_DAY_PALETTE: [&str; 8] = [
+    "#4A90D9", "#E67E22", "#2ECC71", "#9B59B6",
+    "#E74C3C", "#F1C40F", "#1ABC9C", "#FF6F61",
+];
+fn multi_day_ribbon_color(event_id: &str) -> &'static str {
+    // Same FNV-1a-style accumulation as Java String.hashCode so the
+    // ribbon for a given event id matches between Android + web.
+    let mut h: i32 = 0;
+    for c in event_id.chars() {
+        h = h.wrapping_mul(31).wrapping_add(c as i32);
+    }
+    let idx = (h as i64).abs() as usize % MULTI_DAY_PALETTE.len();
+    MULTI_DAY_PALETTE[idx]
 }
 
 fn dt_to_input(dt: DateTime<Utc>) -> String {
@@ -249,7 +270,7 @@ pub fn CalendarPage() -> impl IntoView {
                                 let ribbon_colors: Vec<String> = multi_day_evs
                                     .iter()
                                     .take(3)
-                                    .map(|e| e.color.clone())
+                                    .map(|e| multi_day_ribbon_color(&e.id).to_string())
                                     .collect();
                                 view! {
                                     <DayCell
@@ -315,6 +336,7 @@ pub fn CalendarPage() -> impl IntoView {
                             existing=None
                             prefill=None
                             initial_day=selected_day.get_untracked()
+                            existing_events=events.get_untracked()
                             on_close=move || dialog.set(DialogState::Closed)
                             on_saved=move || { dialog.set(DialogState::Closed); refresh(); }
                         />
@@ -324,6 +346,7 @@ pub fn CalendarPage() -> impl IntoView {
                             existing=Some(event)
                             prefill=None
                             initial_day=selected_day.get_untracked()
+                            existing_events=events.get_untracked()
                             on_close=move || dialog.set(DialogState::Closed)
                             on_saved=move || { dialog.set(DialogState::Closed); refresh(); }
                         />
@@ -333,6 +356,7 @@ pub fn CalendarPage() -> impl IntoView {
                             existing=None
                             prefill=Some(parsed)
                             initial_day=selected_day.get_untracked()
+                            existing_events=events.get_untracked()
                             on_close=move || dialog.set(DialogState::Closed)
                             on_saved=move || { dialog.set(DialogState::Closed); refresh(); }
                         />
@@ -655,11 +679,23 @@ fn EventDialog(
     /// via the quick-add flow. Only consulted when `existing` is None.
     prefill: Option<ParsedCalendarFields>,
     initial_day: NaiveDate,
+    /// v2.12.4 — Snapshot of the current month's events for the inline
+    /// conflict warning. Excludes the edited event's own id so editing
+    /// doesn't flag itself.
+    existing_events: Vec<CalendarEvent>,
     on_close: impl Fn() + Send + Sync + Copy + 'static,
     on_saved: impl Fn() + Send + Sync + Copy + 'static,
 ) -> impl IntoView {
     let is_edit = existing.is_some();
     let event_id = existing.as_ref().map(|e| e.id.clone());
+    let editing_event_id = event_id.clone();
+    // v2.12.4 — All-day detection mirrors Android: schema has no flag, so
+    // we infer from "start at 00:00 and end at 23:59:*" in local time.
+    let initial_all_day = existing.as_ref().map(|e| {
+        let s = e.start_time.with_timezone(&Local);
+        let en = e.end_time.with_timezone(&Local);
+        s.hour() == 0 && s.minute() == 0 && en.hour() == 23 && en.minute() == 59
+    }).unwrap_or(false);
 
     // Resolution order for each field: existing → prefill → blank/default.
     let title = RwSignal::new(
@@ -715,6 +751,42 @@ fn EventDialog(
     let submitting = RwSignal::new(false);
     let dialog_error = RwSignal::new(None::<String>);
 
+    // v2.12.4 — All-day + discard-guard state.
+    let is_all_day = RwSignal::new(initial_all_day);
+    let show_discard_confirm = RwSignal::new(false);
+    // Snapshot of the initial form values so we can compute `dirty` cheaply
+    // without subscribing every change. Re-snapped when toggling all-day.
+    let initial_title = title.get_untracked();
+    let initial_description = description.get_untracked();
+    let initial_category = category.get_untracked();
+    let initial_priority = priority.get_untracked();
+
+    // v2.12.4 — Delta-shift: when the user changes start, end shifts by the
+    // same delta so the original duration is preserved (matches Android
+    // v2.11.9). Anchored to the start_time's previous value via a closure.
+    let prev_start_store = StoredValue::new(start_time.get_untracked());
+    let on_start_change = move |ev: leptos::ev::Event| {
+        let new_val = event_target_value(&ev);
+        let prev = prev_start_store.get_value();
+        prev_start_store.set_value(new_val.clone());
+        if let (Some(prev_dt), Some(new_dt), Some(end_dt)) = (
+            input_to_dt(&prev),
+            input_to_dt(&new_val),
+            input_to_dt(&end_time.get_untracked()),
+        ) {
+            let delta = new_dt - prev_dt;
+            let shifted = end_dt + delta;
+            end_time.set(dt_to_input(shifted));
+        }
+        start_time.set(new_val);
+    };
+
+    // Persist the explicit times so toggling all-day off restores them.
+    let saved_start_time = StoredValue::new(start_time.get_untracked());
+    let saved_end_time = StoredValue::new(end_time.get_untracked());
+
+    let existing_events_store = StoredValue::new(existing_events);
+
     let event_id_store = StoredValue::new(event_id.clone());
     let on_submit = move |ev: leptos::ev::SubmitEvent| {
         ev.prevent_default();
@@ -725,14 +797,31 @@ fn EventDialog(
             dialog_error.set(Some("Title is required".into()));
             return;
         }
-        let st = match input_to_dt(&start_time.get_untracked()) {
+        let mut st = match input_to_dt(&start_time.get_untracked()) {
             Some(dt) => dt,
             None => { dialog_error.set(Some("Invalid start time".into())); return; }
         };
-        let et = match input_to_dt(&end_time.get_untracked()) {
+        let mut et = match input_to_dt(&end_time.get_untracked()) {
             Some(dt) => dt,
             None => { dialog_error.set(Some("Invalid end time".into())); return; }
         };
+        // v2.12.4 — All-day events: snap start to local midnight and end
+        // to 23:59 of its local date. Mirrors the Android save behavior
+        // so both surfaces emit the same timestamp pattern.
+        if is_all_day.get_untracked() {
+            let s_local = st.with_timezone(&Local);
+            let e_local = et.with_timezone(&Local);
+            let s_midnight = Local
+                .from_local_datetime(&s_local.date_naive().and_hms_opt(0, 0, 0).unwrap())
+                .single();
+            let e_eod = Local
+                .from_local_datetime(&e_local.date_naive().and_hms_opt(23, 59, 0).unwrap())
+                .single();
+            if let (Some(s), Some(e)) = (s_midnight, e_eod) {
+                st = s.with_timezone(&Utc);
+                et = e.with_timezone(&Utc);
+            }
+        }
         if st >= et {
             dialog_error.set(Some("Start time must be before end time".into()));
             return;
@@ -789,10 +878,36 @@ fn EventDialog(
         });
     };
 
+    // v2.12.4 — Discard-confirm guard: clicking the backdrop, the X, or
+    // Cancel only closes immediately when the form is clean. Otherwise
+    // a "Discard changes?" prompt comes up first. Stops the very-easy
+    // accidental cancellation that the Android dialog also had.
+    // Cheaply-cloneable closure for the dismiss-guard. Wrapped in StoredValue
+    // so both the backdrop click and the Cancel button can fire it without
+    // moving capture. `move ||` would only be callable once.
+    let initial_title_sv = StoredValue::new(initial_title);
+    let initial_description_sv = StoredValue::new(initial_description);
+    let initial_category_sv = StoredValue::new(initial_category);
+    let initial_priority_sv = StoredValue::new(initial_priority);
+    let attempt_close = move || {
+        let dirty = title.get_untracked() != initial_title_sv.get_value()
+            || description.get_untracked() != initial_description_sv.get_value()
+            || category.get_untracked() != initial_category_sv.get_value()
+            || priority.get_untracked() != initial_priority_sv.get_value()
+            || start_time.get_untracked() != saved_start_time.get_value()
+            || end_time.get_untracked() != saved_end_time.get_value()
+            || is_all_day.get_untracked() != initial_all_day;
+        if dirty {
+            show_discard_confirm.set(true);
+        } else {
+            on_close();
+        }
+    };
+
     view! {
         <div
             class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
-            on:click=move |_| on_close()
+            on:click=move |_| attempt_close()
         >
             <form
                 on:submit=on_submit
@@ -802,6 +917,29 @@ fn EventDialog(
                 <h3 class="text-xl font-semibold text-ultiq-indigo">
                     {if is_edit { "Edit event" } else { "New event" }}
                 </h3>
+
+                <Show when=move || show_discard_confirm.get()>
+                    <div class="fixed inset-0 bg-black/40 z-[60] flex items-center justify-center p-4"
+                        on:click=move |_| show_discard_confirm.set(false)>
+                        <div class="bg-white rounded-xl shadow-xl p-5 w-full max-w-xs space-y-3"
+                            on:click=|ev| ev.stop_propagation()>
+                            <h4 class="text-base font-semibold text-ultiq-indigo">"Discard changes?"</h4>
+                            <p class="text-sm text-ultiq-indigo/70">"You'll lose what you've typed."</p>
+                            <div class="flex justify-end gap-2 pt-1">
+                                <button type="button"
+                                    on:click=move |_| show_discard_confirm.set(false)
+                                    class="px-3 py-1.5 text-sm text-ultiq-indigo hover:bg-ultiq-indigo/5 rounded cursor-pointer">
+                                    "Keep editing"
+                                </button>
+                                <button type="button"
+                                    on:click=move |_| { show_discard_confirm.set(false); on_close(); }
+                                    class="px-3 py-1.5 text-sm text-ultiq-red hover:bg-ultiq-red/5 rounded cursor-pointer">
+                                    "Discard"
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </Show>
 
                 <label class="block">
                     <span class="text-sm font-medium text-ultiq-indigo">"Title"</span>
@@ -824,28 +962,102 @@ fn EventDialog(
                     />
                 </label>
 
+                // v2.12.4 — All-day toggle. Switches the date/time fields to
+                // date-only inputs and snaps the saved times to midnight /
+                // end-of-day on submit. Toggling off restores the explicit
+                // times the user last picked.
+                <label class="flex items-center justify-between">
+                    <span class="text-sm font-medium text-ultiq-indigo">"All day"</span>
+                    <input
+                        type="checkbox"
+                        class="w-5 h-5 accent-ultiq-indigo cursor-pointer"
+                        prop:checked=move || is_all_day.get()
+                        on:change=move |ev| {
+                            let checked = event_target_checked(&ev);
+                            if checked {
+                                saved_start_time.set_value(start_time.get_untracked());
+                                saved_end_time.set_value(end_time.get_untracked());
+                            } else {
+                                start_time.set(saved_start_time.get_value());
+                                end_time.set(saved_end_time.get_value());
+                            }
+                            is_all_day.set(checked);
+                        }
+                    />
+                </label>
+
                 <div class="grid grid-cols-2 gap-3">
                     <label class="block">
                         <span class="text-sm font-medium text-ultiq-indigo">"Start"</span>
                         <input
-                            type="datetime-local"
+                            type=move || if is_all_day.get() { "date" } else { "datetime-local" }
                             class="mt-1 w-full px-3 py-2 border border-ultiq-indigo/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-ultiq-indigo"
-                            prop:value=move || start_time.get()
-                            on:input=move |ev| start_time.set(event_target_value(&ev))
+                            prop:value=move || if is_all_day.get() {
+                                start_time.get().split('T').next().unwrap_or("").to_string()
+                            } else {
+                                start_time.get()
+                            }
+                            on:input=on_start_change
                             required
                         />
                     </label>
                     <label class="block">
                         <span class="text-sm font-medium text-ultiq-indigo">"End"</span>
                         <input
-                            type="datetime-local"
+                            type=move || if is_all_day.get() { "date" } else { "datetime-local" }
                             class="mt-1 w-full px-3 py-2 border border-ultiq-indigo/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-ultiq-indigo"
-                            prop:value=move || end_time.get()
+                            prop:value=move || if is_all_day.get() {
+                                end_time.get().split('T').next().unwrap_or("").to_string()
+                            } else {
+                                end_time.get()
+                            }
                             on:input=move |ev| end_time.set(event_target_value(&ev))
                             required
                         />
                     </label>
                 </div>
+
+                // v2.12.4 — Inline conflict warning. Computed from existing
+                // events in the month (snapshotted at dialog open); excludes
+                // the editingEvent's own id so editing isn't flagged.
+                {move || {
+                    let st = input_to_dt(&start_time.get());
+                    let et = input_to_dt(&end_time.get());
+                    let editing_id_ref = editing_event_id.clone();
+                    if let (Some(start), Some(end)) = (st, et) {
+                        if start >= end { return view! { <div></div> }.into_any(); }
+                        let all_events = existing_events_store.get_value();
+                        let conflicts: Vec<CalendarEvent> = all_events.into_iter()
+                            .filter(|ev| {
+                                editing_id_ref.as_deref().map(|id| id != ev.id).unwrap_or(true)
+                                    && start < ev.end_time
+                                    && end > ev.start_time
+                            })
+                            .collect();
+                        if conflicts.is_empty() { return view! { <div></div> }.into_any(); }
+                        let shown: Vec<_> = conflicts.iter().take(3).cloned().collect();
+                        let extra = conflicts.len().saturating_sub(shown.len());
+                        view! {
+                            <div class="bg-ultiq-yellow/10 border border-ultiq-yellow/30 rounded-lg px-3 py-2 text-sm">
+                                <p class="font-medium text-ultiq-indigo/80 mb-1">
+                                    {format!("Conflicts with {} event{}:", conflicts.len(), if conflicts.len() == 1 { "" } else { "s" })}
+                                </p>
+                                <ul class="space-y-0.5 text-ultiq-indigo/70">
+                                    {shown.into_iter().map(|c| {
+                                        let s = c.start_time.with_timezone(&Local).format("%H:%M").to_string();
+                                        let e = c.end_time.with_timezone(&Local).format("%H:%M").to_string();
+                                        view! { <li>{format!("• {} ({}–{})", c.title, s, e)}</li> }
+                                    }).collect_view()}
+                                    <Show when=move || { extra > 0 }>
+                                        <li class="italic">{format!("+ {} more", extra)}</li>
+                                    </Show>
+                                </ul>
+                            </div>
+                        }.into_any()
+                    } else {
+                        view! { <div></div> }.into_any()
+                    }
+                }}
 
                 <label class="block">
                     <span class="text-sm font-medium text-ultiq-indigo">"Category"</span>
@@ -903,7 +1115,7 @@ fn EventDialog(
                     <div class="flex gap-2 ml-auto">
                         <button
                             type="button"
-                            on:click=move |_| on_close()
+                            on:click=move |_| attempt_close()
                             class="px-4 py-2 text-ultiq-indigo hover:bg-ultiq-indigo/5 rounded-lg cursor-pointer"
                             prop:disabled=move || submitting.get()
                         >

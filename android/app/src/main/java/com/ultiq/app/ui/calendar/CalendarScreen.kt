@@ -374,7 +374,7 @@ private fun MonthGrid(
                             .distinct()
                             .take(3)
                         val bars = multiDay
-                            .map { parseHexColor(it.color) }
+                            .map { multiDayRibbonColor(it.id) }
                             .take(3)
 
                         DayCell(
@@ -602,6 +602,21 @@ private fun PriorityIndicator(priority: String) {
 
 internal fun categoryColor(category: String): Color =
     com.ultiq.app.ui.theme.CategoryColors.forCategory(category)
+
+/// v2.12.4 — Deterministic palette for multi-day ribbon colors. The user's
+/// chosen `event.color` is still rendered on the left border of each event
+/// card in the day list, but multi-day ribbons in the month grid use a
+/// hash-of-id palette slot so two overlapping multi-day events never share
+/// a stripe color (every event of category "Study" defaults to the same
+/// blue — overlapping ribbons were visually identical before this).
+private val MULTI_DAY_PALETTE = listOf(
+    Color(0xFF4A90D9), Color(0xFFE67E22), Color(0xFF2ECC71), Color(0xFF9B59B6),
+    Color(0xFFE74C3C), Color(0xFFF1C40F), Color(0xFF1ABC9C), Color(0xFFFF6F61),
+)
+internal fun multiDayRibbonColor(eventId: String): Color {
+    val idx = (eventId.hashCode().toLong() and 0x7FFFFFFFL).rem(MULTI_DAY_PALETTE.size).toInt()
+    return MULTI_DAY_PALETTE[idx]
+}
 
 internal fun parseHexColor(hex: String): Color {
     return try {
