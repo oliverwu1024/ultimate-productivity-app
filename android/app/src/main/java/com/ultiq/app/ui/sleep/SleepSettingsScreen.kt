@@ -14,9 +14,13 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -28,6 +32,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ultiq.app.audio.AudioInitStatus
 import com.ultiq.app.ui.common.DurationStepperCard
 import com.ultiq.app.ui.common.SectionHeaderWithSuffix
 import com.ultiq.app.ui.common.StepperCard
@@ -170,6 +175,37 @@ fun SleepSettingsScreen(
                     },
                 )
             }
+            item { AudioInitStatusCard() }
+        }
+    }
+}
+
+/** §10.x (v2.11.4) — Diagnostic readout of the most-recent audio-init
+ *  attempt. Surfaces the same information that adb logcat would, but
+ *  on the phone itself so users can read it without a USB cable. Updates
+ *  live as the next sleep session goes through the init path. */
+@Composable
+private fun AudioInitStatusCard() {
+    val status by AudioInitStatus.current.collectAsState()
+    Card(
+        modifier = Modifier.fillMaxSize(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                "Last audio attempt",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                status,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(top = 4.dp),
+            )
         }
     }
 }

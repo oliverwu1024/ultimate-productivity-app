@@ -16,6 +16,7 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.ultiq.app.MainActivity
 import com.ultiq.app.alarm.AlarmRingService
+import com.ultiq.app.audio.AudioInitStatus
 import com.ultiq.app.audio.SleepAudioClassifier
 import com.ultiq.app.audio.SleepAudioEventAggregator
 import com.ultiq.app.data.local.entity.SleepAudioEventEntity
@@ -192,18 +193,25 @@ class SleepTrackingService : Service() {
      *  unhandled `Error` (R8 stripped AutoValue subclasses) which propagated
      *  to the default uncaught-exception handler and killed the process. */
     private fun maybeStartAudioTracking() {
+        AudioInitStatus.set("Reading prefs…")
         serviceScope.launch {
             val enabled = try {
                 userPreferences.snapshot().audioTrackingEnabled
             } catch (e: Throwable) {
                 Log.w(TAG, "Failed to read audio tracking pref", e)
+                AudioInitStatus.setError("Reading audio_tracking_enabled pref", e)
                 false
             }
-            if (!enabled) return@launch
-            if (!SleepAudioClassifier.isMicPermitted(applicationContext)) {
-                Log.w(TAG, "Audio tracking on but RECORD_AUDIO not granted — skipping")
+            if (!enabled) {
+                AudioInitStatus.set("Off — toggle is disabled in Sleep Preferences.")
                 return@launch
             }
+            if (!SleepAudioClassifier.isMicPermitted(applicationContext)) {
+                Log.w(TAG, "Audio tracking on but RECORD_AUDIO not granted — skipping")
+                AudioInitStatus.set("Off — RECORD_AUDIO permission not granted to Ultiq.")
+                return@launch
+            }
+            AudioInitStatus.set("Pref on + mic permitted. Upgrading service type…")
 
             // Upgrade FGS type so the mic loop is allowed (Android 14+).
             // Pre-14 doesn't enforce per-type, so the SPECIAL_USE startForeground
@@ -218,6 +226,7 @@ class SleepTrackingService : Service() {
                     )
                 } catch (e: Throwable) {
                     Log.e(TAG, "Failed to add MICROPHONE service type — audio tracking aborted", e)
+                    AudioInitStatus.setError("Foreground-service MICROPHONE upgrade", e)
                     return@launch
                 }
             }
@@ -240,6 +249,7 @@ class SleepTrackingService : Service() {
                 )
             } catch (e: Throwable) {
                 Log.e(TAG, "Aggregator init failed", e)
+                AudioInitStatus.setError("Aggregator init", e)
                 revertNotificationToNoAudio()
                 return@launch
             }
@@ -249,10 +259,12 @@ class SleepTrackingService : Service() {
                 SleepAudioClassifier.create(applicationContext, agg)
             } catch (e: Throwable) {
                 Log.e(TAG, "SleepAudioClassifier.create threw", e)
+                AudioInitStatus.setError("SleepAudioClassifier.create", e)
                 null
             }
             if (classifier == null) {
                 Log.w(TAG, "SleepAudioClassifier.create returned null — RECORD_AUDIO probably not granted at the framework level")
+                AudioInitStatus.set("SleepAudioClassifier.create returned null — Android revoked the mic permission at the framework level. Toggle the mic permission off and on in system settings.")
                 revertNotificationToNoAudio()
                 return@launch
             }
@@ -266,10 +278,13 @@ class SleepTrackingService : Service() {
                 classifier.start()
             } catch (e: Throwable) {
                 Log.e(TAG, "classifier.start() threw — audio tracking disabled this session", e)
+                AudioInitStatus.setError("classifier.start()", e)
                 false
             }
             if (!ok) {
                 Log.w(TAG, "classifier.start() returned false — audio init failed; reverting notification + clearing references")
+                // The status was already set by whichever internal step failed;
+                // leave it intact so the user sees the specific cause.
                 audioClassifier = null
                 audioAggregator = null
                 revertNotificationToNoAudio()

@@ -1,6 +1,6 @@
 {
-  "versionCode": 42,
-  "versionName": "2.11.3",
-  "url": "https://ultiqapp.com/ultiq.2.11.3.apk",
-  "releaseNotes": "Diagnostic patch — the in-app audio pipeline now logs at Log.i (survives R8) instead of Log.d (stripped), and the foreground-service notification correctly reverts to 'Sleep tracking active' if audio init failed silently. Lets us actually diagnose the no-mic-indicator case."
+  "versionCode": 43,
+  "versionName": "2.11.4",
+  "url": "https://ultiqapp.com/ultiq.2.11.4.apk",
+  "releaseNotes": "Adds a 'Last audio attempt' diagnostic line in Sleep Preferences — surfaces exactly which step of the audio init pipeline succeeded or failed (including the exception class + message), directly on the phone, no USB cable needed."
 }
