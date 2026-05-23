@@ -9,6 +9,15 @@ data class ReleaseNote(
 object ReleaseNotes {
     val history: List<ReleaseNote> = listOf(
         ReleaseNote(
+            versionName = "2.12.1",
+            versionCode = 50,
+            summary = "AddEventDialog no longer dismisses on swipe-down, and dismissing via " +
+                "back press / tap-outside now shows a 'Discard changes?' confirm when the " +
+                "form has any content. Was a real annoyance — a stray drag inside the form " +
+                "(common while scrolling chips or scrubbing the time field) silently killed " +
+                "the entry in progress.",
+        ),
+        ReleaseNote(
             versionName = "2.12.0",
             versionCode = 49,
             summary = "Calendar polish bundle. Fixed the stray horizontal line on multi-day " +

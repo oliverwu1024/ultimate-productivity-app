@@ -27,6 +27,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -38,6 +39,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -82,9 +84,18 @@ fun AddEventDialog(
     /// to pre-fill a freshly-parsed event for the user to confirm.
     prefilledNewEvent: CreateCalendarEventDto? = null,
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    // v2.12.1 — Block swipe-down dismiss so a stray finger drag inside the
+    // form (common when scrolling the chips / time fields) doesn't kill the
+    // user's in-progress entry. The Hidden value transition is rejected;
+    // dismissal goes through onDismissRequest below, which routes to the
+    // discard-confirm dialog when the form has any content.
+    val sheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true,
+        confirmValueChange = { newValue -> newValue != androidx.compose.material3.SheetValue.Hidden },
+    )
     val context = LocalContext.current
     val zone = ZoneId.systemDefault()
+    var showDiscardConfirm by remember { mutableStateOf(false) }
 
     // Initial start/end resolves in priority order:
     //  1. editingEvent (user opened the dialog from an existing row)
@@ -184,7 +195,48 @@ fun AddEventDialog(
     val timeFormat = DateTimeFormatter.ofPattern("hh:mm a")
     val dateFormat = DateTimeFormatter.ofPattern("MMM dd, yyyy")
 
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+    // v2.12.1 — Dirty = user has put any non-trivial effort into the form
+    // (typed a title, typed a description, or — when editing — touched any
+    // chip / toggle). For a fresh open with default values, swipe-out
+    // doesn't trigger the discard confirm. The check is intentionally
+    // generous (`title.isNotBlank()` alone covers most accidental swipes)
+    // because false-positive confirm prompts are cheaper than data loss.
+    val isDirty = title.isNotBlank() ||
+        description.isNotBlank() ||
+        (editingEvent != null && (
+            title != (editingEvent.title) ||
+            description != (editingEvent.description ?: "") ||
+            category != editingEvent.category ||
+            priority != editingEvent.priority ||
+            selectedColor != editingEvent.color ||
+            isRecurring != editingEvent.isRecurring
+        ))
+
+    if (showDiscardConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDiscardConfirm = false },
+            title = { Text(if (editingEvent != null) "Discard changes?" else "Discard event?") },
+            text = { Text("You'll lose what you've typed.") },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    showDiscardConfirm = false
+                    onDismiss()
+                }) { Text("Discard") }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { showDiscardConfirm = false }) {
+                    Text("Keep editing")
+                }
+            },
+        )
+    }
+
+    ModalBottomSheet(
+        onDismissRequest = {
+            if (isDirty) showDiscardConfirm = true else onDismiss()
+        },
+        sheetState = sheetState,
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
