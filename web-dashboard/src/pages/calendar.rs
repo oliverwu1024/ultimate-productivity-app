@@ -751,10 +751,11 @@ fn EventDialog(
             })
             .unwrap_or(EventPriority::Medium),
     );
-    // v2.13.0 — Per-event reminder offset. None means "default" (server
-    // COALESCEs on update, scheduler defaults to 15 min on Android).
+    // v2.13.1 — Multi-reminder per event. None = "use client default"
+    // (single 15-min reminder via Android scheduler); Some(vec![]) =
+    // explicit opt-out; Some(non-empty) = the user's exact picks.
     let reminder_minutes = RwSignal::new(
-        existing.as_ref().and_then(|e| e.reminder_minutes),
+        existing.as_ref().and_then(|e| e.reminder_minutes.clone()),
     );
     let initial_reminder_minutes = reminder_minutes.get_untracked();
     let submitting = RwSignal::new(false);
@@ -899,6 +900,10 @@ fn EventDialog(
     let initial_description_sv = StoredValue::new(initial_description);
     let initial_category_sv = StoredValue::new(initial_category);
     let initial_priority_sv = StoredValue::new(initial_priority);
+    // v2.13.1 — Option<Vec<i32>> isn't Copy, so wrap it in StoredValue
+    // (was Option<i32> in v2.13.0, which was Copy and worked in the
+    // closure capture by value).
+    let initial_reminder_sv = StoredValue::new(initial_reminder_minutes);
     let attempt_close = move || {
         let dirty = title.get_untracked() != initial_title_sv.get_value()
             || description.get_untracked() != initial_description_sv.get_value()
@@ -907,7 +912,7 @@ fn EventDialog(
             || start_time.get_untracked() != saved_start_time.get_value()
             || end_time.get_untracked() != saved_end_time.get_value()
             || is_all_day.get_untracked() != initial_all_day
-            || reminder_minutes.get_untracked() != initial_reminder_minutes;
+            || reminder_minutes.get_untracked() != initial_reminder_sv.get_value();
         if dirty {
             show_discard_confirm.set(true);
         } else {
@@ -1106,34 +1111,66 @@ fn EventDialog(
                     </select>
                 </label>
 
-                // v2.13.0 — Reminder picker. "default" (None) = client
-                // default (15 min on Android), "none" (Some(0)) = opt
-                // out, integer values = explicit offsets. Matches the
-                // Android picker option set so both surfaces produce
-                // the same `reminder_minutes` values.
-                <label class="block">
-                    <span class="text-sm font-medium text-ultiq-indigo">"Reminder"</span>
-                    <select
-                        class="mt-1 w-full px-3 py-2 border border-ultiq-indigo/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-ultiq-indigo bg-white"
-                        prop:value=move || match reminder_minutes.get() {
-                            None => "default".to_string(),
-                            Some(v) => v.to_string(),
-                        }
-                        on:change=move |ev| {
-                            let s = event_target_value(&ev);
-                            let val = if s == "default" { None } else { s.parse::<i32>().ok() };
-                            reminder_minutes.set(val);
-                        }
-                    >
-                        <option value="default">"Default (15 min)"</option>
-                        <option value="0">"None"</option>
-                        <option value="5">"5 min before"</option>
-                        <option value="15">"15 min before"</option>
-                        <option value="30">"30 min before"</option>
-                        <option value="60">"1 hour before"</option>
-                        <option value="1440">"1 day before"</option>
-                    </select>
-                </label>
+                // v2.13.1 — Multi-select reminder picker. Each chip
+                // toggles independently. "Default" = None (single 15-min
+                // reminder); "None" = Some(vec![]) opt-out; per-offset
+                // chips append to / remove from the explicit list.
+                // Selecting a per-offset chip clears Default/None;
+                // selecting Default/None clears the explicit list.
+                <div>
+                    <span class="text-sm font-medium text-ultiq-indigo">"Reminders"</span>
+                    <div class="mt-1 flex flex-wrap gap-2">
+                        {move || {
+                            let current = reminder_minutes.get();
+                            let is_default = current.is_none();
+                            let is_none = matches!(&current, Some(v) if v.is_empty());
+                            let chip_class = |selected: bool| -> &'static str {
+                                if selected {
+                                    "px-3 py-1 rounded-full text-sm bg-ultiq-indigo text-white cursor-pointer"
+                                } else {
+                                    "px-3 py-1 rounded-full text-sm bg-ultiq-indigo/10 text-ultiq-indigo hover:bg-ultiq-indigo/20 cursor-pointer"
+                                }
+                            };
+                            let options: &[(i32, &str)] = &[
+                                (5, "5 min"),
+                                (15, "15 min"),
+                                (30, "30 min"),
+                                (60, "1 hr"),
+                                (120, "2 hr"),
+                                (240, "4 hr"),
+                                (1440, "1 day"),
+                                (2880, "2 days"),
+                                (10080, "1 week"),
+                            ];
+                            view! {
+                                <button type="button" class=chip_class(is_default)
+                                    on:click=move |_| reminder_minutes.set(None)>"Default"</button>
+                                <button type="button" class=chip_class(is_none)
+                                    on:click=move |_| reminder_minutes.set(Some(vec![]))>"None"</button>
+                                {options.iter().map(|&(mins, label)| {
+                                    let checked = matches!(&current, Some(v) if v.contains(&mins));
+                                    view! {
+                                        <button type="button" class=chip_class(checked)
+                                            on:click=move |_| {
+                                                let mut base: Vec<i32> = reminder_minutes
+                                                    .get_untracked()
+                                                    .unwrap_or_default();
+                                                if let Some(i) = base.iter().position(|&x| x == mins) {
+                                                    base.remove(i);
+                                                } else {
+                                                    base.push(mins);
+                                                    base.sort();
+                                                }
+                                                reminder_minutes.set(Some(base));
+                                            }>
+                                            {label}
+                                        </button>
+                                    }
+                                }).collect_view()}
+                            }
+                        }}
+                    </div>
+                </div>
 
                 <Show when=move || dialog_error.get().is_some()>
                     <p class="text-sm text-ultiq-red bg-ultiq-red/5 px-3 py-2 rounded">

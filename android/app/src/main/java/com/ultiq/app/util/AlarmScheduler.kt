@@ -19,10 +19,17 @@ class AlarmScheduler(private val context: Context) {
 
     companion object {
         const val EVENT_LEAD_MINUTES = 15
+        /// v2.13.1 — Full set of offsets the picker exposes, in minutes.
+        /// Used to enumerate possible request codes when cancelling all
+        /// reminders for an event. Keep aligned with reminderOptions in
+        /// AddEventDialog so we don't miss any scheduled alarm.
+        val KNOWN_REMINDER_OFFSETS: List<Int> =
+            listOf(5, 15, 30, 60, 120, 240, 1440, 2880, 10080)
 
         const val EXTRA_EVENT_ID = "event_id"
         const val EXTRA_EVENT_TITLE = "event_title"
         const val EXTRA_EVENT_START = "event_start"
+        const val EXTRA_REMINDER_MINUTES = "reminder_minutes"
 
         private const val REQ_BEDTIME = 11_001
         private const val REQ_FOCUS = 11_002
@@ -67,24 +74,36 @@ class AlarmScheduler(private val context: Context) {
     }
 
     fun scheduleEventReminder(event: CalendarEventEntity) {
-        // v2.13.0 — Per-event reminder offset. NULL = client default (15 min,
-        // the pre-2.13 hardcoded value). 0 means "no reminder" — skip
-        // scheduling entirely so the user can opt out per-event.
-        val leadMinutes = event.reminderMinutes ?: EVENT_LEAD_MINUTES
-        if (leadMinutes <= 0) return
-        val triggerMillis = event.startTime - leadMinutes * 60_000L
-        if (triggerMillis <= System.currentTimeMillis()) return
+        // v2.13.1 — Multi-reminder per event. NULL = client default (single
+        // 15-min reminder, the pre-2.13 behaviour). Empty list = opt-out.
+        // Non-empty list = one alarm per offset. Each offset gets its own
+        // request code derived from (eventId, minutes) so cancellation
+        // hits exactly the right alarm.
+        val offsets = event.reminderMinutes ?: listOf(EVENT_LEAD_MINUTES)
+        for (minutes in offsets) {
+            if (minutes <= 0) continue
+            val triggerMillis = event.startTime - minutes * 60_000L
+            if (triggerMillis <= System.currentTimeMillis()) continue
 
-        val intent = Intent(context, EventReminderReceiver::class.java).apply {
-            putExtra(EXTRA_EVENT_ID, event.id)
-            putExtra(EXTRA_EVENT_TITLE, event.title)
-            putExtra(EXTRA_EVENT_START, event.startTime)
+            val intent = Intent(context, EventReminderReceiver::class.java).apply {
+                putExtra(EXTRA_EVENT_ID, event.id)
+                putExtra(EXTRA_EVENT_TITLE, event.title)
+                putExtra(EXTRA_EVENT_START, event.startTime)
+                putExtra(EXTRA_REMINDER_MINUTES, minutes)
+            }
+            scheduleExact(eventRequestCode(event.id, minutes), intent, triggerMillis)
         }
-        scheduleExact(eventRequestCode(event.id), intent, triggerMillis)
     }
 
     fun cancelEventReminder(eventId: String) {
-        cancel(eventRequestCode(eventId), EventReminderReceiver::class.java, eventId)
+        // v2.13.1 — Cancel every alarm scheduled for this event across all
+        // known offset values. We don't have the original list at cancel
+        // time (caller usually just knows the id), so we walk the picker's
+        // option set; cancelling a request-code that was never registered
+        // is a no-op.
+        for (minutes in KNOWN_REMINDER_OFFSETS) {
+            cancel(eventRequestCode(eventId, minutes), EventReminderReceiver::class.java, eventId)
+        }
         NotificationHelper.cancelEventReminder(context, eventId)
     }
 
@@ -129,8 +148,17 @@ class AlarmScheduler(private val context: Context) {
         }
     }
 
-    private fun eventRequestCode(eventId: String): Int =
-        REQ_EVENT_BASE + (eventId.hashCode() and 0x0fffffff)
+    /// v2.13.1 — Request code is derived from (eventId, minutes) so each
+    /// reminder for the same event maps to a distinct PendingIntent slot,
+    /// allowing N independent alarms. Pre-2.13.1 callers used a code based
+    /// on eventId alone; existing scheduled alarms from that code keep
+    /// firing until their event passes (we never cancel them by old code,
+    /// but they'd just deliver a duplicate notification once which is
+    /// fine for the migration window).
+    private fun eventRequestCode(eventId: String, minutes: Int): Int {
+        val base = (eventId.hashCode() and 0x00ffffff)
+        return REQ_EVENT_BASE + base * 32 + (minutes.coerceIn(0, 31000) % 31)
+    }
 
     private fun nextOccurrenceMillis(time: LocalTime): Long {
         val zone = ZoneId.systemDefault()

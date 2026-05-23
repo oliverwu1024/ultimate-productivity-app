@@ -14,10 +14,10 @@ data class CreateCalendarEventDto(
     val recurrence_rule: String?,
     val color: String?,
     val is_done: Boolean? = null,
-    /// v2.13.0 — Minutes before start_time to fire the reminder. Null
-    /// means "preserve server-side stored value" on update (server
-    /// COALESCEs); for new creates, null = use server/client default.
-    val reminder_minutes: Int? = null,
+    /// v2.13.1 — List of minutes-before-start_time offsets. Null = preserve
+    /// stored value on update (server COALESCEs) / use client default on
+    /// new creates. v2.13.0 had this as Int?; widened for multi-reminder.
+    val reminder_minutes: List<Int>? = null,
 )
 
 data class CalendarEventDto(
@@ -33,9 +33,9 @@ data class CalendarEventDto(
     val recurrence_rule: String?,
     val color: String,
     val is_done: Boolean = false,
-    /// v2.13.0 — Optional on the wire: pre-2.13 server rows return null,
-    /// post-2.13 rows return the user's picked offset or null if not set.
-    val reminder_minutes: Int? = null,
+    /// v2.13.1 — Optional on the wire. JSON shape: `null` (default) or
+    /// an array `[]` / `[15]` / `[1440, 60, 5]`. Pre-2.13 rows: null.
+    val reminder_minutes: List<Int>? = null,
     val created_at: String,
     val updated_at: String
 )
@@ -54,6 +54,8 @@ fun CalendarEventDto.toEntity(): CalendarEventEntity {
         recurrenceRule = recurrence_rule,
         color = color,
         isDone = is_done,
+        // v2.13.1 — server may return null (default) or an array; pass
+        // through directly. List type preserves opt-out (empty list).
         reminderMinutes = reminder_minutes,
         createdAt = Instant.parse(created_at).toEpochMilli(),
         updatedAt = Instant.parse(updated_at).toEpochMilli(),

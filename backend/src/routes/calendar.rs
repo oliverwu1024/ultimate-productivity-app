@@ -93,7 +93,7 @@ async fn create(
     .bind(&input.recurrence_rule)
     .bind(color)
     .bind(input.is_done.unwrap_or(false))
-    .bind(input.reminder_minutes)
+    .bind(input.reminder_minutes.as_deref())
     .fetch_one(&state.pool)
     .await?;
 
@@ -256,7 +256,7 @@ async fn update(
     .bind(&input.recurrence_rule)
     .bind(color)
     .bind(input.is_done)
-    .bind(input.reminder_minutes)
+    .bind(input.reminder_minutes.as_deref())
     .bind(id)
     .bind(user_id)
     .fetch_optional(&state.pool)

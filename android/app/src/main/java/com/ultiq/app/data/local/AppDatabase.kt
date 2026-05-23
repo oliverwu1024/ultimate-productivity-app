@@ -37,9 +37,10 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
         AlarmTombstoneEntity::class,
         SleepAudioEventEntity::class,
     ],
-    version = 11,
+    version = 12,
     exportSchema = false
 )
+@androidx.room.TypeConverters(com.ultiq.app.data.local.converters.IntListConverter::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun sleepDao(): SleepDao
     abstract fun sessionDao(): SessionDao
@@ -215,6 +216,59 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_11_12 = object : Migration(11, 12) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // v2.13.1 — multi-reminder support. Recreate calendar_events
+                // with reminderMinutes as TEXT (comma-separated list of int
+                // offsets) instead of single INTEGER. CASE in the SELECT
+                // upgrades any v2.13.0 scalar value to its array form:
+                //   NULL → NULL  (use client default)
+                //   0    → ''    (explicit no-reminder)
+                //   N    → "N"   (one reminder)
+                // Table recreate (not ALTER COLUMN TYPE) because SQLite
+                // doesn't support changing a column's affinity in place.
+                db.execSQL(
+                    """CREATE TABLE `calendar_events_new` (
+                        `id` TEXT NOT NULL,
+                        `userId` TEXT NOT NULL,
+                        `title` TEXT NOT NULL,
+                        `description` TEXT,
+                        `startTime` INTEGER NOT NULL,
+                        `endTime` INTEGER NOT NULL,
+                        `category` TEXT NOT NULL,
+                        `priority` TEXT NOT NULL,
+                        `isRecurring` INTEGER NOT NULL,
+                        `recurrenceRule` TEXT,
+                        `color` TEXT NOT NULL,
+                        `isDone` INTEGER NOT NULL DEFAULT 0,
+                        `reminderMinutes` TEXT,
+                        `createdAt` INTEGER NOT NULL,
+                        `updatedAt` INTEGER NOT NULL,
+                        `isSynced` INTEGER NOT NULL DEFAULT 0,
+                        PRIMARY KEY(`id`)
+                    )"""
+                )
+                db.execSQL(
+                    """INSERT INTO `calendar_events_new`
+                        (id, userId, title, description, startTime, endTime,
+                         category, priority, isRecurring, recurrenceRule, color,
+                         isDone, reminderMinutes, createdAt, updatedAt, isSynced)
+                       SELECT
+                         id, userId, title, description, startTime, endTime,
+                         category, priority, isRecurring, recurrenceRule, color,
+                         isDone,
+                         CASE WHEN reminderMinutes IS NULL THEN NULL
+                              WHEN reminderMinutes = 0 THEN ''
+                              ELSE CAST(reminderMinutes AS TEXT)
+                         END,
+                         createdAt, updatedAt, isSynced
+                       FROM `calendar_events`"""
+                )
+                db.execSQL("DROP TABLE `calendar_events`")
+                db.execSQL("ALTER TABLE `calendar_events_new` RENAME TO `calendar_events`")
+            }
+        }
+
         private val MIGRATION_6_7 = object : Migration(6, 7) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(
@@ -305,6 +359,7 @@ abstract class AppDatabase : RoomDatabase() {
                     MIGRATION_8_9,
                     MIGRATION_9_10,
                     MIGRATION_10_11,
+                    MIGRATION_11_12,
                 )
                 // Legacy DB has been dropped if it existed; if Room can't
                 // open the file (corrupt / version mismatch from a prior
