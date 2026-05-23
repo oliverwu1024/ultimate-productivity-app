@@ -61,6 +61,32 @@ class SleepTrackingService : Service() {
         val pendingAudioEvents = MutableStateFlow<List<SleepAudioEventEntity>>(emptyList())
         val audioTrackingActive = MutableStateFlow(false)
 
+        // §10.x — Static handle to the running classifier so the End Sleep
+        // flow can flush the aggregator synchronously *before* it snapshots
+        // pendingAudioEvents into the dialog state. Without this flush, the
+        // last in-flight snore/cough event (still in the aggregator's `active`
+        // map, awaiting the 5 s gap-close) doesn't appear in the dialog —
+        // the run only finalises later inside Service.onDestroy, by which
+        // time the snapshot is already done. Persistence reads
+        // pendingAudioEvents fresh at save-time, so past records were
+        // already correct; only the End Sleep dialog was empty.
+        @Volatile
+        private var audioClassifierRef: SleepAudioClassifier? = null
+
+        /** Synchronously flush the audio aggregator + tear down the classifier.
+         *  Safe to call from the main thread (the underlying runBlocking only
+         *  holds the aggregator mutex for microseconds). Idempotent — a second
+         *  call is a no-op once the static ref is cleared. */
+        fun flushAudioNow() {
+            val cls = audioClassifierRef ?: return
+            audioClassifierRef = null
+            try {
+                cls.shutdown()
+            } catch (e: Throwable) {
+                Log.w(TAG, "flushAudioNow shutdown failed (non-fatal)", e)
+            }
+        }
+
         private var lastScreenOnTime: Long? = null
     }
 
@@ -290,6 +316,10 @@ class SleepTrackingService : Service() {
                 revertNotificationToNoAudio()
                 return@launch
             }
+            // §10.x — Publish the live classifier on the companion ref so the
+            // ViewModel's endSleepSession() can call flushAudioNow() before
+            // snapshotting pendingAudioEvents into the End Sleep dialog.
+            audioClassifierRef = classifier
             audioTrackingActive.value = true
             Log.i(TAG, "Audio tracking started — pipeline confirmed live")
         }
@@ -391,14 +421,15 @@ class SleepTrackingService : Service() {
             lastScreenOnTime = null
         }
 
-        // Tear down the audio loop. shutdown() flushes any in-flight event
-        // through the aggregator so it ends up in pendingAudioEvents before
-        // SleepRepository reads it at session-end.
-        try {
-            audioClassifier?.shutdown()
-        } catch (e: Exception) {
-            Log.w(TAG, "audioClassifier shutdown failed", e)
-        }
+        // Tear down the audio loop. flushAudioNow() runs the aggregator's
+        // final flush so any in-flight snore/cough event lands in
+        // pendingAudioEvents. ViewModel.endSleepSession() usually calls this
+        // first (so the End Sleep dialog sees the flushed events too), but
+        // we always re-call here in case stopService was triggered by some
+        // other path (system kill, alarm interrupt, etc.). flushAudioNow()
+        // is idempotent — the second call is a no-op once the static ref
+        // has been cleared.
+        flushAudioNow()
         audioClassifier = null
         audioAggregator = null
         audioTrackingActive.value = false
