@@ -1,6 +1,6 @@
 {
-  "versionCode": 41,
-  "versionName": "2.11.2",
-  "url": "https://ultiqapp.com/ultiq.2.11.2.apk",
-  "releaseNotes": "Hotfix: the app could crash when starting a sleep session if Sleep sounds was enabled, because MediaPipe init was throwing an Error (not an Exception) that propagated up and killed the process. Now contained — failed audio init just disables tracking for the session instead of crashing."
+  "versionCode": 42,
+  "versionName": "2.11.3",
+  "url": "https://ultiqapp.com/ultiq.2.11.3.apk",
+  "releaseNotes": "Diagnostic patch — the in-app audio pipeline now logs at Log.i (survives R8) instead of Log.d (stripped), and the foreground-service notification correctly reverts to 'Sleep tracking active' if audio init failed silently. Lets us actually diagnose the no-mic-indicator case."
 }

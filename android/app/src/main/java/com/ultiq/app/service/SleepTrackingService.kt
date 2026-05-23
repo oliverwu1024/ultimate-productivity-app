@@ -231,7 +231,7 @@ class SleepTrackingService : Service() {
                     sleepRecordId = "",
                     onEventReady = { event ->
                         pendingAudioEvents.value = pendingAudioEvents.value + event
-                        Log.d(
+                        Log.i(
                             TAG,
                             "Audio event: ${event.eventType} @${event.startedAt} → ${event.endedAt} " +
                                 "(peak conf=${event.peakConfidence})",
@@ -240,6 +240,7 @@ class SleepTrackingService : Service() {
                 )
             } catch (e: Throwable) {
                 Log.e(TAG, "Aggregator init failed", e)
+                revertNotificationToNoAudio()
                 return@launch
             }
             audioAggregator = agg
@@ -251,20 +252,56 @@ class SleepTrackingService : Service() {
                 null
             }
             if (classifier == null) {
-                Log.w(TAG, "SleepAudioClassifier.create returned null")
+                Log.w(TAG, "SleepAudioClassifier.create returned null — RECORD_AUDIO probably not granted at the framework level")
+                revertNotificationToNoAudio()
                 return@launch
             }
             audioClassifier = classifier
-            try {
+            // §10.x — start() now returns Boolean (v2.11.3+). Check it
+            // explicitly: a return-of-false means MediaPipe/AudioRecord init
+            // hit a caught Throwable inside start() and silently disabled
+            // itself; we must revert the notification + clear our references
+            // so the rest of the session reflects the real state.
+            val ok = try {
                 classifier.start()
             } catch (e: Throwable) {
                 Log.e(TAG, "classifier.start() threw — audio tracking disabled this session", e)
+                false
+            }
+            if (!ok) {
+                Log.w(TAG, "classifier.start() returned false — audio init failed; reverting notification + clearing references")
                 audioClassifier = null
                 audioAggregator = null
+                revertNotificationToNoAudio()
                 return@launch
             }
             audioTrackingActive.value = true
-            Log.d(TAG, "Audio tracking started")
+            Log.i(TAG, "Audio tracking started — pipeline confirmed live")
+        }
+    }
+
+    /** §10.x (v2.11.3) — Undo the "+ sounds" notification text + drop the
+     *  MICROPHONE service-type bitmask when audio init fails after the
+     *  FGS-type upgrade already happened. Before this, the user saw
+     *  "Tracking sleep + sounds" with no mic indicator + no events — the
+     *  notification lied about what the service was actually doing. */
+    private fun revertNotificationToNoAudio() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            try {
+                startForeground(
+                    NOTIFICATION_ID,
+                    createNotification(audioActive = false),
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE,
+                )
+            } catch (e: Throwable) {
+                Log.w(TAG, "Failed to revert FGS type after audio init failure (non-fatal)", e)
+            }
+        } else {
+            try {
+                startForeground(NOTIFICATION_ID, createNotification(audioActive = false))
+            } catch (e: Throwable) {
+                Log.w(TAG, "Failed to refresh notification after audio init failure (non-fatal)", e)
+            }
         }
     }
 

@@ -9,6 +9,16 @@ data class ReleaseNote(
 object ReleaseNotes {
     val history: List<ReleaseNote> = listOf(
         ReleaseNote(
+            versionName = "2.11.3",
+            versionCode = 42,
+            summary = "Diagnostic + UX patch on top of v2.11.2. SleepAudioClassifier.start() " +
+                "now returns a Boolean so SleepTrackingService can tell whether the pipeline " +
+                "actually went live, and reverts the notification + drops the MICROPHONE " +
+                "service-type if audio init failed silently. Critical diagnostic logs in the " +
+                "audio path bumped from Log.d (stripped by R8 in release builds) to Log.i so " +
+                "release-build installs are now debuggable from adb logcat without rebuilding.",
+        ),
+        ReleaseNote(
             versionName = "2.11.2",
             versionCode = 41,
             summary = "Hotfix: the app could crash when starting a sleep session if " +
