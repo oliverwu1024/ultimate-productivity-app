@@ -1053,6 +1053,12 @@ struct ParsedCalendarFields {
     category: String,
     /// One of: high | medium | low
     priority: String,
+    /// v2.13.4 — Coach-parsed reminder offsets. Forwarded to the client
+    /// as part of the proposed_event card; on confirm, the client builds
+    /// a CreateCalendarEvent with this same value. Null = use client
+    /// default; empty array = explicit no-reminder.
+    #[serde(default)]
+    reminder_minutes: Option<Vec<i32>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -1440,6 +1446,11 @@ fn calendar_tool_schema() -> serde_json::Value {
                 "type": "string",
                 "enum": ["high", "medium", "low"],
                 "description": "Default \"medium\" unless the user signals urgency."
+            },
+            "reminder_minutes": {
+                "type": ["array", "null"],
+                "items": { "type": "integer" },
+                "description": "Optional list of minutes-before-start_time to fire reminder notifications, e.g. [60, 5] for 1 hour and 5 minutes before. Set when the user explicitly asks (\"remind me 1 day before\", \"30 min reminder\"). Omit (null) to use the client's default (single 15-min reminder). Use [] for explicit no-reminder when the user says \"no reminder\". Common values: 5, 15, 30, 60, 120, 240, 1440 (1 day), 2880 (2 days), 10080 (1 week)."
             }
         },
         "required": ["title", "start_time", "end_time", "category", "priority"]

@@ -51,6 +51,12 @@ class SyncEventClient(
     /// otherwise a Coach-created alarm would show up in the UI but never
     /// actually fire.
     private val wakeScheduler: WakeAlarmScheduler? = null,
+    /// v2.13.4 — Fired the moment SSE connects, so the caller can run a
+    /// full sync to catch any events created during the ~15 s connect
+    /// window (between app foreground and SSE handshake completing).
+    /// Without this, web-added events in that window were silently
+    /// missed until the next tab-resume / process restart.
+    private val onConnected: (suspend () -> Unit)? = null,
 ) {
     private val scope = CoroutineScope(Dispatchers.IO)
     private var eventSource: EventSource? = null
@@ -111,6 +117,14 @@ class SyncEventClient(
             // couldn't tell from a release-build logcat whether SSE was
             // even connecting because the logs were stripped by R8.
             Log.i(TAG, "SSE connected: HTTP ${response.code}")
+            // v2.13.4 — Cold-start catch-up. Backend's ~15 s connect
+            // window means any event added on web *between* foreground
+            // and onOpen never streamed to us. Trigger a full sync now
+            // so the local cache is correct from the first frame the
+            // user sees. Idempotent — same code path WorkManager's
+            // periodic sync runs.
+            val cb = onConnected ?: return
+            scope.launch { runCatching { cb() } }
         }
 
         override fun onEvent(

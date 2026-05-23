@@ -90,7 +90,8 @@ class AchievementChecker(
             }
         }
 
-        AchievementEvents.emit(newlyEarned)
+        // v2.13.4 — Dropped AchievementEvents broadcast. No consumers
+        // since v2.13.3 (popup removed in favour of Settings → Achievements).
         return newlyEarned
     }
 

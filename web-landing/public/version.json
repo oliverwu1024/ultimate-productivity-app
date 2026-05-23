@@ -1,6 +1,6 @@
 {
-  "versionCode": 56,
-  "versionName": "2.13.2",
-  "url": "https://ultiqapp.com/ultiq.2.13.2.apk",
-  "releaseNotes": "Fixes a focus-session bug: confirming a recurring checklist item after a session now actually marks it done for today. Was using the wrong completion path (flipped `completed` only, ignored `lastCompletedEpochDay`), so the row stayed visible in the Checklist tab even after you ticked it. Otherwise carries the full v2.13.1 bundle: multi-select reminders per event (Default / None / 5 min / 15 min / 30 min / 1 hr / 2 hr / 4 hr / 1 day / 2 days / 1 week)."
+  "versionCode": 58,
+  "versionName": "2.13.4",
+  "url": "https://ultiqapp.com/ultiq.2.13.4.apk",
+  "releaseNotes": "Three polish wins: cold-start SSE catch-up sync (web-added events arrive on phone immediately, no more 15-second cold-start gap); Coach-proposed events now carry your reminder preference (ask 'remind me 1 hour before' and it actually fires); minor internal cleanup. Carries the full v2.13.x bundle: multi-select reminders, Settings → Achievements (no more mid-screen popups), focus-session checklist fix."
 }
