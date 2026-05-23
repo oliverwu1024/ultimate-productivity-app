@@ -64,6 +64,21 @@ fn local_date(dt: DateTime<Utc>) -> NaiveDate {
     dt.with_timezone(&Local).date_naive()
 }
 
+/// True iff the event's [start_local_date, end_local_date] range covers
+/// `day`. Used to render multi-day events on every day they span, not
+/// just their start day (Android v2.11.9 parity).
+fn event_spans_day(event: &CalendarEvent, day: NaiveDate) -> bool {
+    let start_date = local_date(event.start_time);
+    let end_date = local_date(event.end_time);
+    day >= start_date && day <= end_date
+}
+
+/// True iff the event's local start and end dates differ — i.e. it
+/// extends past midnight in the user's timezone.
+fn is_multi_day(event: &CalendarEvent) -> bool {
+    local_date(event.start_time) != local_date(event.end_time)
+}
+
 fn dt_to_input(dt: DateTime<Utc>) -> String {
     dt.with_timezone(&Local).format("%Y-%m-%dT%H:%M").to_string()
 }
@@ -221,9 +236,20 @@ pub fn CalendarPage() -> impl IntoView {
                                 let in_month = day.month() == month.month();
                                 let is_today = day == today;
                                 let is_selected = day == sel;
-                                let day_events: Vec<CalendarEvent> = evs.iter()
-                                    .filter(|e| local_date(e.start_time) == day)
+                                // v2.12.x — Include every event that spans this
+                                // day, not just events that start on it. Split
+                                // single-day from multi-day so DayCell can render
+                                // the count badge vs the ribbon strip separately.
+                                let spanning: Vec<CalendarEvent> = evs.iter()
+                                    .filter(|e| event_spans_day(e, day))
                                     .cloned()
+                                    .collect();
+                                let (multi_day_evs, single_day_evs): (Vec<_>, Vec<_>) =
+                                    spanning.into_iter().partition(|e| is_multi_day(e));
+                                let ribbon_colors: Vec<String> = multi_day_evs
+                                    .iter()
+                                    .take(3)
+                                    .map(|e| e.color.clone())
                                     .collect();
                                 view! {
                                     <DayCell
@@ -231,7 +257,8 @@ pub fn CalendarPage() -> impl IntoView {
                                         in_month=in_month
                                         is_today=is_today
                                         is_selected=is_selected
-                                        events=day_events
+                                        events=single_day_evs
+                                        ribbon_colors=ribbon_colors
                                         on_click=move || selected_day.set(day)
                                     />
                                 }
@@ -379,10 +406,12 @@ fn DayCell(
     is_today: bool,
     is_selected: bool,
     events: Vec<CalendarEvent>,
+    ribbon_colors: Vec<String>,
     on_click: impl Fn() + Send + Sync + 'static,
 ) -> impl IntoView {
     let count = events.len();
     let label = format!("{} {}", count, if count == 1 { "event" } else { "events" });
+    let has_ribbons = !ribbon_colors.is_empty();
 
     let bg_class = if is_selected {
         "bg-ultiq-indigo/10 ring-2 ring-ultiq-indigo"
@@ -411,6 +440,20 @@ fn DayCell(
                     {count}
                 </span>
             </Show>
+            // v2.12.x — Multi-day ribbons at the bottom of the cell. Each
+            // ribbon is a full-width 3px colored stripe; consecutive cells
+            // spanned by the same event render matching stripes that read
+            // as a continuous bar across the week (Android v2.11.9 parity).
+            <Show when=move || has_ribbons>
+                <div class="mt-auto flex flex-col gap-px w-full">
+                    {ribbon_colors.iter().map(|c| {
+                        let style = format!("background-color: {}", c);
+                        view! {
+                            <div class="h-[3px] rounded-sm w-full" style=style />
+                        }
+                    }).collect_view()}
+                </div>
+            </Show>
         </button>
     }
 }
@@ -424,10 +467,22 @@ fn DayEvents(
     view! {
         {move || {
             let day = selected_day.get();
+            // v2.12.x — Show every event that spans this day (not just
+            // events starting on it). Multi-day events sort first so the
+            // "all-day band" appears above timed events — same convention
+            // as Android v2.11.9.
             let mut day_events: Vec<CalendarEvent> = events.get().into_iter()
-                .filter(|e| local_date(e.start_time) == day)
+                .filter(|e| event_spans_day(e, day))
                 .collect();
-            day_events.sort_by_key(|e| e.start_time);
+            day_events.sort_by(|a, b| {
+                let a_multi = is_multi_day(a);
+                let b_multi = is_multi_day(b);
+                if a_multi != b_multi {
+                    b_multi.cmp(&a_multi)
+                } else {
+                    a.start_time.cmp(&b.start_time)
+                }
+            });
 
             if day_events.is_empty() {
                 view! {
@@ -441,11 +496,28 @@ fn DayEvents(
                             let event_for_click = e.clone();
                             let start_local = e.start_time.with_timezone(&Local);
                             let end_local = e.end_time.with_timezone(&Local);
-                            let time_range = format!(
-                                "{} – {}",
-                                start_local.format("%H:%M"),
-                                end_local.format("%H:%M"),
-                            );
+                            let start_date = start_local.date_naive();
+                            let end_date = end_local.date_naive();
+                            // v2.12.x — Adaptive time text for multi-day events
+                            // depending on which day is being viewed. Single-day
+                            // events keep the original "HH:MM – HH:MM" format.
+                            let time_range = if start_date == end_date {
+                                format!("{} – {}", start_local.format("%H:%M"), end_local.format("%H:%M"))
+                            } else if day == start_date {
+                                format!("{} → ends {} {}",
+                                    start_local.format("%H:%M"),
+                                    end_local.format("%a"),
+                                    end_local.format("%H:%M"))
+                            } else if day == end_date {
+                                format!("Ends {} · started {} {}",
+                                    end_local.format("%H:%M"),
+                                    start_local.format("%a"),
+                                    start_local.format("%H:%M"))
+                            } else {
+                                format!("All day · started {} {}",
+                                    start_local.format("%a"),
+                                    start_local.format("%H:%M"))
+                            };
                             let color = e.color.clone();
                             // Mark-done only applies once the slot has actually
                             // finished. Future events stay clean / no checkbox.
