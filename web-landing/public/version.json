@@ -1,6 +1,6 @@
 {
-  "versionCode": 55,
-  "versionName": "2.13.1",
-  "url": "https://ultiqapp.com/ultiq.2.13.1.apk",
-  "releaseNotes": "Per-event reminders are now multi-select — attach 1 day + 1 hour + 5 min before a single event, or pick None to opt out. Adds 2 hr / 4 hr / 2 days / 1 week to the offset options. Also bundles every v2.12.x calendar improvement since the last landing-page bump: multi-day events render across every day they span (ribbons on the month grid, adaptive time text on the day list), Today pill on the month header, long-press a date to quick-add, swipe-left an event to delete, all-day toggle, discard-confirm guard, Material 3 date/time pickers, inline conflict warning, real-time SSE sync of web/phone calendar changes."
+  "versionCode": 56,
+  "versionName": "2.13.2",
+  "url": "https://ultiqapp.com/ultiq.2.13.2.apk",
+  "releaseNotes": "Fixes a focus-session bug: confirming a recurring checklist item after a session now actually marks it done for today. Was using the wrong completion path (flipped `completed` only, ignored `lastCompletedEpochDay`), so the row stayed visible in the Checklist tab even after you ticked it. Otherwise carries the full v2.13.1 bundle: multi-select reminders per event (Default / None / 5 min / 15 min / 30 min / 1 hr / 2 hr / 4 hr / 1 day / 2 days / 1 week)."
 }
