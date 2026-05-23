@@ -216,12 +216,35 @@ class CalendarViewModel(application: Application) : AndroidViewModel(application
         monthJob = viewModelScope.launch {
             repository.getEventsForMonth(yearMonth.year, yearMonth.monthValue).collect { events ->
                 val zone = java.time.ZoneId.systemDefault()
-                val grouped = events.groupBy { entity ->
-                    Instant.ofEpochMilli(entity.startTime).atZone(zone).toLocalDate()
+                // v2.11.9 — Expand each event across every day it spans so
+                // multi-day events appear on mid-days too (was: keyed only
+                // by the start-date, so a Mon→Wed event was invisible on
+                // Tue and Wed in both the month grid dots and the day list).
+                // Each spanning entry shares the same entity object — the
+                // EventItem renders adaptive time text based on the viewed
+                // date so "today is day 2 of a 3-day event" reads correctly.
+                val grouped = mutableMapOf<LocalDate, MutableList<CalendarEventEntity>>()
+                for (event in events) {
+                    val startDate = Instant.ofEpochMilli(event.startTime).atZone(zone).toLocalDate()
+                    val endDate = Instant.ofEpochMilli(event.endTime).atZone(zone).toLocalDate()
+                    var cur = startDate
+                    while (!cur.isAfter(endDate)) {
+                        grouped.getOrPut(cur) { mutableListOf() } += event
+                        cur = cur.plusDays(1)
+                    }
+                }
+                // Sort each day's list: multi-day events (spanning days) sort
+                // first, then single-day events by startTime — mirrors the
+                // "all-day band at the top" convention from Google Calendar.
+                val sorted = grouped.mapValues { (_, list) ->
+                    list.sortedWith(
+                        compareByDescending<CalendarEventEntity> { it.endTime - it.startTime > 24L * 60L * 60L * 1000L }
+                            .thenBy { it.startTime }
+                    )
                 }
                 _uiState.value = _uiState.value.copy(
-                    monthEvents = grouped,
-                    selectedDayEvents = grouped[_uiState.value.selectedDate] ?: emptyList()
+                    monthEvents = sorted,
+                    selectedDayEvents = sorted[_uiState.value.selectedDate] ?: emptyList()
                 )
             }
         }
@@ -231,5 +254,15 @@ class CalendarViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             try { repository.sync() } catch (_: Exception) { }
         }
+    }
+
+    /** v2.11.8 — Called from CalendarScreen via LifecycleResumeEffect so that
+     *  tabbing away + back (or backgrounding + foregrounding the app) pulls
+     *  the latest server state. Without this, events added on web or by
+     *  another device stayed invisible on the phone until the ViewModel was
+     *  re-created (process death, etc.). Cheap: one HTTP GET + a Room
+     *  insertAll on the response; Room invalidation handles the UI refresh. */
+    fun refresh() {
+        sync()
     }
 }

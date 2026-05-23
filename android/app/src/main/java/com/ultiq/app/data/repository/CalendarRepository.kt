@@ -166,16 +166,33 @@ class CalendarRepository(
                 }
             }
 
-            val serverEvents = apiService.getCalendarEvents(null, null, null, null)
+            // v2.11.8 — pull an explicit past+future window. The backend's
+            // GET /calendar default is `start = now - 30d, end = now` (past
+            // only — see backend/src/routes/calendar.rs:122), so calling
+            // with all-null params silently excluded every event the user
+            // had added for a future date: visible on web (via SSE push),
+            // invisible on Android (never landed in Room because it wasn't
+            // in the pulled set). The widened window covers the typical
+            // "view the next year of recurring stuff" case without paging.
+            val today = LocalDate.now(LOCAL_ZONE)
+            val syncRangeStart = today.minusDays(30).toString()  // YYYY-MM-DD, matches backend NaiveDate
+            val syncRangeEnd = today.plusDays(365).toString()
+            val serverEvents = apiService.getCalendarEvents(
+                start = syncRangeStart,
+                end = syncRangeEnd,
+                category = null,
+                priority = null,
+            )
             val serverIds = serverEvents.map { it.id }.toSet()
 
-            // Reconcile deletes: any local synced row in the pulled window that's no longer
-            // on the server was deleted elsewhere (web dashboard, another device). Match the
-            // backend's default ±30-day window.
-            val now = System.currentTimeMillis()
-            val day = 24L * 60L * 60L * 1000L
-            val rangeStart = now - 30L * day
-            val rangeEnd = now + 30L * day
+            // Reconcile deletes: any local synced row in the pulled window
+            // that's no longer on the server was deleted elsewhere. Range
+            // MUST match the pull window above (was hard-coded ±30 days,
+            // which previously also lined up with the broken pull default;
+            // now follows the corrected -30d / +365d window so we don't
+            // accidentally wipe a local row the server still owns).
+            val rangeStart = today.minusDays(30).atStartOfDay(LOCAL_ZONE).toInstant().toEpochMilli()
+            val rangeEnd = today.plusDays(365).atTime(23, 59, 59).atZone(LOCAL_ZONE).toInstant().toEpochMilli()
             val localSyncedIds = calendarEventDao.getSyncedIdsInRange(rangeStart, rangeEnd)
             for (id in localSyncedIds) {
                 if (id !in serverIds) {
