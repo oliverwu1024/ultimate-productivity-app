@@ -80,7 +80,6 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ultiq.app.data.local.entity.SessionEntity
-import com.ultiq.app.ui.common.AchievementCelebration
 import com.ultiq.app.ui.common.MascotEmptyState
 import com.ultiq.app.ui.copy.WarmCopy
 import com.ultiq.app.ui.theme.AnimatedAppear
@@ -251,14 +250,8 @@ fun SessionsScreen(
         )
     }
 
-    uiState.celebratedAchievement?.let { id ->
-        AchievementCelebration(
-            name = id.displayName,
-            description = id.description,
-            icon = id.icon,
-            onDismiss = { viewModel.dismissAchievementCelebration() },
-        )
-    }
+    // v2.13.3 — Removed AchievementCelebration dialog. Achievements still
+    // record silently; the user reviews them in Settings → Achievements.
 }
 
 @Composable

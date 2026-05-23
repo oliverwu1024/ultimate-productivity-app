@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Add
@@ -89,6 +90,7 @@ fun SettingsScreen(
     onNavigateToReports: () -> Unit,
     onNavigateToChangePassword: () -> Unit,
     onNavigateToTerms: () -> Unit,
+    onNavigateToAchievements: () -> Unit,
     onLogout: () -> Unit,
     onResetAccount: () -> Unit,
     onDeleteAccount: () -> Unit,
@@ -199,6 +201,14 @@ fun SettingsScreen(
                     title = "Weekly report",
                     description = "Sleep, focus, and achievements",
                     onClick = onNavigateToReports,
+                )
+            }
+            item {
+                LinkRow(
+                    icon = androidx.compose.material.icons.Icons.Default.EmojiEvents,
+                    title = "Achievements",
+                    description = "What you've unlocked",
+                    onClick = onNavigateToAchievements,
                 )
             }
             item {
