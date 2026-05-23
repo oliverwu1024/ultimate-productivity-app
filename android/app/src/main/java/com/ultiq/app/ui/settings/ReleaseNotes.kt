@@ -9,6 +9,16 @@ data class ReleaseNote(
 object ReleaseNotes {
     val history: List<ReleaseNote> = listOf(
         ReleaseNote(
+            versionName = "2.11.1",
+            versionCode = 40,
+            summary = "Fixes on-device snore + cough detection in the release build. " +
+                "R8 minification was stripping the MediaPipe result classes that the " +
+                "YAMNet pipeline needs at runtime — events fired in dogfood (debug build) " +
+                "but never reached the aggregator in production. Wider ProGuard keep rules " +
+                "preserve MediaPipe + AutoValue + TFLite + protobuf machinery so release " +
+                "builds now match debug behaviour.",
+        ),
+        ReleaseNote(
             versionName = "2.11.0",
             versionCode = 39,
             summary = "On-device snore + cough detection during sleep — toggle it on " +

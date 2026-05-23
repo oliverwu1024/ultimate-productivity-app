@@ -74,23 +74,52 @@
 -keep class com.ultiq.app.MainActivity { *; }
 
 # --- MediaPipe Tasks Audio (YAMNet snore + cough detection, Phase 10) --------
-# MediaPipe's transitive deps include AutoValue + javapoet, which are
-# compile-time codegen tools that reference `javax.lang.model.*` (Java
-# Compiler API — only present in the JDK at build time, not on Android at
-# runtime). R8 sees the missing classes and refuses to minify. They're
-# unreachable at runtime; the -dontwarn lines tell R8 that's expected.
+# In v2.11.0 these rules were insufficient — release-build snore/cough
+# detection silently failed because R8 was stripping the AutoValue-generated
+# subclasses MediaPipe uses for nearly every result/options object. Debug
+# builds (R8 off) worked; release builds (R8 on) didn't fire any events.
+# v2.11.1 widens the net to the entire mediapipe namespace + AutoValue +
+# TFLite + protobuf.
 -dontwarn javax.lang.model.**
 -dontwarn autovalue.shaded.**
 -dontwarn com.google.auto.value.**
-# Keep the MediaPipe Tasks Audio public surface — the AudioClassifier
-# instance methods + their callbacks are invoked by reflection from the
-# native bridge, and minification was renaming them out from under us.
--keep class com.google.mediapipe.tasks.audio.** { *; }
--keep class com.google.mediapipe.tasks.components.containers.** { *; }
--keep class com.google.mediapipe.tasks.core.** { *; }
--keep class com.google.mediapipe.framework.** { *; }
-# MediaPipe's GraphProfiler + Graph reference protobuf classes for
-# profiling + graph templates we don't use. The protos aren't on the
-# classpath (they ship as separate optional artifacts); -dontwarn keeps
-# R8 from failing on the missing-but-unreachable references.
 -dontwarn com.google.mediapipe.proto.**
+-dontwarn com.google.errorprone.annotations.**
+
+# Keep the entire MediaPipe namespace. AudioClassifier results
+# (AudioClassifierResult / ClassificationResult / Classifications / Category)
+# are AutoValue-generated; the public classes are reachable but the
+# generated AutoValue_* subclasses get pruned unless we keep everything.
+-keep class com.google.mediapipe.** { *; }
+-keepclassmembers class com.google.mediapipe.** { *; }
+
+# AutoValue — MediaPipe's entire result + options object graph uses these.
+# Keep both the visible AutoValue classes AND the underscore-prefixed
+# generated implementations that AutoValue's factory methods instantiate.
+-keep class **AutoValue_** { *; }
+-keep class **$AutoValue_** { *; }
+-keep class **AutoOneOf_** { *; }
+-keepclassmembers class **AutoValue_** { *; }
+-keepclassmembers class **$AutoValue_** { *; }
+-keep @com.google.auto.value.AutoValue class * { *; }
+-keep @com.google.auto.value.AutoOneOf class * { *; }
+-keep class com.google.auto.value.** { *; }
+
+# TensorFlow Lite — YAMNet model loads + runs via the TFLite interpreter,
+# which MediaPipe instantiates from native code via JNI. The interpreter
+# class + its delegate classes (XNNPACK / GPU / NNAPI) must survive R8.
+-keep class org.tensorflow.lite.** { *; }
+-keep class * extends org.tensorflow.lite.Interpreter
+-dontwarn org.tensorflow.lite.**
+
+# Protobuf — MediaPipe's options / config types serialise through
+# proto-lite. R8 strips fields without these explicit keeps.
+-keep class com.google.protobuf.** { *; }
+-keepclassmembers class * extends com.google.protobuf.GeneratedMessageLite { <fields>; }
+-keepclassmembers class * extends com.google.protobuf.GeneratedMessage { <fields>; }
+-dontwarn com.google.protobuf.**
+
+# androidx + jspecify annotations referenced by MediaPipe public API.
+-keep class androidx.annotation.** { *; }
+-dontwarn org.jspecify.annotations.**
+-dontwarn org.checkerframework.**

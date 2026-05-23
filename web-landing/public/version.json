@@ -1,6 +1,6 @@
 {
-  "versionCode": 39,
-  "versionName": "2.11.0",
-  "url": "https://ultiqapp.com/ultiq.2.11.0.apk",
-  "releaseNotes": "On-device snore + cough detection during sleep (audio analysed locally — never uploaded). End Sleep dialog shows the per-pickup + snore + cough timeline and offers a one-tap AI sleep quality rating. Tap any past sleep record to expand the full timeline."
+  "versionCode": 40,
+  "versionName": "2.11.1",
+  "url": "https://ultiqapp.com/ultiq.2.11.1.apk",
+  "releaseNotes": "Fixes on-device snore + cough detection in the release build — release-build R8 was stripping the MediaPipe result classes that the YAMNet pipeline needs. Update if you turned on Sleep sounds in v2.11.0 and saw no events."
 }
