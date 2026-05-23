@@ -9,6 +9,70 @@ data class ReleaseNote(
 object ReleaseNotes {
     val history: List<ReleaseNote> = listOf(
         ReleaseNote(
+            versionName = "2.13.0",
+            versionCode = 54,
+            summary = "Per-event reminder offset is now picker-driven instead of hard-coded " +
+                "at 15 minutes. New 'Reminder' row in the add/edit dialog (Default / None / " +
+                "5 min / 15 min / 30 min / 1 hour / 1 day before). Pick 'None' to opt out of " +
+                "the notification for a single event. Backend column + Room migration carry " +
+                "the value through; pre-2.13 events stay on the 15-min default. Same picker " +
+                "shape on the web dashboard so both surfaces produce the same values.",
+        ),
+        ReleaseNote(
+            versionName = "2.12.4",
+            versionCode = 53,
+            summary = "Multi-day event ribbons in the month grid now use a deterministic " +
+                "per-event palette (hash of event id → fixed palette slot) so two " +
+                "overlapping multi-day events always render in visually distinct colors. " +
+                "Every Study-category event defaulted to the same blue, which meant " +
+                "overlapping ribbons were indistinguishable. The user-picked color on " +
+                "each event card (left border in the day list) is unchanged.",
+        ),
+        ReleaseNote(
+            versionName = "2.12.3",
+            versionCode = 52,
+            summary = "Diagnostic patch: SyncEventClient (the existing SSE client that powers " +
+                "real-time updates from web → phone) now logs at Log.i so release-build " +
+                "logcat actually shows whether the SSE connection is open, what events arrive, " +
+                "and what failures look like. Was previously Log.d which R8 strips, so " +
+                "release builds were undiagnosable — couldn't tell whether SSE was even " +
+                "connecting. No behavior change, just visibility.",
+        ),
+        ReleaseNote(
+            versionName = "2.12.2",
+            versionCode = 51,
+            summary = "Calendar add/edit dialog gets Material 3 date and time pickers (replaces " +
+                "the legacy native dialogs that didn't match the rest of the M3 UI and broke " +
+                "in dark mode). Also adds an inline conflict warning: if your new event " +
+                "overlaps with an existing one, the dialog shows 'Conflicts with X (10:00 AM " +
+                "– 11:00 AM)' below the time fields, listing up to 3 conflicts and a " +
+                "'+ N more' suffix beyond that. Non-blocking — you can still save through " +
+                "the conflict if you want.",
+        ),
+        ReleaseNote(
+            versionName = "2.12.1",
+            versionCode = 50,
+            summary = "AddEventDialog no longer dismisses on swipe-down, and dismissing via " +
+                "back press / tap-outside now shows a 'Discard changes?' confirm when the " +
+                "form has any content. Was a real annoyance — a stray drag inside the form " +
+                "(common while scrolling chips or scrubbing the time field) silently killed " +
+                "the entry in progress.",
+        ),
+        ReleaseNote(
+            versionName = "2.12.0",
+            versionCode = 49,
+            summary = "Calendar polish bundle. Fixed the stray horizontal line on multi-day " +
+                "events in the month grid — the ribbon now sits below the date circle as a " +
+                "full-width stripe that visually continues across consecutive cells. New " +
+                "Today pill on the month header (only visible when off-month) to jump back. " +
+                "Long-press any date cell to open the add-event dialog with that date " +
+                "pre-selected. Swipe-left on any event in the day list to delete (matches " +
+                "the project-wide swipe pattern used by Sleep / Alarms / Checklist). New " +
+                "All-day toggle in the add/edit dialog — hides the time pickers and saves " +
+                "as midnight-to-end-of-day in your local zone. Deferred: per-event reminder " +
+                "offsets (needs schema change), Material 3 native pickers, conflict warnings.",
+        ),
+        ReleaseNote(
             versionName = "2.11.9",
             versionCode = 48,
             summary = "Calendar quality-of-life: end date/time now auto-shifts with the " +

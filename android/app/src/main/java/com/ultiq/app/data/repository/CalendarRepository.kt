@@ -73,6 +73,7 @@ class CalendarRepository(
                     recurrenceRule = dto.recurrence_rule,
                     color = dto.color ?: defaultColor(dto.category),
                     isDone = dto.is_done ?: false,
+                    reminderMinutes = dto.reminder_minutes,
                     createdAt = now,
                     updatedAt = now,
                     isSynced = false
@@ -110,6 +111,7 @@ class CalendarRepository(
                     recurrenceRule = dto.recurrence_rule,
                     color = dto.color ?: defaultColor(dto.category),
                     isDone = dto.is_done ?: existing?.isDone ?: false,
+                    reminderMinutes = dto.reminder_minutes ?: existing?.reminderMinutes,
                     createdAt = existing?.createdAt ?: now,
                     updatedAt = now,
                     isSynced = false

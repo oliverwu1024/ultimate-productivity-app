@@ -67,7 +67,12 @@ class AlarmScheduler(private val context: Context) {
     }
 
     fun scheduleEventReminder(event: CalendarEventEntity) {
-        val triggerMillis = event.startTime - EVENT_LEAD_MINUTES * 60_000L
+        // v2.13.0 — Per-event reminder offset. NULL = client default (15 min,
+        // the pre-2.13 hardcoded value). 0 means "no reminder" — skip
+        // scheduling entirely so the user can opt out per-event.
+        val leadMinutes = event.reminderMinutes ?: EVENT_LEAD_MINUTES
+        if (leadMinutes <= 0) return
+        val triggerMillis = event.startTime - leadMinutes * 60_000L
         if (triggerMillis <= System.currentTimeMillis()) return
 
         val intent = Intent(context, EventReminderReceiver::class.java).apply {

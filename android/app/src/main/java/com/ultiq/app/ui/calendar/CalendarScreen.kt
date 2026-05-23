@@ -1,8 +1,10 @@
 package com.ultiq.app.ui.calendar
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -69,6 +71,7 @@ import com.ultiq.app.data.local.entity.CalendarEventEntity
 import com.ultiq.app.ui.common.AiParsePromptDialog
 import com.ultiq.app.ui.common.AiParseSurface
 import com.ultiq.app.ui.common.MascotEmptyState
+import com.ultiq.app.ui.common.SwipeToDeleteBox
 import com.ultiq.app.ui.copy.WarmCopy
 import java.time.Instant
 import java.time.LocalDate
@@ -135,8 +138,10 @@ fun CalendarScreen(viewModel: CalendarViewModel = viewModel()) {
         ) {
             MonthHeader(
                 yearMonth = uiState.currentMonth,
+                isOnCurrentMonth = uiState.currentMonth == YearMonth.now(),
                 onPrevious = { viewModel.changeMonth(-1) },
-                onNext = { viewModel.changeMonth(1) }
+                onNext = { viewModel.changeMonth(1) },
+                onToday = { viewModel.jumpToToday() },
             )
 
             DayOfWeekHeader()
@@ -146,7 +151,11 @@ fun CalendarScreen(viewModel: CalendarViewModel = viewModel()) {
                 selectedDate = uiState.selectedDate,
                 today = LocalDate.now(),
                 monthEvents = uiState.monthEvents,
-                onDateSelected = { viewModel.selectDate(it) }
+                onDateSelected = { viewModel.selectDate(it) },
+                onDateLongPressed = { date ->
+                    viewModel.selectDate(date)
+                    viewModel.showAddDialog()
+                },
             )
 
             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
@@ -167,22 +176,44 @@ fun CalendarScreen(viewModel: CalendarViewModel = viewModel()) {
                     }
                 }
                 items(uiState.selectedDayEvents, key = { "${it.id}_${it.startTime}" }) { event ->
-                    EventItem(
-                        event = event,
-                        viewDate = uiState.selectedDate,
-                        onClick = { viewModel.showEditDialog(event) },
-                        onSetDone = { done -> viewModel.setEventDone(event.id, done) },
+                    // v2.12.0 — Swipe-to-delete matches the project-wide
+                    // delete pattern used by Sleep / Alarms / Checklist
+                    // (project memory: "every list screen uses
+                    // SwipeToDeleteBox"). The Delete button inside
+                    // AddEventDialog stays as the secondary path.
+                    SwipeToDeleteBox(
+                        confirmTitle = "Delete event?",
+                        confirmBody = "'${event.title}' will be removed from your calendar.",
+                        onDelete = { viewModel.deleteEvent(event.id) },
                         modifier = Modifier.animateItem(),
-                    )
+                    ) {
+                        EventItem(
+                            event = event,
+                            viewDate = uiState.selectedDate,
+                            onClick = { viewModel.showEditDialog(event) },
+                            onSetDone = { done -> viewModel.setEventDone(event.id, done) },
+                        )
+                    }
                 }
             }
         }
     }
 
     if (uiState.showAddDialog) {
+        // v2.12.2 — Pass the flat distinct set of events in the visible
+        // month to the dialog so it can show inline conflict warnings
+        // ("Conflicts with 'Standup' 10:00–10:30") when the chosen
+        // start/end overlaps with an existing event. Distinct because
+        // multi-day events appear in monthEvents under every day they
+        // span — we don't want each spanning copy to count as a
+        // separate conflict.
+        val existingEvents = remember(uiState.monthEvents) {
+            uiState.monthEvents.values.flatten().distinctBy { it.id }
+        }
         AddEventDialog(
             initialDate = uiState.selectedDate,
             editingEvent = uiState.editingEvent,
+            existingEvents = existingEvents,
             onDismiss = { viewModel.hideDialog() },
             onSave = { dto ->
                 val editing = uiState.editingEvent
@@ -241,8 +272,10 @@ fun CalendarScreen(viewModel: CalendarViewModel = viewModel()) {
 @Composable
 private fun MonthHeader(
     yearMonth: YearMonth,
+    isOnCurrentMonth: Boolean,
     onPrevious: () -> Unit,
-    onNext: () -> Unit
+    onNext: () -> Unit,
+    onToday: () -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -254,11 +287,22 @@ private fun MonthHeader(
         IconButton(onClick = onPrevious) {
             Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, "Previous month")
         }
-        Text(
-            yearMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                yearMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+            // v2.12.0 — "Today" affordance only visible when off the
+            // current month. Hidden on-month avoids visual noise and
+            // implies the user is already where this would take them.
+            if (!isOnCurrentMonth) {
+                Spacer(modifier = Modifier.width(8.dp))
+                TextButton(onClick = onToday, contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)) {
+                    Text("Today", style = MaterialTheme.typography.labelMedium)
+                }
+            }
+        }
         IconButton(onClick = onNext) {
             Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, "Next month")
         }
@@ -294,7 +338,8 @@ private fun MonthGrid(
     selectedDate: LocalDate,
     today: LocalDate,
     monthEvents: Map<LocalDate, List<CalendarEventEntity>>,
-    onDateSelected: (LocalDate) -> Unit
+    onDateSelected: (LocalDate) -> Unit,
+    onDateLongPressed: (LocalDate) -> Unit,
 ) {
     val firstDay = yearMonth.atDay(1)
     val offset = firstDay.dayOfWeek.value - 1 // Mon = 0
@@ -329,7 +374,7 @@ private fun MonthGrid(
                             .distinct()
                             .take(3)
                         val bars = multiDay
-                            .map { parseHexColor(it.color) }
+                            .map { multiDayRibbonColor(it.id) }
                             .take(3)
 
                         DayCell(
@@ -339,6 +384,7 @@ private fun MonthGrid(
                             dots = dots,
                             bars = bars,
                             onClick = { onDateSelected(date) },
+                            onLongPress = { onDateLongPressed(date) },
                             modifier = Modifier.weight(1f)
                         )
                     } else {
@@ -350,6 +396,7 @@ private fun MonthGrid(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun DayCell(
     day: Int,
@@ -358,6 +405,7 @@ private fun DayCell(
     dots: List<Color>,
     bars: List<Color>,
     onClick: () -> Unit,
+    onLongPress: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val bgColor = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent
@@ -366,59 +414,67 @@ private fun DayCell(
         else -> MaterialTheme.colorScheme.onSurface
     }
 
+    // v2.12.0 — Restructured: the circular tap target lives in its own Box
+    // with aspectRatio(1f); multi-day "ribbons" sit BELOW the circle, full
+    // cell width, outside any clip. The previous render put the bars
+    // *inside* the CircleShape clip, which cut each bar to an arc-shaped
+    // stub through the date number and left visible padding gaps between
+    // consecutive cells — the result looked like a stray short line
+    // crossing the number instead of a continuous bar across the week.
     Column(
-        modifier = modifier
-            .aspectRatio(1f)
-            .padding(2.dp)
-            .clip(CircleShape)
-            .background(bgColor)
-            .then(
-                if (isToday && !isSelected)
-                    Modifier.border(1.5.dp, MaterialTheme.colorScheme.primary, CircleShape)
-                else Modifier
-            )
-            .clickable(onClick = onClick),
+        modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
     ) {
-        Text(
-            "$day",
-            style = MaterialTheme.typography.bodySmall,
-            fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
-            color = textColor
-        )
-        // v2.11.9 — Multi-day "ribbons" at the bottom of the cell. Each
-        // cell renders a full-width 3dp stripe for each multi-day event
-        // spanning it; consecutive cells with the same event get matching
-        // stripes that visually read as a continuous bar across the week.
-        // Stacked when multiple multi-day events overlap (capped at 3 in
-        // the caller). Rendered before the dots so the dots sit above the
-        // bars when both exist on the same day.
-        if (bars.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(2.dp))
-            Column(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 1.dp),
-                verticalArrangement = Arrangement.spacedBy(1.dp),
-            ) {
-                bars.forEach { color ->
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(3.dp)
-                            .background(color, RoundedCornerShape(1.dp))
-                    )
+        Box(
+            modifier = Modifier
+                .padding(2.dp)
+                .fillMaxWidth()
+                .aspectRatio(1f)
+                .clip(CircleShape)
+                .background(bgColor)
+                .then(
+                    if (isToday && !isSelected)
+                        Modifier.border(1.5.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                    else Modifier
+                )
+                .combinedClickable(onClick = onClick, onLongClick = onLongPress),
+            contentAlignment = Alignment.Center,
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    "$day",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
+                    color = textColor
+                )
+                if (dots.isNotEmpty()) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                        dots.forEach { color ->
+                            Box(
+                                modifier = Modifier
+                                    .size(4.dp)
+                                    .background(color, CircleShape)
+                            )
+                        }
+                    }
                 }
             }
         }
-        if (dots.isNotEmpty()) {
-            Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                dots.forEach { color ->
-                    Box(
-                        modifier = Modifier
-                            .size(4.dp)
-                            .background(color, CircleShape)
-                    )
-                }
+        // Multi-day ribbons: full cell width, no clip, stacked vertically
+        // when multiple multi-day events overlap (capped at 3 in the
+        // caller). Reserved-height placeholder keeps row heights aligned
+        // even when only some cells in the row have bars.
+        Column(
+            modifier = Modifier.fillMaxWidth().height(12.dp).padding(top = 1.dp),
+            verticalArrangement = Arrangement.spacedBy(1.dp),
+        ) {
+            bars.forEach { color ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(3.dp)
+                        .background(color, RoundedCornerShape(1.dp))
+                )
             }
         }
     }
@@ -546,6 +602,21 @@ private fun PriorityIndicator(priority: String) {
 
 internal fun categoryColor(category: String): Color =
     com.ultiq.app.ui.theme.CategoryColors.forCategory(category)
+
+/// v2.12.4 — Deterministic palette for multi-day ribbon colors. The user's
+/// chosen `event.color` is still rendered on the left border of each event
+/// card in the day list, but multi-day ribbons in the month grid use a
+/// hash-of-id palette slot so two overlapping multi-day events never share
+/// a stripe color (every event of category "Study" defaults to the same
+/// blue — overlapping ribbons were visually identical before this).
+private val MULTI_DAY_PALETTE = listOf(
+    Color(0xFF4A90D9), Color(0xFFE67E22), Color(0xFF2ECC71), Color(0xFF9B59B6),
+    Color(0xFFE74C3C), Color(0xFFF1C40F), Color(0xFF1ABC9C), Color(0xFFFF6F61),
+)
+internal fun multiDayRibbonColor(eventId: String): Color {
+    val idx = (eventId.hashCode().toLong() and 0x7FFFFFFFL).rem(MULTI_DAY_PALETTE.size).toInt()
+    return MULTI_DAY_PALETTE[idx]
+}
 
 internal fun parseHexColor(hex: String): Color {
     return try {

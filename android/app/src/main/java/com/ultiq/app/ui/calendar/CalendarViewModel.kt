@@ -81,6 +81,19 @@ class CalendarViewModel(application: Application) : AndroidViewModel(application
         loadMonth(newMonth)
     }
 
+    /** v2.12.0 — Jump back to current month + select today. Triggered by
+     *  the "Today" pill on the month header (only visible when off-month). */
+    fun jumpToToday() {
+        val today = LocalDate.now()
+        val ym = YearMonth.from(today)
+        val changedMonth = _uiState.value.currentMonth != ym
+        _uiState.value = _uiState.value.copy(
+            currentMonth = ym,
+            selectedDate = today,
+        )
+        if (changedMonth) loadMonth(ym)
+    }
+
     fun showAddDialog() {
         _uiState.value = _uiState.value.copy(
             showAddDialog = true,

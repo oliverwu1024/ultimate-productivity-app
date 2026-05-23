@@ -768,6 +768,7 @@ fn ItemDialog(
             recurrence_rule: None,
             color: None,
             is_done: None,
+            reminder_minutes: None,
         };
 
         submitting.set(true);

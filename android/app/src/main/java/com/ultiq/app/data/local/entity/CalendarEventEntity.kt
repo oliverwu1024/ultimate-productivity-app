@@ -17,6 +17,9 @@ data class CalendarEventEntity(
     val recurrenceRule: String?,
     val color: String,
     val isDone: Boolean = false,
+    /// v2.13.0 — Minutes before startTime to fire the reminder. NULL means
+    /// "use the client default" (15 in AlarmScheduler.EVENT_LEAD_MINUTES).
+    val reminderMinutes: Int? = null,
     val createdAt: Long,
     val updatedAt: Long,
     val isSynced: Boolean = false
