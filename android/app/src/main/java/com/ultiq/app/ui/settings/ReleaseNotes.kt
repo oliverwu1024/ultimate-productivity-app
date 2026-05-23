@@ -9,6 +9,19 @@ data class ReleaseNote(
 object ReleaseNotes {
     val history: List<ReleaseNote> = listOf(
         ReleaseNote(
+            versionName = "2.11.5",
+            versionCode = 44,
+            summary = "Sleep audio actually works in release builds. v2.11.4's in-app " +
+                "status revealed that MediaPipe was failing with NoClassDefFoundError on " +
+                "com.google.mediapipe.framework.Graph — but the real cause was R8 stripping " +
+                "Graph's transitive dependency on Flogger (Google's logging library). When " +
+                "Graph's static initializer couldn't find FluentLogger, the JVM marked Graph " +
+                "as permanently erroneous and every subsequent reference cascaded into the " +
+                "misleading Graph error. Adding ProGuard keep rules for com.google.common.** " +
+                "+ datatransport restores the missing dependencies so the classifier " +
+                "initialises cleanly and snore + cough detection runs end-to-end.",
+        ),
+        ReleaseNote(
             versionName = "2.11.4",
             versionCode = 43,
             summary = "Sleep Preferences gets a 'Last audio attempt' status card right " +

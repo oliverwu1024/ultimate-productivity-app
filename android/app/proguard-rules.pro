@@ -123,3 +123,25 @@
 -keep class androidx.annotation.** { *; }
 -dontwarn org.jspecify.annotations.**
 -dontwarn org.checkerframework.**
+
+# Flogger + Guava — transitive deps of `com.google.mediapipe:tasks-core` (see
+# the artefact's POM). v2.11.5 hotfix: R8 was stripping all of `com.google.common.**`
+# from the release APK despite our `-keep class com.google.mediapipe.**` rule,
+# because R8 doesn't trace the constant-pool references from `Graph`'s
+# `private static final FluentLogger logger` field into the dependency graph.
+# When Graph is first referenced (during `AudioClassifier.createFromOptions`),
+# its `<clinit>` tries to resolve FluentLogger, throws NoClassDefFoundError, and
+# the JVM permanently marks Graph as erroneous — every subsequent reference then
+# surfaces as the misleading "NoClassDefFoundError: com.google.mediapipe.framework.Graph"
+# (the cascading second-order error that hides the real Flogger miss). Keeping
+# both namespaces makes Graph's <clinit> succeed and audio init proceeds normally.
+-keep class com.google.common.** { *; }
+-keepclassmembers class com.google.common.** { *; }
+-dontwarn com.google.common.**
+-dontwarn java.lang.invoke.StringConcatFactory
+
+# Datatransport — also declared as a transitive dep in tasks-core's POM; keep
+# it preemptively in case MediaPipe's telemetry path references it from a
+# similar static-init pattern.
+-keep class com.google.android.datatransport.** { *; }
+-dontwarn com.google.android.datatransport.**
