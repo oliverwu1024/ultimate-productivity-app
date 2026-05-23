@@ -466,7 +466,20 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
     fun confirmChecklistCompletion() {
         val prompt = _uiState.value.completionPrompt ?: return
         viewModelScope.launch {
-            checklistRepository.markCompleted(prompt.itemId)
+            // v2.13.2 — Branch on recurrence. The Checklist tab's "open
+            // today" query filters by lastCompletedEpochDay != today, so
+            // a plain markCompleted (which only flips the `completed`
+            // boolean) leaves a recurring item visible in today's list
+            // even after the focus session ends. Use the same recurring
+            // path the Checklist tab's checkbox uses so behaviour matches.
+            val item = db.checklistDao().getById(prompt.itemId)
+            val isRecurring = item?.recurrenceDaysMask != null && item.recurrenceDaysMask != 0
+            if (isRecurring) {
+                val todayEpochDay = java.time.LocalDate.now().toEpochDay()
+                checklistRepository.markRecurringCompletedOn(prompt.itemId, todayEpochDay)
+            } else {
+                checklistRepository.markCompleted(prompt.itemId)
+            }
             _uiState.value = _uiState.value.copy(completionPrompt = null)
         }
     }

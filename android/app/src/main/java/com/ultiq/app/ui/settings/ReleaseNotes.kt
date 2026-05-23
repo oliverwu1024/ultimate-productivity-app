@@ -9,6 +9,17 @@ data class ReleaseNote(
 object ReleaseNotes {
     val history: List<ReleaseNote> = listOf(
         ReleaseNote(
+            versionName = "2.13.2",
+            versionCode = 56,
+            summary = "Fix: confirming a recurring checklist item after a focus session " +
+                "now actually marks it done for today. The completion prompt was hitting " +
+                "the plain markCompleted path (flips the `completed` flag only), but the " +
+                "Checklist tab's open-today query keys off lastCompletedEpochDay — so a " +
+                "recurring item stayed visible in the list even though the session ended. " +
+                "Now branches on recurrence and uses the same lastCompletedEpochDay-stamp " +
+                "path the checkbox in the Checklist tab uses.",
+        ),
+        ReleaseNote(
             versionName = "2.13.1",
             versionCode = 55,
             summary = "Reminders are now multi-select per event. Pick any combination of " +
