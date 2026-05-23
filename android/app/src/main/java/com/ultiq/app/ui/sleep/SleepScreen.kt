@@ -75,7 +75,6 @@ import com.ultiq.app.data.local.entity.AlarmEntity
 import com.ultiq.app.data.local.entity.SleepRecordEntity
 import com.ultiq.app.data.remote.dto.SleepStats
 import com.ultiq.app.ui.alarms.AlarmsViewModel
-import com.ultiq.app.ui.common.AchievementCelebration
 import com.ultiq.app.ui.common.ConfigureHintCard
 import com.ultiq.app.ui.common.DurationStepperCard
 import com.ultiq.app.ui.common.SectionHeader
@@ -208,15 +207,8 @@ fun SleepScreen(
         )
     }
 
-    // Achievement earned celebration
-    uiState.celebratedAchievement?.let { id ->
-        AchievementCelebration(
-            name = id.displayName,
-            description = id.description,
-            icon = id.icon,
-            onDismiss = { viewModel.dismissAchievementCelebration() },
-        )
-    }
+    // v2.13.3 — Removed AchievementCelebration dialog. Achievements still
+    // record silently; the user reviews them in Settings → Achievements.
 
     // No-alarm prompt — fires when the user tries to start a sleep session
     // with zero enabled alarms in the next 24h.

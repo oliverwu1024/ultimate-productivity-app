@@ -86,6 +86,7 @@ sealed class Screen(val route: String) {
     data object Reports : Screen("reports")
     data object ChangePassword : Screen("change_password")
     data object Terms : Screen("terms")
+    data object Achievements : Screen("achievements")
     data object Chat : Screen("chat")
 }
 
@@ -288,9 +289,15 @@ fun AppNavigation(
                     onNavigateToReports = { navController.navigate(Screen.Reports.route) },
                     onNavigateToChangePassword = { navController.navigate(Screen.ChangePassword.route) },
                     onNavigateToTerms = { navController.navigate(Screen.Terms.route) },
+                    onNavigateToAchievements = { navController.navigate(Screen.Achievements.route) },
                     onLogout = { authViewModel.logout() },
                     onResetAccount = { authViewModel.resetAccount() },
                     onDeleteAccount = { authViewModel.deleteAccount() },
+                )
+            }
+            composable(Screen.Achievements.route) {
+                com.ultiq.app.ui.settings.AchievementsScreen(
+                    onBack = { navController.popBackStack() },
                 )
             }
             composable(Screen.AlarmNew.route) {

@@ -9,6 +9,15 @@ data class ReleaseNote(
 object ReleaseNotes {
     val history: List<ReleaseNote> = listOf(
         ReleaseNote(
+            versionName = "2.13.3",
+            versionCode = 57,
+            summary = "Achievements no longer pop up mid-screen after a sleep save or " +
+                "focus session — the blocking dialog was disruptive and only ever showed " +
+                "one even when multiple were earned at once. They still record silently " +
+                "in the background; review them in Settings → Achievements, which lists " +
+                "all 8 with locked/earned state + earned-on date.",
+        ),
+        ReleaseNote(
             versionName = "2.13.2",
             versionCode = 56,
             summary = "Fix: confirming a recurring checklist item after a focus session " +

@@ -13,8 +13,6 @@ import com.ultiq.app.data.remote.RetrofitClient
 import com.ultiq.app.data.repository.ChecklistRepository
 import com.ultiq.app.data.repository.SessionRepository
 import com.ultiq.app.data.achievements.AchievementChecker
-import com.ultiq.app.data.achievements.AchievementEvents
-import com.ultiq.app.data.achievements.AchievementId
 import com.ultiq.app.service.FocusTrackingService
 import com.ultiq.app.service.SleepTrackingService
 import com.ultiq.app.util.PhoneUsageTracker
@@ -64,7 +62,6 @@ data class SessionsUiState(
     val completionPrompt: ChecklistCompletionPrompt? = null,
     /// §9.7 — set when a focus session just ended; nulled on submit/skip.
     val debriefPrompt: SessionDebriefPrompt? = null,
-    val celebratedAchievement: AchievementId? = null,
     // Live UserPreferences snapshot, used by the FOCUS PREFERENCES section.
     val settings: UserSettings? = null,
 )
@@ -145,7 +142,9 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
                 _uiState.value = _uiState.value.copy(settings = s)
             }
         }
-        observeAchievementEvents()
+        // v2.13.3 — Dropped observeAchievementEvents(). Achievements still
+        // record to Room; the Achievements screen in Settings is where
+        // the user reviews them. No mid-session popup.
     }
 
     // ── Preference setters (moved out of SettingsViewModel) ──────────────────
@@ -226,19 +225,6 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
         startPickupPolling()
     }
 
-    private fun observeAchievementEvents() {
-        viewModelScope.launch {
-            AchievementEvents.newlyEarned.collect { earned ->
-                earned.firstOrNull()?.let { id ->
-                    _uiState.value = _uiState.value.copy(celebratedAchievement = id)
-                }
-            }
-        }
-    }
-
-    fun dismissAchievementCelebration() {
-        _uiState.value = _uiState.value.copy(celebratedAchievement = null)
-    }
 
     private fun observeTodayChecklist() {
         viewModelScope.launch {

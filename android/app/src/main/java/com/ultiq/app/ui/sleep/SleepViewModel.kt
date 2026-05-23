@@ -18,8 +18,6 @@ import com.ultiq.app.data.remote.dto.SleepStats
 import com.ultiq.app.data.remote.dto.toLocalStats
 import com.ultiq.app.data.repository.SleepRepository
 import com.ultiq.app.data.achievements.AchievementChecker
-import com.ultiq.app.data.achievements.AchievementEvents
-import com.ultiq.app.data.achievements.AchievementId
 import com.ultiq.app.service.FocusTrackingService
 import com.ultiq.app.service.PickupEvent
 import com.ultiq.app.service.SleepTrackingService
@@ -77,8 +75,6 @@ data class SleepUiState(
     // Defaults for the manual-log dialog only.
     val targetBedtime: LocalTime = LocalTime.of(22, 0),
     val targetWakeTime: LocalTime = LocalTime.of(6, 0),
-    // Earned moment — populated when an achievement unlocks during this session.
-    val celebratedAchievement: AchievementId? = null,
     // First-visit explainer card.
     val showSleepExplainer: Boolean = false,
     // Live UserPreferences snapshot, used by the SLEEP PREFERENCES section.
@@ -173,7 +169,9 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
                 _uiState.value = _uiState.value.copy(settings = s)
             }
         }
-        observeAchievementEvents()
+        // v2.13.3 — Dropped observeAchievementEvents(). Achievements still
+        // record to Room via AchievementChecker; the user reviews them in
+        // Settings → Achievements instead of a mid-screen popup.
     }
 
     // ── Preference setters (moved out of SettingsViewModel) ──────────────────
@@ -252,20 +250,6 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
             userPreferences.setSleepExplainerSeen(true)
             _uiState.value = _uiState.value.copy(showSleepExplainer = false)
         }
-    }
-
-    private fun observeAchievementEvents() {
-        viewModelScope.launch {
-            AchievementEvents.newlyEarned.collect { earned ->
-                earned.firstOrNull()?.let { id ->
-                    _uiState.value = _uiState.value.copy(celebratedAchievement = id)
-                }
-            }
-        }
-    }
-
-    fun dismissAchievementCelebration() {
-        _uiState.value = _uiState.value.copy(celebratedAchievement = null)
     }
 
     private fun observeServiceState() {
