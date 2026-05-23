@@ -9,6 +9,16 @@ data class ReleaseNote(
 object ReleaseNotes {
     val history: List<ReleaseNote> = listOf(
         ReleaseNote(
+            versionName = "2.13.0",
+            versionCode = 54,
+            summary = "Per-event reminder offset is now picker-driven instead of hard-coded " +
+                "at 15 minutes. New 'Reminder' row in the add/edit dialog (Default / None / " +
+                "5 min / 15 min / 30 min / 1 hour / 1 day before). Pick 'None' to opt out of " +
+                "the notification for a single event. Backend column + Room migration carry " +
+                "the value through; pre-2.13 events stay on the 15-min default. Same picker " +
+                "shape on the web dashboard so both surfaces produce the same values.",
+        ),
+        ReleaseNote(
             versionName = "2.12.4",
             versionCode = 53,
             summary = "Multi-day event ribbons in the month grid now use a deterministic " +

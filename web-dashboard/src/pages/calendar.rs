@@ -621,6 +621,9 @@ fn DayEvents(
                                                             recurrence_rule: src.recurrence_rule.clone(),
                                                             color: Some(src.color.clone()),
                                                             is_done: Some(new_done),
+                                                            // None so the server-side COALESCE
+                                                            // preserves whatever reminder was set.
+                                                            reminder_minutes: None,
                                                         };
                                                         wasm_bindgen_futures::spawn_local(async move {
                                                             let _ = update_event(&event_id, &body).await;
@@ -748,6 +751,12 @@ fn EventDialog(
             })
             .unwrap_or(EventPriority::Medium),
     );
+    // v2.13.0 — Per-event reminder offset. None means "default" (server
+    // COALESCEs on update, scheduler defaults to 15 min on Android).
+    let reminder_minutes = RwSignal::new(
+        existing.as_ref().and_then(|e| e.reminder_minutes),
+    );
+    let initial_reminder_minutes = reminder_minutes.get_untracked();
     let submitting = RwSignal::new(false);
     let dialog_error = RwSignal::new(None::<String>);
 
@@ -839,6 +848,7 @@ fn EventDialog(
             recurrence_rule: None,
             color: None,
             is_done: None,
+            reminder_minutes: reminder_minutes.get_untracked(),
         };
 
         submitting.set(true);
@@ -896,7 +906,8 @@ fn EventDialog(
             || priority.get_untracked() != initial_priority_sv.get_value()
             || start_time.get_untracked() != saved_start_time.get_value()
             || end_time.get_untracked() != saved_end_time.get_value()
-            || is_all_day.get_untracked() != initial_all_day;
+            || is_all_day.get_untracked() != initial_all_day
+            || reminder_minutes.get_untracked() != initial_reminder_minutes;
         if dirty {
             show_discard_confirm.set(true);
         } else {
@@ -1092,6 +1103,35 @@ fn EventDialog(
                             let v = p.variant_str();
                             view! { <option value=v>{p.label()}</option> }
                         }).collect_view()}
+                    </select>
+                </label>
+
+                // v2.13.0 — Reminder picker. "default" (None) = client
+                // default (15 min on Android), "none" (Some(0)) = opt
+                // out, integer values = explicit offsets. Matches the
+                // Android picker option set so both surfaces produce
+                // the same `reminder_minutes` values.
+                <label class="block">
+                    <span class="text-sm font-medium text-ultiq-indigo">"Reminder"</span>
+                    <select
+                        class="mt-1 w-full px-3 py-2 border border-ultiq-indigo/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-ultiq-indigo bg-white"
+                        prop:value=move || match reminder_minutes.get() {
+                            None => "default".to_string(),
+                            Some(v) => v.to_string(),
+                        }
+                        on:change=move |ev| {
+                            let s = event_target_value(&ev);
+                            let val = if s == "default" { None } else { s.parse::<i32>().ok() };
+                            reminder_minutes.set(val);
+                        }
+                    >
+                        <option value="default">"Default (15 min)"</option>
+                        <option value="0">"None"</option>
+                        <option value="5">"5 min before"</option>
+                        <option value="15">"15 min before"</option>
+                        <option value="30">"30 min before"</option>
+                        <option value="60">"1 hour before"</option>
+                        <option value="1440">"1 day before"</option>
                     </select>
                 </label>
 

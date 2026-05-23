@@ -692,6 +692,7 @@ fn parsed_to_create(fields: &ParsedCalendarFields) -> CreateCalendarEvent {
         recurrence_rule: None,
         color: None,
         is_done: Some(false),
+        reminder_minutes: None,
     }
 }
 

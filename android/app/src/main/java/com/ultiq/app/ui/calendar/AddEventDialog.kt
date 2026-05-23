@@ -68,6 +68,18 @@ import java.time.format.DateTimeFormatter
 
 private val categories = listOf("study", "project", "exercise", "personal", "other")
 private val priorities = listOf("high", "medium", "low")
+// v2.13.0 — Reminder picker options. First element of each pair is the
+// stored minutes value (null = "default → 15 min in scheduler", 0 = "no
+// reminder, opt-out"); second is the visible chip label.
+private val reminderOptions: List<Pair<Int?, String>> = listOf(
+    null to "Default",
+    0 to "None",
+    5 to "5 min",
+    15 to "15 min",
+    30 to "30 min",
+    60 to "1 hr",
+    1440 to "1 day",
+)
 private val colorOptions = listOf(
     "#4A90D9", "#E67E22", "#2ECC71", "#9B59B6", "#95A5A6",
     "#E74C3C", "#F1C40F", "#1ABC9C"
@@ -194,6 +206,11 @@ fun AddEventDialog(
         mutableStateOf(editingEvent?.color ?: prefilledNewEvent?.color ?: "#4A90D9")
     }
     var isRecurring by remember { mutableStateOf(editingEvent?.isRecurring ?: false) }
+    // v2.13.0 — Per-event reminder offset. Null = "use default" (15 min,
+    // pre-2.13 behaviour). Picker options below; 0 = "None" (opt-out).
+    var reminderMinutes by remember {
+        mutableStateOf<Int?>(editingEvent?.reminderMinutes)
+    }
     var frequency by remember { mutableStateOf(parseFrequency(editingEvent?.recurrenceRule)) }
     var weeklyDays by remember { mutableStateOf(parseWeeklyDays(editingEvent?.recurrenceRule)) }
     var monthlyDay by remember { mutableStateOf(parseMonthlyDay(editingEvent?.recurrenceRule)) }
@@ -224,7 +241,8 @@ fun AddEventDialog(
             category != editingEvent.category ||
             priority != editingEvent.priority ||
             selectedColor != editingEvent.color ||
-            isRecurring != editingEvent.isRecurring
+            isRecurring != editingEvent.isRecurring ||
+            reminderMinutes != editingEvent.reminderMinutes
         ))
 
     if (showDiscardConfirm) {
@@ -422,6 +440,20 @@ fun AddEventDialog(
                 }
             }
 
+            // v2.13.0 — Reminder offset picker. null = "Default (15 min)",
+            // 0 = "None" (opt-out, scheduler skips), and explicit values for
+            // common offsets. Matches the picker shape on the web.
+            Text("Reminder", style = MaterialTheme.typography.labelLarge)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                reminderOptions.forEach { (mins, label) ->
+                    FilterChip(
+                        selected = reminderMinutes == mins,
+                        onClick = { reminderMinutes = mins },
+                        label = { Text(label) }
+                    )
+                }
+            }
+
             // Color
             Text("Color", style = MaterialTheme.typography.labelLarge)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -558,7 +590,8 @@ fun AddEventDialog(
                                     priority = priority,
                                     is_recurring = isRecurring,
                                     recurrence_rule = rule,
-                                    color = selectedColor
+                                    color = selectedColor,
+                                    reminder_minutes = reminderMinutes,
                                 )
                             )
                         }
