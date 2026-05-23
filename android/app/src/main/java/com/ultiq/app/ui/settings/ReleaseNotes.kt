@@ -9,6 +9,16 @@ data class ReleaseNote(
 object ReleaseNotes {
     val history: List<ReleaseNote> = listOf(
         ReleaseNote(
+            versionName = "2.12.3",
+            versionCode = 52,
+            summary = "Diagnostic patch: SyncEventClient (the existing SSE client that powers " +
+                "real-time updates from web → phone) now logs at Log.i so release-build " +
+                "logcat actually shows whether the SSE connection is open, what events arrive, " +
+                "and what failures look like. Was previously Log.d which R8 strips, so " +
+                "release builds were undiagnosable — couldn't tell whether SSE was even " +
+                "connecting. No behavior change, just visibility.",
+        ),
+        ReleaseNote(
             versionName = "2.12.2",
             versionCode = 51,
             summary = "Calendar add/edit dialog gets Material 3 date and time pickers (replaces " +

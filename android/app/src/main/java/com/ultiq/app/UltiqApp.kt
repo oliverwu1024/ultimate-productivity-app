@@ -76,6 +76,7 @@ class UltiqApp : Application() {
      * reconciliation in each repository's sync().
      */
     private fun wireRealtimeSync() {
+        android.util.Log.i("UltiqApp", "wireRealtimeSync() — initialising SSE client")
         val db = AppDatabase.getInstance(this)
         syncEventClient = SyncEventClient(
             tokenManager = TokenManager(this),

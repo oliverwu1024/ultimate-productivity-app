@@ -65,6 +65,7 @@ class SyncEventClient(
         .build()
 
     fun connect() {
+        Log.i(TAG, "connect() called")
         wantConnected = true
         reconnectJob?.cancel()
         scope.launch {
@@ -73,6 +74,7 @@ class SyncEventClient(
     }
 
     fun disconnect() {
+        Log.i(TAG, "disconnect() called")
         wantConnected = false
         reconnectAttempt = 0
         reconnectJob?.cancel()
@@ -85,10 +87,13 @@ class SyncEventClient(
         if (token.isNullOrBlank()) {
             // Logged out — nothing to subscribe to. Reconnect attempt will happen
             // when the app is in foreground after login.
+            Log.i(TAG, "doConnect skipped — no token (logged out)")
             return
         }
+        val url = "${BuildConfig.API_BASE_URL.trimEnd('/')}/sync/events"
+        Log.i(TAG, "doConnect opening SSE to $url")
         val request = Request.Builder()
-            .url("${BuildConfig.API_BASE_URL.trimEnd('/')}/sync/events")
+            .url(url)
             .header("Authorization", "Bearer $token")
             .header("Accept", "text/event-stream")
             .build()
@@ -99,7 +104,13 @@ class SyncEventClient(
     private val listener = object : EventSourceListener() {
         override fun onOpen(eventSource: EventSource, response: Response) {
             reconnectAttempt = 0
-            if (BuildConfig.DEBUG) Log.d(TAG, "SSE connected: ${response.code}")
+            // v2.13.0 — Log.i instead of debug-only Log.d so release-build
+            // logcat shows SSE state. v2.12.x users reported web-added
+            // calendar events not appearing on phone in real time even
+            // though this code path was supposed to handle it; we
+            // couldn't tell from a release-build logcat whether SSE was
+            // even connecting because the logs were stripped by R8.
+            Log.i(TAG, "SSE connected: HTTP ${response.code}")
         }
 
         override fun onEvent(
@@ -110,10 +121,10 @@ class SyncEventClient(
         ) {
             val event = parseSyncEvent(data)
             if (event == null) {
-                if (BuildConfig.DEBUG) Log.w(TAG, "SSE parse failed (len=${data.length})")
+                Log.w(TAG, "SSE parse failed (type=$type, len=${data.length})")
                 return
             }
-            if (BuildConfig.DEBUG) Log.d(TAG, "SSE parsed: ${event.javaClass.simpleName}")
+            Log.i(TAG, "SSE event: ${event.javaClass.simpleName}")
             scope.launch { applyEvent(event) }
         }
 
@@ -123,7 +134,7 @@ class SyncEventClient(
             response: Response?,
         ) {
             val code = response?.code
-            if (BuildConfig.DEBUG) Log.w(TAG, "SSE failure: code=$code")
+            Log.w(TAG, "SSE failure: code=$code class=${t?.javaClass?.simpleName} msg=${t?.message}")
             // Auth failure: don't loop. Drop the token and let the UI route to login.
             if (code == 401 || code == 403) {
                 wantConnected = false
@@ -144,7 +155,7 @@ class SyncEventClient(
         }
 
         override fun onClosed(eventSource: EventSource) {
-            if (BuildConfig.DEBUG) Log.d(TAG, "SSE closed")
+            Log.i(TAG, "SSE closed")
         }
     }
 
@@ -195,7 +206,7 @@ class SyncEventClient(
                 }
             }
         } catch (e: Exception) {
-            if (BuildConfig.DEBUG) Log.e(TAG, "applyEvent failed for ${event.javaClass.simpleName}", e)
+            Log.e(TAG, "applyEvent failed for ${event.javaClass.simpleName}", e)
         }
     }
 
