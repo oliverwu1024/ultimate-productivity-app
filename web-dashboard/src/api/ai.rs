@@ -52,6 +52,11 @@ pub struct ParsedCalendarFields {
     pub category: String,
     /// One of: high | medium | low
     pub priority: String,
+    /// v2.13.4 — Coach-parsed reminder offsets. Null = use client default
+    /// (single 15-min reminder); [] = explicit opt-out; [N1, N2…] =
+    /// explicit list. Carried into CreateCalendarEvent on confirm.
+    #[serde(default)]
+    pub reminder_minutes: Option<Vec<i32>>,
 }
 
 #[derive(Debug, Clone, Deserialize)]

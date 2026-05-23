@@ -401,6 +401,11 @@ private fun parsedFieldsToCreateDto(fields: ParsedCalendarFieldsDto): CreateCale
         recurrence_rule = null,
         color = null,
         is_done = false,
+        // v2.13.4 — Carry the AI-parsed reminder offsets through. Null
+        // here means "no explicit pref" → backend stores NULL → scheduler
+        // uses the 15-min default. Coach can now emit ["1 hour and 5 min
+        // before"] and have it actually take effect.
+        reminder_minutes = fields.reminder_minutes,
     )
 
 /// Map a Coach `proposed_alarm` into the wire-format CreateAlarmDto. The

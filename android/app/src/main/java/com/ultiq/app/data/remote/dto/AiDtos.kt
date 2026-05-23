@@ -54,6 +54,10 @@ data class ParsedCalendarFieldsDto(
     val category: String,
     /// One of: high | medium | low
     val priority: String,
+    /// v2.13.4 — Coach-parsed reminder offsets. Null = use client default
+    /// (single 15-min reminder); [] = explicit opt-out; [N1, N2…] =
+    /// explicit list. Forwarded into CreateCalendarEventDto on confirm.
+    val reminder_minutes: List<Int>? = null,
 )
 
 data class ParsedChecklistFieldsDto(

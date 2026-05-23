@@ -78,8 +78,28 @@ class UltiqApp : Application() {
     private fun wireRealtimeSync() {
         android.util.Log.i("UltiqApp", "wireRealtimeSync() — initialising SSE client")
         val db = AppDatabase.getInstance(this)
+        val tokenManager = TokenManager(this)
+        val api = com.ultiq.app.data.remote.RetrofitClient.create(tokenManager)
+        // v2.13.4 — Built here so SyncEventClient.onOpen can trigger a full
+        // catch-up sync. Closes the ~15 s cold-start gap where events
+        // added on web between app foreground and SSE handshake never
+        // made it to local Room.
+        val syncManager = com.ultiq.app.data.repository.SyncManager(
+            sleepRepo = com.ultiq.app.data.repository.SleepRepository(
+                sleepDao = db.sleepDao(),
+                apiService = api,
+                sleepAudioEventDao = db.sleepAudioEventDao(),
+            ),
+            sessionRepo = com.ultiq.app.data.repository.SessionRepository(db.sessionDao(), api),
+            calendarRepo = com.ultiq.app.data.repository.CalendarRepository(
+                db.calendarEventDao(),
+                api,
+                AlarmScheduler(this),
+            ),
+            alarmRepo = com.ultiq.app.data.repository.AlarmRepository(this, db.alarmDao(), api),
+        )
         syncEventClient = SyncEventClient(
-            tokenManager = TokenManager(this),
+            tokenManager = tokenManager,
             calendarDao = db.calendarEventDao(),
             checklistDao = db.checklistDao(),
             sleepDao = db.sleepDao(),
@@ -87,6 +107,10 @@ class UltiqApp : Application() {
             alarmDao = db.alarmDao(),
             alarmScheduler = AlarmScheduler(this),
             wakeScheduler = com.ultiq.app.alarm.WakeAlarmScheduler(this),
+            onConnected = {
+                android.util.Log.i("UltiqApp", "SSE onConnected — running catch-up syncAll()")
+                syncManager.syncAll()
+            },
         )
         ProcessLifecycleOwner.get().lifecycle.addObserver(
             object : DefaultLifecycleObserver {

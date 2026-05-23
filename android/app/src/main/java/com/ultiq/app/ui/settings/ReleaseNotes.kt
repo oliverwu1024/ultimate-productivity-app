@@ -9,6 +9,18 @@ data class ReleaseNote(
 object ReleaseNotes {
     val history: List<ReleaseNote> = listOf(
         ReleaseNote(
+            versionName = "2.13.4",
+            versionCode = 58,
+            summary = "Three small polish wins: (1) The SSE realtime client now fires a " +
+                "full catch-up sync the moment it connects, so events added on web during " +
+                "the ~15 s app-foreground-to-handshake window aren't silently missed. " +
+                "(2) Coach-proposed calendar events now carry through your reminder " +
+                "preference — ask 'add a meeting tomorrow at 10am, remind me 1 hour " +
+                "before' and the reminder actually fires. AI tool schema gained a " +
+                "reminder_minutes field. (3) Removed the now-unused AchievementEvents " +
+                "SharedFlow (no consumers since v2.13.3's popup removal).",
+        ),
+        ReleaseNote(
             versionName = "2.13.3",
             versionCode = 57,
             summary = "Achievements no longer pop up mid-screen after a sleep save or " +

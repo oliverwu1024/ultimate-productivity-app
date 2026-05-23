@@ -692,7 +692,10 @@ fn parsed_to_create(fields: &ParsedCalendarFields) -> CreateCalendarEvent {
         recurrence_rule: None,
         color: None,
         is_done: Some(false),
-        reminder_minutes: None,
+        // v2.13.4 — Carry the AI-parsed reminder offsets through. Null
+        // means "no explicit pref" → server stores NULL → scheduler
+        // applies its default. Non-null = honour what Coach extracted.
+        reminder_minutes: fields.reminder_minutes.clone(),
     }
 }
 
