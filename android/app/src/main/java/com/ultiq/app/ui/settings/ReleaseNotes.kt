@@ -9,6 +9,18 @@ data class ReleaseNote(
 object ReleaseNotes {
     val history: List<ReleaseNote> = listOf(
         ReleaseNote(
+            versionName = "2.11.6",
+            versionCode = 45,
+            summary = "End Sleep dialog now shows the snore + cough breakdown for the " +
+                "session that just ended. Previously the dialog's snapshot ran before " +
+                "the audio aggregator's final flush, so any in-flight snore/cough run " +
+                "(still waiting on its 5 s gap-close) wasn't visible in the dialog even " +
+                "though it was persisted to the saved record. SleepTrackingService now " +
+                "exposes a synchronous flushAudioNow() that the End Sleep flow calls " +
+                "before snapshotting — past records were already correct, this is purely " +
+                "a dialog-refresh fix.",
+        ),
+        ReleaseNote(
             versionName = "2.11.5",
             versionCode = 44,
             summary = "Sleep audio actually works in release builds. v2.11.4's in-app " +

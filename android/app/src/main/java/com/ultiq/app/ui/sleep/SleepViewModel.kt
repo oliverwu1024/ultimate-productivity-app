@@ -373,6 +373,15 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
 
     fun endSleepSession() {
         val context = getApplication<Application>()
+        // §10.x (v2.11.6) — Force the audio aggregator to finalise any
+        // in-flight snore/cough event BEFORE we snapshot pendingAudioEvents.
+        // Without this, the End Sleep dialog showed nothing for sessions
+        // whose final snore/cough run hadn't yet hit its 5 s gap-close at
+        // session-end (the run only got flushed later inside the service's
+        // onDestroy, by which time the snapshot below was already done).
+        // Persistence reads pendingAudioEvents fresh inside saveSessionRecord
+        // so past records were correct — this is purely a dialog-refresh fix.
+        SleepTrackingService.flushAudioNow()
         // Snapshot the data before stopping. §10 — audio events were
         // accumulated in the service's static state during the session; copy
         // them out here so the End Sleep dialog can render snore/cough counts
