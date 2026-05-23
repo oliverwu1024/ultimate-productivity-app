@@ -3,7 +3,10 @@ use leptos::either::Either;
 use leptos::prelude::*;
 use leptos_meta::Title;
 
-use crate::api::sleep::{fetch_stats, list_records, SleepRecord, SleepStats};
+use crate::api::sleep::{
+    fetch_stats, list_audio_events_for_record, list_records, SleepAudioEvent, SleepRecord,
+    SleepStats,
+};
 use crate::api::sse::{use_sse, SyncEvent};
 use crate::components::layout::AppShell;
 
@@ -46,6 +49,10 @@ pub fn SleepPage() -> impl IntoView {
     let stats: RwSignal<Option<SleepStats>> = RwSignal::new(None);
     let loading = RwSignal::new(false);
     let error = RwSignal::new(None::<String>);
+    // §10 — Audio events for the most-recent sleep_record, populated after
+    // records load. Drives the "Sleep sounds — Last night" card; stays empty
+    // (and the card hides) when audio tracking was off / no events captured.
+    let latest_audio_events: RwSignal<Vec<SleepAudioEvent>> = RwSignal::new(Vec::new());
 
     let refresh = move || {
         let r = range.get_untracked();
@@ -57,8 +64,21 @@ pub fn SleepPage() -> impl IntoView {
             let st = fetch_stats(r.stats_param()).await;
             match (recs, st) {
                 (Ok(rs), Ok(s)) => {
+                    let latest_id = rs.first().map(|r| r.id.clone());
                     records.set(rs);
                     stats.set(Some(s));
+                    // Fetch audio events for the most-recent record (if any).
+                    if let Some(id) = latest_id {
+                        wasm_bindgen_futures::spawn_local(async move {
+                            if let Ok(events) = list_audio_events_for_record(&id).await {
+                                latest_audio_events.set(events);
+                            } else {
+                                latest_audio_events.set(Vec::new());
+                            }
+                        });
+                    } else {
+                        latest_audio_events.set(Vec::new());
+                    }
                 }
                 (Err(e), _) | (_, Err(e)) => error.set(Some(e.message)),
             }
@@ -110,6 +130,12 @@ pub fn SleepPage() -> impl IntoView {
                     }),
                 }}
 
+                <LastNightSoundsCard
+                    events=latest_audio_events
+                    records=records
+                />
+
+
                 <section class="bg-white rounded-2xl shadow p-6 mt-6">
                     <header class="flex items-center justify-between mb-4">
                         <h2 class="text-lg font-semibold text-ultiq-indigo">"Duration over time"</h2>
@@ -137,6 +163,78 @@ pub fn SleepPage() -> impl IntoView {
                 </div>
             </div>
         </AppShell>
+    }
+}
+
+/// §10 — Renders snore + cough counts for the most-recent sleep_record so
+/// the web dashboard matches the mobile "Sleep sounds — Last night" card.
+/// Auto-hides when no audio events were captured (users who never turned the
+/// toggle on never see this surface).
+#[component]
+fn LastNightSoundsCard(
+    events: RwSignal<Vec<SleepAudioEvent>>,
+    records: RwSignal<Vec<SleepRecord>>,
+) -> impl IntoView {
+    view! {
+        {move || {
+            let evs = events.get();
+            let snore_count = evs.iter().filter(|e| e.event_type == "snore").count();
+            let cough_count = evs.iter().filter(|e| e.event_type == "cough").count();
+            if snore_count == 0 && cough_count == 0 {
+                return Either::Left(view! { <></> });
+            }
+            // Date label: "Last night" for records within ~36h, else MMM dd.
+            let label = records
+                .get()
+                .first()
+                .map(|r| {
+                    let now = chrono::Utc::now();
+                    let age = now - r.actual_bedtime;
+                    if age.num_hours() <= 36 {
+                        "Last night".to_string()
+                    } else {
+                        r.actual_bedtime
+                            .with_timezone(&Local)
+                            .format("%a, %b %d")
+                            .to_string()
+                    }
+                })
+                .unwrap_or_else(|| "Last night".to_string());
+            Either::Right(view! {
+                <section class="bg-white rounded-2xl shadow p-6 mt-6">
+                    <header class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-semibold text-ultiq-indigo">
+                            "Sleep sounds — " {label}
+                        </h2>
+                        <p class="text-xs text-ultiq-indigo/50">
+                            "On-device · audio never uploaded"
+                        </p>
+                    </header>
+                    <div class="grid grid-cols-2 gap-6">
+                        {(snore_count > 0).then(|| view! {
+                            <div>
+                                <p class="text-3xl font-semibold text-ultiq-indigo">
+                                    {snore_count}
+                                </p>
+                                <p class="text-sm text-ultiq-indigo/70">
+                                    {if snore_count == 1 { "Snoring episode" } else { "Snoring episodes" }}
+                                </p>
+                            </div>
+                        })}
+                        {(cough_count > 0).then(|| view! {
+                            <div>
+                                <p class="text-3xl font-semibold text-ultiq-indigo">
+                                    {cough_count}
+                                </p>
+                                <p class="text-sm text-ultiq-indigo/70">
+                                    {if cough_count == 1 { "Coughing episode" } else { "Coughing episodes" }}
+                                </p>
+                            </div>
+                        })}
+                    </div>
+                </section>
+            })
+        }}
     }
 }
 

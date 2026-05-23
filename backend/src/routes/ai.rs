@@ -206,6 +206,12 @@ struct WeekSummary {
     checklist_completion_pct: i32,
     calendar_events_total: i64,
     calendar_hours_total: f64,
+    // §10.8 — On-device-detected sleep audio. Per-night counts roll up so
+    // Sonnet can comment on snoring / coughing trends in the weekly summary.
+    snore_events_total: i64,
+    nights_with_snoring: i64,
+    cough_events_total: i64,
+    nights_with_coughing: i64,
 }
 
 async fn aggregate_week(pool: &PgPool, user_id: Uuid) -> Result<WeekSummary, AppError> {
@@ -271,6 +277,24 @@ async fn aggregate_week(pool: &PgPool, user_id: Uuid) -> Result<WeekSummary, App
     .fetch_one(pool)
     .await?;
 
+    // §10.8 — Sleep audio aggregate (snore + cough episodes detected on-device
+    // by YAMNet during the past 7 nights). Both per-event totals AND the
+    // distinct-nights-affected count, so Sonnet can say "snored on 5 of 7
+    // nights" instead of just "47 snoring episodes".
+    let audio: (Option<i64>, Option<i64>, Option<i64>, Option<i64>) = sqlx::query_as(
+        "SELECT
+            COUNT(*) FILTER (WHERE event_type = 'snore')::BIGINT,
+            COUNT(DISTINCT sleep_record_id) FILTER (WHERE event_type = 'snore')::BIGINT,
+            COUNT(*) FILTER (WHERE event_type = 'cough')::BIGINT,
+            COUNT(DISTINCT sleep_record_id) FILTER (WHERE event_type = 'cough')::BIGINT
+         FROM sleep_audio_events
+         WHERE user_id = $1 AND started_at >= $2",
+    )
+    .bind(user_id)
+    .bind(seven_days_ago)
+    .fetch_one(pool)
+    .await?;
+
     let cl_due = checklist.0.unwrap_or(0);
     let cl_done = checklist.1.unwrap_or(0);
     let completion_pct = if cl_due > 0 {
@@ -293,6 +317,10 @@ async fn aggregate_week(pool: &PgPool, user_id: Uuid) -> Result<WeekSummary, App
         checklist_completion_pct: completion_pct,
         calendar_events_total: calendar.0.unwrap_or(0),
         calendar_hours_total: round2(calendar.1.unwrap_or(0.0)),
+        snore_events_total: audio.0.unwrap_or(0),
+        nights_with_snoring: audio.1.unwrap_or(0),
+        cough_events_total: audio.2.unwrap_or(0),
+        nights_with_coughing: audio.3.unwrap_or(0),
     })
 }
 
@@ -304,6 +332,25 @@ fn round2(x: f64) -> f64 {
 
 fn render_data_card(s: &WeekSummary) -> String {
     let avg_sleep_hours = s.avg_sleep_minutes as f64 / 60.0;
+    // §10.8 — Only emit the audio rows when at least one event was captured.
+    // Users with audio tracking off have all-zero values, and a zero row
+    // gives Sonnet nothing to comment on (and risks invented commentary).
+    let audio_section = if s.snore_events_total > 0 || s.cough_events_total > 0 {
+        format!(
+            "| Snoring episodes (week total) | {} |\n\
+             | Nights with snoring | {} of {} logged |\n\
+             | Coughing episodes (week total) | {} |\n\
+             | Nights with coughing | {} of {} logged |\n",
+            s.snore_events_total,
+            s.nights_with_snoring,
+            s.days_with_sleep_logged,
+            s.cough_events_total,
+            s.nights_with_coughing,
+            s.days_with_sleep_logged,
+        )
+    } else {
+        String::new()
+    };
     format!(
         r#"### User's last 7 days
 
@@ -322,7 +369,7 @@ fn render_data_card(s: &WeekSummary) -> String {
 | Checklist completion | {}% |
 | Calendar events | {} |
 | Calendar hours scheduled | {:.2} |
-"#,
+{}"#,
         s.days_with_sleep_logged,
         s.avg_sleep_minutes,
         avg_sleep_hours,
@@ -337,6 +384,7 @@ fn render_data_card(s: &WeekSummary) -> String {
         s.checklist_completion_pct,
         s.calendar_events_total,
         s.calendar_hours_total,
+        audio_section,
     )
 }
 
