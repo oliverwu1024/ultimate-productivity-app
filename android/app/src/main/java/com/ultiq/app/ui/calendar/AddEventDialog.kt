@@ -1,7 +1,5 @@
 package com.ultiq.app.ui.calendar
 
-import android.app.DatePickerDialog
-import android.app.TimePickerDialog
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -30,6 +28,8 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -40,7 +40,11 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberTimePickerState
+import java.time.ZoneOffset
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
@@ -52,7 +56,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.ultiq.app.data.local.entity.CalendarEventEntity
 import com.ultiq.app.data.remote.dto.CreateCalendarEventDto
@@ -83,6 +86,11 @@ fun AddEventDialog(
     /// these values instead of blank defaults. Used by the AI quick-add flow
     /// to pre-fill a freshly-parsed event for the user to confirm.
     prefilledNewEvent: CreateCalendarEventDto? = null,
+    /// v2.12.2 — Existing events in the visible month, used for the inline
+    /// conflict-warning notice below the time pickers. Empty list disables
+    /// the check; the editingEvent itself is excluded inside the dialog
+    /// so editing your own event isn't flagged as conflicting with itself.
+    existingEvents: List<CalendarEventEntity> = emptyList(),
 ) {
     // v2.12.1 — Block swipe-down dismiss so a stray finger drag inside the
     // form (common when scrolling the chips / time fields) doesn't kill the
@@ -93,7 +101,6 @@ fun AddEventDialog(
         skipPartiallyExpanded = true,
         confirmValueChange = { newValue -> newValue != androidx.compose.material3.SheetValue.Hidden },
     )
-    val context = LocalContext.current
     val zone = ZoneId.systemDefault()
     var showDiscardConfirm by remember { mutableStateOf(false) }
 
@@ -192,6 +199,14 @@ fun AddEventDialog(
     var monthlyDay by remember { mutableStateOf(parseMonthlyDay(editingEvent?.recurrenceRule)) }
     var validationError by remember { mutableStateOf<String?>(null) }
 
+    // v2.12.2 — Picker visibility flags drive the four M3 picker dialogs
+    // (replaces the legacy android.app.DatePickerDialog / TimePickerDialog
+    // that didn't match the rest of the M3 UI and broke in dark mode).
+    var showStartDatePicker by remember { mutableStateOf(false) }
+    var showEndDatePicker by remember { mutableStateOf(false) }
+    var showStartTimePicker by remember { mutableStateOf(false) }
+    var showEndTimePicker by remember { mutableStateOf(false) }
+
     val timeFormat = DateTimeFormatter.ofPattern("hh:mm a")
     val dateFormat = DateTimeFormatter.ofPattern("MMM dd, yyyy")
 
@@ -218,13 +233,13 @@ fun AddEventDialog(
             title = { Text(if (editingEvent != null) "Discard changes?" else "Discard event?") },
             text = { Text("You'll lose what you've typed.") },
             confirmButton = {
-                androidx.compose.material3.TextButton(onClick = {
+                TextButton(onClick = {
                     showDiscardConfirm = false
                     onDismiss()
                 }) { Text("Discard") }
             },
             dismissButton = {
-                androidx.compose.material3.TextButton(onClick = { showDiscardConfirm = false }) {
+                TextButton(onClick = { showDiscardConfirm = false }) {
                     Text("Keep editing")
                 }
             },
@@ -299,22 +314,14 @@ fun AddEventDialog(
                 ClickableField(
                     label = "Start Date",
                     value = startDate.format(dateFormat),
-                    onClick = {
-                        DatePickerDialog(context, { _, y, m, d ->
-                            shiftStartTo(LocalDate.of(y, m + 1, d), startTime)
-                        }, startDate.year, startDate.monthValue - 1, startDate.dayOfMonth).show()
-                    },
+                    onClick = { showStartDatePicker = true },
                     modifier = Modifier.weight(1f)
                 )
                 if (!isAllDay) {
                     ClickableField(
                         label = "Start Time",
                         value = startTime.format(timeFormat),
-                        onClick = {
-                            TimePickerDialog(context, { _, h, m ->
-                                shiftStartTo(startDate, LocalTime.of(h, m))
-                            }, startTime.hour, startTime.minute, false).show()
-                        },
+                        onClick = { showStartTimePicker = true },
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -325,23 +332,68 @@ fun AddEventDialog(
                 ClickableField(
                     label = "End Date",
                     value = endDate.format(dateFormat),
-                    onClick = {
-                        DatePickerDialog(context, { _, y, m, d ->
-                            endDate = LocalDate.of(y, m + 1, d)
-                        }, endDate.year, endDate.monthValue - 1, endDate.dayOfMonth).show()
-                    },
+                    onClick = { showEndDatePicker = true },
                     modifier = Modifier.weight(1f)
                 )
                 if (!isAllDay) {
                     ClickableField(
                         label = "End Time",
                         value = endTime.format(timeFormat),
-                        onClick = {
-                            TimePickerDialog(context, { _, h, m ->
-                                endTime = LocalTime.of(h, m)
-                            }, endTime.hour, endTime.minute, false).show()
-                        },
+                        onClick = { showEndTimePicker = true },
                         modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+
+            // v2.12.2 — Inline conflict warning. Computed from the events
+            // the parent passed in; the editingEvent itself is excluded so
+            // an edit doesn't flag itself. Two events conflict if their
+            // intervals overlap on the time axis (half-open: start < other.end
+            // AND end > other.start). All-day events use 00:00→23:59 so
+            // they conflict with any timed event on the same day. Listed up
+            // to 3 conflicts; "+ N more" suffix if there are more.
+            val proposedStartMs = remember(startDate, startTime) {
+                LocalDateTime.of(startDate, startTime).atZone(zone).toInstant().toEpochMilli()
+            }
+            val proposedEndMs = remember(endDate, endTime) {
+                LocalDateTime.of(endDate, endTime).atZone(zone).toInstant().toEpochMilli()
+            }
+            val conflicts = remember(existingEvents, proposedStartMs, proposedEndMs, editingEvent?.id) {
+                if (proposedStartMs >= proposedEndMs) emptyList()
+                else existingEvents.filter { ev ->
+                    ev.id != editingEvent?.id &&
+                        proposedStartMs < ev.endTime &&
+                        proposedEndMs > ev.startTime
+                }
+            }
+            if (conflicts.isNotEmpty()) {
+                val timeFmt = DateTimeFormatter.ofPattern("h:mm a")
+                val shown = conflicts.take(3)
+                val extra = conflicts.size - shown.size
+                val lines = shown.joinToString(separator = "\n") { c ->
+                    val s = Instant.ofEpochMilli(c.startTime).atZone(zone).format(timeFmt)
+                    val e = Instant.ofEpochMilli(c.endTime).atZone(zone).format(timeFmt)
+                    "• ${c.title} ($s–$e)"
+                } + if (extra > 0) "\n+ $extra more" else ""
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f),
+                            RoundedCornerShape(8.dp),
+                        )
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    Text(
+                        "Conflicts with " + (if (conflicts.size == 1) "1 event" else "${conflicts.size} events") + ":",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                    )
+                    Text(
+                        lines,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer,
                     )
                 }
             }
@@ -517,9 +569,113 @@ fun AddEventDialog(
             Spacer(modifier = Modifier.height(16.dp))
         }
     }
+
+    // v2.12.2 — Material 3 date/time pickers replace the legacy
+    // android.app.DatePickerDialog / TimePickerDialog. Rendered outside
+    // the ModalBottomSheet (Compose Dialogs handle their own overlay
+    // z-order). DatePicker selectedDateMillis is UTC-midnight per its
+    // contract — round-trip through ZoneOffset.UTC to keep the date
+    // intact regardless of the user's local zone.
+    if (showStartDatePicker) {
+        M3DatePickerDialog(
+            initial = startDate,
+            onDismiss = { showStartDatePicker = false },
+            onConfirm = { picked ->
+                shiftStartTo(picked, startTime)
+                showStartDatePicker = false
+            },
+        )
+    }
+    if (showEndDatePicker) {
+        M3DatePickerDialog(
+            initial = endDate,
+            onDismiss = { showEndDatePicker = false },
+            onConfirm = { picked ->
+                endDate = picked
+                showEndDatePicker = false
+            },
+        )
+    }
+    if (showStartTimePicker) {
+        M3TimePickerDialog(
+            initialHour = startTime.hour,
+            initialMinute = startTime.minute,
+            onDismiss = { showStartTimePicker = false },
+            onConfirm = { h, m ->
+                shiftStartTo(startDate, LocalTime.of(h, m))
+                showStartTimePicker = false
+            },
+        )
+    }
+    if (showEndTimePicker) {
+        M3TimePickerDialog(
+            initialHour = endTime.hour,
+            initialMinute = endTime.minute,
+            onDismiss = { showEndTimePicker = false },
+            onConfirm = { h, m ->
+                endTime = LocalTime.of(h, m)
+                showEndTimePicker = false
+            },
+        )
+    }
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun M3DatePickerDialog(
+    initial: LocalDate,
+    onDismiss: () -> Unit,
+    onConfirm: (LocalDate) -> Unit,
+) {
+    val state = rememberDatePickerState(
+        initialSelectedDateMillis = initial.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
+    )
+    DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = {
+                state.selectedDateMillis?.let { ms ->
+                    val date = Instant.ofEpochMilli(ms).atZone(ZoneOffset.UTC).toLocalDate()
+                    onConfirm(date)
+                } ?: onDismiss()
+            }) { Text("OK") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        },
+    ) {
+        DatePicker(state = state, showModeToggle = false)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun M3TimePickerDialog(
+    initialHour: Int,
+    initialMinute: Int,
+    onDismiss: () -> Unit,
+    onConfirm: (Int, Int) -> Unit,
+) {
+    val state = rememberTimePickerState(
+        initialHour = initialHour,
+        initialMinute = initialMinute,
+        is24Hour = false,
+    )
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Select time") },
+        text = { TimePicker(state = state) },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(state.hour, state.minute) }) { Text("OK") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        },
+    )
+}
+
 
 @Composable
 private fun ClickableField(

@@ -9,6 +9,17 @@ data class ReleaseNote(
 object ReleaseNotes {
     val history: List<ReleaseNote> = listOf(
         ReleaseNote(
+            versionName = "2.12.2",
+            versionCode = 51,
+            summary = "Calendar add/edit dialog gets Material 3 date and time pickers (replaces " +
+                "the legacy native dialogs that didn't match the rest of the M3 UI and broke " +
+                "in dark mode). Also adds an inline conflict warning: if your new event " +
+                "overlaps with an existing one, the dialog shows 'Conflicts with X (10:00 AM " +
+                "– 11:00 AM)' below the time fields, listing up to 3 conflicts and a " +
+                "'+ N more' suffix beyond that. Non-blocking — you can still save through " +
+                "the conflict if you want.",
+        ),
+        ReleaseNote(
             versionName = "2.12.1",
             versionCode = 50,
             summary = "AddEventDialog no longer dismisses on swipe-down, and dismissing via " +

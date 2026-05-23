@@ -200,9 +200,20 @@ fun CalendarScreen(viewModel: CalendarViewModel = viewModel()) {
     }
 
     if (uiState.showAddDialog) {
+        // v2.12.2 — Pass the flat distinct set of events in the visible
+        // month to the dialog so it can show inline conflict warnings
+        // ("Conflicts with 'Standup' 10:00–10:30") when the chosen
+        // start/end overlaps with an existing event. Distinct because
+        // multi-day events appear in monthEvents under every day they
+        // span — we don't want each spanning copy to count as a
+        // separate conflict.
+        val existingEvents = remember(uiState.monthEvents) {
+            uiState.monthEvents.values.flatten().distinctBy { it.id }
+        }
         AddEventDialog(
             initialDate = uiState.selectedDate,
             editingEvent = uiState.editingEvent,
+            existingEvents = existingEvents,
             onDismiss = { viewModel.hideDialog() },
             onSave = { dto ->
                 val editing = uiState.editingEvent
