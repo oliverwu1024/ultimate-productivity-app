@@ -122,6 +122,23 @@ fun AddEventDialog(
     var startTime by remember { mutableStateOf(initStart?.toLocalTime() ?: defaultNow.toLocalTime()) }
     var endDate by remember { mutableStateOf(initEnd?.toLocalDate() ?: defaultEnd.toLocalDate()) }
     var endTime by remember { mutableStateOf(initEnd?.toLocalTime() ?: defaultEnd.toLocalTime()) }
+
+    // v2.11.9 — Google-Calendar-style delta-shift: when the user changes
+    // start date or time, end shifts by the same delta so the original
+    // duration is preserved. Before this, picking a start of next week
+    // left end at today (which then failed validation), and picking a
+    // later same-day start time would silently invert the range.
+    fun shiftStartTo(newStartDate: LocalDate, newStartTime: LocalTime) {
+        val oldStart = LocalDateTime.of(startDate, startTime)
+        val oldEnd = LocalDateTime.of(endDate, endTime)
+        val delta = java.time.Duration.between(oldStart, oldEnd)
+            .let { if (it.isNegative || it.isZero) java.time.Duration.ofHours(1) else it }
+        val newEnd = LocalDateTime.of(newStartDate, newStartTime).plus(delta)
+        startDate = newStartDate
+        startTime = newStartTime
+        endDate = newEnd.toLocalDate()
+        endTime = newEnd.toLocalTime()
+    }
     // §9.5 — Coerce prefill values against the known chip lists. Backend
     // validates the AI output too, but if the model ever drifts off-schema
     // (or a future client sends a bad prefill) we'd silently render a chip
@@ -192,7 +209,7 @@ fun AddEventDialog(
                     value = startDate.format(dateFormat),
                     onClick = {
                         DatePickerDialog(context, { _, y, m, d ->
-                            startDate = LocalDate.of(y, m + 1, d)
+                            shiftStartTo(LocalDate.of(y, m + 1, d), startTime)
                         }, startDate.year, startDate.monthValue - 1, startDate.dayOfMonth).show()
                     },
                     modifier = Modifier.weight(1f)
@@ -202,7 +219,7 @@ fun AddEventDialog(
                     value = startTime.format(timeFormat),
                     onClick = {
                         TimePickerDialog(context, { _, h, m ->
-                            startTime = LocalTime.of(h, m)
+                            shiftStartTo(startDate, LocalTime.of(h, m))
                         }, startTime.hour, startTime.minute, false).show()
                     },
                     modifier = Modifier.weight(1f)

@@ -9,6 +9,30 @@ data class ReleaseNote(
 object ReleaseNotes {
     val history: List<ReleaseNote> = listOf(
         ReleaseNote(
+            versionName = "2.11.9",
+            versionCode = 48,
+            summary = "Calendar quality-of-life: end date/time now auto-shifts with the " +
+                "start so picking a start of next week doesn't leave end stuck on today. " +
+                "Multi-day events now show up on every day they span — month-grid cells " +
+                "get a thin colored ribbon along the bottom (Google-Calendar-style, " +
+                "continuous across consecutive days), and the day list shows context-aware " +
+                "time text (\"9:00 AM → ends Wed 6:00 PM\" on day one, \"All day · started " +
+                "Mon 9:00 AM\" on mid-days, \"Ends 6:00 PM · started Mon 9:00 AM\" on the " +
+                "last day). Multi-day events also sort to the top of the day list, matching " +
+                "the all-day-band convention.",
+        ),
+        ReleaseNote(
+            versionName = "2.11.8",
+            versionCode = 47,
+            summary = "Calendar events added on the web (or by another device) now sync to " +
+                "the phone. The Android sync was calling GET /calendar with no date range, " +
+                "and the backend defaults to past-30-days-only — so every event scheduled " +
+                "for a future date was silently excluded from the response and never landed " +
+                "in the local cache. The sync now requests an explicit -30d / +365d window. " +
+                "Also added a resume-time refresh so tabbing away and back into Calendar pulls " +
+                "the latest state without waiting for a process restart.",
+        ),
+        ReleaseNote(
             versionName = "2.11.7",
             versionCode = 46,
             summary = "Calendar events you create via Coach now show up in the Calendar tab " +

@@ -62,6 +62,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.material.icons.filled.EventAvailable
 import com.ultiq.app.data.local.entity.CalendarEventEntity
@@ -92,6 +93,16 @@ fun CalendarScreen(viewModel: CalendarViewModel = viewModel()) {
             snackbarHostState.showSnackbar(it)
             viewModel.clearError()
         }
+    }
+
+    // v2.11.8 — Re-sync from server whenever the Calendar tab regains focus
+    // (foreground, or returning from another nav destination). The
+    // ViewModel's init-time sync() only fires once per process; without
+    // this, events added on web (or by another device) stayed invisible
+    // until process death + relaunch. Cheap: one GET + a Room insertAll.
+    LifecycleResumeEffect(Unit) {
+        viewModel.refresh()
+        onPauseOrDispose { }
     }
 
     Scaffold(
@@ -158,6 +169,7 @@ fun CalendarScreen(viewModel: CalendarViewModel = viewModel()) {
                 items(uiState.selectedDayEvents, key = { "${it.id}_${it.startTime}" }) { event ->
                     EventItem(
                         event = event,
+                        viewDate = uiState.selectedDate,
                         onClick = { viewModel.showEditDialog(event) },
                         onSetDone = { done -> viewModel.setEventDone(event.id, done) },
                         modifier = Modifier.animateItem(),
@@ -299,9 +311,25 @@ private fun MonthGrid(
                     if (dayNum in 1..daysInMonth) {
                         val date = yearMonth.atDay(dayNum)
                         val events = monthEvents[date] ?: emptyList()
-                        val dots = events
-                            .map { categoryColor(it.category) }
+                        // v2.11.9 — Split rendering between dots (single-day
+                        // events on this date) and bars (multi-day events
+                        // spanning this date). The bar visually continues
+                        // across consecutive cells because each cell renders
+                        // a full-width stripe in the same colour, giving
+                        // the Google-Calendar "ribbon" look without needing
+                        // a custom multi-cell overlay layer.
+                        val zone = ZoneId.systemDefault()
+                        val (multiDay, singleDay) = events.partition { ev ->
+                            val sd = Instant.ofEpochMilli(ev.startTime).atZone(zone).toLocalDate()
+                            val ed = Instant.ofEpochMilli(ev.endTime).atZone(zone).toLocalDate()
+                            sd != ed
+                        }
+                        val dots = singleDay
+                            .map { parseHexColor(it.color) }
                             .distinct()
+                            .take(3)
+                        val bars = multiDay
+                            .map { parseHexColor(it.color) }
                             .take(3)
 
                         DayCell(
@@ -309,6 +337,7 @@ private fun MonthGrid(
                             isSelected = date == selectedDate,
                             isToday = date == today,
                             dots = dots,
+                            bars = bars,
                             onClick = { onDateSelected(date) },
                             modifier = Modifier.weight(1f)
                         )
@@ -327,6 +356,7 @@ private fun DayCell(
     isSelected: Boolean,
     isToday: Boolean,
     dots: List<Color>,
+    bars: List<Color>,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -357,6 +387,29 @@ private fun DayCell(
             fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
             color = textColor
         )
+        // v2.11.9 — Multi-day "ribbons" at the bottom of the cell. Each
+        // cell renders a full-width 3dp stripe for each multi-day event
+        // spanning it; consecutive cells with the same event get matching
+        // stripes that visually read as a continuous bar across the week.
+        // Stacked when multiple multi-day events overlap (capped at 3 in
+        // the caller). Rendered before the dots so the dots sit above the
+        // bars when both exist on the same day.
+        if (bars.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(2.dp))
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 1.dp),
+                verticalArrangement = Arrangement.spacedBy(1.dp),
+            ) {
+                bars.forEach { color ->
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(3.dp)
+                            .background(color, RoundedCornerShape(1.dp))
+                    )
+                }
+            }
+        }
         if (dots.isNotEmpty()) {
             Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                 dots.forEach { color ->
@@ -386,6 +439,7 @@ private fun SelectedDayHeader(date: LocalDate) {
 @Composable
 private fun EventItem(
     event: CalendarEventEntity,
+    viewDate: LocalDate,
     onClick: () -> Unit,
     onSetDone: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
@@ -437,7 +491,7 @@ private fun EventItem(
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    formatTimeRange(event.startTime, event.endTime),
+                    formatTimeRange(event.startTime, event.endTime, viewDate),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -501,10 +555,28 @@ internal fun parseHexColor(hex: String): Color {
     }
 }
 
-private fun formatTimeRange(startMillis: Long, endMillis: Long): String {
+/// v2.11.9 — Multi-day-aware time formatter. Single-day events render as
+/// "9:00 AM – 10:00 AM" exactly as before. Multi-day events adapt to which
+/// day is being viewed:
+///   • Start day:  "9:00 AM → ends Wed 6:00 PM"
+///   • Middle day: "All day · started Mon 9:00 AM"
+///   • End day:    "Ends 6:00 PM · started Mon 9:00 AM"
+/// so a user looking at "today" mid-event sees the right context without
+/// needing to tap into the event.
+private fun formatTimeRange(startMillis: Long, endMillis: Long, viewDate: LocalDate): String {
     val zone = ZoneId.systemDefault()
-    val fmt = DateTimeFormatter.ofPattern("h:mm a")
-    val start = Instant.ofEpochMilli(startMillis).atZone(zone).format(fmt)
-    val end = Instant.ofEpochMilli(endMillis).atZone(zone).format(fmt)
-    return "$start – $end"
+    val timeFmt = DateTimeFormatter.ofPattern("h:mm a")
+    val dayFmt = DateTimeFormatter.ofPattern("EEE")
+    val startDt = Instant.ofEpochMilli(startMillis).atZone(zone)
+    val endDt = Instant.ofEpochMilli(endMillis).atZone(zone)
+    val startDate = startDt.toLocalDate()
+    val endDate = endDt.toLocalDate()
+    val startStr = startDt.format(timeFmt)
+    val endStr = endDt.format(timeFmt)
+    if (startDate == endDate) return "$startStr – $endStr"
+    return when (viewDate) {
+        startDate -> "$startStr → ends ${endDate.format(dayFmt)} $endStr"
+        endDate -> "Ends $endStr · started ${startDate.format(dayFmt)} $startStr"
+        else -> "All day · started ${startDate.format(dayFmt)} $startStr"
+    }
 }
