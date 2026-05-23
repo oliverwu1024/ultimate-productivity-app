@@ -3,6 +3,7 @@ package com.ultiq.app.ui.chat
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.ultiq.app.data.local.AppDatabase
 import com.ultiq.app.data.remote.RetrofitClient
 import com.ultiq.app.data.remote.dto.ChatMessageDto
 import com.ultiq.app.data.remote.dto.ChatSendRequestDto
@@ -10,8 +11,11 @@ import com.ultiq.app.data.remote.dto.CommittedResourceDto
 import com.ultiq.app.data.remote.dto.CreateCalendarEventDto
 import com.ultiq.app.data.remote.dto.ParsedCalendarFieldsDto
 import com.ultiq.app.data.remote.dto.ToolInvocationDto
+import com.ultiq.app.data.repository.CalendarRepository
+import com.ultiq.app.util.AlarmScheduler
 import com.ultiq.app.util.TokenManager
 import com.ultiq.app.util.toUserMessage
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -87,6 +91,15 @@ data class UndoCue(
 class ChatViewModel(application: Application) : AndroidViewModel(application) {
     private val tokenManager = TokenManager(application)
     private val api = RetrofitClient.create(tokenManager)
+    private val db = AppDatabase.getInstance(application)
+    // §10.x (v2.11.7) — Coach confirm-calendar path must route through the
+    // repository (not raw Retrofit) so the local Room cache + the Calendar
+    // tab's Flow pick up the new event. See confirmCalendarProposal().
+    private val calendarRepository = CalendarRepository(
+        calendarEventDao = db.calendarEventDao(),
+        apiService = api,
+        alarmScheduler = AlarmScheduler(application),
+    )
 
     private val _uiState = MutableStateFlow(ChatUiState(isLoading = true))
     val uiState: StateFlow<ChatUiState> = _uiState
@@ -94,7 +107,12 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     private val _undoCues = MutableSharedFlow<UndoCue>(extraBufferCapacity = 4)
     val undoCues: SharedFlow<UndoCue> = _undoCues
 
+    private var userId: String = ""
+
     init {
+        viewModelScope.launch {
+            userId = tokenManager.getUserId().firstOrNull() ?: ""
+        }
         loadHistory()
     }
 
@@ -196,10 +214,17 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    /// User tapped Create on a proposed calendar event. Hits POST /calendar
-    /// directly — the SSE bus + Room flow will pick up the new event on
-    /// the Calendar screen automatically. Optimistically mutate the turn's
-    /// state so the card stays in the conversation as a "Created" badge.
+    /// User tapped Create on a proposed calendar event. Goes through
+    /// CalendarRepository so the local Room cache is updated alongside the
+    /// backend POST — without this, the Calendar tab's Flow has nothing to
+    /// re-emit and the new event only shows up after the user navigates
+    /// away + back (which triggers CalendarViewModel.sync()). v2.11.7
+    /// fixes this: pre-2.11.7 the call was a raw `api.createCalendarEvent`
+    /// and the comment claimed "the SSE bus + Room flow will pick up the
+    /// new event automatically" — but Android has no SSE subscriber for
+    /// calendar, that's a web-dashboard-only feature. Optimistically
+    /// mutate the turn's state so the card stays in the conversation as a
+    /// "Created" badge.
     fun confirmCalendarProposal(invocationId: String) {
         val current = _uiState.value.turns
         val idx = current.indexOfFirst {
@@ -217,7 +242,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
         viewModelScope.launch {
             val body = parsedFieldsToCreateDto(fields)
-            runCatching { api.createCalendarEvent(body) }
+            calendarRepository.createEvent(body, userId)
                 .onSuccess {
                     val turns = _uiState.value.turns.toMutableList()
                     val i = turns.indexOfFirst {

@@ -9,6 +9,17 @@ data class ReleaseNote(
 object ReleaseNotes {
     val history: List<ReleaseNote> = listOf(
         ReleaseNote(
+            versionName = "2.11.7",
+            versionCode = 46,
+            summary = "Calendar events you create via Coach now show up in the Calendar tab " +
+                "immediately, not just after navigating away + back. The confirm-proposal " +
+                "path was hitting the backend directly and bypassing the local Room cache, " +
+                "so the Calendar tab's Flow had nothing to re-emit (the old code expected a " +
+                "Room invalidation that only the in-tab + button triggered). The Coach " +
+                "confirm now goes through CalendarRepository, which inserts to Room first " +
+                "and lets the tab refresh reactively.",
+        ),
+        ReleaseNote(
             versionName = "2.11.6",
             versionCode = 45,
             summary = "End Sleep dialog now shows the snore + cough breakdown for the " +
