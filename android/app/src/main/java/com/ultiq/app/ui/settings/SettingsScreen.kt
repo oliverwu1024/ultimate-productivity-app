@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PhonelinkLock
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.SettingsBrightness
 import androidx.compose.material.icons.filled.Stop
@@ -193,6 +194,15 @@ fun SettingsScreen(
                     onClick = onNavigateToReminders,
                 )
             }
+
+            // §i18n (v2.13.9) — Show the detected device timezone so the
+            // user can see what the server is bucketing their stats under.
+            // Read-only for v2.13.9 — to override, change phone timezone in
+            // system settings and log out + back in. A future iteration
+            // could add an in-app override + an explicit "Resync to
+            // server" button, but most users won't need either.
+            item { SectionHeader("Region") }
+            item { TimezoneInfoCard() }
 
             item { SectionHeader("Insights") }
             item {
@@ -560,6 +570,41 @@ private fun LinkRow(
             }
         }
         HorizontalDivider(thickness = 0.dp)
+    }
+}
+
+/// §i18n (v2.13.9) — Read-only display of the device's detected IANA
+/// timezone. The string here is what AuthViewModel pushed to the server
+/// on the last login (ZoneId.systemDefault().id). To change it, the user
+/// changes their phone's system timezone and logs out + back in. A
+/// future iteration could add an in-app picker + an explicit "Resync"
+/// button if anyone reports issues; for now the device's setting is the
+/// single source of truth.
+@Composable
+private fun TimezoneInfoCard() {
+    val tz = remember { java.time.ZoneId.systemDefault().id }
+    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Icon(Icons.Default.Schedule, null, tint = MaterialTheme.colorScheme.primary)
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    tz,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Medium,
+                )
+                Text(
+                    "Detected from your device. Your daily stats and the morning anomaly check use this timezone.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
     }
 }
 

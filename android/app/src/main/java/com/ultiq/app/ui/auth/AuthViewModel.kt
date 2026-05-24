@@ -105,6 +105,12 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                 // a fresh install on a new device picks up the user's existing
                 // bedtime/wake/focus config rather than starting from defaults.
                 response.user.preferences?.let { userPreferences.applyServerPreferences(it) }
+                // §i18n (v2.13.9) — Push the device's IANA timezone to the
+                // server so all "today" bucketing + the anomaly scheduler use
+                // the user's local clock instead of UTC. Fire-and-forget;
+                // failure leaves the server on its previous value (UTC for
+                // a fresh signup, the last-pushed zone otherwise).
+                syncTimezone()
                 // §fresh-login-sync (v2.13.5): hydrate Room before Dashboard
                 // mounts. Without this, the user sees empty screens until
                 // either per-tab lazy loads finish racing the first compose,
@@ -142,6 +148,11 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                 // symmetry with login (and so that account-merge flows work
                 // when we eventually have them).
                 response.user.preferences?.let { userPreferences.applyServerPreferences(it) }
+                // §i18n (v2.13.9) — Same as login. For a brand-new account
+                // this is what actually populates the timezone column on the
+                // server (which would otherwise stay at the 'UTC' default
+                // until the user opened Settings).
+                syncTimezone()
                 // Same hydrate-then-route path as login; for a brand-new
                 // account every domain pull returns empty, but it still kicks
                 // SSE so future events stream without waiting for the next
@@ -160,6 +171,20 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                     error = e.toUserMessage("Registration failed. Try again."),
                 )
             }
+        }
+    }
+
+    /** §i18n (v2.13.9) — Push the device's IANA timezone to the server.
+     *  Wrapped in runCatching because a transient network failure here is
+     *  acceptable: the backend will still bucket against the previous
+     *  value (UTC fallback for brand-new accounts, last-known-good
+     *  otherwise), and the next login fires this again. */
+    private suspend fun syncTimezone() {
+        runCatching {
+            val tz = java.time.ZoneId.systemDefault().id
+            api.updateProfile(
+                com.ultiq.app.data.remote.dto.UpdateProfileRequest(timezone = tz)
+            )
         }
     }
 
