@@ -1,6 +1,6 @@
 {
-  "versionCode": 68,
-  "versionName": "2.13.14",
-  "url": "https://ultiqapp.com/ultiq.2.13.14.apk",
-  "releaseNotes": "Fixes the audio events disappearing after a reinstall. Snore/cough events upload to the server at sleep-session save time, but pre-v2.13.14 the app never pulled them back down — so a fresh install or a new device lost the Tonight's Sounds card and the snore/cough sections inside past-record expansions until the user generated new ones. Sleep sync now pulls audio events for the past 7 days' records; expanding an older record also lazy-fetches from the server when local is empty."
+  "versionCode": 69,
+  "versionName": "2.13.15",
+  "url": "https://ultiqapp.com/ultiq.2.13.15.apk",
+  "releaseNotes": "AI summary card now shows when it was generated and when the next refresh will happen (the server caches each summary for 24 hours to keep costs down). Two small lines underneath the prose, no buttons. Replaces the older 'Refreshes every 24 hours' line that didn't tell you when."
 }
