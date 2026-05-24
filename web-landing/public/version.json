@@ -1,6 +1,6 @@
 {
-  "versionCode": 66,
-  "versionName": "2.13.12",
-  "url": "https://ultiqapp.com/ultiq.2.13.12.apk",
-  "releaseNotes": "Dashboard polish: the green/yellow trend color now lands on the THIS WEEK headline number instead of the small Last week reference below it. Avg sleep and Avg quality show in green when you're ahead of last week, warning yellow when you're behind. Last week values stay neutral grey. Total focus + Calendar events untouched. Yellow shade swapped from amber-orange to the standard Android warning yellow."
+  "versionCode": 67,
+  "versionName": "2.13.13",
+  "url": "https://ultiqapp.com/ultiq.2.13.13.apk",
+  "releaseNotes": "Sleep chart fix: the Mon/Tue/… X-axis labels and the hour Y-axis numbers were invisible in light mode (Vico's default label color blended into the light surface). Now reads theme-aware so both light and dark modes show the labels."
 }
