@@ -948,26 +948,31 @@ private fun WeeklyHighlightsCard(highlights: WeeklyHighlights?, onClick: () -> U
                 )
             }
 
-            // §last-week-row (v2.13.10) — Single comparison row. Only renders
-            // when at least one stat has prior-week data; suppresses entirely
-            // on a brand-new account / first calendar week of use.
+            // §last-week-per-column (v2.13.11) — Three "Last week" mini-stacks,
+            // one per comparable column (Avg sleep / Avg quality / Total
+            // focus). Each stack is a small label on top of the prior-week
+            // value, column-aligned with the stat tile above via weight(1f).
+            // Calendar events column has no comparison by design — fourth
+            // slot stays empty so the row keeps the same 4-column grid.
+            //
+            // Earlier designs tried (a) per-tile "Last week: X" subtitle
+            // which wrapped on real devices (v2.13.7-9), (b) a single
+            // centered "Last week" header above one merged values row
+            // (v2.13.10-11) which read as labeling only the first column
+            // because the label sat in the row's natural top-left
+            // typographic anchor. Per-column labels are the most honest
+            // — the label literally sits over the value it describes.
             val anyLastWeek = h?.lastWeekAvgSleepMinutes != null ||
                 h?.lastWeekQuality != null ||
                 h?.lastWeekFocusHours != null
             if (h != null && anyLastWeek) {
                 Spacer(Modifier.height(10.dp))
-                Text(
-                    "Last week",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(Modifier.height(2.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    LastWeekCell(
-                        text = h.lastWeekAvgSleepMinutes?.let(::formatDuration) ?: "—",
+                    LastWeekColumn(
+                        value = h.lastWeekAvgSleepMinutes?.let(::formatDuration),
                         color = h.avgSleepDeltaMinutes?.let { d ->
                             when {
                                 d > 0 -> good
@@ -977,8 +982,8 @@ private fun WeeklyHighlightsCard(highlights: WeeklyHighlights?, onClick: () -> U
                         } ?: Color.Unspecified,
                         modifier = Modifier.weight(1f),
                     )
-                    LastWeekCell(
-                        text = h.lastWeekQuality?.let { String.format("%.1f/5", it) } ?: "—",
+                    LastWeekColumn(
+                        value = h.lastWeekQuality?.let { String.format("%.1f/5", it) },
                         color = h.avgQualityDelta?.let { d ->
                             when {
                                 d > 0.05 -> good
@@ -988,19 +993,13 @@ private fun WeeklyHighlightsCard(highlights: WeeklyHighlights?, onClick: () -> U
                         } ?: Color.Unspecified,
                         modifier = Modifier.weight(1f),
                     )
-                    LastWeekCell(
-                        text = h.lastWeekFocusHours?.let { String.format("%.1fh", it) } ?: "—",
+                    LastWeekColumn(
+                        value = h.lastWeekFocusHours?.let { String.format("%.1fh", it) },
                         color = Color.Unspecified,
                         modifier = Modifier.weight(1f),
                     )
-                    // Calendar events has no comparison by design (per
-                    // 2026-05-24 discussion); placeholder keeps the
-                    // column width consistent with the stats row above.
-                    LastWeekCell(
-                        text = "—",
-                        color = Color.Unspecified,
-                        modifier = Modifier.weight(1f),
-                    )
+                    // Calendar events: empty slot to preserve grid alignment.
+                    Spacer(modifier = Modifier.weight(1f))
                 }
             }
             // §empty-state — hide debt/extra/net tiles when no sleep records
@@ -1149,30 +1148,43 @@ private fun HighlightStat(
     }
 }
 
-/// §last-week-row (v2.13.10) — One value cell in the "Last week" row
-/// beneath the main stat tiles. Column-aligned via `Modifier.weight(1f)`
-/// from the caller. Caller passes the color too: green when this week
+/// §last-week-per-column (v2.13.11) — One column's worth of "Last week"
+/// comparison: small "Last week" label on top of the prior-week value.
+/// Column-aligned with the stat tile above via `Modifier.weight(1f)`
+/// from the caller. Caller passes the color too — green when this week
 /// improved on last week (Avg sleep / Avg quality), amber when it
-/// regressed, `Color.Unspecified` for neutral (Total focus / Calendar
-/// events / no-data placeholder).
+/// regressed, `Color.Unspecified` for neutral (Total focus). When
+/// `value` is null (no prior-week data for this stat), renders an em
+/// dash so the column still aligns with its siblings.
 @Composable
-private fun LastWeekCell(
-    text: String,
+private fun LastWeekColumn(
+    value: String?,
     color: Color,
     modifier: Modifier = Modifier,
 ) {
     val resolved = if (color == Color.Unspecified) {
         MaterialTheme.colorScheme.onSurfaceVariant
     } else color
-    Text(
-        text = text,
+    Column(
         modifier = modifier,
-        style = MaterialTheme.typography.bodyMedium,
-        fontWeight = FontWeight.Medium,
-        color = resolved,
-        textAlign = TextAlign.Center,
-        maxLines = 1,
-    )
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            "Last week",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+        )
+        Text(
+            text = value ?: "—",
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Medium,
+            color = resolved,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+        )
+    }
 }
 
 @Composable
