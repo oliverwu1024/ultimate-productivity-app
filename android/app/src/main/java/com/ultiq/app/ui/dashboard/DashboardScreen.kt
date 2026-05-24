@@ -906,16 +906,29 @@ private fun WeeklyHighlightsCard(highlights: WeeklyHighlights?, onClick: () -> U
             )
             Spacer(Modifier.height(12.dp))
             val h = highlights
-            val warningAmber = Color(0xFFFFA000)
+            // §value-color (v2.13.12) — Warning yellow + good green for the
+            // top-row trend signal on Avg sleep + Avg quality. Moved here
+            // from the Last-week row underneath (was v2.13.7-v2.13.11)
+            // because the trend reads stronger on the big headline number
+            // than on the small comparison beneath. `#FFC107` is the
+            // standard Android warning amber — clearly yellow on dark
+            // surface, not the orange-leaning `#FFA000` we had before.
+            val warningYellow = Color(0xFFFFC107)
             val good = Color(0xFF4CAF50)
-            // §last-week-row (v2.13.10) — Last-week comparisons moved out of
-            // per-tile subtitles into a single full-width row below the
-            // stats. Previous design (v2.13.7-v2.13.9) had "Last week: 8h
-            // 32m" under each tile but the long strings wrapped onto two
-            // lines and the Calendar-events label collided with the focus
-            // subtitle on narrower phones (real-device screenshot 2026-05-24).
-            // One shared "Last week" label + a weight-matched value row
-            // keeps the comparison legible and column-aligned.
+            val avgSleepColor = h?.avgSleepDeltaMinutes?.let { d ->
+                when {
+                    d > 0 -> good
+                    d < 0 -> warningYellow
+                    else -> Color.Unspecified
+                }
+            } ?: Color.Unspecified
+            val avgQualityColor = h?.avgQualityDelta?.let { d ->
+                when {
+                    d > 0.05 -> good
+                    d < -0.05 -> warningYellow
+                    else -> Color.Unspecified
+                }
+            } ?: Color.Unspecified
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -925,12 +938,14 @@ private fun WeeklyHighlightsCard(highlights: WeeklyHighlights?, onClick: () -> U
                     value = h?.avgSleepDuration ?: "-",
                     subtitle = null,
                     modifier = Modifier.weight(1f),
+                    valueColor = avgSleepColor,
                 )
                 HighlightStat(
                     label = "Avg quality",
                     value = if (h != null && h.avgSleepQuality > 0) String.format("%.1f/5", h.avgSleepQuality) else "-",
                     subtitle = null,
                     modifier = Modifier.weight(1f),
+                    valueColor = avgQualityColor,
                 )
                 HighlightStat(
                     label = "Total focus",
@@ -955,13 +970,10 @@ private fun WeeklyHighlightsCard(highlights: WeeklyHighlights?, onClick: () -> U
             // Calendar events column has no comparison by design — fourth
             // slot stays empty so the row keeps the same 4-column grid.
             //
-            // Earlier designs tried (a) per-tile "Last week: X" subtitle
-            // which wrapped on real devices (v2.13.7-9), (b) a single
-            // centered "Last week" header above one merged values row
-            // (v2.13.10-11) which read as labeling only the first column
-            // because the label sat in the row's natural top-left
-            // typographic anchor. Per-column labels are the most honest
-            // — the label literally sits over the value it describes.
+            // §value-color (v2.13.12) — Color signal moved off this row up
+            // to the headline "This week" values. The last-week numbers
+            // here are now always neutral — they're the reference baseline,
+            // not the verdict.
             val anyLastWeek = h?.lastWeekAvgSleepMinutes != null ||
                 h?.lastWeekQuality != null ||
                 h?.lastWeekFocusHours != null
@@ -973,29 +985,14 @@ private fun WeeklyHighlightsCard(highlights: WeeklyHighlights?, onClick: () -> U
                 ) {
                     LastWeekColumn(
                         value = h.lastWeekAvgSleepMinutes?.let(::formatDuration),
-                        color = h.avgSleepDeltaMinutes?.let { d ->
-                            when {
-                                d > 0 -> good
-                                d < 0 -> warningAmber
-                                else -> Color.Unspecified
-                            }
-                        } ?: Color.Unspecified,
                         modifier = Modifier.weight(1f),
                     )
                     LastWeekColumn(
                         value = h.lastWeekQuality?.let { String.format("%.1f/5", it) },
-                        color = h.avgQualityDelta?.let { d ->
-                            when {
-                                d > 0.05 -> good
-                                d < -0.05 -> warningAmber
-                                else -> Color.Unspecified
-                            }
-                        } ?: Color.Unspecified,
                         modifier = Modifier.weight(1f),
                     )
                     LastWeekColumn(
                         value = h.lastWeekFocusHours?.let { String.format("%.1fh", it) },
-                        color = Color.Unspecified,
                         modifier = Modifier.weight(1f),
                     )
                     // Calendar events: empty slot to preserve grid alignment.
@@ -1105,6 +1102,14 @@ private fun SleepBalanceTile(
 /// their column and bled into the next tile (observed on 2026-05-24).
 /// Every text in the tile center-aligns + wraps inside its allotted
 /// width instead of pushing siblings around.
+///
+/// §value-color (v2.13.12) — `valueColor` overrides the default primary
+/// for the headline value. Avg sleep + Avg quality use this to render
+/// the THIS WEEK number in green (this week > last week) or warning
+/// yellow (this week < last week). Total focus + Calendar events leave
+/// it `Color.Unspecified` to stay primary. Moves the trend signal onto
+/// the prominent headline number rather than the small comparison
+/// value beneath, per real-device feedback 2026-05-24.
 @Composable
 private fun HighlightStat(
     label: String,
@@ -1112,6 +1117,7 @@ private fun HighlightStat(
     subtitle: String?,
     modifier: Modifier = Modifier,
     subtitleColor: Color = Color.Unspecified,
+    valueColor: Color = Color.Unspecified,
 ) {
     Column(
         modifier = modifier,
@@ -1121,7 +1127,9 @@ private fun HighlightStat(
             value,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
+            color = if (valueColor == Color.Unspecified) {
+                MaterialTheme.colorScheme.primary
+            } else valueColor,
             textAlign = TextAlign.Center,
             maxLines = 1,
         )
@@ -1151,20 +1159,18 @@ private fun HighlightStat(
 /// §last-week-per-column (v2.13.11) — One column's worth of "Last week"
 /// comparison: small "Last week" label on top of the prior-week value.
 /// Column-aligned with the stat tile above via `Modifier.weight(1f)`
-/// from the caller. Caller passes the color too — green when this week
-/// improved on last week (Avg sleep / Avg quality), amber when it
-/// regressed, `Color.Unspecified` for neutral (Total focus). When
-/// `value` is null (no prior-week data for this stat), renders an em
-/// dash so the column still aligns with its siblings.
+/// from the caller. When `value` is null (no prior-week data for this
+/// stat), renders an em dash so the column still aligns with its
+/// siblings.
+///
+/// §value-color (v2.13.12) — Always neutral grey now. The trend signal
+/// (green / yellow) moved up to the THIS WEEK headline value where it
+/// reads stronger; the last-week reference numbers stay calm.
 @Composable
 private fun LastWeekColumn(
     value: String?,
-    color: Color,
     modifier: Modifier = Modifier,
 ) {
-    val resolved = if (color == Color.Unspecified) {
-        MaterialTheme.colorScheme.onSurfaceVariant
-    } else color
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -1180,7 +1186,7 @@ private fun LastWeekColumn(
             text = value ?: "—",
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Medium,
-            color = resolved,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
             maxLines = 1,
         )

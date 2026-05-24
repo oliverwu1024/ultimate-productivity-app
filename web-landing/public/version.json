@@ -1,6 +1,6 @@
 {
-  "versionCode": 65,
-  "versionName": "2.13.11",
-  "url": "https://ultiqapp.com/ultiq.2.13.11.apk",
-  "releaseNotes": "Dashboard polish: the v2.13.10 single \"Last week\" label sat in the top-left of the comparison row and looked like it only labeled Avg sleep. Now there's a \"Last week\" label above each of the three comparable values (Avg sleep, Avg quality, Total focus) — clearly column-aligned, no ambiguity. Calendar events column stays empty since it doesn't have a comparison."
+  "versionCode": 66,
+  "versionName": "2.13.12",
+  "url": "https://ultiqapp.com/ultiq.2.13.12.apk",
+  "releaseNotes": "Dashboard polish: the green/yellow trend color now lands on the THIS WEEK headline number instead of the small Last week reference below it. Avg sleep and Avg quality show in green when you're ahead of last week, warning yellow when you're behind. Last week values stay neutral grey. Total focus + Calendar events untouched. Yellow shade swapped from amber-orange to the standard Android warning yellow."
 }
