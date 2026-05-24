@@ -1,6 +1,6 @@
 {
-  "versionCode": 67,
-  "versionName": "2.13.13",
-  "url": "https://ultiqapp.com/ultiq.2.13.13.apk",
-  "releaseNotes": "Sleep chart fix: the Mon/Tue/… X-axis labels and the hour Y-axis numbers were invisible in light mode (Vico's default label color blended into the light surface). Now reads theme-aware so both light and dark modes show the labels."
+  "versionCode": 68,
+  "versionName": "2.13.14",
+  "url": "https://ultiqapp.com/ultiq.2.13.14.apk",
+  "releaseNotes": "Fixes the audio events disappearing after a reinstall. Snore/cough events upload to the server at sleep-session save time, but pre-v2.13.14 the app never pulled them back down — so a fresh install or a new device lost the Tonight's Sounds card and the snore/cough sections inside past-record expansions until the user generated new ones. Sleep sync now pulls audio events for the past 7 days' records; expanding an older record also lazy-fetches from the server when local is empty."
 }

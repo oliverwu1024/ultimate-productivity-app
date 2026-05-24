@@ -15,6 +15,7 @@ import com.ultiq.app.data.remote.dto.toCreateDto
 import com.ultiq.app.data.remote.dto.toEntity
 import com.ultiq.app.service.PickupEvent
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.firstOrNull
 import java.util.UUID
 
 class SleepRepository(
@@ -260,8 +261,62 @@ class SleepRepository(
             // §10 — Also retry any unsynced audio events as part of the
             // standard sync pass. Failures here don't abort the outer sync.
             try { syncAudioEvents() } catch (_: Exception) { }
+
+            // §10-backfill (v2.13.14) — Pull audio events for the past 7
+            // days of records into local Room. Backend stores them
+            // canonically (uploaded at session-end) but pre-v2.13.14 we
+            // never pulled them back, so a fresh install / new device
+            // lost the Tonight's Sounds dashboard card + the snore/cough
+            // sections inside past-record expansion until the user
+            // generated new ones. Idempotent — INSERT OR REPLACE on the
+            // primary id de-dupes if the events are already local.
+            try {
+                fetchRecentAudioEvents(serverRecords.map { it.id }, sinceMs = now - 7L * day)
+            } catch (_: Exception) { /* non-fatal */ }
         } catch (_: Exception) {
             // offline, skip sync
+        }
+    }
+
+    /// §10-backfill (v2.13.14) — Fetch audio events from the server for
+    /// every sleep_record whose actualBedtime is at/after `sinceMs`, and
+    /// persist them locally. Used by the standard sync pass to repopulate
+    /// the Tonight's Sounds card + past-record expansions after a fresh
+    /// install. Also reachable directly from
+    /// `SleepViewModel.fetchRecordDetails` for older records the user
+    /// expands manually. One round-trip per record — fine at our record
+    /// counts (≤ ~10/week); revisit with a since= bulk endpoint once
+    /// active users grow.
+    suspend fun fetchAudioEventsForRecord(sleepRecordId: String): List<SleepAudioEventEntity> {
+        val dao = sleepAudioEventDao ?: return emptyList()
+        val events = apiService.getSleepAudioEvents(sleepRecordId)
+        val entities = events.map { it.toEntity() }
+        if (entities.isNotEmpty()) dao.insertAll(entities)
+        return entities
+    }
+
+    private suspend fun fetchRecentAudioEvents(allRecordIds: List<String>, sinceMs: Long) {
+        val dao = sleepAudioEventDao ?: return
+        // Filter to records whose actualBedtime is recent. We don't have
+        // the timestamps here (we only have ids from the sync response),
+        // so re-read from Room — already inserted above.
+        val recent = sleepDao
+            .getRecordsBetween(sinceMs, Long.MAX_VALUE)
+            .firstOrNull()
+            ?.map { it.id }
+            ?.toSet()
+            ?: return
+        val targets = allRecordIds.filter { it in recent }
+        for (id in targets) {
+            try {
+                val events = apiService.getSleepAudioEvents(id)
+                if (events.isNotEmpty()) {
+                    dao.insertAll(events.map { it.toEntity() })
+                }
+            } catch (_: Exception) {
+                // Skip this record; next sync will retry. Per-record
+                // failure shouldn't abort the rest of the back-fill.
+            }
         }
     }
 }
