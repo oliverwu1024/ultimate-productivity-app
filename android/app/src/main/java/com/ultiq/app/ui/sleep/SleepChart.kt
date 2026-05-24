@@ -1,5 +1,6 @@
 package com.ultiq.app.ui.sleep
 
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -8,6 +9,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.ultiq.app.data.local.entity.SleepRecordEntity
 import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
+import com.patrykandpatrick.vico.compose.cartesian.axis.rememberAxisLabelComponent
 import com.patrykandpatrick.vico.compose.cartesian.axis.rememberBottom
 import com.patrykandpatrick.vico.compose.cartesian.axis.rememberStart
 import com.patrykandpatrick.vico.compose.cartesian.layer.rememberColumnCartesianLayer
@@ -65,6 +67,17 @@ fun SleepChart(
         ),
     )
 
+    // §chart-light-mode (v2.13.13) — Vico's default axis-label color comes
+    // from its own theme (`vicoTheme.textColor`), which isn't wired to
+    // MaterialTheme by default. The fallback color happens to be visible
+    // on dark backgrounds but blends into light-mode surfaces — confirmed
+    // on real device screenshot 2026-05-24 where the Mon/Tue/… X-axis
+    // labels + Y-axis numbers were invisible in light mode. Passing a
+    // theme-aware label component to both axes locks the color to the
+    // current Material color scheme.
+    val axisLabel = rememberAxisLabelComponent(
+        color = MaterialTheme.colorScheme.onSurface,
+    )
     CartesianChartHost(
         chart = rememberCartesianChart(
             rememberColumnCartesianLayer(
@@ -87,8 +100,9 @@ fun SleepChart(
                 ),
                 mergeMode = { ColumnCartesianLayer.MergeMode.Stacked },
             ),
-            startAxis = VerticalAxis.rememberStart(),
+            startAxis = VerticalAxis.rememberStart(label = axisLabel),
             bottomAxis = HorizontalAxis.rememberBottom(
+                label = axisLabel,
                 valueFormatter = { _, value, _ ->
                     chartData.dayLabels.getOrElse(value.toInt()) { "" }
                 },
