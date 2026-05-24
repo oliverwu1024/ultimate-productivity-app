@@ -13,6 +13,12 @@ pub struct User {
     pub is_admin: bool,
     pub token_version: i32,
     pub preferences: JsonValue,
+    /// §i18n (v2.13.9) — IANA timezone string ("Australia/Sydney",
+    /// "America/New_York"). 'UTC' is the safe default and is what every
+    /// pre-v2.13.9 client implicitly used. Backend uses this for "today"
+    /// bucketing across all routes + for the anomaly scheduler's
+    /// per-user 08:00-local fan-out.
+    pub timezone: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -22,6 +28,13 @@ pub struct UpdateProfile {
     /// JSONB column via `||`. Send only the keys you want to change; the
     /// rest stay as they were. Null clears the column to `{}`.
     pub preferences: Option<JsonValue>,
+    /// §i18n (v2.13.9) — IANA timezone string. Android sends this on every
+    /// login (ZoneId.systemDefault().id); web dashboard sends the
+    /// browser's Intl.DateTimeFormat().resolvedOptions().timeZone if/when
+    /// it implements its own settings panel. Null = keep the existing
+    /// value. Invalid strings are accepted at write time but silently
+    /// fall back to UTC at read time (see util::tz::user_today).
+    pub timezone: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -61,6 +74,10 @@ pub struct UserResponse {
     pub sleep_target_minutes: i32,
     pub is_admin: bool,
     pub preferences: JsonValue,
+    /// §i18n — Mirrored to clients so the Settings → Region row can
+    /// display "as known by the server" and let the user override if
+    /// auto-detection got it wrong (e.g. phone reports UTC).
+    pub timezone: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -78,6 +95,7 @@ impl From<User> for UserResponse {
             sleep_target_minutes: user.sleep_target_minutes,
             is_admin: user.is_admin,
             preferences: user.preferences,
+            timezone: user.timezone,
         }
     }
 }

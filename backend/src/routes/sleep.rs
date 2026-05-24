@@ -242,14 +242,19 @@ async fn stats(
 ) -> Result<Json<SleepStats>, AppError> {
     let user_id = parse_user_id(&claims)?;
     let now = Utc::now();
+    // §i18n (v2.13.9) — Calendar boundaries (this_monday, first_of_month)
+    // computed in user-local. UTC->local at the day-boundary edge case
+    // (e.g. user in NZ Sunday night) means "this week" used to start on
+    // the wrong Monday. Now matches what the user's clock would say.
+    let tz_str = crate::tz::fetch_user_tz(&state.pool, user_id).await?;
 
     let range = params.range.as_deref().unwrap_or("month");
 
-    // §wave2 — "week" now means the CURRENT calendar week (Mon..now). The
-    // old rolling-7-day window is still reachable via `rolling_week` for
-    // any caller that depended on it. Sleep tab calls `this_week` /
+    // §wave2 — "week" now means the CURRENT calendar week (Mon..now) in
+    // the user's local tz. The old rolling-7-day window is still
+    // reachable via `rolling_week`. Sleep tab calls `this_week` /
     // `last_week` / `this_month` / `last_month` for the stats grid.
-    let today = now.date_naive();
+    let today = crate::tz::user_today(&tz_str);
     let days_since_monday = today.weekday().num_days_from_monday() as i64;
     let this_monday = today - chrono::Duration::days(days_since_monday);
     let last_monday = this_monday - chrono::Duration::days(7);
@@ -261,37 +266,33 @@ async fn stats(
     let (start, end) = match range {
         "rolling_week" => (now - chrono::Duration::days(7), now),
         "week" | "this_week" | "calendar_week" => {
-            // Current ISO week: Monday 00:00 UTC → now.
-            let s = this_monday.and_hms_opt(0, 0, 0).unwrap().and_utc();
+            // Current ISO week: user-local Monday 00:00 → now.
+            let (s, _) = crate::tz::user_local_day_utc_range(&tz_str, this_monday);
             (s, now)
         }
         "last_week" => {
-            let s = last_monday.and_hms_opt(0, 0, 0).unwrap().and_utc();
-            let e = last_sunday_end.and_hms_opt(23, 59, 59).unwrap().and_utc();
+            let (s, _) = crate::tz::user_local_day_utc_range(&tz_str, last_monday);
+            let (_, e) = crate::tz::user_local_day_utc_range(&tz_str, last_sunday_end);
             (s, e)
         }
         "this_month" => {
-            let s = first_of_month.and_hms_opt(0, 0, 0).unwrap().and_utc();
+            let (s, _) = crate::tz::user_local_day_utc_range(&tz_str, first_of_month);
             (s, now)
         }
         "last_month" => {
-            let s = first_of_last_month.and_hms_opt(0, 0, 0).unwrap().and_utc();
-            let e = last_month_end.and_hms_opt(23, 59, 59).unwrap().and_utc();
+            let (s, _) = crate::tz::user_local_day_utc_range(&tz_str, first_of_last_month);
+            let (_, e) = crate::tz::user_local_day_utc_range(&tz_str, last_month_end);
             (s, e)
         }
         "custom" => {
-            let s = params
+            let start_d = params
                 .start
-                .ok_or_else(|| AppError::new(StatusCode::BAD_REQUEST, "start date required for custom range"))?
-                .and_hms_opt(0, 0, 0)
-                .unwrap()
-                .and_utc();
-            let e = params
+                .ok_or_else(|| AppError::new(StatusCode::BAD_REQUEST, "start date required for custom range"))?;
+            let end_d = params
                 .end
-                .ok_or_else(|| AppError::new(StatusCode::BAD_REQUEST, "end date required for custom range"))?
-                .and_hms_opt(23, 59, 59)
-                .unwrap()
-                .and_utc();
+                .ok_or_else(|| AppError::new(StatusCode::BAD_REQUEST, "end date required for custom range"))?;
+            let (s, _) = crate::tz::user_local_day_utc_range(&tz_str, start_d);
+            let (_, e) = crate::tz::user_local_day_utc_range(&tz_str, end_d);
             (s, e)
         }
         _ => (now - chrono::Duration::days(30), now),

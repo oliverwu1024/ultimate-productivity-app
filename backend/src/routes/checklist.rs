@@ -139,7 +139,12 @@ async fn today(
     claims: Claims,
 ) -> Result<Json<Vec<ChecklistItem>>, AppError> {
     let user_id = parse_user_id(&claims)?;
-    let today = Utc::now().date_naive();
+    // §i18n (v2.13.9) — "Today" is the user's local calendar day, not UTC's.
+    // A NY user at 9pm Sunday previously got Monday's checklist (UTC was
+    // already past midnight). Read the user's stored IANA tz and compute
+    // today there.
+    let tz = crate::tz::fetch_user_tz(&state.pool, user_id).await?;
+    let today = crate::tz::user_today(&tz);
 
     let items = sqlx::query_as::<_, ChecklistItem>(
         "SELECT * FROM checklist_items

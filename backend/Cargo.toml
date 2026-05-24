@@ -14,6 +14,10 @@ argon2 = "0.5"
 dotenvy = "0.15"
 uuid = { version = "1", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
+# §i18n (v2.13.9) — IANA timezone string parsing for per-user "today"
+# bucketing. chrono-tz bundles the IANA tz database at compile time so
+# we don't need a runtime lookup; matches the chrono major version.
+chrono-tz = "0.10"
 tower-http = { version = "0.5", features = ["cors", "limit", "set-header"] }
 tower = "0.5"
 tower_governor = "0.4"
