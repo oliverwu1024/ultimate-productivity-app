@@ -76,6 +76,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.mutableStateOf
@@ -914,13 +915,23 @@ private fun WeeklyHighlightsCard(highlights: WeeklyHighlights?, onClick: () -> U
             // no subtitle at all — the absolute count is the whole story.
             val warningAmber = Color(0xFFFFA000)
             val good = Color(0xFF4CAF50)
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            // §column-squeeze (v2.13.8) — Each tile gets weight(1f) so the
+            // row divides into 4 equal columns regardless of subtitle
+            // length. spacedBy(8.dp) gives a consistent gutter; the prior
+            // SpaceBetween + no-weight combo let wider subtitles overlap
+            // their right neighbour ("Calendar events" was wrapping into
+            // the focus subtitle on a real device).
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 HighlightStat(
                     label = "Avg sleep",
                     value = h?.avgSleepDuration ?: "-",
                     subtitle = h?.lastWeekAvgSleepMinutes?.let {
                         "Last week: ${formatDuration(it)}"
                     },
+                    modifier = Modifier.weight(1f),
                     subtitleColor = h?.avgSleepDeltaMinutes?.let { d ->
                         when {
                             d > 0 -> good
@@ -935,6 +946,7 @@ private fun WeeklyHighlightsCard(highlights: WeeklyHighlights?, onClick: () -> U
                     subtitle = h?.lastWeekQuality?.let {
                         "Last week: ${String.format("%.1f/5", it)}"
                     },
+                    modifier = Modifier.weight(1f),
                     subtitleColor = h?.avgQualityDelta?.let { d ->
                         when {
                             d > 0.05 -> good
@@ -951,11 +963,13 @@ private fun WeeklyHighlightsCard(highlights: WeeklyHighlights?, onClick: () -> U
                     subtitle = h?.lastWeekFocusHours?.let {
                         "Last week: ${String.format("%.1f", it)}h"
                     },
+                    modifier = Modifier.weight(1f),
                 )
                 HighlightStat(
                     label = "Calendar events",
                     value = if (h != null && h.eventsTotal > 0) "${h.eventsTotal}" else "-",
                     subtitle = null,
+                    modifier = Modifier.weight(1f),
                 )
             }
             // §empty-state — hide debt/extra/net tiles when no sleep records
@@ -1054,16 +1068,40 @@ private fun SleepBalanceTile(
 /// optional "Last week: …" subtitle. `subtitleColor` is computed by the
 /// caller: neutral for Total focus, green/amber for Avg sleep + Avg
 /// quality based on direction. Calendar events passes null subtitle.
+///
+/// §column-squeeze (v2.13.8) — `modifier` must carry `Modifier.weight(1f)`
+/// from the caller so all four tiles share equal width in the parent Row.
+/// Without the weight, wider subtitles ("Last week: 8h 32m") stretched
+/// their column and bled into the next tile (observed on 2026-05-24).
+/// Every text in the tile center-aligns + wraps inside its allotted
+/// width instead of pushing siblings around.
 @Composable
 private fun HighlightStat(
     label: String,
     value: String,
     subtitle: String?,
+    modifier: Modifier = Modifier,
     subtitleColor: Color = Color.Unspecified,
 ) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            value,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+        )
+        Text(
+            label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            maxLines = 2,
+        )
         if (subtitle != null) {
             val resolved = if (subtitleColor == Color.Unspecified) {
                 MaterialTheme.colorScheme.onSurfaceVariant
@@ -1073,6 +1111,8 @@ private fun HighlightStat(
                 style = MaterialTheme.typography.labelSmall,
                 color = resolved,
                 fontWeight = FontWeight.Medium,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
             )
         }
     }
