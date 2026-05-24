@@ -23,6 +23,7 @@ import com.ultiq.app.data.local.entity.SleepAudioEventEntity
 import com.ultiq.app.ui.lockout.LockoutMode
 import com.ultiq.app.ui.lockout.LockoutOverlayController
 import com.ultiq.app.util.LockoutNotifier
+import com.ultiq.app.util.NotificationHelper
 import com.ultiq.app.util.PhoneUsageTracker
 import com.ultiq.app.util.UserPreferences
 import kotlinx.coroutines.CoroutineExceptionHandler
@@ -235,6 +236,13 @@ class SleepTrackingService : Service() {
             if (!SleepAudioClassifier.isMicPermitted(applicationContext)) {
                 Log.w(TAG, "Audio tracking on but RECORD_AUDIO not granted — skipping")
                 AudioInitStatus.set("Off — RECORD_AUDIO permission not granted to Ultiq.")
+                // §mic-permission (v2.13.5) — Failsafe for the fresh-install
+                // case where the synced preference says ON but the OS grant
+                // never travelled. The Sleep tab already shows an inline
+                // banner; this notification covers the user who started a
+                // session straight from the Dashboard / a tile and never
+                // looked at the Sleep tab first.
+                NotificationHelper.showMicPermissionNeeded(applicationContext)
                 return@launch
             }
             AudioInitStatus.set("Pref on + mic permitted. Upgrading service type…")
