@@ -179,7 +179,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     private val calendarRepo = CalendarRepository(db.calendarEventDao(), api, AlarmScheduler(application))
     private val checklistRepo = ChecklistRepository(db.checklistDao(), api)
     private val alarmRepo = com.ultiq.app.data.repository.AlarmRepository(application, db.alarmDao(), api)
-    private val syncManager = SyncManager(sleepRepo, sessionRepo, calendarRepo, alarmRepo)
+    private val syncManager = SyncManager(sleepRepo, sessionRepo, calendarRepo, alarmRepo, checklistRepo)
     private val userPreferences = UserPreferences(application)
 
     private val _uiState = MutableStateFlow(DashboardUiState())

@@ -1,9 +1,11 @@
 package com.ultiq.app.ui.sleep
 
 import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -28,6 +30,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.GraphicEq
+import androidx.compose.material.icons.filled.MicOff
 import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
@@ -67,9 +70,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.DisposableEffect
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ultiq.app.data.local.entity.AlarmEntity
 import com.ultiq.app.data.local.entity.SleepRecordEntity
@@ -225,6 +233,61 @@ fun SleepScreen(
 }
 
 @Composable
+private fun MicPermissionBanner(
+    onGrant: () -> Unit,
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.errorContainer,
+        ),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = Icons.Default.MicOff,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onErrorContainer,
+                modifier = Modifier.size(32.dp),
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Snore tracking needs mic permission",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = "Your account has snore + cough detection enabled, " +
+                        "but this device hasn't been granted microphone access. " +
+                        "Audio analysis stays on-device — never uploaded.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(
+                    onClick = onGrant,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.onErrorContainer,
+                        contentColor = MaterialTheme.colorScheme.errorContainer,
+                    ),
+                ) {
+                    Text("Grant permission")
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun NoAlarmDialog(
     onSetAlarm: () -> Unit,
     onSleepAnyway: () -> Unit,
@@ -257,6 +320,41 @@ private fun SleepSubTab(
     permissionLauncher: androidx.activity.compose.ManagedActivityResultLauncher<String, Boolean>,
 ) {
     val hasStats = uiState.stats != null && uiState.stats!!.totalRecords > 0
+
+    // §mic-permission-banner (v2.13.5) — On a fresh install, the user's
+    // `audio_tracking_enabled` preference round-trips from the server (so
+    // the toggle in Sleep Preferences reads ON), but the OS-level
+    // RECORD_AUDIO grant does not — it's per-install. Without this banner,
+    // sleep sessions silently skip the snore/cough pipeline and the user
+    // never realises until they check the Audio diagnostic card. Re-check
+    // on lifecycle resume so a system-settings grant flips the banner off
+    // without needing a tab swap.
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var hasMicPermission by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.RECORD_AUDIO,
+            ) == PackageManager.PERMISSION_GRANTED,
+        )
+    }
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                hasMicPermission = ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.RECORD_AUDIO,
+                ) == PackageManager.PERMISSION_GRANTED
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+    val micPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted -> hasMicPermission = granted }
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -275,6 +373,16 @@ private fun SleepSubTab(
                         "live in the Alarms sub-tab above.",
                     onDismiss = { viewModel.dismissSleepPrefsHint() },
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                )
+            }
+        }
+
+        if (uiState.settings?.audioTrackingEnabled == true && !hasMicPermission) {
+            item(key = "mic-permission-banner") {
+                MicPermissionBanner(
+                    onGrant = {
+                        micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                    },
                 )
             }
         }
