@@ -1,6 +1,6 @@
 {
-  "versionCode": 61,
-  "versionName": "2.13.7",
-  "url": "https://ultiqapp.com/ultiq.2.13.7.apk",
-  "releaseNotes": "Dashboard polish: \"Your week so far\" is now \"This week\" with proper Monday-to-today math against a full prior Monday-Sunday baseline. Each comparable stat shows \"Last week: X\" instead of a +/- delta so the comparison is unambiguous; Avg sleep + Avg quality color the line green when you're ahead and amber when you're behind. Empty-state cleanup — no more misleading \"0m\" or \"on target\" when there's nothing logged yet. Also: AI summary card retitled \"Past 7 days — AI summary\" to match the actual window."
+  "versionCode": 62,
+  "versionName": "2.13.8",
+  "url": "https://ultiqapp.com/ultiq.2.13.8.apk",
+  "releaseNotes": "Quick polish on the \"This week\" dashboard card — the four stat columns were squeezing into each other (the \"Last week: …\" subtitle on Avg sleep was bleeding into Avg quality on narrower phones). Now every tile gets equal width and text wraps inside its column instead of overflowing."
 }
