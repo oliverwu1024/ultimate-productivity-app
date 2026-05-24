@@ -906,21 +906,16 @@ private fun WeeklyHighlightsCard(highlights: WeeklyHighlights?, onClick: () -> U
             )
             Spacer(Modifier.height(12.dp))
             val h = highlights
-            // §last-week-uniform (v2.13.7) — Every comparable stat shows
-            // "Last week: …" instead of +/- so the comparison is unambiguous.
-            // Avg sleep + Avg quality colour the subtitle by direction
-            // (this week vs last week): green when higher, amber when lower.
-            // Total focus stays neutral grey because Mon-morning deltas vs
-            // last week's full 7 days are misleading. Calendar events has
-            // no subtitle at all — the absolute count is the whole story.
             val warningAmber = Color(0xFFFFA000)
             val good = Color(0xFF4CAF50)
-            // §column-squeeze (v2.13.8) — Each tile gets weight(1f) so the
-            // row divides into 4 equal columns regardless of subtitle
-            // length. spacedBy(8.dp) gives a consistent gutter; the prior
-            // SpaceBetween + no-weight combo let wider subtitles overlap
-            // their right neighbour ("Calendar events" was wrapping into
-            // the focus subtitle on a real device).
+            // §last-week-row (v2.13.10) — Last-week comparisons moved out of
+            // per-tile subtitles into a single full-width row below the
+            // stats. Previous design (v2.13.7-v2.13.9) had "Last week: 8h
+            // 32m" under each tile but the long strings wrapped onto two
+            // lines and the Calendar-events label collided with the focus
+            // subtitle on narrower phones (real-device screenshot 2026-05-24).
+            // One shared "Last week" label + a weight-matched value row
+            // keeps the comparison legible and column-aligned.
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -928,41 +923,21 @@ private fun WeeklyHighlightsCard(highlights: WeeklyHighlights?, onClick: () -> U
                 HighlightStat(
                     label = "Avg sleep",
                     value = h?.avgSleepDuration ?: "-",
-                    subtitle = h?.lastWeekAvgSleepMinutes?.let {
-                        "Last week: ${formatDuration(it)}"
-                    },
+                    subtitle = null,
                     modifier = Modifier.weight(1f),
-                    subtitleColor = h?.avgSleepDeltaMinutes?.let { d ->
-                        when {
-                            d > 0 -> good
-                            d < 0 -> warningAmber
-                            else -> Color.Unspecified
-                        }
-                    } ?: Color.Unspecified,
                 )
                 HighlightStat(
                     label = "Avg quality",
                     value = if (h != null && h.avgSleepQuality > 0) String.format("%.1f/5", h.avgSleepQuality) else "-",
-                    subtitle = h?.lastWeekQuality?.let {
-                        "Last week: ${String.format("%.1f/5", it)}"
-                    },
+                    subtitle = null,
                     modifier = Modifier.weight(1f),
-                    subtitleColor = h?.avgQualityDelta?.let { d ->
-                        when {
-                            d > 0.05 -> good
-                            d < -0.05 -> warningAmber
-                            else -> Color.Unspecified
-                        }
-                    } ?: Color.Unspecified,
                 )
                 HighlightStat(
                     label = "Total focus",
                     value = if (h != null && h.totalFocusHours > 0.0) {
                         String.format("%.1fh", h.totalFocusHours)
                     } else "-",
-                    subtitle = h?.lastWeekFocusHours?.let {
-                        "Last week: ${String.format("%.1f", it)}h"
-                    },
+                    subtitle = null,
                     modifier = Modifier.weight(1f),
                 )
                 HighlightStat(
@@ -971,6 +946,62 @@ private fun WeeklyHighlightsCard(highlights: WeeklyHighlights?, onClick: () -> U
                     subtitle = null,
                     modifier = Modifier.weight(1f),
                 )
+            }
+
+            // §last-week-row (v2.13.10) — Single comparison row. Only renders
+            // when at least one stat has prior-week data; suppresses entirely
+            // on a brand-new account / first calendar week of use.
+            val anyLastWeek = h?.lastWeekAvgSleepMinutes != null ||
+                h?.lastWeekQuality != null ||
+                h?.lastWeekFocusHours != null
+            if (h != null && anyLastWeek) {
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    "Last week",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(2.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    LastWeekCell(
+                        text = h.lastWeekAvgSleepMinutes?.let(::formatDuration) ?: "—",
+                        color = h.avgSleepDeltaMinutes?.let { d ->
+                            when {
+                                d > 0 -> good
+                                d < 0 -> warningAmber
+                                else -> Color.Unspecified
+                            }
+                        } ?: Color.Unspecified,
+                        modifier = Modifier.weight(1f),
+                    )
+                    LastWeekCell(
+                        text = h.lastWeekQuality?.let { String.format("%.1f/5", it) } ?: "—",
+                        color = h.avgQualityDelta?.let { d ->
+                            when {
+                                d > 0.05 -> good
+                                d < -0.05 -> warningAmber
+                                else -> Color.Unspecified
+                            }
+                        } ?: Color.Unspecified,
+                        modifier = Modifier.weight(1f),
+                    )
+                    LastWeekCell(
+                        text = h.lastWeekFocusHours?.let { String.format("%.1fh", it) } ?: "—",
+                        color = Color.Unspecified,
+                        modifier = Modifier.weight(1f),
+                    )
+                    // Calendar events has no comparison by design (per
+                    // 2026-05-24 discussion); placeholder keeps the
+                    // column width consistent with the stats row above.
+                    LastWeekCell(
+                        text = "—",
+                        color = Color.Unspecified,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
             }
             // §empty-state — hide debt/extra/net tiles when no sleep records
             // this week. Showing "Sleep debt 0m / Extra rest 0m" implies
@@ -1116,6 +1147,32 @@ private fun HighlightStat(
             )
         }
     }
+}
+
+/// §last-week-row (v2.13.10) — One value cell in the "Last week" row
+/// beneath the main stat tiles. Column-aligned via `Modifier.weight(1f)`
+/// from the caller. Caller passes the color too: green when this week
+/// improved on last week (Avg sleep / Avg quality), amber when it
+/// regressed, `Color.Unspecified` for neutral (Total focus / Calendar
+/// events / no-data placeholder).
+@Composable
+private fun LastWeekCell(
+    text: String,
+    color: Color,
+    modifier: Modifier = Modifier,
+) {
+    val resolved = if (color == Color.Unspecified) {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    } else color
+    Text(
+        text = text,
+        modifier = modifier,
+        style = MaterialTheme.typography.bodyMedium,
+        fontWeight = FontWeight.Medium,
+        color = resolved,
+        textAlign = TextAlign.Center,
+        maxLines = 1,
+    )
 }
 
 @Composable
