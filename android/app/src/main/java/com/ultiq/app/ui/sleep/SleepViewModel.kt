@@ -471,9 +471,21 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
         )
 
         viewModelScope.launch {
-            val audioEvents = runCatching {
+            // §10-backfill (v2.13.14) — Local Room is empty for older
+            // records on a fresh install (we never used to pull audio
+            // events back from the server). If the local query returns
+            // nothing, fall through to a per-record server fetch which
+            // also populates Room as a side-effect, so the same expansion
+            // is instant next time.
+            val localAudio = runCatching {
                 db.sleepAudioEventDao().getBySleepRecord(recordId)
             }.getOrDefault(emptyList())
+            val audioEvents = if (localAudio.isNotEmpty()) {
+                localAudio
+            } else {
+                runCatching { repository.fetchAudioEventsForRecord(recordId) }
+                    .getOrDefault(emptyList())
+            }
 
             val pickups = runCatching {
                 repository.getPickupsForSleep(recordId).map { dto ->
