@@ -89,6 +89,7 @@ import com.ultiq.app.data.local.entity.CalendarEventEntity
 import com.ultiq.app.ui.calendar.categoryColor
 import com.ultiq.app.ui.copy.WarmCopy
 import com.ultiq.app.ui.theme.AnimatedAppear
+import com.ultiq.app.ui.common.formatDuration
 import com.ultiq.app.util.Comparisons
 import com.ultiq.app.util.UserPreferences
 import kotlinx.coroutines.CoroutineScope
@@ -897,46 +898,72 @@ private fun WeeklyHighlightsCard(highlights: WeeklyHighlights?, onClick: () -> U
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                "Your week so far",
+                "This week",
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontWeight = FontWeight.SemiBold,
             )
             Spacer(Modifier.height(12.dp))
             val h = highlights
+            // §last-week-uniform (v2.13.7) — Every comparable stat shows
+            // "Last week: …" instead of +/- so the comparison is unambiguous.
+            // Avg sleep + Avg quality colour the subtitle by direction
+            // (this week vs last week): green when higher, amber when lower.
+            // Total focus stays neutral grey because Mon-morning deltas vs
+            // last week's full 7 days are misleading. Calendar events has
+            // no subtitle at all — the absolute count is the whole story.
+            val warningAmber = Color(0xFFFFA000)
+            val good = Color(0xFF4CAF50)
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 HighlightStat(
                     label = "Avg sleep",
                     value = h?.avgSleepDuration ?: "-",
-                    delta = h?.avgSleepDeltaMinutes?.let { Comparisons.formatMinuteDelta(it) },
-                    deltaPositive = (h?.avgSleepDeltaMinutes ?: 0) >= 0,
+                    subtitle = h?.lastWeekAvgSleepMinutes?.let {
+                        "Last week: ${formatDuration(it)}"
+                    },
+                    subtitleColor = h?.avgSleepDeltaMinutes?.let { d ->
+                        when {
+                            d > 0 -> good
+                            d < 0 -> warningAmber
+                            else -> Color.Unspecified
+                        }
+                    } ?: Color.Unspecified,
                 )
                 HighlightStat(
-                    label = "Quality",
+                    label = "Avg quality",
                     value = if (h != null && h.avgSleepQuality > 0) String.format("%.1f/5", h.avgSleepQuality) else "-",
-                    delta = h?.avgQualityDelta?.let {
-                        val sign = if (it > 0.05) "+" else if (it < -0.05) "−" else "±"
-                        "$sign${String.format("%.1f", kotlin.math.abs(it))}"
+                    subtitle = h?.lastWeekQuality?.let {
+                        "Last week: ${String.format("%.1f/5", it)}"
                     },
-                    deltaPositive = (h?.avgQualityDelta ?: 0.0) >= 0.0,
+                    subtitleColor = h?.avgQualityDelta?.let { d ->
+                        when {
+                            d > 0.05 -> good
+                            d < -0.05 -> warningAmber
+                            else -> Color.Unspecified
+                        }
+                    } ?: Color.Unspecified,
                 )
                 HighlightStat(
-                    label = "Focus",
-                    value = if (h != null) String.format("%.1fh", h.totalFocusHours) else "-",
-                    delta = h?.totalFocusDeltaHours?.let {
-                        val sign = if (it > 0.05) "+" else if (it < -0.05) "−" else "±"
-                        "$sign${String.format("%.1f", kotlin.math.abs(it))}h"
+                    label = "Total focus",
+                    value = if (h != null && h.totalFocusHours > 0.0) {
+                        String.format("%.1fh", h.totalFocusHours)
+                    } else "-",
+                    subtitle = h?.lastWeekFocusHours?.let {
+                        "Last week: ${String.format("%.1f", it)}h"
                     },
-                    deltaPositive = (h?.totalFocusDeltaHours ?: 0.0) >= 0.0,
                 )
                 HighlightStat(
-                    label = "Events",
-                    value = if (h != null) "${h.eventsCompleted}/${h.eventsTotal}" else "-",
-                    delta = null,
-                    deltaPositive = true,
+                    label = "Calendar events",
+                    value = if (h != null && h.eventsTotal > 0) "${h.eventsTotal}" else "-",
+                    subtitle = null,
                 )
             }
-            if (h != null) {
+            // §empty-state — hide debt/extra/net tiles when no sleep records
+            // this week. Showing "Sleep debt 0m / Extra rest 0m" implies
+            // "on target" when actually we just have no data — misleading.
+            // avgSleepDuration == "-" is the canonical no-records signal
+            // (set in loadWeeklyHighlights when sleepThis is empty).
+            if (h != null && h.avgSleepDuration != "-") {
                 Spacer(Modifier.height(12.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -953,6 +980,35 @@ private fun WeeklyHighlightsCard(highlights: WeeklyHighlights?, onClick: () -> U
                         minutes = h.sleepExtraMinutes,
                         positiveIsGood = true,
                         modifier = Modifier.weight(1f),
+                    )
+                }
+                // §net-sleep (v2.13.7) — Extra rest minus sleep debt, signed.
+                // Surfaces the bottom line at a glance so the user doesn't
+                // have to subtract the two tiles mentally. Hidden when both
+                // are zero — nothing meaningful to show before the first
+                // night of the week is logged.
+                val net = h.sleepExtraMinutes - h.sleepDebtMinutes
+                if (h.sleepDebtMinutes > 0 || h.sleepExtraMinutes > 0) {
+                    Spacer(Modifier.height(8.dp))
+                    val absNet = kotlin.math.abs(net)
+                    val absH = absNet / 60
+                    val absM = absNet % 60
+                    val magnitude = when {
+                        absNet == 0 -> "on target"
+                        absH == 0 -> "${absM}m"
+                        absM == 0 -> "${absH}h"
+                        else -> "${absH}h ${absM}m"
+                    }
+                    val (label, color) = when {
+                        net > 0 -> "Net: +$magnitude vs goal" to Color(0xFF4CAF50)
+                        net < 0 -> "Net: −$magnitude vs goal" to MaterialTheme.colorScheme.error
+                        else -> "Net: on target" to MaterialTheme.colorScheme.onSurfaceVariant
+                    }
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = color,
+                        fontWeight = FontWeight.Medium,
                     )
                 }
             }
@@ -994,16 +1050,28 @@ private fun SleepBalanceTile(
     }
 }
 
+/// §last-week-uniform (v2.13.7) — Stat tile with value + label + an
+/// optional "Last week: …" subtitle. `subtitleColor` is computed by the
+/// caller: neutral for Total focus, green/amber for Avg sleep + Avg
+/// quality based on direction. Calendar events passes null subtitle.
 @Composable
-private fun HighlightStat(label: String, value: String, delta: String?, deltaPositive: Boolean) {
+private fun HighlightStat(
+    label: String,
+    value: String,
+    subtitle: String?,
+    subtitleColor: Color = Color.Unspecified,
+) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
         Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        if (delta != null) {
+        if (subtitle != null) {
+            val resolved = if (subtitleColor == Color.Unspecified) {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            } else subtitleColor
             Text(
-                delta,
+                subtitle,
                 style = MaterialTheme.typography.labelSmall,
-                color = if (deltaPositive) Color(0xFF4CAF50) else MaterialTheme.colorScheme.error,
+                color = resolved,
                 fontWeight = FontWeight.Medium,
             )
         }
@@ -1137,7 +1205,7 @@ private fun AiWeeklyInsightCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    "This week — AI summary",
+                    "Past 7 days — AI summary",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontWeight = FontWeight.SemiBold,

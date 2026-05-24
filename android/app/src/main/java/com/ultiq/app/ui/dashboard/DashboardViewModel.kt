@@ -25,8 +25,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.ZoneId
+import java.time.temporal.TemporalAdjusters
 import kotlin.math.roundToInt
 
 /// What gets cached on the Dashboard's last-night card. `vsTarget` is
@@ -65,14 +67,21 @@ data class WeeklyHighlights(
     val avgSleepDuration: String,
     val avgSleepQuality: Double,
     val totalFocusHours: Double,
-    val eventsCompleted: Int,
     val eventsTotal: Int,
     val sleepDebtMinutes: Int = 0,
     val sleepExtraMinutes: Int = 0,
     val sleepTargetMinutes: Int = 480,
     val avgSleepDeltaMinutes: Int? = null,
-    val totalFocusDeltaHours: Double? = null,
     val avgQualityDelta: Double? = null,
+    /// §last-week-absolute — Absolute prior-week values, surfaced as
+    /// "Last week: …" subtitles under each stat instead of +/- deltas
+    /// (which read as value judgements while this week is partial). For
+    /// Avg sleep + Avg quality the subtitle is colored by direction
+    /// (green ↑, amber ↓); Total focus stays neutral. Null when last
+    /// week had no records for that stat.
+    val lastWeekAvgSleepMinutes: Int? = null,
+    val lastWeekQuality: Double? = null,
+    val lastWeekFocusHours: Double? = null,
 )
 
 data class TodayChecklistSummary(
@@ -502,25 +511,47 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     private suspend fun loadWeeklyHighlights() {
-        val now = System.currentTimeMillis()
-        val weekAgo = now - 7 * 86_400_000L
-        val twoWeeksAgo = now - 14 * 86_400_000L
+        // v2.13.7 — Switched from a rolling 7-day window to a true calendar
+        // week (Mon → today inclusive) with the baseline being the WHOLE
+        // previous calendar week (Mon–Sun, full 7 days). Early in the week
+        // the deltas will look big-negative for totals (focus hours, events)
+        // because this-week-so-far is shorter than last-week-full — that's
+        // expected per design discussion 2026-05-24. Averages (avg sleep,
+        // quality) remain meaningful from day one of the week.
+        val zone = ZoneId.systemDefault()
         val today = LocalDate.now()
+        val thisWeekStart = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+        val lastWeekStart = thisWeekStart.minusWeeks(1)
+        // Half-open ranges: [start, end)
+        val thisWeekStartMs = thisWeekStart.atStartOfDay(zone).toInstant().toEpochMilli()
+        val nowMs = System.currentTimeMillis()
+        val lastWeekStartMs = lastWeekStart.atStartOfDay(zone).toInstant().toEpochMilli()
+        val lastWeekEndMs = thisWeekStartMs // start of this week = end of last week
 
-        // This week sleep
-        val sleepThis = sleepDao.getRecordsBetween(weekAgo, now).firstOrNull() ?: emptyList()
-        val sleepPrev = sleepDao.getRecordsBetween(twoWeeksAgo, weekAgo).firstOrNull() ?: emptyList()
+        // Sleep — this week so far
+        val sleepThis = sleepDao.getRecordsBetween(thisWeekStartMs, nowMs).firstOrNull() ?: emptyList()
+        val sleepPrev = sleepDao.getRecordsBetween(lastWeekStartMs, lastWeekEndMs).firstOrNull() ?: emptyList()
         val avgSleepThisMins = sleepThis.takeIf { it.isNotEmpty() }
             ?.map { ((it.actualWakeTime - it.actualBedtime) / 60_000).toInt() }?.average() ?: 0.0
         val avgSleepPrevMins = sleepPrev.takeIf { it.isNotEmpty() }
             ?.map { ((it.actualWakeTime - it.actualBedtime) / 60_000).toInt() }?.average() ?: 0.0
-        val avgSleepDelta = if (sleepPrev.isNotEmpty()) (avgSleepThisMins - avgSleepPrevMins).roundToInt() else null
+        // §empty-state — deltas only meaningful when BOTH windows have data;
+        // otherwise rendering a "−8h" delta for "no records this week vs full
+        // last week" is more confusing than helpful.
+        val avgSleepDelta = if (sleepThis.isNotEmpty() && sleepPrev.isNotEmpty()) {
+            (avgSleepThisMins - avgSleepPrevMins).roundToInt()
+        } else null
 
         val avgQuality = if (sleepThis.isEmpty()) 0.0 else sleepThis.map { it.qualityRating.toDouble() }.average()
         val avgQualityPrev = if (sleepPrev.isEmpty()) 0.0 else sleepPrev.map { it.qualityRating.toDouble() }.average()
-        val avgQualityDelta = if (sleepPrev.isNotEmpty()) avgQuality - avgQualityPrev else null
+        val avgQualityDelta = if (sleepThis.isNotEmpty() && sleepPrev.isNotEmpty()) {
+            avgQuality - avgQualityPrev
+        } else null
 
-        // Asymmetric balance over rolling 7-day window.
+        // Asymmetric balance — sum of (target − actual) across this week's
+        // sleep records, split into nights short of target (debt) vs nights
+        // over (extra). Reads against the user's `sleepTargetMinutes` pref,
+        // NOT against last week — these are "vs goal" totals, not deltas.
         val sleepTarget = userPreferences.snapshot().sleepTargetMinutes
         var sleepDebt = 0
         var sleepExtra = 0
@@ -531,28 +562,33 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         }
 
         // Sessions
-        val totalFocusThis = sessionDao.getTotalFocusMinutes(weekAgo, now) ?: 0
-        val totalFocusPrev = sessionDao.getTotalFocusMinutes(twoWeeksAgo, weekAgo) ?: 0
+        val totalFocusThis = sessionDao.getTotalFocusMinutes(thisWeekStartMs, nowMs) ?: 0
+        val totalFocusPrev = sessionDao.getTotalFocusMinutes(lastWeekStartMs, lastWeekEndMs) ?: 0
         val totalFocusHours = totalFocusThis / 60.0
-        val totalFocusDelta = if (totalFocusPrev > 0) (totalFocusThis - totalFocusPrev) / 60.0 else null
 
-        // Events
-        val events = calendarRepo.getEventsForRange(today.minusDays(7), today).firstOrNull() ?: emptyList()
-        val eventsCompleted = events.count { it.endTime < now }
-
+        // Events — total scheduled this week. Past/future agnostic; the
+        // `isDone` column isn't surfaced here because mark-done is only
+        // available on past events, which would bias the count toward early
+        // in the week. "Planned" is honest in both directions. No
+        // last-week comparison rendered — the absolute count is the whole
+        // story per design discussion 2026-05-24.
+        val eventsThis = calendarRepo
+            .getEventsForRange(thisWeekStart, today)
+            .firstOrNull() ?: emptyList()
         _uiState.value = _uiState.value.copy(
             weeklyHighlights = WeeklyHighlights(
                 avgSleepDuration = if (sleepThis.isEmpty()) "-" else formatDuration(avgSleepThisMins.toInt()),
                 avgSleepQuality = avgQuality,
                 totalFocusHours = totalFocusHours,
-                eventsCompleted = eventsCompleted,
-                eventsTotal = events.size,
+                eventsTotal = eventsThis.size,
                 sleepDebtMinutes = sleepDebt,
                 sleepExtraMinutes = sleepExtra,
                 sleepTargetMinutes = sleepTarget,
                 avgSleepDeltaMinutes = avgSleepDelta,
-                totalFocusDeltaHours = totalFocusDelta,
                 avgQualityDelta = avgQualityDelta,
+                lastWeekAvgSleepMinutes = if (sleepPrev.isNotEmpty()) avgSleepPrevMins.roundToInt() else null,
+                lastWeekQuality = if (sleepPrev.isNotEmpty()) avgQualityPrev else null,
+                lastWeekFocusHours = if (totalFocusPrev > 0) totalFocusPrev / 60.0 else null,
             )
         )
     }
