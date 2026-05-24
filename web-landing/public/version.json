@@ -1,6 +1,6 @@
 {
-  "versionCode": 63,
-  "versionName": "2.13.9",
-  "url": "https://ultiqapp.com/ultiq.2.13.9.apk",
-  "releaseNotes": "Internationalization fix — your dashboard stats and the morning anomaly check now bucket by your phone's local timezone instead of UTC. For users outside Australia this means sleep starting at 11pm finally counts as today's night (not tomorrow's), focus totals show on the right day, and streaks don't break on the UTC day boundary. The anomaly heads-up also fires at 8am local instead of 8am AEST. New \"Region\" row in Settings shows what timezone the server thinks you're in."
+  "versionCode": 64,
+  "versionName": "2.13.10",
+  "url": "https://ultiqapp.com/ultiq.2.13.10.apk",
+  "releaseNotes": "Dashboard polish: the \"Last week:\" comparison values moved out of each stat tile into their own row underneath. Long strings like \"Last week: 8h 32m\" were wrapping onto two lines under Avg sleep and crowding the Calendar events column on narrower phones. Same numbers, same green/amber direction colors — just laid out cleaner."
 }
