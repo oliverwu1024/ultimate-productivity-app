@@ -10,6 +10,7 @@ mod models;
 mod routes;
 mod scheduler;
 mod ticket;
+mod tz;
 
 use std::sync::Arc;
 

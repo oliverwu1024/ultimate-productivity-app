@@ -204,19 +204,35 @@ async fn update_profile(
         }
     }
 
+    // §i18n (v2.13.9) — Validate timezone before persisting so a typo or
+    // a deliberately-bad string from a misbehaving client doesn't end up
+    // stored and silently fall back to UTC at read time. Empty string
+    // means "don't change" (same as None); anything non-empty has to
+    // parse as a real IANA zone.
+    if let Some(tz_str) = input.timezone.as_deref() {
+        if !tz_str.is_empty() && tz_str.parse::<chrono_tz::Tz>().is_err() {
+            return Err(AppError::new(
+                StatusCode::BAD_REQUEST,
+                "Invalid IANA timezone string",
+            ));
+        }
+    }
+
     // §sync-prefs: merge any provided preferences into the existing JSONB
     // blob using the `||` operator. A null `preferences` field keeps the
     // existing blob untouched (COALESCE to an empty object first so the
-    // merge is a no-op).
+    // merge is a no-op). Timezone follows the same null-skip pattern.
     let user = sqlx::query_as::<_, User>(
         "UPDATE users
          SET sleep_target_minutes = COALESCE($1, sleep_target_minutes),
-             preferences = preferences || COALESCE($2, '{}'::jsonb)
-         WHERE id = $3
+             preferences = preferences || COALESCE($2, '{}'::jsonb),
+             timezone = COALESCE(NULLIF($3, ''), timezone)
+         WHERE id = $4
          RETURNING *",
     )
     .bind(input.sleep_target_minutes)
     .bind(input.preferences)
+    .bind(input.timezone)
     .bind(user_id)
     .fetch_optional(&state.pool)
     .await?

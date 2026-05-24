@@ -1917,14 +1917,20 @@ struct DailyMetric {
 }
 
 async fn aggregate_daily(pool: &PgPool, user_id: Uuid) -> Result<Vec<DailyMetric>, AppError> {
-    let today = Utc::now().date_naive();
+    // §i18n (v2.13.9) — Per-day buckets now use the user's local date, not
+    // UTC's. A NY user's 11pm sleep used to bucket under "tomorrow" because
+    // UTC was already past midnight; that hid the night entirely from the
+    // anomaly daily series. `actual_bedtime AT TIME ZONE $tz` shifts the
+    // TIMESTAMPTZ into the user's wall clock before DATE() truncation.
+    let tz_str = crate::tz::fetch_user_tz(pool, user_id).await?;
+    let today = crate::tz::user_today(&tz_str);
     let start = today - Duration::days(ANOMALY_LOOKBACK_DAYS - 1);
 
-    // Per-day sleep (grouped by actual_bedtime's date).
+    // Per-day sleep (grouped by user-local actual_bedtime date).
     let sleep: Vec<(chrono::NaiveDate, Option<f64>, Option<f64>, Option<i64>)> =
         sqlx::query_as(
             "SELECT
-                DATE(actual_bedtime)                                                       AS day,
+                DATE(actual_bedtime AT TIME ZONE $3)                                       AS day,
                 AVG(EXTRACT(EPOCH FROM (actual_wake_time - actual_bedtime))/60.0)::DOUBLE PRECISION,
                 AVG(quality_rating)::DOUBLE PRECISION,
                 COALESCE(SUM(phone_pickups), 0)::BIGINT
@@ -1934,13 +1940,14 @@ async fn aggregate_daily(pool: &PgPool, user_id: Uuid) -> Result<Vec<DailyMetric
         )
         .bind(user_id)
         .bind(start)
+        .bind(&tz_str)
         .fetch_all(pool)
         .await?;
 
-    // Per-day focus minutes (grouped by started_at's date).
+    // Per-day focus minutes (grouped by user-local started_at date).
     let focus: Vec<(chrono::NaiveDate, Option<i64>)> = sqlx::query_as(
         "SELECT
-            DATE(started_at) AS day,
+            DATE(started_at AT TIME ZONE $3) AS day,
             COALESCE(SUM(duration_minutes) FILTER (WHERE completed), 0)::BIGINT
          FROM productivity_sessions
          WHERE user_id = $1 AND started_at >= $2::DATE
@@ -1948,6 +1955,7 @@ async fn aggregate_daily(pool: &PgPool, user_id: Uuid) -> Result<Vec<DailyMetric
     )
     .bind(user_id)
     .bind(start)
+    .bind(&tz_str)
     .fetch_all(pool)
     .await?;
 

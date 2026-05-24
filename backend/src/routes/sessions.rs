@@ -269,26 +269,29 @@ async fn stats(
     Query(params): Query<StatsQuery>,
 ) -> Result<Json<SessionStats>, AppError> {
     let user_id = parse_user_id(&claims)?;
-    let now = Utc::now();
-    let today = now.date_naive();
+    // §i18n (v2.13.9) — "Today" and "this week's Monday" both compute in
+    // the user's local timezone now. Previously a NY user at 9pm Sunday
+    // was logging their session against UTC's Monday — totals showed
+    // wrong day, streak broke on the UTC day-boundary.
+    let tz_str = crate::tz::fetch_user_tz(&state.pool, user_id).await?;
+    let today = crate::tz::user_today(&tz_str);
 
-    let today_start = today.and_hms_opt(0, 0, 0).unwrap().and_utc();
-    let today_end = today.and_hms_opt(23, 59, 59).unwrap().and_utc();
-    // §wave2 — "this week" = Monday-of-current-week, not rolling-7. Sessions
-    // completed earlier today land in `today_start..today_end`, and the
-    // week bucket carries Mon..now so a Sunday-night session is still
-    // counted as "this week" the next morning.
+    let (today_start, today_end) = crate::tz::user_local_day_utc_range(&tz_str, today);
+    // §wave2 — "this week" = Monday-of-current-week (user-local), not
+    // rolling-7. Sessions earlier today land in `today_start..today_end`;
+    // the week bucket carries Mon..now so a Sunday-night session is
+    // still counted as "this week" the next morning. ISO Monday is
+    // computed off the user's local `today`, not UTC.
     let days_since_monday = today.weekday().num_days_from_monday() as i64;
     let this_monday = today - chrono::Duration::days(days_since_monday);
-    let week_start = this_monday.and_hms_opt(0, 0, 0).unwrap().and_utc();
+    let (week_start, _) = crate::tz::user_local_day_utc_range(&tz_str, this_monday);
 
     let range = params.range.as_deref().unwrap_or("week");
     let range_start = match range {
-        "month" => (now - chrono::Duration::days(30))
-            .date_naive()
-            .and_hms_opt(0, 0, 0)
-            .unwrap()
-            .and_utc(),
+        "month" => {
+            let month_start = today - chrono::Duration::days(30);
+            crate::tz::user_local_day_utc_range(&tz_str, month_start).0
+        }
         _ => week_start,
     };
 
@@ -333,14 +336,19 @@ async fn stats(
         total_pickups_range as f64 / sessions.len() as f64
     };
 
-    // Streaks: all distinct dates with at least 1 completed session (full history)
+    // §i18n (v2.13.9) — Streak dates bucket by the user's local date,
+    // not UTC's, so consecutive sessions across UTC day boundaries (e.g.
+    // a NY user at 11pm one night, 11pm the next) don't read as a broken
+    // streak. `started_at` is TIMESTAMPTZ stored as UTC; AT TIME ZONE
+    // shifts it into the user's local clock before ::date truncation.
     let dates: Vec<NaiveDate> = sqlx::query_scalar(
-        "SELECT DISTINCT started_at::date
+        "SELECT DISTINCT (started_at AT TIME ZONE $2)::date
          FROM productivity_sessions
          WHERE user_id = $1 AND completed = true
          ORDER BY 1 DESC",
     )
     .bind(user_id)
+    .bind(&tz_str)
     .fetch_all(&state.pool)
     .await?;
 
