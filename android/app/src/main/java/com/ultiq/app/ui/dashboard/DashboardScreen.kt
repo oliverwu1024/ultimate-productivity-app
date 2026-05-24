@@ -1361,7 +1361,40 @@ private fun AiWeeklyInsightCard(
                             Spacer(Modifier.height(10.dp))
                         }
                     }
-                    if (state.cached) {
+                    // §insight-timestamps (v2.13.15) — Explicit "Generated /
+                    // Next refresh" timestamps so users understand they're
+                    // looking at the same cached summary until the next
+                    // 24h-cache rollover. Replaces the older generic line
+                    // ("Refreshes every 24 hours — your next summary's on
+                    // its way.") which didn't tell the user WHEN. Parses
+                    // failsafe — corrupt server timestamp falls back to
+                    // the older generic line so the card never silently
+                    // drops its footer.
+                    val zone = java.time.ZoneId.systemDefault()
+                    val fmt = java.time.format.DateTimeFormatter
+                        .ofPattern("MMM d 'at' h:mm a")
+                    val gen = runCatching {
+                        java.time.OffsetDateTime.parse(state.generatedAt)
+                            .atZoneSameInstant(zone)
+                            .format(fmt)
+                    }.getOrNull()
+                    val exp = runCatching {
+                        java.time.OffsetDateTime.parse(state.expiresAt)
+                            .atZoneSameInstant(zone)
+                            .format(fmt)
+                    }.getOrNull()
+                    if (gen != null && exp != null) {
+                        Text(
+                            "Generated $gen",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            "Next refresh $exp",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    } else if (state.cached) {
                         Text(
                             "Refreshes every 24 hours — your next summary's on its way.",
                             style = MaterialTheme.typography.labelSmall,

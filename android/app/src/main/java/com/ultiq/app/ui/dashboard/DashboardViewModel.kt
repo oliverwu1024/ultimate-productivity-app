@@ -106,6 +106,12 @@ sealed class WeeklyInsightState {
     data class Loaded(
         val content: String,
         val generatedAt: String,
+        /// §insight-timestamps (v2.13.15) — When the cached server row
+        /// expires; the next Dashboard mount after this instant will
+        /// generate a fresh summary via Sonnet. Rendered as a "Refreshes
+        /// at …" caption under the card content so users understand
+        /// they're looking at the same summary until that time.
+        val expiresAt: String,
         val cached: Boolean,
     ) : WeeklyInsightState()
     data class Error(val message: String) : WeeklyInsightState()
@@ -232,6 +238,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                     weeklyInsight = WeeklyInsightState.Loaded(
                         content = resp.content,
                         generatedAt = resp.generated_at,
+                        expiresAt = resp.expires_at,
                         cached = resp.cached,
                     )
                 )
