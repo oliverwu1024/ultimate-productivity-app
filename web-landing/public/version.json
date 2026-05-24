@@ -1,6 +1,6 @@
 {
-  "versionCode": 58,
-  "versionName": "2.13.4",
-  "url": "https://ultiqapp.com/ultiq.2.13.4.apk",
-  "releaseNotes": "Three polish wins: cold-start SSE catch-up sync (web-added events arrive on phone immediately, no more 15-second cold-start gap); Coach-proposed events now carry your reminder preference (ask 'remind me 1 hour before' and it actually fires); minor internal cleanup. Carries the full v2.13.x bundle: multi-select reminders, Settings → Achievements (no more mid-screen popups), focus-session checklist fix."
+  "versionCode": 59,
+  "versionName": "2.13.5",
+  "url": "https://ultiqapp.com/ultiq.2.13.5.apk",
+  "releaseNotes": "Three bug fixes: fresh-install login now hydrates your data before the dashboard opens (no more empty screens for the first second); snore tracking surfaces a clear prompt when the mic permission is missing instead of silently going dark; calendar reminders dropped the confusing 'Default' chip — '15 min' is now pre-selected and labelled for what it actually does."
 }

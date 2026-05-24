@@ -59,6 +59,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.ultiq.app.data.local.entity.CalendarEventEntity
 import com.ultiq.app.data.remote.dto.CreateCalendarEventDto
+import com.ultiq.app.util.AlarmScheduler
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -210,12 +211,17 @@ fun AddEventDialog(
         mutableStateOf(editingEvent?.color ?: prefilledNewEvent?.color ?: "#4A90D9")
     }
     var isRecurring by remember { mutableStateOf(editingEvent?.isRecurring ?: false) }
-    // v2.13.1 — Per-event reminder offsets, list-valued. Null = "use client
-    // default" (single 15-min reminder); empty list = explicit opt-out;
-    // non-empty = the user's exact picks. Multi-select FilterChip group
-    // below tracks this through Default / None / per-offset chips.
+    // v2.13.5 — List-valued reminder offsets. Empty list = explicit opt-out
+    // ("None"); non-empty = the user's exact picks. The old `null = use
+    // client default` sentinel was dropped along with the Default chip —
+    // it was indistinguishable from `[15]` in behaviour and only confused
+    // users. Legacy null reminders on edited events resolve to the same
+    // [15] the runtime would have produced anyway.
     var reminderMinutes by remember {
-        mutableStateOf<List<Int>?>(editingEvent?.reminderMinutes)
+        mutableStateOf<List<Int>>(
+            editingEvent?.reminderMinutes
+                ?: listOf(AlarmScheduler.EVENT_LEAD_MINUTES),
+        )
     }
     var frequency by remember { mutableStateOf(parseFrequency(editingEvent?.recurrenceRule)) }
     var weeklyDays by remember { mutableStateOf(parseWeeklyDays(editingEvent?.recurrenceRule)) }
@@ -248,7 +254,12 @@ fun AddEventDialog(
             priority != editingEvent.priority ||
             selectedColor != editingEvent.color ||
             isRecurring != editingEvent.isRecurring ||
-            reminderMinutes != editingEvent.reminderMinutes
+            // v2.13.5 — Stored null normalises to [15] on open (Default chip
+            // was dropped). Treat the two as equivalent here so opening a
+            // legacy null-reminder event doesn't instantly flag the dialog
+            // dirty and trigger Discard? on swipe-out.
+            reminderMinutes != (editingEvent.reminderMinutes
+                ?: listOf(AlarmScheduler.EVENT_LEAD_MINUTES))
         ))
 
     if (showDiscardConfirm) {
@@ -446,35 +457,26 @@ fun AddEventDialog(
                 }
             }
 
-            // v2.13.1 — Multi-select reminder picker. Three modes:
-            //   • Default chip → reminderMinutes = null   (single 15-min
-            //     reminder via AlarmScheduler.EVENT_LEAD_MINUTES fallback).
+            // v2.13.5 — Multi-select reminder picker. Two modes:
             //   • None chip → reminderMinutes = emptyList() (explicit opt-out).
             //   • One or more offset chips → reminderMinutes = listOf(...)
-            //     in chip-row order. Selecting any specific offset auto-
-            //     clears Default/None; selecting Default/None clears the
-            //     explicit list.
+            //     in chip-row order. Selecting an offset clears None;
+            //     selecting None clears the offsets.
             Text("Reminders", style = MaterialTheme.typography.labelLarge)
             val currentList = reminderMinutes
-            val isDefault = currentList == null
-            val isNone = currentList?.isEmpty() == true
+            val isNone = currentList.isEmpty()
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                FilterChip(
-                    selected = isDefault,
-                    onClick = { reminderMinutes = null },
-                    label = { Text("Default") }
-                )
                 FilterChip(
                     selected = isNone,
                     onClick = { reminderMinutes = emptyList() },
                     label = { Text("None") }
                 )
                 reminderOffsetOptions.forEach { (mins, label) ->
-                    val checked = currentList?.contains(mins) == true
+                    val checked = currentList.contains(mins)
                     FilterChip(
                         selected = checked,
                         onClick = {
-                            val base = currentList?.toMutableList() ?: mutableListOf()
+                            val base = currentList.toMutableList()
                             if (checked) {
                                 base.remove(mins)
                             } else {

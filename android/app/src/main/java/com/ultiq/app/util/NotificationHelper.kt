@@ -7,6 +7,8 @@ import android.content.Context
 import android.content.Intent
 import android.media.AudioAttributes
 import android.media.RingtoneManager
+import android.net.Uri
+import android.provider.Settings
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.ultiq.app.MainActivity
@@ -24,6 +26,10 @@ object NotificationHelper {
     /// §9.8 — Anomaly insight (FCM-delivered). One notification id keeps
     /// repeat alerts collapsed into a single row in the tray.
     const val NOTIFICATION_ID_ANOMALY = 2004
+    /// §mic-permission (v2.13.5) — Surfaced when a sleep session starts with
+    /// audio_tracking_enabled = true but RECORD_AUDIO not granted. Single id
+    /// so back-to-back sessions just refresh the same row.
+    const val NOTIFICATION_ID_MIC_PERMISSION = 2005
     private const val EVENT_NOTIFICATION_ID_BASE = 30_000
 
     const val EXTRA_DEEP_LINK = "deep_link_target"
@@ -138,6 +144,47 @@ object NotificationHelper {
 
     fun cancelEventReminder(context: Context, eventId: String) {
         NotificationManagerCompat.from(context).cancel(eventNotificationId(eventId))
+    }
+
+    /// §mic-permission (v2.13.5) — Failsafe for the synced-on-without-grant
+    /// case: server says audio_tracking_enabled = true but RECORD_AUDIO was
+    /// never granted on this install, so the YAMNet pipeline silently no-ops
+    /// inside SleepTrackingService.maybeStartAudioTracking. Fires once per
+    /// session start; tapping opens the app's system permission page (we
+    /// can't request runtime permissions from a Service).
+    fun showMicPermissionNeeded(context: Context) {
+        val manager = NotificationManagerCompat.from(context)
+        if (!manager.areNotificationsEnabled()) return
+
+        val intent = Intent(
+            Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+            Uri.fromParts("package", context.packageName, null),
+        ).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            context,
+            NOTIFICATION_ID_MIC_PERMISSION,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        val body = "Snore + cough tracking is enabled in Sleep Preferences, " +
+            "but this device hasn't granted microphone access. Tap to grant — " +
+            "audio is analysed on-device, never uploaded."
+        val notification = NotificationCompat.Builder(context, CHANNEL_REMINDERS)
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setContentTitle("Snore tracking off — mic permission needed")
+            .setContentText(body)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .build()
+        try {
+            manager.notify(NOTIFICATION_ID_MIC_PERMISSION, notification)
+        } catch (_: SecurityException) {
+            // POST_NOTIFICATIONS not granted on Android 13+
+        }
     }
 
     /// §9.8 — Surface an FCM-delivered anomaly alert. Used by

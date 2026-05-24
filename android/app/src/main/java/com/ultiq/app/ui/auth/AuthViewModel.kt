@@ -3,6 +3,7 @@ package com.ultiq.app.ui.auth
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.ultiq.app.UltiqApp
 import com.ultiq.app.data.local.AppDatabase
 import com.ultiq.app.data.remote.ApiService
 import com.ultiq.app.data.remote.RetrofitClient
@@ -104,6 +105,12 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                 // a fresh install on a new device picks up the user's existing
                 // bedtime/wake/focus config rather than starting from defaults.
                 response.user.preferences?.let { userPreferences.applyServerPreferences(it) }
+                // §fresh-login-sync (v2.13.5): hydrate Room before Dashboard
+                // mounts. Without this, the user sees empty screens until
+                // either per-tab lazy loads finish racing the first compose,
+                // or SSE's onConnected callback fires (which itself doesn't
+                // fire on this path — see hydrateAfterAuth comment).
+                hydrateAfterAuth()
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     isLoggedIn = true,
@@ -135,6 +142,11 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                 // symmetry with login (and so that account-merge flows work
                 // when we eventually have them).
                 response.user.preferences?.let { userPreferences.applyServerPreferences(it) }
+                // Same hydrate-then-route path as login; for a brand-new
+                // account every domain pull returns empty, but it still kicks
+                // SSE so future events stream without waiting for the next
+                // foreground.
+                hydrateAfterAuth()
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     isLoggedIn = true,
@@ -148,6 +160,21 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                     error = e.toUserMessage("Registration failed. Try again."),
                 )
             }
+        }
+    }
+
+    /** §fresh-login-sync (v2.13.5) — Pull every domain repo once on the
+     *  caller's coroutine before the UI navigates, then kick SSE so future
+     *  events stream in real time. SSE's lifecycle-driven connect() already
+     *  ran at app start when there was no token; without this explicit
+     *  reconnect it never retries on its own when the user logs in mid-session. */
+    private suspend fun hydrateAfterAuth() {
+        val app = getApplication<Application>() as? UltiqApp ?: return
+        runCatching {
+            app.syncManager.syncAll()
+        }
+        runCatching {
+            app.syncEventClient.connect()
         }
     }
 

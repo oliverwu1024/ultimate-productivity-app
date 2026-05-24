@@ -27,6 +27,7 @@ class SyncWorker(
             sessionRepo = SessionRepository(db.sessionDao(), api),
             calendarRepo = CalendarRepository(db.calendarEventDao(), api, AlarmScheduler(applicationContext)),
             alarmRepo = AlarmRepository(applicationContext, db.alarmDao(), api),
+            checklistRepo = ChecklistRepository(db.checklistDao(), api),
         )
 
         return try {

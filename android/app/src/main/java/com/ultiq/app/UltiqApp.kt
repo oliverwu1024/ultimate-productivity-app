@@ -27,7 +27,17 @@ import java.util.concurrent.TimeUnit
 class UltiqApp : Application() {
 
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    private lateinit var syncEventClient: SyncEventClient
+    // Exposed so AuthViewModel can (a) trigger a blocking syncAll() right
+    // after login lands a token — otherwise the first frame of Dashboard
+    // would race the lazy per-screen fetches and render empty state — and
+    // (b) tell SSE to (re)connect, since the lifecycle-driven connect()
+    // already ran at app start when there was no token and never retries
+    // on its own when one arrives later. Bug from 2026-05-24: fresh-install
+    // login showed empty screens until the user closed and reopened the app.
+    lateinit var syncManager: com.ultiq.app.data.repository.SyncManager
+        private set
+    lateinit var syncEventClient: SyncEventClient
+        private set
 
     override fun onCreate() {
         super.onCreate()
@@ -84,7 +94,7 @@ class UltiqApp : Application() {
         // catch-up sync. Closes the ~15 s cold-start gap where events
         // added on web between app foreground and SSE handshake never
         // made it to local Room.
-        val syncManager = com.ultiq.app.data.repository.SyncManager(
+        syncManager = com.ultiq.app.data.repository.SyncManager(
             sleepRepo = com.ultiq.app.data.repository.SleepRepository(
                 sleepDao = db.sleepDao(),
                 apiService = api,
@@ -97,6 +107,7 @@ class UltiqApp : Application() {
                 AlarmScheduler(this),
             ),
             alarmRepo = com.ultiq.app.data.repository.AlarmRepository(this, db.alarmDao(), api),
+            checklistRepo = com.ultiq.app.data.repository.ChecklistRepository(db.checklistDao(), api),
         )
         syncEventClient = SyncEventClient(
             tokenManager = tokenManager,
