@@ -55,6 +55,7 @@ class AlarmRingService : Service() {
     private var wakeLock: PowerManager.WakeLock? = null
     private var rampJob: Job? = null
     private var startJob: Job? = null
+    private var renotifyJob: Job? = null
     private var currentAlarm: AlarmEntity? = null
 
     override fun onCreate() {
@@ -209,7 +210,7 @@ class AlarmRingService : Service() {
         }
     }
 
-    private fun startInForeground(alarmId: String) {
+    private fun buildAlarmNotification(alarmId: String): Notification {
         val tapIntent = alarmActivityIntent(alarmId)
         val tapPi = PendingIntent.getActivity(
             this,
@@ -218,7 +219,7 @@ class AlarmRingService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
-        val notification: Notification = NotificationCompat.Builder(this, NotificationHelper.CHANNEL_ALARM)
+        return NotificationCompat.Builder(this, NotificationHelper.CHANNEL_ALARM)
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentTitle("Alarm")
             .setContentText("Tap to dismiss")
@@ -226,15 +227,68 @@ class AlarmRingService : Service() {
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setOngoing(true)
             .setAutoCancel(false)
+            // §dual-sound (v2.13.18) — CHANNEL_ALARM sets a default
+            // RingtoneManager TYPE_ALARM URI as a fallback (see
+            // NotificationHelper.kt:76). Without setSound(null) here,
+            // the channel's ringtone plays alongside the MediaPlayer
+            // in startSound(), producing the "two overlapping sounds"
+            // users heard at fire time. The MediaPlayer is the only
+            // intended source — we control its lifecycle for dismiss.
+            .setSound(null)
             .setContentIntent(tapPi)
             .setFullScreenIntent(tapPi, true)
             .build()
+    }
 
+    private fun postForegroundNotification(alarmId: String) {
+        val notification = buildAlarmNotification(alarmId)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
         } else {
             startForeground(NOTIFICATION_ID, notification)
         }
+    }
+
+    private fun startInForeground(alarmId: String) {
+        postForegroundNotification(alarmId)
+        startRenotifyLoop(alarmId)
+    }
+
+    /// §lost-dismiss (v2.13.18) — Some OEM launchers (Samsung One UI,
+    /// Xiaomi MIUI) honor a swipe on `setOngoing(true)` foreground
+    /// notifications even though they're not supposed to. Combined with
+    /// the user backgrounding AlarmActivity from inside the mission,
+    /// the alarm would keep ringing with no UI to dismiss it. Re-post
+    /// the foreground notification every 15s so a swiped notification
+    /// always reappears within seconds — the user can never be more
+    /// than that away from a tap-back-to-mission affordance. We do NOT
+    /// stop the alarm here; the only way out is finishing the mission.
+    private fun startRenotifyLoop(alarmId: String) {
+        renotifyJob?.cancel()
+        renotifyJob = scope.launch {
+            while (_currentAlarmId.value == alarmId) {
+                delay(RENOTIFY_INTERVAL_MS)
+                if (_currentAlarmId.value != alarmId) break
+                try {
+                    postForegroundNotification(alarmId)
+                } catch (t: Throwable) {
+                    Log.w(TAG, "renotify failed", t)
+                }
+            }
+        }
+    }
+
+    /// §lost-dismiss — If the user swipes AlarmActivity out of recents
+    /// (or the system reclaims its task), re-launch it so they're never
+    /// stranded with a ringing alarm and no mission UI. Mirrors Alarmy
+    /// behavior: you don't escape an active alarm by task-clearing.
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        val ringing = _currentAlarmId.value
+        if (ringing != null) {
+            Log.d(TAG, "Task removed while ringing $ringing — relaunching AlarmActivity")
+            launchAlarmActivity(ringing)
+        }
+        super.onTaskRemoved(rootIntent)
     }
 
     private fun startSound(alarm: AlarmEntity) {
@@ -307,6 +361,8 @@ class AlarmRingService : Service() {
 
     private fun stopRinging() {
         _currentAlarmId.value = null
+        renotifyJob?.cancel()
+        renotifyJob = null
         rampJob?.cancel()
         rampJob = null
         startJob = null
@@ -332,6 +388,7 @@ class AlarmRingService : Service() {
         private const val NOTIFICATION_ID = 3001
         private const val FSI_REQUEST_CODE = 30_001
         private const val MAX_RING_MS = 10L * 60 * 1000 // 10 min hard cap on wake lock
+        private const val RENOTIFY_INTERVAL_MS = 15_000L // §lost-dismiss recovery cadence
 
         const val ACTION_START = "com.ultiq.app.alarm.RING_START"
         const val ACTION_DISMISS = "com.ultiq.app.alarm.RING_DISMISS"

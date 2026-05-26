@@ -1,6 +1,6 @@
 {
-  "versionCode": 71,
-  "versionName": "2.13.17",
-  "url": "https://ultiqapp.com/ultiq.2.13.17.apk",
-  "releaseNotes": "Smarter 'sleep day' bucketing for the Dashboard week card, the Sleep tab list, and the weekly chart. If you fall asleep at 2 am Tuesday, that sleep now counts as Monday night's rest (which it is) instead of leaking into Tuesday's column and inflating Tuesday's total. Daytime naps still count on the day they happened. No setup, no toggle — just the same data, bucketed honestly."
+  "versionCode": 72,
+  "versionName": "2.13.18",
+  "url": "https://ultiqapp.com/ultiq.2.13.18.apk",
+  "releaseNotes": "Two alarm fixes. (1) Only one sound now plays when the alarm rings — the channel's fallback ringtone was overlapping with the alarm's own audio at fire time. (2) If you tap Home or swipe the alarm notification away during the mission, the alarm now stays ringing AND keeps a way back to the mission visible: the notification re-appears within 15 seconds, and clearing the app from recents pulls the mission screen straight back. The only way out remains the mission itself."
 }
