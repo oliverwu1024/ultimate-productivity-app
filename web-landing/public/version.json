@@ -1,6 +1,6 @@
 {
-  "versionCode": 69,
-  "versionName": "2.13.15",
-  "url": "https://ultiqapp.com/ultiq.2.13.15.apk",
-  "releaseNotes": "AI summary card now shows when it was generated and when the next refresh will happen (the server caches each summary for 24 hours to keep costs down). Two small lines underneath the prose, no buttons. Replaces the older 'Refreshes every 24 hours' line that didn't tell you when."
+  "versionCode": 70,
+  "versionName": "2.13.16",
+  "url": "https://ultiqapp.com/ultiq.2.13.16.apk",
+  "releaseNotes": "Two fixes. (1) Dashboard 'This week' card now updates the moment you finish logging a sleep — no more closing and reopening the app to see the new average. (2) Checklist 'Bring forward' banner now dismisses itself the moment you tap it, so recurring items can't be carried forward more than once a day."
 }

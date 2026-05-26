@@ -397,6 +397,16 @@ class ChecklistViewModel(application: Application) : AndroidViewModel(applicatio
                     repository.update(item.copy(dueDateEpochDay = todayEpochDay))
                 }
             }
+            // §banner-dismiss-after-bring-forward — recurring rows are
+            // intentionally left untouched above, which means they keep
+            // matching `getCarryoverCandidates` and the Flow re-emits the
+            // same banner. Without this, the user can tap "Bring forward"
+            // again and again, spawning duplicate one-offs each time.
+            // Mirror dismissYesterdayBanner so the banner's job for today
+            // ends the moment the user acts on it.
+            userPreferences.setLastCarryOverDismissedEpochDay(todayEpochDay)
+            _uiState.value = _uiState.value.copy(yesterdayOpenItems = emptyList())
+            yesterdayJob?.cancel()
         }
     }
 
