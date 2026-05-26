@@ -675,7 +675,9 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
         var thisMonth = 0
         var lastMonth = 0
         for (r in records) {
-            val day = Instant.ofEpochMilli(r.actualBedtime).atZone(zone).toLocalDate()
+            // §sleep-day (v2.13.17) — Period bucketing matches the Dashboard
+            // and chart: Tue 02:00 bedtimes count toward Monday's week.
+            val day = com.ultiq.app.util.sleepDayFor(r.actualBedtime, zone)
             if (!day.isBefore(mondayOfThisWeek) && !day.isAfter(today)) thisWeek++
             if (!day.isBefore(mondayOfLastWeek) && day.isBefore(mondayOfThisWeek)) lastWeek++
             if (!day.isBefore(firstOfThisMonth) && !day.isAfter(today)) thisMonth++

@@ -428,12 +428,16 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         // had ~14 minutes of focus but the card showed a 1h+ daily avg
         // because the rolling window pulled in this-week's sessions too.
         // Same bug bit the sleep daily-avg subline.
+        // §sleep-day (v2.13.17) — Week boundaries are sleep-day boundaries
+        // (6am local), not midnight. A Mon 02:00 bedtime is Sunday-night
+        // sleep and now correctly drops into last week instead of leaking
+        // into this week's "last week" baseline.
         val zoneCard = ZoneId.systemDefault()
         val todayLocal = LocalDate.now(zoneCard)
         val mondayThisWeek = todayLocal.minusDays(todayLocal.dayOfWeek.value.toLong() - 1)
         val mondayLastWeek = mondayThisWeek.minusWeeks(1)
-        val lastWeekStartMs = mondayLastWeek.atStartOfDay(zoneCard).toInstant().toEpochMilli()
-        val lastWeekEndMs = mondayThisWeek.atStartOfDay(zoneCard).toInstant().toEpochMilli() - 1
+        val lastWeekStartMs = com.ultiq.app.util.sleepDayStartMs(mondayLastWeek, zoneCard)
+        val lastWeekEndMs = com.ultiq.app.util.sleepDayStartMs(mondayThisWeek, zoneCard) - 1
 
         val lastWeekRecords = sleepDao.getRecordsBetween(lastWeekStartMs, lastWeekEndMs)
             .firstOrNull().orEmpty()
@@ -548,10 +552,12 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         val today = LocalDate.now()
         val thisWeekStart = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
         val lastWeekStart = thisWeekStart.minusWeeks(1)
-        // Half-open ranges: [start, end)
-        val thisWeekStartMs = thisWeekStart.atStartOfDay(zone).toInstant().toEpochMilli()
+        // §sleep-day (v2.13.17) — Half-open ranges anchored to 6am local,
+        // not midnight, so a Mon 02:00 bedtime drops into last week
+        // (sleep_day = Sun) instead of bleeding into both columns.
+        val thisWeekStartMs = com.ultiq.app.util.sleepDayStartMs(thisWeekStart, zone)
         val nowMs = System.currentTimeMillis()
-        val lastWeekStartMs = lastWeekStart.atStartOfDay(zone).toInstant().toEpochMilli()
+        val lastWeekStartMs = com.ultiq.app.util.sleepDayStartMs(lastWeekStart, zone)
         val lastWeekEndMs = thisWeekStartMs // start of this week = end of last week
 
         // Sleep — this week so far

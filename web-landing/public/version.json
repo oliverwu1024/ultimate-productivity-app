@@ -1,6 +1,6 @@
 {
-  "versionCode": 70,
-  "versionName": "2.13.16",
-  "url": "https://ultiqapp.com/ultiq.2.13.16.apk",
-  "releaseNotes": "Two fixes. (1) Dashboard 'This week' card now updates the moment you finish logging a sleep — no more closing and reopening the app to see the new average. (2) Checklist 'Bring forward' banner now dismisses itself the moment you tap it, so recurring items can't be carried forward more than once a day."
+  "versionCode": 71,
+  "versionName": "2.13.17",
+  "url": "https://ultiqapp.com/ultiq.2.13.17.apk",
+  "releaseNotes": "Smarter 'sleep day' bucketing for the Dashboard week card, the Sleep tab list, and the weekly chart. If you fall asleep at 2 am Tuesday, that sleep now counts as Monday night's rest (which it is) instead of leaking into Tuesday's column and inflating Tuesday's total. Daytime naps still count on the day they happened. No setup, no toggle — just the same data, bucketed honestly."
 }
