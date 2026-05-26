@@ -263,26 +263,28 @@ async fn stats(
     let last_month_end = first_of_month - chrono::Duration::days(1);
     let first_of_last_month = last_month_end.with_day(1).unwrap_or(last_month_end);
 
+    // §sleep-day (v2.13.17) — Range windows now use sleep-day semantics:
+    // a sleep whose bedtime is Tue 02:00 local is counted under Monday's
+    // sleep_day, not Tuesday's. Window math goes through
+    // `sleep_day_window_utc` instead of `user_local_day_utc_range` so the
+    // UTC bounds align with sleep-day boundaries (6 am local rolls the
+    // day over). Rolling windows (`rolling_week`, default 30d) are
+    // unchanged — they're "last N days from now" regardless of bucket.
     let (start, end) = match range {
         "rolling_week" => (now - chrono::Duration::days(7), now),
         "week" | "this_week" | "calendar_week" => {
-            // Current ISO week: user-local Monday 00:00 → now.
-            let (s, _) = crate::tz::user_local_day_utc_range(&tz_str, this_monday);
+            let (s, _) = crate::tz::sleep_day_window_utc(&tz_str, this_monday, today);
             (s, now)
         }
         "last_week" => {
-            let (s, _) = crate::tz::user_local_day_utc_range(&tz_str, last_monday);
-            let (_, e) = crate::tz::user_local_day_utc_range(&tz_str, last_sunday_end);
-            (s, e)
+            crate::tz::sleep_day_window_utc(&tz_str, last_monday, last_sunday_end)
         }
         "this_month" => {
-            let (s, _) = crate::tz::user_local_day_utc_range(&tz_str, first_of_month);
+            let (s, _) = crate::tz::sleep_day_window_utc(&tz_str, first_of_month, today);
             (s, now)
         }
         "last_month" => {
-            let (s, _) = crate::tz::user_local_day_utc_range(&tz_str, first_of_last_month);
-            let (_, e) = crate::tz::user_local_day_utc_range(&tz_str, last_month_end);
-            (s, e)
+            crate::tz::sleep_day_window_utc(&tz_str, first_of_last_month, last_month_end)
         }
         "custom" => {
             let start_d = params
@@ -291,9 +293,7 @@ async fn stats(
             let end_d = params
                 .end
                 .ok_or_else(|| AppError::new(StatusCode::BAD_REQUEST, "end date required for custom range"))?;
-            let (s, _) = crate::tz::user_local_day_utc_range(&tz_str, start_d);
-            let (_, e) = crate::tz::user_local_day_utc_range(&tz_str, end_d);
-            (s, e)
+            crate::tz::sleep_day_window_utc(&tz_str, start_d, end_d)
         }
         _ => (now - chrono::Duration::days(30), now),
     };
@@ -357,7 +357,13 @@ async fn stats(
             extra_mins += delta;
         }
 
-        let day = r.actual_bedtime.format("%Y-%m-%d").to_string();
+        // §sleep-day — Best/worst day labels reflect the sleep_day the
+        // record belongs to (e.g. a Tue 02:00 bedtime shows as "Monday"
+        // because that's the night it covers). Previously formatted the
+        // raw UTC date, which was both timezone-wrong and bucket-wrong.
+        let day = crate::tz::sleep_day_for(r.actual_bedtime, &tz_str)
+            .format("%Y-%m-%d")
+            .to_string();
         match &best {
             None => best = Some((r.quality_rating, day.clone())),
             Some((q, _)) if r.quality_rating > *q => best = Some((r.quality_rating, day.clone())),

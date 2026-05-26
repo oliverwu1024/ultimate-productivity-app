@@ -217,12 +217,18 @@ struct WeekSummary {
 async fn aggregate_week(pool: &PgPool, user_id: Uuid) -> Result<WeekSummary, AppError> {
     let now = Utc::now();
     let seven_days_ago = now - Duration::days(7);
+    let tz_str = crate::tz::fetch_user_tz(pool, user_id).await?;
 
-    // Sleep aggregate.
+    // §sleep-day (v2.13.17) — `days_with_sleep_logged` previously counted
+    // rows, which double-counted users who logged two sleeps in one
+    // calendar day (e.g. a Tue 02:00 bedtime + a Tue 22:00 bedtime both
+    // labeled "Tuesday"). Now counts DISTINCT sleep-days using the 6h
+    // shift, so the Tue 02:00 bedtime correctly buckets to Monday and the
+    // label means what it says.
     let sleep: (Option<i64>, Option<f64>, Option<f64>, Option<i64>, Option<i64>) =
         sqlx::query_as(
             "SELECT
-                COUNT(*)::BIGINT,
+                COUNT(DISTINCT DATE((actual_bedtime - INTERVAL '6 hours') AT TIME ZONE $3))::BIGINT,
                 AVG(EXTRACT(EPOCH FROM (actual_wake_time - actual_bedtime))/60.0)::DOUBLE PRECISION,
                 AVG(quality_rating)::DOUBLE PRECISION,
                 COUNT(*) FILTER (
@@ -234,6 +240,7 @@ async fn aggregate_week(pool: &PgPool, user_id: Uuid) -> Result<WeekSummary, App
         )
         .bind(user_id)
         .bind(seven_days_ago)
+        .bind(&tz_str)
         .fetch_one(pool)
         .await?;
 
@@ -280,7 +287,9 @@ async fn aggregate_week(pool: &PgPool, user_id: Uuid) -> Result<WeekSummary, App
     // §10.8 — Sleep audio aggregate (snore + cough episodes detected on-device
     // by YAMNet during the past 7 nights). Both per-event totals AND the
     // distinct-nights-affected count, so Sonnet can say "snored on 5 of 7
-    // nights" instead of just "47 snoring episodes".
+    // nights" instead of just "47 snoring episodes". `sleep_record_id` is
+    // a stable per-night id from the on-device session, so DISTINCT
+    // already counts sleep_days correctly without needing the shift here.
     let audio: (Option<i64>, Option<i64>, Option<i64>, Option<i64>) = sqlx::query_as(
         "SELECT
             COUNT(*) FILTER (WHERE event_type = 'snore')::BIGINT,
@@ -1917,29 +1926,38 @@ struct DailyMetric {
 }
 
 async fn aggregate_daily(pool: &PgPool, user_id: Uuid) -> Result<Vec<DailyMetric>, AppError> {
-    // §i18n (v2.13.9) — Per-day buckets now use the user's local date, not
-    // UTC's. A NY user's 11pm sleep used to bucket under "tomorrow" because
-    // UTC was already past midnight; that hid the night entirely from the
-    // anomaly daily series. `actual_bedtime AT TIME ZONE $tz` shifts the
-    // TIMESTAMPTZ into the user's wall clock before DATE() truncation.
+    // §i18n (v2.13.9) — Per-day buckets use the user's local date, not UTC.
+    // §sleep-day (v2.13.17) — Sleep rows now bucket by sleep_day (bedtime
+    // − 6h), so a Tue 02:00 bedtime correctly counts as Monday's night.
+    // The anomaly model looks for "3 nights in a row of <5h" — sleep_day
+    // bucketing is what makes that streak detection accurate. Focus
+    // sessions keep wall-clock-date bucketing because a focus session
+    // belongs to the day it started, not the night before.
     let tz_str = crate::tz::fetch_user_tz(pool, user_id).await?;
     let today = crate::tz::user_today(&tz_str);
     let start = today - Duration::days(ANOMALY_LOOKBACK_DAYS - 1);
 
-    // Per-day sleep (grouped by user-local actual_bedtime date).
+    // Bedtime UTC window that covers the requested sleep-day range. Wider
+    // than `start::DATE` because a sleep with sleep_day = start can have
+    // a bedtime up to 6h before start's local midnight in UTC terms.
+    let (sleep_window_start, sleep_window_end) =
+        crate::tz::sleep_day_window_utc(&tz_str, start, today);
+
+    // Per-day sleep (grouped by sleep_day = (bedtime − 6h) in user tz).
     let sleep: Vec<(chrono::NaiveDate, Option<f64>, Option<f64>, Option<i64>)> =
         sqlx::query_as(
             "SELECT
-                DATE(actual_bedtime AT TIME ZONE $3)                                       AS day,
+                DATE((actual_bedtime - INTERVAL '6 hours') AT TIME ZONE $4) AS day,
                 AVG(EXTRACT(EPOCH FROM (actual_wake_time - actual_bedtime))/60.0)::DOUBLE PRECISION,
                 AVG(quality_rating)::DOUBLE PRECISION,
                 COALESCE(SUM(phone_pickups), 0)::BIGINT
              FROM sleep_records
-             WHERE user_id = $1 AND actual_bedtime >= $2::DATE
+             WHERE user_id = $1 AND actual_bedtime >= $2 AND actual_bedtime < $3
              GROUP BY day",
         )
         .bind(user_id)
-        .bind(start)
+        .bind(sleep_window_start)
+        .bind(sleep_window_end)
         .bind(&tz_str)
         .fetch_all(pool)
         .await?;

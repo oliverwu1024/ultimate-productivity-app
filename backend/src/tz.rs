@@ -11,11 +11,23 @@
 // silently — no panic, no error to the user. Worst case is the same
 // behaviour we had before the column existed.
 
-use chrono::{DateTime, NaiveDate, Utc};
+use chrono::{DateTime, Duration, NaiveDate, Utc};
 use chrono_tz::Tz;
 use sqlx::{types::Uuid, PgPool};
 
 use crate::error::AppError;
+
+/// §sleep-day (v2.13.17) — A sleep "belongs to" the calendar day it
+/// started on after shifting clocks back by this many hours in the user's
+/// local timezone. 6h means:
+///   - Bedtime Tue 02:00 local  → sleep_day = Monday (it's Monday night)
+///   - Bedtime Tue 22:00 local  → sleep_day = Tuesday
+///   - Tue 2 pm nap             → sleep_day = Tuesday
+/// This matches Whoop/Oura semantics. Tuned to 6h so all-nighters and
+/// late nights still bucket to the previous day's night without breaking
+/// daytime naps. The constant is exposed so SQL (`INTERVAL`) and Rust
+/// callers stay in sync.
+pub const SLEEP_DAY_SHIFT_HOURS: i64 = 6;
 
 /// Look up a user's stored IANA timezone. Returns the literal string;
 /// validation happens at `parse_tz` time so we can keep a single
@@ -84,4 +96,54 @@ pub fn user_local_day_utc_range(
                 .with_timezone(&tz)
         });
     (start_local.with_timezone(&Utc), end_local.with_timezone(&Utc))
+}
+
+/// §sleep-day — Compute the sleep-day for a given bedtime in the user's
+/// timezone. Shifts bedtime back by `SLEEP_DAY_SHIFT_HOURS` (6h) then
+/// takes the local date. See `SLEEP_DAY_SHIFT_HOURS` for rationale.
+pub fn sleep_day_for(bedtime: DateTime<Utc>, tz_str: &str) -> NaiveDate {
+    let tz = parse_tz(tz_str);
+    let shifted = bedtime - Duration::hours(SLEEP_DAY_SHIFT_HOURS);
+    shifted.with_timezone(&tz).date_naive()
+}
+
+/// §sleep-day — UTC instant at which `sleep_day` begins for bedtime
+/// purposes. Equivalent to "6 am local on sleep_day" (since a bedtime
+/// at-or-after 6 am local has its shifted timestamp at-or-after 0 am
+/// local, putting it on `sleep_day`). DST edge cases fall back to the
+/// `earliest()` resolution — same convention as `user_local_day_utc_range`.
+pub fn sleep_day_start_utc(tz_str: &str, sleep_day: NaiveDate) -> DateTime<Utc> {
+    use chrono::TimeZone;
+    let tz = parse_tz(tz_str);
+    let local_6am = sleep_day
+        .and_hms_opt(SLEEP_DAY_SHIFT_HOURS as u32, 0, 0)
+        .unwrap();
+    tz.from_local_datetime(&local_6am)
+        .earliest()
+        .unwrap_or_else(|| {
+            Utc.from_utc_datetime(&local_6am).with_timezone(&tz)
+        })
+        .with_timezone(&Utc)
+}
+
+/// §sleep-day — Convert a `[start_sleep_day, end_sleep_day]` inclusive
+/// range into the half-open UTC instant window covering all bedtimes
+/// that belong to those sleep-days. Used by SQL filters in place of
+/// `user_local_day_utc_range` whenever the column being filtered is a
+/// bedtime / sleep `started_at`.
+///
+/// Returns `[start_utc, end_utc)`:
+///   - start_utc = 6 am local on `start_sleep_day`
+///   - end_utc   = 6 am local on `end_sleep_day + 1`
+pub fn sleep_day_window_utc(
+    tz_str: &str,
+    start_sleep_day: NaiveDate,
+    end_sleep_day_inclusive: NaiveDate,
+) -> (DateTime<Utc>, DateTime<Utc>) {
+    let start = sleep_day_start_utc(tz_str, start_sleep_day);
+    let end_exclusive = sleep_day_start_utc(
+        tz_str,
+        end_sleep_day_inclusive + Duration::days(1),
+    );
+    (start, end_exclusive)
 }
