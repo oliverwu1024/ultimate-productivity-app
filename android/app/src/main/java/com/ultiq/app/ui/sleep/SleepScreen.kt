@@ -508,8 +508,12 @@ private fun groupRecordsByPeriod(
 ): List<Pair<String, List<SleepRecordEntity>>> {
     val zone = ZoneId.systemDefault()
     val today = java.time.LocalDate.now(zone)
+    // §sleep-day (v2.13.17) — Group by sleep_day so a Tue 02:00 bedtime
+    // appears under Monday alongside other Monday-night sleeps, instead
+    // of jumping ahead into Tuesday. Display fields (bedtime/wake/quality)
+    // still show the raw clock times underneath the group label.
     fun dayOf(r: SleepRecordEntity): java.time.LocalDate =
-        Instant.ofEpochMilli(r.actualBedtime).atZone(zone).toLocalDate()
+        com.ultiq.app.util.sleepDayFor(r.actualBedtime, zone)
 
     return when (range) {
         TimeRange.WEEK -> {

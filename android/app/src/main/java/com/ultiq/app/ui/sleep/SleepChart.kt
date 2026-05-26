@@ -131,8 +131,11 @@ private fun processRecordsForChart(records: List<SleepRecordEntity>): ChartData 
     val days = (6 downTo 0).map { today.minusDays(it.toLong()) }
     val dayLabels = days.map { it.format(DateTimeFormatter.ofPattern("EEE")) }
 
+    // §sleep-day (v2.13.17) — Bars are sleep_day-bucketed. A Tue 02:00
+    // bedtime stacks onto Monday's bar (Monday's night), not Tuesday's,
+    // so the "this week" Dashboard card and the chart agree.
     val recordsByDay = records.groupBy { record ->
-        Instant.ofEpochMilli(record.actualBedtime).atZone(zone).toLocalDate()
+        com.ultiq.app.util.sleepDayFor(record.actualBedtime, zone)
     }
 
     val night = mutableListOf<Number>()
