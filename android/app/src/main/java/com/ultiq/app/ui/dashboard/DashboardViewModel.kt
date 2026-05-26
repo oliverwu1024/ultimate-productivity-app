@@ -221,8 +221,27 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         refreshLockOverlayState()
         observeTodayChecklist()
         observeAchievements()
+        observeSleepUpdates()
         loadWeeklyInsight()
         loadAnomalyAlert()
+    }
+
+    /// §sleep-reactive — without this, `loadSleepSummary` + `loadWeeklyHighlights`
+    /// only run on init / pull-to-refresh. A sleep saved from the Sleep tab
+    /// would sit in Room but the Dashboard's "last night" + "this week"
+    /// cards would stay on stale values until the user closed and reopened
+    /// the app. Mirrors `observeTodayChecklist` / `observeAchievements`.
+    /// The upper bound is open-ended (Long.MAX_VALUE) so Room's invalidation
+    /// fires on any future insert; the two reload calls re-compute the
+    /// actual week/48h windows inside themselves.
+    private fun observeSleepUpdates() {
+        viewModelScope.launch {
+            val windowStart = System.currentTimeMillis() - 14L * 24 * 3600_000L
+            sleepDao.getRecordsBetween(windowStart, Long.MAX_VALUE).collect {
+                loadSleepSummary()
+                loadWeeklyHighlights()
+            }
+        }
     }
 
     /// Fetch the AI weekly insight. Server returns a cached row if it's
