@@ -238,11 +238,14 @@ fn SleepSection(records: Vec<SleepRecord>) -> impl IntoView {
     };
     let total_pickups: i32 = records.iter().map(|r| r.phone_pickups).sum();
 
+    // §sleep-day — Label the best-quality night by its sleep_day so a
+    // Tue 02:00 bedtime reads as "Mon 25" (the night it was) instead
+    // of "Tue 26" (the morning it ended). Matches Android + chart.
     let best = records
         .iter()
         .max_by_key(|r| r.quality_rating)
         .map(|r| {
-            let day = r.actual_wake_time.with_timezone(&Local).date_naive();
+            let day = crate::sleep_day::sleep_day_for(r.actual_bedtime);
             format!("{} ({}★, {})", fmt_date(day), r.quality_rating, fmt_minutes(duration_minutes(r)))
         })
         .unwrap_or_else(|| "—".to_string());

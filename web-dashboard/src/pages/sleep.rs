@@ -184,6 +184,9 @@ fn LastNightSoundsCard(
                 return Either::Left(view! { <></> });
             }
             // Date label: "Last night" for records within ~36h, else MMM dd.
+            // §sleep-day — Older records label by sleep_day (Mon 25) not
+            // the raw bedtime calendar date (Tue 26 for a Tue 02:00 night),
+            // so the card name matches the chart bar that night sits in.
             let label = records
                 .get()
                 .first()
@@ -193,8 +196,7 @@ fn LastNightSoundsCard(
                     if age.num_hours() <= 36 {
                         "Last night".to_string()
                     } else {
-                        r.actual_bedtime
-                            .with_timezone(&Local)
+                        crate::sleep_day::sleep_day_for(r.actual_bedtime)
                             .format("%a, %b %d")
                             .to_string()
                     }
@@ -369,13 +371,15 @@ fn DurationChart(
             let days = r.days();
             let start = today - Duration::days(days - 1);
 
-            // Map records to (day_index, duration_minutes) using the wake date as the night's "anchor day".
+            // §sleep-day (v2.13.x) — Each record anchors on its sleep_day
+            // (bedtime − 6 h in local tz), matching the Android Dashboard
+            // and Sleep tab. A Tue 02:00 bedtime now sits in Monday's
+            // column instead of Tuesday's — Monday-night sleep finally
+            // gets a Monday bar.
             let mut points: Vec<(i64, f64, i16)> = Vec::new();
             for rec in &recs {
-                let wake_date = rec.actual_wake_time
-                    .with_timezone(&Local)
-                    .date_naive();
-                let idx = (wake_date - start).num_days();
+                let sleep_day = crate::sleep_day::sleep_day_for(rec.actual_bedtime);
+                let idx = (sleep_day - start).num_days();
                 if idx >= 0 && idx < days {
                     points.push((idx, duration_minutes(rec), rec.quality_rating));
                 }
@@ -564,8 +568,10 @@ fn PickupsBar(
                 series.push((d, 0));
             }
             for rec in &recs {
-                let wake_date = rec.actual_wake_time.with_timezone(&Local).date_naive();
-                let idx = (wake_date - start).num_days();
+                // §sleep-day — Same bucketing as DurationChart above so
+                // the two charts always agree column-for-column.
+                let sleep_day = crate::sleep_day::sleep_day_for(rec.actual_bedtime);
+                let idx = (sleep_day - start).num_days();
                 if idx >= 0 && (idx as usize) < series.len() {
                     series[idx as usize].1 = series[idx as usize].1.max(rec.phone_pickups);
                 }

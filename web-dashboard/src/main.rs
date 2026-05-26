@@ -5,6 +5,7 @@ mod app;
 mod auth;
 mod components;
 mod pages;
+mod sleep_day;
 mod stats;
 mod theme;
 
