@@ -960,12 +960,6 @@ private fun WeeklyHighlightsCard(highlights: WeeklyHighlights?, onClick: () -> U
                     value = if (h != null && h.eventsTotal > 0) "${h.eventsTotal}" else "-",
                     subtitle = null,
                     modifier = Modifier.weight(1f),
-                    // §marked-done (v2.13.21) — only show the "Marked done"
-                    // subline when there are events to mark done; otherwise
-                    // a stray "Marked done 0" reads as a failure state when
-                    // really we just have no events scheduled this week.
-                    sublineLabel = if (h != null && h.eventsTotal > 0) "Marked done" else null,
-                    sublineValue = if (h != null && h.eventsTotal > 0) "${h.eventsDone}" else null,
                 )
             }
 
@@ -980,10 +974,18 @@ private fun WeeklyHighlightsCard(highlights: WeeklyHighlights?, onClick: () -> U
             // to the headline "This week" values. The last-week numbers
             // here are now always neutral — they're the reference baseline,
             // not the verdict.
+            // §marked-done (v2.13.22) — Calendar events slot of this row
+            // shows "Marked done · N" instead of an empty spacer. Use the
+            // SAME row as Last week so the Calendar events tile above
+            // stays the same height as its siblings. Row shows whenever
+            // ANY of the 4 columns has data: any last-week sleep/quality/
+            // focus, OR any events scheduled this week (which gates the
+            // Marked done column).
             val anyLastWeek = h?.lastWeekAvgSleepMinutes != null ||
                 h?.lastWeekQuality != null ||
                 h?.lastWeekFocusHours != null
-            if (h != null && anyLastWeek) {
+            val showMarkedDone = h != null && h.eventsTotal > 0
+            if (h != null && (anyLastWeek || showMarkedDone)) {
                 Spacer(Modifier.height(10.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -1001,8 +1003,11 @@ private fun WeeklyHighlightsCard(highlights: WeeklyHighlights?, onClick: () -> U
                         value = h.lastWeekFocusHours?.let { String.format("%.1fh", it) },
                         modifier = Modifier.weight(1f),
                     )
-                    // Calendar events: empty slot to preserve grid alignment.
-                    Spacer(modifier = Modifier.weight(1f))
+                    LastWeekColumn(
+                        label = "Marked done",
+                        value = if (showMarkedDone) "${h.eventsDone}" else null,
+                        modifier = Modifier.weight(1f),
+                    )
                 }
             }
             // §empty-state — hide debt/extra/net tiles when no sleep records
@@ -1124,8 +1129,6 @@ private fun HighlightStat(
     modifier: Modifier = Modifier,
     subtitleColor: Color = Color.Unspecified,
     valueColor: Color = Color.Unspecified,
-    sublineLabel: String? = null,
-    sublineValue: String? = null,
 ) {
     Column(
         modifier = modifier,
@@ -1161,30 +1164,6 @@ private fun HighlightStat(
                 maxLines = 2,
             )
         }
-        // §subline (v2.13.21) — Optional secondary label+value pair below
-        // the main label, used by the Calendar events tile to show
-        // "Marked done / N" beneath the total. Layout mirrors the main
-        // pair (small grey label, bold primary value) at a tighter scale
-        // so the tile stays the same overall height as its siblings in
-        // the highlights row.
-        if (sublineLabel != null && sublineValue != null) {
-            Spacer(Modifier.height(2.dp))
-            Text(
-                sublineLabel,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-            )
-            Text(
-                sublineValue,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-            )
-        }
     }
 }
 
@@ -1202,13 +1181,14 @@ private fun HighlightStat(
 private fun LastWeekColumn(
     value: String?,
     modifier: Modifier = Modifier,
+    label: String = "Last week",
 ) {
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            "Last week",
+            label,
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
