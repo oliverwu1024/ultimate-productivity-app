@@ -227,6 +227,12 @@ class AlarmRingService : Service() {
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setOngoing(true)
             .setAutoCancel(false)
+            // The 15s renotify loop (startRenotifyLoop) re-posts this same
+            // notification to recover from OEM swipe-aways. Without this flag,
+            // every re-post drops a HUN over AlarmActivity and obscures the
+            // mission UI (math keypad, shake target, photo viewfinder). First
+            // post still alerts; subsequent posts under the same ID stay silent.
+            .setOnlyAlertOnce(true)
             // §dual-sound (v2.13.18) — CHANNEL_ALARM sets a default
             // RingtoneManager TYPE_ALARM URI as a fallback (see
             // NotificationHelper.kt:76). Without setSound(null) here,

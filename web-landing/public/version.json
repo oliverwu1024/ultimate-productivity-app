@@ -1,6 +1,6 @@
 {
-  "versionCode": 73,
-  "versionName": "2.13.19",
-  "url": "https://ultiqapp.com/ultiq.2.13.19.apk",
-  "releaseNotes": "Four calendar + alarm polish fixes. (1) Calendar reminder notifications now read \"In 2 days\" / \"In 1 week\" instead of the raw \"In 2879 min\" / \"In 10080 min\" — and the lead time matches exactly what you picked, no more off-by-one. (2) Dashboard \"This week\" event count now covers the full Mon–Sun, so events later in the week are no longer dropped. (3) Calendar events list has a right-side gutter so the AI ✨ and + floating buttons no longer cover the mark-done checkbox on past events. (4) Alarms sub-tab has a floating + so you can add an alarm without scrolling to the bottom past the OEM guidance card."
+  "versionCode": 74,
+  "versionName": "2.13.20",
+  "url": "https://ultiqapp.com/ultiq.2.13.20.apk",
+  "releaseNotes": "Alarm fix: the alarm notification no longer drops a heads-up banner over the math / shake / photo mission while you're trying to dismiss the alarm. The 15-second swipe-recovery loop still re-posts the notification silently, so you can never get stranded with a ringing alarm and no UI — but it stays out of your way while you're solving the mission."
 }
