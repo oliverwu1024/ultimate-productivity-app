@@ -1,6 +1,6 @@
 {
-  "versionCode": 74,
-  "versionName": "2.13.20",
-  "url": "https://ultiqapp.com/ultiq.2.13.20.apk",
-  "releaseNotes": "Alarm fix: the alarm notification no longer drops a heads-up banner over the math / shake / photo mission while you're trying to dismiss the alarm. The 15-second swipe-recovery loop still re-posts the notification silently, so you can never get stranded with a ringing alarm and no UI — but it stays out of your way while you're solving the mission."
+  "versionCode": 75,
+  "versionName": "2.13.21",
+  "url": "https://ultiqapp.com/ultiq.2.13.21.apk",
+  "releaseNotes": "Dashboard \"This week\" — Calendar events tile now shows a \"Marked done · N\" subline underneath the scheduled count, so you can watch your weekly mark-done count tick up. Updates live from the Calendar tab — no more waiting on pull-to-refresh."
 }
