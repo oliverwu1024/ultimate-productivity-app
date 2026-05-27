@@ -166,7 +166,11 @@ fun CalendarScreen(viewModel: CalendarViewModel = viewModel()) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+                // v2.13.19 — Extra right inset (72dp) reserves a gutter for
+                // the stacked AI + Add FABs in the bottom-right corner so the
+                // mark-done checkbox at the trailing edge of past-event cards
+                // isn't covered when scrolled near the bottom.
+                contentPadding = PaddingValues(start = 16.dp, end = 72.dp, top = 4.dp, bottom = 4.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 if (uiState.selectedDayEvents.isEmpty()) {

@@ -27,6 +27,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.GraphicEq
@@ -41,6 +42,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -142,6 +144,18 @@ fun SleepScreen(
                     }
                 },
             )
+        },
+        // v2.13.19 — Floating + on the Alarms sub-tab so adding an alarm
+        // doesn't require scrolling past the existing list + OEM card +
+        // debug card to reach the bottom button. Hidden on the Sleep
+        // sub-tab where the primary action is Start Sleep (its own big
+        // card) and a stray FAB would be misleading.
+        floatingActionButton = {
+            if (subTab == 1) {
+                FloatingActionButton(onClick = onCreateAlarm) {
+                    Icon(Icons.Default.Add, contentDescription = "Add alarm")
+                }
+            }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
@@ -552,7 +566,10 @@ private fun AlarmsSubTab(
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(8.dp),
-        contentPadding = PaddingValues(top = 8.dp, bottom = 16.dp),
+        // v2.13.19 — Extra bottom inset (88dp) clears the floating + so the
+        // last alarm row / OEM card / debug card aren't tucked under the FAB
+        // when scrolled to the bottom.
+        contentPadding = PaddingValues(top = 8.dp, bottom = 88.dp),
     ) {
         sleepAlarmsSection(
             alarms = alarms,

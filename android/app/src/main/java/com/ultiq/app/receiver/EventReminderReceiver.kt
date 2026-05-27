@@ -12,10 +12,18 @@ class EventReminderReceiver : BroadcastReceiver() {
         val title = intent.getStringExtra(AlarmScheduler.EXTRA_EVENT_TITLE) ?: "Event"
         val startMillis = intent.getLongExtra(AlarmScheduler.EXTRA_EVENT_START, 0L)
 
-        val minutesUntil = if (startMillis > 0) {
-            ((startMillis - System.currentTimeMillis()) / 60_000L).toInt().coerceAtLeast(0)
-        } else {
-            AlarmScheduler.EVENT_LEAD_MINUTES
+        // v2.13.19 — Prefer the user-picked offset (set by AlarmScheduler) so
+        // the notification body always matches what they chose in the picker.
+        // Recomputing from (startMillis - now) was off-by-one when the alarm
+        // fired even a fraction of a second late: a 2880-min lead displayed
+        // as "2879 min". Fall back to a recompute only when the extra is
+        // missing (pre-2.13.19 PendingIntents still in flight).
+        val pickedMinutes = intent.getIntExtra(AlarmScheduler.EXTRA_REMINDER_MINUTES, -1)
+        val minutesUntil = when {
+            pickedMinutes > 0 -> pickedMinutes
+            startMillis > 0 ->
+                ((startMillis - System.currentTimeMillis()) / 60_000L).toInt().coerceAtLeast(0)
+            else -> AlarmScheduler.EVENT_LEAD_MINUTES
         }
 
         NotificationHelper.ensureChannels(context)
