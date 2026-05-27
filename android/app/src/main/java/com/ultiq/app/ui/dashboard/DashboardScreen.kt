@@ -960,6 +960,12 @@ private fun WeeklyHighlightsCard(highlights: WeeklyHighlights?, onClick: () -> U
                     value = if (h != null && h.eventsTotal > 0) "${h.eventsTotal}" else "-",
                     subtitle = null,
                     modifier = Modifier.weight(1f),
+                    // §marked-done (v2.13.21) — only show the "Marked done"
+                    // subline when there are events to mark done; otherwise
+                    // a stray "Marked done 0" reads as a failure state when
+                    // really we just have no events scheduled this week.
+                    sublineLabel = if (h != null && h.eventsTotal > 0) "Marked done" else null,
+                    sublineValue = if (h != null && h.eventsTotal > 0) "${h.eventsDone}" else null,
                 )
             }
 
@@ -1118,6 +1124,8 @@ private fun HighlightStat(
     modifier: Modifier = Modifier,
     subtitleColor: Color = Color.Unspecified,
     valueColor: Color = Color.Unspecified,
+    sublineLabel: String? = null,
+    sublineValue: String? = null,
 ) {
     Column(
         modifier = modifier,
@@ -1151,6 +1159,30 @@ private fun HighlightStat(
                 fontWeight = FontWeight.Medium,
                 textAlign = TextAlign.Center,
                 maxLines = 2,
+            )
+        }
+        // §subline (v2.13.21) — Optional secondary label+value pair below
+        // the main label, used by the Calendar events tile to show
+        // "Marked done / N" beneath the total. Layout mirrors the main
+        // pair (small grey label, bold primary value) at a tighter scale
+        // so the tile stays the same overall height as its siblings in
+        // the highlights row.
+        if (sublineLabel != null && sublineValue != null) {
+            Spacer(Modifier.height(2.dp))
+            Text(
+                sublineLabel,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+            )
+            Text(
+                sublineValue,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
             )
         }
     }

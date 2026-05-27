@@ -68,6 +68,7 @@ data class WeeklyHighlights(
     val avgSleepQuality: Double,
     val totalFocusHours: Double,
     val eventsTotal: Int,
+    val eventsDone: Int = 0,
     val sleepDebtMinutes: Int = 0,
     val sleepExtraMinutes: Int = 0,
     val sleepTargetMinutes: Int = 480,
@@ -222,6 +223,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         observeTodayChecklist()
         observeAchievements()
         observeSleepUpdates()
+        observeCalendarUpdates()
         loadWeeklyInsight()
         loadAnomalyAlert()
     }
@@ -241,6 +243,25 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                 loadSleepSummary()
                 loadWeeklyHighlights()
             }
+        }
+    }
+
+    /// §calendar-reactive — mirrors §sleep-reactive for the "This week"
+    /// Calendar events tile. Without this, the `eventsDone` count (added
+    /// 2026-05-28) wouldn't update live when the user marks an event done
+    /// from the Calendar tab — the tile would stay on a stale value until
+    /// the next pull-to-refresh. The 28-day window catches any insert /
+    /// update / delete on relevant rows; `loadWeeklyHighlights` recomputes
+    /// the Mon–Sun bucket inside.
+    private fun observeCalendarUpdates() {
+        viewModelScope.launch {
+            val today = LocalDate.now()
+            calendarRepo
+                .getEventsForRange(today.minusDays(14), today.plusDays(14))
+                .collect {
+                    loadWeeklyHighlights()
+                    loadUpcomingEvents()
+                }
         }
     }
 
@@ -602,11 +623,11 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         // window is Mon–Sun of the current calendar week, NOT capped at
         // today, so a Thu/Fri/Sat event still counts when read on Wednesday.
         // (Pre-v2.13.19 this was `(thisWeekStart, today)` which silently
-        // dropped later-in-the-week events.) The `isDone` column isn't
-        // surfaced here because mark-done is only available on past events,
-        // which would bias the count toward early in the week. No last-week
-        // comparison rendered — the absolute count is the whole story per
-        // design discussion 2026-05-24.
+        // dropped later-in-the-week events.) `eventsDone` counts the ones
+        // with `isDone = true` and surfaces underneath the total — gives
+        // the user a "watch this number grow" signal through the week. The
+        // bias-toward-early-week is real (mark-done is only available on
+        // past events) but accepted as a UX trade-off, decided 2026-05-28.
         val eventsThis = calendarRepo
             .getEventsForRange(thisWeekStart, thisWeekStart.plusDays(6))
             .firstOrNull() ?: emptyList()
@@ -616,6 +637,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                 avgSleepQuality = avgQuality,
                 totalFocusHours = totalFocusHours,
                 eventsTotal = eventsThis.size,
+                eventsDone = eventsThis.count { it.isDone },
                 sleepDebtMinutes = sleepDebt,
                 sleepExtraMinutes = sleepExtra,
                 sleepTargetMinutes = sleepTarget,
