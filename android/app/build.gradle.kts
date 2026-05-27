@@ -88,7 +88,7 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
 
     // Core
-    implementation("androidx.core:core-ktx:1.13.1")
+    implementation("androidx.core:core-ktx:1.18.0")
     implementation("androidx.activity:activity-compose:1.9.3")
 
     // Navigation
