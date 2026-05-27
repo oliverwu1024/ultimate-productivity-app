@@ -1,6 +1,6 @@
 {
-  "versionCode": 75,
-  "versionName": "2.13.21",
-  "url": "https://ultiqapp.com/ultiq.2.13.21.apk",
-  "releaseNotes": "Dashboard \"This week\" — Calendar events tile now shows a \"Marked done · N\" subline underneath the scheduled count, so you can watch your weekly mark-done count tick up. Updates live from the Calendar tab — no more waiting on pull-to-refresh."
+  "versionCode": 76,
+  "versionName": "2.13.22",
+  "url": "https://ultiqapp.com/ultiq.2.13.22.apk",
+  "releaseNotes": "Dashboard \"This week\" layout fix — \"Marked done · N\" now sits in the same row as the \"Last week\" comparison values, in the Calendar events column. The Calendar events tile is back to the same height as its siblings."
 }
