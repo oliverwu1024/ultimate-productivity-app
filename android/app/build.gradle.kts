@@ -126,7 +126,7 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-process:2.10.0")
 
     // Coroutines
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
 
     // WorkManager
     implementation("androidx.work:work-runtime-ktx:2.9.1")
@@ -152,7 +152,7 @@ dependencies {
     // Lets us `.await()` Firebase's Task<T> results inside suspend functions
     // (Firebase's Android APIs are Task-based; coroutines play-services adds
     // the bridge). Used by FcmTokenSyncer.
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.9.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.11.0")
 
     // §10 — MediaPipe Audio Classifier with bundled YAMNet model for on-device
     // snore + cough detection during sleep sessions. Audio never leaves the
