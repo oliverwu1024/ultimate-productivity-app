@@ -108,11 +108,37 @@ object NotificationHelper {
         )
     }
 
+    /// v2.13.19 — Humanises the reminder lead time so the body reads
+    /// "In 2 days" / "In 1 week" rather than "In 2880 min" / "In 10080 min".
+    /// Aligned with the picker labels in AddEventDialog so users see the same
+    /// wording end-to-end. Falls back to a "Xh Ym" mix for offsets that don't
+    /// land on a clean unit (e.g. a 90-min reminder reads "1 hr 30 min").
+    private fun formatLeadTime(minutes: Int): String {
+        return when {
+            minutes <= 0 -> "0 min"
+            minutes % 10080 == 0 -> {
+                val weeks = minutes / 10080
+                if (weeks == 1) "1 week" else "$weeks weeks"
+            }
+            minutes % 1440 == 0 -> {
+                val days = minutes / 1440
+                if (days == 1) "1 day" else "$days days"
+            }
+            minutes >= 60 -> {
+                val hours = minutes / 60
+                val rem = minutes % 60
+                val hPart = if (hours == 1) "1 hr" else "$hours hr"
+                if (rem == 0) hPart else "$hPart $rem min"
+            }
+            else -> "$minutes min"
+        }
+    }
+
     fun showEventReminder(context: Context, eventId: String, eventTitle: String, minutesUntil: Int) {
         val body = if (minutesUntil <= 0) {
             "Starting now: $eventTitle"
         } else {
-            "In $minutesUntil min: $eventTitle"
+            "In ${formatLeadTime(minutesUntil)}: $eventTitle"
         }
         notify(
             context = context,

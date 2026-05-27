@@ -598,14 +598,17 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         val totalFocusPrev = sessionDao.getTotalFocusMinutes(lastWeekStartMs, lastWeekEndMs) ?: 0
         val totalFocusHours = totalFocusThis / 60.0
 
-        // Events — total scheduled this week. Past/future agnostic; the
-        // `isDone` column isn't surfaced here because mark-done is only
-        // available on past events, which would bias the count toward early
-        // in the week. "Planned" is honest in both directions. No
-        // last-week comparison rendered — the absolute count is the whole
-        // story per design discussion 2026-05-24.
+        // Events — total scheduled this week. Past/future agnostic: the
+        // window is Mon–Sun of the current calendar week, NOT capped at
+        // today, so a Thu/Fri/Sat event still counts when read on Wednesday.
+        // (Pre-v2.13.19 this was `(thisWeekStart, today)` which silently
+        // dropped later-in-the-week events.) The `isDone` column isn't
+        // surfaced here because mark-done is only available on past events,
+        // which would bias the count toward early in the week. No last-week
+        // comparison rendered — the absolute count is the whole story per
+        // design discussion 2026-05-24.
         val eventsThis = calendarRepo
-            .getEventsForRange(thisWeekStart, today)
+            .getEventsForRange(thisWeekStart, thisWeekStart.plusDays(6))
             .firstOrNull() ?: emptyList()
         _uiState.value = _uiState.value.copy(
             weeklyHighlights = WeeklyHighlights(

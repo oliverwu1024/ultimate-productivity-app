@@ -9,6 +9,21 @@ data class ReleaseNote(
 object ReleaseNotes {
     val history: List<ReleaseNote> = listOf(
         ReleaseNote(
+            versionName = "2.13.19",
+            versionCode = 73,
+            summary = "Four calendar + alarm polish fixes. (1) Calendar reminder " +
+                "notifications now read \"In 2 days\" / \"In 1 week\" instead of the raw " +
+                "\"In 2879 min\" / \"In 10080 min\". The lead time also matches exactly " +
+                "what you picked (was off-by-one when the alarm fired a fraction late). " +
+                "(2) Dashboard 'This week' event count now covers the full Monday–Sunday " +
+                "window, so events scheduled later in the week are no longer dropped from " +
+                "the count when read mid-week. (3) Calendar events list has a right-side " +
+                "gutter so the AI quick-add and + floating buttons no longer cover the " +
+                "mark-done checkbox on past events. (4) The Alarms sub-tab has a floating " +
+                "+ button so you can add a new alarm without scrolling past existing " +
+                "alarms + OEM guidance to reach the bottom Add button.",
+        ),
+        ReleaseNote(
             versionName = "2.13.4",
             versionCode = 58,
             summary = "Three small polish wins: (1) The SSE realtime client now fires a " +

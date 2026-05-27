@@ -132,17 +132,9 @@ fun LazyListScope.sleepAlarmsSection(
                 )
             }
         }
-        item(key = "alarms-add") {
-            OutlinedButton(
-                onClick = onCreate,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-            ) {
-                Icon(Icons.Default.Add, contentDescription = null)
-                Text("  Add alarm")
-            }
-        }
+        // v2.13.19 — Bottom "Add alarm" OutlinedButton removed; the floating
+        // + on the Scaffold covers the action and stays in reach regardless
+        // of scroll position.
     }
 
     val oemUrl = OemBatteryGuidance.urlFor()
