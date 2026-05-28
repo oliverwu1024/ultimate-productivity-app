@@ -277,18 +277,54 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
     /**
      * §10.x — Delete a single clip from the backend (S3 + DB column).
      * The detection event row stays — stats are still accurate.
-     * The local Room cache is refreshed by reloading the record details
-     * after a successful delete so the UI flips out of the play state.
+     *
+     * §10.x-fix (v2.14.2) — Three updates have to land for the UI to
+     * actually flip the row out of its expanded-player state and lose
+     * the ▶ icon:
+     *   1. Server: DELETE /sleep-audio-events/:id/clip (S3 + DB)
+     *   2. Local Room: fetchAudioEventsForRecord re-pulls server truth
+     *   3. ViewModel cache: recordDetails.audioEvents must reflect the
+     *      new state, otherwise the cached snapshot keeps rendering the
+     *      old hasClip=true row → the expanded player re-fires the
+     *      clip-url fetch → backend now 404s → "Couldn't load clip".
+     * The optimistic copy below patches (3) immediately (don't wait for
+     * the network round-trip) so the user sees the row collapse + flip
+     * to "no clip" the instant they tap Delete.
      */
     fun deleteClip(eventId: String, sleepRecordId: String, onDone: () -> Unit = {}) {
+        // Optimistic local patch first so the UI updates instantly.
+        _uiState.value = _uiState.value.copy(
+            recordDetails = _uiState.value.recordDetails.let { map ->
+                val existing = map[sleepRecordId] ?: return@let map
+                val patched = existing.copy(
+                    audioEvents = existing.audioEvents.map { ev ->
+                        if (ev.id == eventId) ev.copy(hasClip = false, clipDurationMs = null) else ev
+                    },
+                )
+                map + (sleepRecordId to patched)
+            },
+        )
+        onDone()
         viewModelScope.launch {
             runCatching { api.deleteSleepAudioClip(eventId) }
-            // Reload to surface the updated has_clip=false state. The list
-            // refresh path is via SleepRepository.fetchAudioEventsForRecord,
-            // which writes through to Room and re-emits via the existing
-            // observers.
+            // Reconcile with server truth (covers the case where the
+            // delete failed on the network — we'd otherwise be showing a
+            // ghost no-clip state). Re-fetch wipes + re-inserts Room and
+            // re-emits via fetchRecordDetails on the next collect.
             runCatching { repository.fetchAudioEventsForRecord(sleepRecordId) }
-            onDone()
+            val events = runCatching {
+                db.sleepAudioEventDao().getBySleepRecord(sleepRecordId)
+            }.getOrNull() ?: return@launch
+            _uiState.value = _uiState.value.copy(
+                recordDetails = _uiState.value.recordDetails + (
+                    sleepRecordId to SleepRecordDetails(
+                        loading = false,
+                        loaded = true,
+                        pickups = _uiState.value.recordDetails[sleepRecordId]?.pickups ?: emptyList(),
+                        audioEvents = events,
+                    )
+                ),
+            )
         }
     }
 

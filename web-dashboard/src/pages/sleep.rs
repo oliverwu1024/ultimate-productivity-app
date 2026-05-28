@@ -98,6 +98,20 @@ pub fn SleepPage() -> impl IntoView {
                 SyncEvent::SleepCreated(_)
                 | SyncEvent::SleepUpdated(_)
                 | SyncEvent::SleepDeleted(_) => refresh(),
+                // §10.x-fix (v2.14.2) — Refetch just the audio events for
+                // the affected record. Full refresh would also reload the
+                // records list + stats, which is wasteful since clip
+                // attaches don't change either. A snore-heavy night fires
+                // this ~10-20 times in a few seconds, so the cheaper path
+                // matters.
+                SyncEvent::SleepAudioClipsChanged(payload) => {
+                    let target_id = payload.sleep_record_id;
+                    wasm_bindgen_futures::spawn_local(async move {
+                        if let Ok(events) = list_audio_events_for_record(&target_id).await {
+                            latest_audio_events.set(events);
+                        }
+                    });
+                }
                 _ => {}
             }
         }
