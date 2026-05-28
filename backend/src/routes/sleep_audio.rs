@@ -157,12 +157,18 @@ async fn batch_create(
     // Single multi-row INSERT — one round-trip to RDS regardless of batch
     // size. QueryBuilder is the SQLx-idiomatic way to do this; the per-row
     // alternative would be N+2 round-trips inside an explicit transaction.
+    //
+    // §10.x-fix — Honour client-supplied id so the same UUID identifies the
+    // row on phone, in Room, and in subsequent clip-attach / delete /
+    // playback calls. Falls back to a fresh server UUID when the client
+    // omits it (pre-v2.14.1 callers).
     let mut qb = sqlx::QueryBuilder::<sqlx::Postgres>::new(
         "INSERT INTO sleep_audio_events \
-         (user_id, sleep_record_id, event_type, started_at, ended_at, peak_confidence) ",
+         (id, user_id, sleep_record_id, event_type, started_at, ended_at, peak_confidence) ",
     );
     qb.push_values(input.events.iter(), |mut b, e| {
-        b.push_bind(user_id)
+        b.push_bind(e.id.unwrap_or_else(Uuid::new_v4))
+            .push_bind(user_id)
             .push_bind(input.sleep_record_id)
             .push_bind(&e.event_type)
             .push_bind(e.started_at)

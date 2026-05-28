@@ -36,7 +36,12 @@ const PLAYBACK_TTL_SECS: u64 = 60; // 1 min — refreshed on every play tap.
 /// Allowed content-type for clip uploads. Mirrors the encoder Android uses
 /// (MediaMuxer .m4a / AAC-LC). Locked at presign time so the client can't
 /// PUT arbitrary blobs to its key.
-pub const CLIP_CONTENT_TYPE: &str = "audio/aac";
+/// §10.x-fix — Was `audio/aac` in v2.14.0, which broke web-dashboard
+/// playback: HTML5 `<audio>` treated the file as a raw AAC stream (ADTS),
+/// couldn't find the MP4 container's duration atom, and rendered 00:00 /
+/// failed to play. `audio/mp4` is the correct MIME for AAC-in-MP4 and
+/// every browser auto-detects the inner codec.
+pub const CLIP_CONTENT_TYPE: &str = "audio/mp4";
 
 /// Max acceptable clip size in bytes. ~10 sec of AAC at 64 kbps ≈ 80 KB;
 /// we leave generous headroom for a longer-than-expected event without
@@ -94,6 +99,13 @@ impl SleepAudioClipStore {
     /// web dashboard's audio element. Short TTL because the URL is fetched
     /// fresh on every play tap — caching it would just expand the window
     /// where a leaked URL is replayable.
+    ///
+    /// §10.x-fix — Always overrides the stored Content-Type via the
+    /// response-content-type query param. v2.14.0 uploaded clips with
+    /// `audio/aac` (wrong — the file is AAC-in-MP4); the override forces
+    /// `audio/mp4` on every GET so legacy objects play correctly without a
+    /// re-upload, and new objects (already stored as `audio/mp4`) are
+    /// unaffected.
     pub async fn presign_get(&self, key: &str) -> Result<String, s3::Error> {
         let cfg = PresigningConfig::expires_in(Duration::from_secs(PLAYBACK_TTL_SECS))
             .expect("valid presign duration");
@@ -102,6 +114,7 @@ impl SleepAudioClipStore {
             .get_object()
             .bucket(&self.bucket)
             .key(key)
+            .response_content_type(CLIP_CONTENT_TYPE)
             .presigned(cfg)
             .await?;
         Ok(req.uri().to_string())

@@ -446,6 +446,7 @@ private fun SleepSubTab(
                 AnimatedAppear(delayMillis = 100) {
                     SleepChart(
                         records = uiState.records,
+                        sleepTargetMinutes = uiState.settings?.sleepTargetMinutes,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(200.dp)

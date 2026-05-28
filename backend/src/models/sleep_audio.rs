@@ -60,6 +60,12 @@ impl From<SleepAudioEvent> for SleepAudioEventResponse {
 
 #[derive(Debug, Deserialize)]
 pub struct CreateSleepAudioEvent {
+    /// §10.x-fix — Client-generated UUID. Honoured so the row's id is the
+    /// same on phone and server, which is what makes the clip-upload + the
+    /// per-clip delete + the post-upload UI refresh actually agree on
+    /// which row they're talking about. Optional for back-compat with any
+    /// older client; backend default fires when absent.
+    pub id: Option<Uuid>,
     pub event_type: String,
     pub started_at: DateTime<Utc>,
     pub ended_at: DateTime<Utc>,
