@@ -20,6 +20,12 @@ data class SleepAudioEventDto(
 )
 
 data class CreateSleepAudioEventDto(
+    // §10.x-fix (v2.14.1) — Send the local Room id so the backend honours
+    // it and the resulting row has the same UUID on both sides. Without
+    // this the backend made up its own UUID, so phone↔server could never
+    // line up — the cause of the v2.14.0 duplicate-row / no-▶ / failed-
+    // delete bugs.
+    val id: String,
     val event_type: String,
     val started_at: String,
     val ended_at: String,
@@ -33,6 +39,7 @@ data class BatchCreateSleepAudioEventsDto(
 
 fun SleepAudioEventEntity.toCreateDto(): CreateSleepAudioEventDto {
     return CreateSleepAudioEventDto(
+        id = id,
         event_type = eventType,
         started_at = Instant.ofEpochMilli(startedAt).toString(),
         ended_at = Instant.ofEpochMilli(endedAt).toString(),

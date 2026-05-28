@@ -151,6 +151,10 @@ class SleepRepository(
         }
 
         return try {
+            // §10.x-fix (v2.14.1) — Send local ids so backend honours them.
+            // serverEvents back are now keyed identically to `stamped`, so
+            // there's no pairing problem and no risk of duplicate rows on
+            // the next fetchAudioEventsForRecord pass.
             val serverEvents = apiService.batchCreateSleepAudioEvents(
                 BatchCreateSleepAudioEventsDto(
                     sleep_record_id = sleepRecordId,
@@ -159,16 +163,21 @@ class SleepRepository(
             )
             dao.markSyncedBatch(stamped.map { it.id })
 
-            // §10.x — Upload any clips captured during the session. The
-            // backend returns events in the same order we posted them, so
-            // we pair positionally: stamped[i] (local id, may have a clip
-            // on disk) → serverEvents[i] (server id, target of POST .../clip).
-            // Failures are non-fatal — the event row is already saved; the
-            // clip just doesn't appear in playback. Captured-but-unuploaded
-            // files are cleared by [SleepAudioClipCapture.clearAll] at the
-            // end of this pass so disk doesn't grow unbounded.
+            // §10.x — Upload any clips captured during the session. With
+            // client-supplied ids, stamped[i].id == serverEvents[i].id, so
+            // the clip-attach POST hits the right row + the local Room id
+            // we'll keep matches the row the dashboard / Android UI later
+            // ask for via /clip-url + /clip DELETE. Failures are non-fatal.
             uploadCapturedClips(stamped, serverEvents)
             SleepAudioClipCapture.clearAll()
+
+            // §10.x-fix (v2.14.1) — Pull the canonical post-attach state
+            // back from the server now that uploads are done. This flips
+            // has_clip + clip_duration_ms in local Room so the next record
+            // expansion shows the ▶ icons without requiring an app restart.
+            // No-op if the fetch fails (network blip): UI will catch up on
+            // the next sync pass.
+            runCatching { fetchAudioEventsForRecord(sleepRecordId) }
 
             Result.success(Unit)
         } catch (e: Exception) {
@@ -330,6 +339,14 @@ class SleepRepository(
         val dao = sleepAudioEventDao ?: return emptyList()
         val events = apiService.getSleepAudioEvents(sleepRecordId)
         val entities = events.map { it.toEntity() }
+        // §10.x-fix (v2.14.1) — Replace, not merge. v2.14.0 created local
+        // rows with phone-side UUIDs and server rows with backend-side
+        // UUIDs (different); INSERT-OR-REPLACE by primary key never deduped
+        // them, leaving every event displayed twice. Wiping the per-record
+        // slice before re-inserting makes the server the single source of
+        // truth and clears those ghost duplicates on the first fetch after
+        // upgrading.
+        dao.deleteBySleepRecord(sleepRecordId)
         if (entities.isNotEmpty()) dao.insertAll(entities)
         return entities
     }

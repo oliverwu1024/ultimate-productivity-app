@@ -44,10 +44,23 @@ private data class ChartData(
 fun SleepChart(
     records: List<SleepRecordEntity>,
     modifier: Modifier = Modifier,
+    /**
+     * §chart-target-fix (v2.14.1) — User's explicit nightly sleep target
+     * (`UserSettings.sleepTargetMinutes`), passed in from SleepScreen.
+     * Used to draw the target line. Before this change the chart averaged
+     * the per-record `targetBedtime → targetWakeTime` window, which is the
+     * SCHEDULE not the TARGET — so if you scheduled bedtime 00:00 → 06:00
+     * but set "Optimal nightly sleep" to 8h, the line drew at 6h.
+     * Null preserves the old behaviour so callers that don't pass a target
+     * still render (no crash on first render before settings load).
+     */
+    sleepTargetMinutes: Int? = null,
 ) {
     val modelProducer = remember { CartesianChartModelProducer() }
 
-    val chartData = remember(records) { processRecordsForChart(records) }
+    val chartData = remember(records, sleepTargetMinutes) {
+        processRecordsForChart(records, sleepTargetMinutes)
+    }
 
     LaunchedEffect(chartData) {
         modelProducer.runTransaction {
@@ -125,7 +138,10 @@ private fun classifyByBedtime(epochMs: Long, zone: ZoneId): TimeOfDay {
     }
 }
 
-private fun processRecordsForChart(records: List<SleepRecordEntity>): ChartData {
+private fun processRecordsForChart(
+    records: List<SleepRecordEntity>,
+    sleepTargetMinutes: Int?,
+): ChartData {
     val zone = ZoneId.systemDefault()
     val today = LocalDate.now()
     val days = (6 downTo 0).map { today.minusDays(it.toLong()) }
@@ -141,8 +157,6 @@ private fun processRecordsForChart(records: List<SleepRecordEntity>): ChartData 
     val night = mutableListOf<Number>()
     val morning = mutableListOf<Number>()
     val afternoon = mutableListOf<Number>()
-    var totalTargetHours = 0.0
-    var targetCount = 0
 
     for (day in days) {
         val dayRecords = recordsByDay[day]
@@ -167,19 +181,16 @@ private fun processRecordsForChart(records: List<SleepRecordEntity>): ChartData 
         night.add(nightHrs)
         morning.add(morningHrs)
         afternoon.add(afternoonHrs)
-
-        // Use the first record's target as a representative for this day.
-        val ref = dayRecords.first()
-        val bedParts = ref.targetBedtime.split(":")
-        val bedSecs = bedParts[0].toInt() * 3600 + bedParts[1].toInt() * 60
-        val wakeParts = ref.targetWakeTime.split(":")
-        val wakeSecs = wakeParts[0].toInt() * 3600 + wakeParts[1].toInt() * 60
-        val targetSecs = if (wakeSecs >= bedSecs) wakeSecs - bedSecs else 86400 + wakeSecs - bedSecs
-        totalTargetHours += targetSecs.toDouble() / 3600
-        targetCount++
     }
 
-    val targetHours = if (targetCount > 0) totalTargetHours / targetCount else 8.0
+    // §chart-target-fix (v2.14.1) — Use the user's explicit nightly sleep
+    // target ("Optimal nightly sleep" in Sleep preferences). Falls back to
+    // 8h when settings haven't loaded yet (first render race). The old
+    // averaging-bedtime→wake-window code was always misleading: that pair
+    // is the SCHEDULE for the bedtime reminder, not the SLEEP TARGET, and
+    // they diverged whenever the user set a shorter schedule window than
+    // their sleep goal (e.g. 00:00→06:00 schedule + 8h target → line at 6h).
+    val targetHours = sleepTargetMinutes?.let { it.toDouble() / 60.0 } ?: 8.0
 
     return ChartData(night, morning, afternoon, dayLabels, targetHours)
 }
