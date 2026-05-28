@@ -48,8 +48,21 @@ object SleepAudioClipCapture {
         cacheRoot: File,
     ): File? {
         val outFile = File(clipDir(cacheRoot), "clip-${event.id}.m4a")
-        val encoded = SleepAudioClipEncoder.encode(pcm, outFile) ?: return null
+        val encoded = SleepAudioClipEncoder.encode(pcm, outFile)
+        if (encoded == null) {
+            Log.w(TAG, "Clip encode failed for ${event.eventType} id=${event.id}")
+            return null
+        }
         mutex.withLock { capturedClips[event.id] = encoded }
+        // §10.x-fix (v2.14.4) — Success log so adb logcat shows the full
+        // chain: "Audio event" → "Clip captured" → "Upload start" → "Clip
+        // uploaded". Without it the success path was silent and a sparse
+        // log looked indistinguishable from a broken pipeline.
+        Log.i(
+            TAG,
+            "Clip captured: ${event.eventType} id=${event.id} " +
+                "duration=${pcm.durationMs()}ms file=${encoded.length()}B pending=${capturedClips.size}",
+        )
         return encoded
     }
 

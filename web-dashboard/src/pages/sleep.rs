@@ -295,19 +295,25 @@ fn event_color(event_type: &str) -> &'static str {
     }
 }
 
-/// §10.x-fix (v2.14.3) — Download a clip via fetch + wrap in a Blob +
-/// hand back a `blob:` URL for the audio element. See the long comment
-/// at the call site (in ExpandedPlayer) for why we route around presigned
-/// S3 URLs entirely.
+/// §10.x-fix (v2.14.4) — Fetch clip bytes via the backend proxy (JWT
+/// auth, CORS already wired for app→api) and wrap in a same-origin
+/// `blob:` URL the audio element can play without any cross-origin
+/// gymnastics.
 ///
-/// The blob URL is leaked intentionally — Leptos's `RwSignal<Option<String>>`
-/// drops the URL string when the row collapses, but `URL.revokeObjectURL`
-/// isn't called. With ~80 KB clips and one expansion at a time, the leak
-/// is bounded by single-digit MB per page session, and the URLs are freed
-/// at the next page navigation. A proper revoke pass would need to tie
-/// into the DisposableEffect lifecycle, which Leptos 0.8 makes awkward.
-async fn fetch_clip_as_blob_url(presigned_url: &str) -> Result<String, String> {
-    let resp = gloo_net::http::Request::get(presigned_url)
+/// The blob URL is leaked intentionally — `URL.revokeObjectURL` isn't
+/// called when the row collapses. With ~80 KB clips and one expansion at
+/// a time the leak is bounded by single-digit MB per page session and the
+/// URLs are freed at the next page navigation.
+async fn fetch_clip_bytes_as_blob_url(event_id: &str) -> Result<String, String> {
+    let token = crate::auth::AuthContext::token()
+        .ok_or_else(|| "Not signed in".to_string())?;
+    let url = format!(
+        "{}/sleep-audio-events/{}/clip-bytes",
+        crate::api::client::api_base_url(),
+        event_id,
+    );
+    let resp = gloo_net::http::Request::get(&url)
+        .header("Authorization", &format!("Bearer {}", token))
         .send()
         .await
         .map_err(|e| format!("Couldn't reach clip server: {}", e))?;
@@ -463,31 +469,26 @@ where
     let confirming_delete = RwSignal::new(false);
 
     {
-        // §10.x-fix (v2.14.3) — Fetch the clip as bytes, wrap in a Blob,
-        // expose via createObjectURL. We then set the audio element's src
-        // to the same-origin `blob:` URL.
-        //
-        // The previous approach (audio src = presigned S3 URL) was failing
-        // on Chrome desktop with the player stuck at 0:00 / 0:00 and no
-        // playback even after the bucket got CORS + audio/mp4 MIME. Chrome
-        // treats cross-origin media without `crossorigin=anonymous` as
-        // opaque and silently refuses to expose duration; adding
-        // `crossorigin` forces stricter CORS that fails on Range
-        // preflights with the presigned signing scheme. Blob sidesteps
-        // all of it — the bytes are downloaded once via a normal
-        // CORS-validated fetch, the audio element loads from a same-origin
-        // blob, no Range / preflight in play. Clips are < 100 KB so the
-        // "no streaming" tradeoff is invisible.
+        // §10.x-fix (v2.14.4) — Fetch the clip bytes through the BACKEND
+        // proxy (api.ultiqapp.com/sleep-audio-events/:id/clip-bytes) and
+        // wrap them in a Blob → object URL. The audio element then loads
+        // from a same-origin `blob:` URL. This sidesteps every CORS edge
+        // case that the v2.14.0-v2.14.3 attempts kept hitting:
+        //   - v2.14.0: audio src = presigned S3 URL → stuck at 0:00
+        //   - v2.14.1: + audio/mp4 MIME on the S3 object → still 0:00
+        //   - v2.14.2: + S3 bucket CORS for app.ultiqapp.com → still 0:00
+        //   - v2.14.3: blob URL from direct S3 fetch via gloo-net →
+        //     "TypeError: Failed to fetch" (gloo-net's mode=cors triggered
+        //     a preflight S3 didn't honor for non-OPTIONS-aware origin)
+        // Backend proxy works because the existing API CORS already
+        // allows app.ultiqapp.com → api.ultiqapp.com fully, and S3 is
+        // hit server-side with the ECS task role IAM (no signing /
+        // preflight in the picture at all).
         let event_id = event_id.clone();
         wasm_bindgen_futures::spawn_local(async move {
-            match fetch_clip_playback_url(&event_id).await {
-                Ok(resp) => {
-                    match fetch_clip_as_blob_url(&resp.get_url).await {
-                        Ok(blob_url) => url.set(Some(blob_url)),
-                        Err(msg) => load_error.set(Some(msg)),
-                    }
-                }
-                Err(e) => load_error.set(Some(e.message)),
+            match fetch_clip_bytes_as_blob_url(&event_id).await {
+                Ok(blob_url) => url.set(Some(blob_url)),
+                Err(msg) => load_error.set(Some(msg)),
             }
         });
     }

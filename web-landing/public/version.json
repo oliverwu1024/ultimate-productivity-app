@@ -1,6 +1,6 @@
 {
-  "versionCode": 80,
-  "versionName": "2.14.3",
-  "url": "https://ultiqapp.com/ultiq.2.14.3.apk",
-  "releaseNotes": "Sleep audio fixes: first snore of each session now records (PCM buffer clamps to what's available instead of dropping the clip); web dashboard plays clips reliably via a blob-URL approach that side-steps the cross-origin S3 issues; End Sleep dialog now lists sleep-talk episodes alongside snore + cough."
+  "versionCode": 81,
+  "versionName": "2.14.4",
+  "url": "https://ultiqapp.com/ultiq.2.14.4.apk",
+  "releaseNotes": "Sleep audio fixes: web playback now works via a backend-proxied stream (sidesteps the cross-origin S3 issues that v2.14.1/.2/.3 attempts couldn't fix). Diagnostic logs added on clip capture + upload so adb logcat shows each event's outcome."
 }
