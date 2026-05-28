@@ -1993,6 +1993,7 @@ dependencies = [
  "gloo-net",
  "gloo-storage",
  "gloo-timers",
+ "js-sys",
  "leptos",
  "leptos_meta",
  "leptos_router",

@@ -61,14 +61,26 @@ class PcmRingBuffer(private val maxDurationMs: Long) {
         synchronized(lock) {
             if (chunks.isEmpty()) return null
             val sampleRate = chunks.first().sampleRate
-            // Bail if the requested range starts before what we have, or
-            // ends after what we have — better to skip the clip than
-            // produce one with silence padding the caller didn't ask for.
+            // §10.x-fix (v2.14.3) — Clamp instead of bail. Was: "if request
+            // reaches before what we have, return null", which silently
+            // dropped clips for the FIRST event of every session — at
+            // session start the buffer hasn't accumulated the 2 s pre-pad
+            // yet, so event.startedAt - 2000 reaches before chunks[0]. Now
+            // we just trim the requested window to what's actually
+            // available (we'll get a slightly shorter clip — fine — instead
+            // of no clip at all). The same logic also handles a request
+            // that reaches *past* the end of the buffer (shouldn't happen
+            // in practice but defensive).
             val firstStart = chunks.first().startWallClockMs
             val lastEnd = chunks.last().let {
                 it.startWallClockMs + (it.samples.size.toLong() * 1000L / it.sampleRate.coerceAtLeast(1))
             }
-            if (startMs < firstStart || endMs > lastEnd) return null
+            val effStart = startMs.coerceAtLeast(firstStart)
+            val effEnd = endMs.coerceAtMost(lastEnd)
+            if (effEnd <= effStart) return null
+            // From here on, work with the clamped window.
+            val startMs = effStart
+            val endMs = effEnd
 
             // First pass: figure out the exact sample count to pre-allocate.
             var totalSamples = 0

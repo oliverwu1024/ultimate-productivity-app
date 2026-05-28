@@ -295,6 +295,41 @@ fn event_color(event_type: &str) -> &'static str {
     }
 }
 
+/// §10.x-fix (v2.14.3) — Download a clip via fetch + wrap in a Blob +
+/// hand back a `blob:` URL for the audio element. See the long comment
+/// at the call site (in ExpandedPlayer) for why we route around presigned
+/// S3 URLs entirely.
+///
+/// The blob URL is leaked intentionally — Leptos's `RwSignal<Option<String>>`
+/// drops the URL string when the row collapses, but `URL.revokeObjectURL`
+/// isn't called. With ~80 KB clips and one expansion at a time, the leak
+/// is bounded by single-digit MB per page session, and the URLs are freed
+/// at the next page navigation. A proper revoke pass would need to tie
+/// into the DisposableEffect lifecycle, which Leptos 0.8 makes awkward.
+async fn fetch_clip_as_blob_url(presigned_url: &str) -> Result<String, String> {
+    let resp = gloo_net::http::Request::get(presigned_url)
+        .send()
+        .await
+        .map_err(|e| format!("Couldn't reach clip server: {}", e))?;
+    if !(200..300).contains(&resp.status()) {
+        return Err(format!("Clip server returned {}", resp.status()));
+    }
+    let bytes = resp
+        .binary()
+        .await
+        .map_err(|e| format!("Couldn't read clip body: {}", e))?;
+    let array = js_sys::Uint8Array::new_with_length(bytes.len() as u32);
+    array.copy_from(&bytes);
+    let parts = js_sys::Array::new();
+    parts.push(&array.buffer());
+    let opts = web_sys::BlobPropertyBag::new();
+    opts.set_type("audio/mp4");
+    let blob = web_sys::Blob::new_with_buffer_source_sequence_and_options(&parts, &opts)
+        .map_err(|_| "Couldn't wrap clip in a Blob".to_string())?;
+    web_sys::Url::create_object_url_with_blob(&blob)
+        .map_err(|_| "Couldn't create blob URL".to_string())
+}
+
 fn format_clip_duration(ms: Option<i32>) -> String {
     let ms = ms.unwrap_or(0);
     if ms <= 0 {
@@ -428,10 +463,30 @@ where
     let confirming_delete = RwSignal::new(false);
 
     {
+        // §10.x-fix (v2.14.3) — Fetch the clip as bytes, wrap in a Blob,
+        // expose via createObjectURL. We then set the audio element's src
+        // to the same-origin `blob:` URL.
+        //
+        // The previous approach (audio src = presigned S3 URL) was failing
+        // on Chrome desktop with the player stuck at 0:00 / 0:00 and no
+        // playback even after the bucket got CORS + audio/mp4 MIME. Chrome
+        // treats cross-origin media without `crossorigin=anonymous` as
+        // opaque and silently refuses to expose duration; adding
+        // `crossorigin` forces stricter CORS that fails on Range
+        // preflights with the presigned signing scheme. Blob sidesteps
+        // all of it — the bytes are downloaded once via a normal
+        // CORS-validated fetch, the audio element loads from a same-origin
+        // blob, no Range / preflight in play. Clips are < 100 KB so the
+        // "no streaming" tradeoff is invisible.
         let event_id = event_id.clone();
         wasm_bindgen_futures::spawn_local(async move {
             match fetch_clip_playback_url(&event_id).await {
-                Ok(resp) => url.set(Some(resp.get_url)),
+                Ok(resp) => {
+                    match fetch_clip_as_blob_url(&resp.get_url).await {
+                        Ok(blob_url) => url.set(Some(blob_url)),
+                        Err(msg) => load_error.set(Some(msg)),
+                    }
+                }
                 Err(e) => load_error.set(Some(e.message)),
             }
         });
