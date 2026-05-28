@@ -473,10 +473,19 @@ where
         <div class="px-2 pt-2 pb-3 bg-ultiq-indigo/5 rounded-lg mx-2 mt-1">
             {move || match (url.get(), load_error.get()) {
                 (Some(u), _) => Either::Left(view! {
+                    // §10.x-fix (v2.14.3) — preload="metadata" forces the
+                    // browser to fetch enough of the MP4 to read mvhd +
+                    // mdhd up-front, so the duration shows immediately
+                    // instead of "0:00 / 0:00". Without it Chrome on
+                    // desktop sometimes defers metadata loading until the
+                    // user presses play — and if a CORS preflight fails
+                    // mid-Range-request, the user just sees a stuck 0:00
+                    // control with no obvious error.
                     <audio
                         src=u
                         controls=true
                         autoplay=true
+                        preload="metadata"
                         class="w-full"
                         on:ended=on_ended.clone()
                     />
