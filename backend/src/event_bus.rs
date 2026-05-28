@@ -34,6 +34,11 @@ pub enum SyncEvent {
     AlarmUpdated(Alarm),
     AlarmDeleted { id: Uuid },
     AlarmEventLogged(AlarmEvent),
+    /// §10.x-fix (v2.14.2) — Emitted whenever a Pro-tier audio clip is
+    /// attached to or deleted from an event. The web dashboard listens for
+    /// this on the Sleep page to refetch the per-event list so newly-
+    /// uploaded clips show ▶ without requiring a page reload.
+    SleepAudioClipsChanged { sleep_record_id: Uuid },
 }
 
 #[derive(Clone, Default)]

@@ -1,6 +1,6 @@
 {
-  "versionCode": 78,
-  "versionName": "2.14.1",
-  "url": "https://ultiqapp.com/ultiq.2.14.1.apk",
-  "releaseNotes": "Sleep audio v2 bug fixes: clip ▶ now shows up immediately after a session ends (no more swipe-close + reopen), per-event delete actually deletes, no more duplicate event rows, web-dashboard playback works. Plus: the Sleep chart's target line now uses your Optimal nightly sleep setting (not the bedtime → wake-time schedule window)."
+  "versionCode": 79,
+  "versionName": "2.14.2",
+  "url": "https://ultiqapp.com/ultiq.2.14.2.apk",
+  "releaseNotes": "Sleep audio v2 follow-ups: web dashboard now plays clips (added S3 CORS + live SSE refresh so ▶ appears as clips upload — no manual refresh). Android per-clip Delete collapses the row instantly instead of showing 'couldn't load'."
 }

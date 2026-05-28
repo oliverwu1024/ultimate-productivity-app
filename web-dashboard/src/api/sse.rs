@@ -31,6 +31,16 @@ pub enum SyncEvent {
     SessionUpdated(ProductivitySession),
     #[serde(rename = "SessionDeleted")]
     SessionDeleted(IdPayload),
+    /// §10.x-fix (v2.14.2) — Emitted by the backend whenever a Pro-tier
+    /// audio clip is attached or deleted. Sleep page listens to refetch
+    /// the per-event list so ▶ appears (or disappears) without manual
+    /// refresh.
+    SleepAudioClipsChanged(SleepRecordPayload),
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct SleepRecordPayload {
+    pub sleep_record_id: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]

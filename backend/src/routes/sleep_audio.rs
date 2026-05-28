@@ -302,6 +302,18 @@ async fn attach_clip(
     .fetch_one(&state.pool)
     .await?;
 
+    // §10.x-fix (v2.14.2) — Notify any connected web-dashboard client so
+    // the Sleep page's "Sleep sounds — Last night" card refetches and the
+    // ▶ icons appear without requiring a manual page refresh. Per-clip
+    // emit is fine: the refetch is a single cheap GET, and a snore-heavy
+    // night usually has < 20 attach calls spread over a few seconds.
+    state.events.publish(
+        user_id,
+        crate::event_bus::SyncEvent::SleepAudioClipsChanged {
+            sleep_record_id: updated.sleep_record_id,
+        },
+    );
+
     Ok(Json(updated.into()))
 }
 
@@ -375,6 +387,15 @@ async fn delete_clip(
     .bind(user_id)
     .execute(&state.pool)
     .await?;
+
+    // §10.x-fix (v2.14.2) — Same broadcast as attach. The Sleep page
+    // refetches and the row drops its ▶ in any other open browser tab.
+    state.events.publish(
+        user_id,
+        crate::event_bus::SyncEvent::SleepAudioClipsChanged {
+            sleep_record_id: event.sleep_record_id,
+        },
+    );
 
     Ok(StatusCode::NO_CONTENT)
 }
