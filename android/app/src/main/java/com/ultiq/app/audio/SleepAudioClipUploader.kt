@@ -41,6 +41,7 @@ class SleepAudioClipUploader(
 
     /** Returns true on the full happy path (presign + PUT + attach all OK). */
     suspend fun upload(serverEventId: String, clipFile: File): Boolean = withContext(Dispatchers.IO) {
+        Log.i(TAG, "Upload start: serverId=$serverEventId file=${clipFile.name}")
         if (!clipFile.exists()) {
             Log.w(TAG, "Clip file gone before upload: ${clipFile.absolutePath}")
             return@withContext false

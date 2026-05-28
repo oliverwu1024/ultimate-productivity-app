@@ -46,6 +46,7 @@ pub fn router() -> Router<AppState> {
         .route("/sleep-audio-events/:id/clip", post(attach_clip))
         .route("/sleep-audio-events/:id/clip", delete(delete_clip))
         .route("/sleep-audio-events/:id/clip-url", get(clip_playback_url))
+        .route("/sleep-audio-events/:id/clip-bytes", get(clip_bytes))
 }
 
 #[derive(serde::Deserialize)]
@@ -349,6 +350,55 @@ async fn clip_playback_url(
         get_url,
         expires_in_secs: 60,
     }))
+}
+
+/// §10.x-fix (v2.14.4) — Same-origin (well, same-API-origin) audio bytes
+/// for the web dashboard. The presigned-S3 + audio-element path had three
+/// failed attempts at fixing cross-origin issues (MIME, bucket CORS,
+/// blob URL via direct S3 fetch). All hit some variant of CORS preflight
+/// or gloo-net "Failed to fetch". This endpoint side-steps it entirely:
+/// browser → api.ultiqapp.com (already CORS-allowed for app.ultiqapp.com),
+/// backend → S3 via ECS task role IAM, then stream the bytes back. Audio
+/// element wraps the response in a Blob and plays.
+///
+/// Android keeps using `clip-url` (presigned) because MediaPlayer handles
+/// the cross-origin URL fine and we don't want to double the bandwidth
+/// through the backend for mobile.
+async fn clip_bytes(
+    State(state): State<AppState>,
+    claims: Claims,
+    Path(event_id): Path<Uuid>,
+) -> Result<axum::response::Response, AppError> {
+    let user_id = parse_user_id(&claims)?;
+    require_pro_tier(&state.pool, user_id).await?;
+
+    let store = state
+        .sleep_audio_clips
+        .as_ref()
+        .ok_or_else(|| AppError::new(StatusCode::SERVICE_UNAVAILABLE, "Clip storage not configured"))?;
+
+    let event = fetch_owned_event(&state.pool, user_id, event_id).await?;
+    let key = event
+        .clip_s3_key
+        .as_ref()
+        .ok_or_else(|| AppError::new(StatusCode::NOT_FOUND, "Event has no clip"))?;
+
+    let bytes = store
+        .get_bytes(key)
+        .await
+        .map_err(|e| {
+            tracing::warn!(target: "sleep-audio", "clip-bytes fetch failed for {key}: {e}");
+            AppError::new(StatusCode::BAD_GATEWAY, "Couldn't fetch clip")
+        })?;
+
+    use axum::http::header;
+    use axum::response::IntoResponse;
+    let mut resp = bytes.into_response();
+    resp.headers_mut().insert(
+        header::CONTENT_TYPE,
+        axum::http::HeaderValue::from_static("audio/mp4"),
+    );
+    Ok(resp)
 }
 
 /// Delete a single clip (keeps the detection event row). S3 deletion is

@@ -134,4 +134,33 @@ impl SleepAudioClipStore {
             .map(|_| ())
             .map_err(Into::into)
     }
+
+    /// §10.x-fix (v2.14.4) — Server-side fetch of clip bytes. Used by the
+    /// web playback proxy endpoint: the browser <audio> element ended up
+    /// fighting cross-origin CORS + Range preflight + presigned-URL signing
+    /// in v2.14.0-v2.14.3. Routing playback through the backend (which uses
+    /// the ECS task role's IAM directly, no presigning) and serving the
+    /// bytes as a normal API response sidesteps all of it — the existing
+    /// API CORS already allows app.ultiqapp.com, and the audio element
+    /// just sees a same-domain-API URL.
+    ///
+    /// Clips are < 100 KB so reading the whole body into memory is fine.
+    /// Range support would let us stream, but a 100 KB blob arrives in
+    /// one TCP roundtrip on any real connection — not worth the code.
+    pub async fn get_bytes(&self, key: &str) -> Result<Vec<u8>, String> {
+        let resp = self
+            .s3
+            .get_object()
+            .bucket(&self.bucket)
+            .key(key)
+            .send()
+            .await
+            .map_err(|e| format!("S3 GetObject failed: {:?}", e))?;
+        let aggregated = resp
+            .body
+            .collect()
+            .await
+            .map_err(|e| format!("S3 body read failed: {:?}", e))?;
+        Ok(aggregated.into_bytes().to_vec())
+    }
 }
