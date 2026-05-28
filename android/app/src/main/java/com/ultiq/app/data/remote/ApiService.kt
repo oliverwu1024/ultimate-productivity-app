@@ -25,8 +25,12 @@ import com.ultiq.app.data.remote.dto.RegisterDeviceTokenRequest
 import com.ultiq.app.data.remote.dto.RegisterRequest
 import com.ultiq.app.data.remote.dto.SessionDto
 import com.ultiq.app.data.remote.dto.SessionStatsDto
+import com.ultiq.app.data.remote.dto.AttachClipRequestDto
 import com.ultiq.app.data.remote.dto.BatchCreatePhonePickupsDto
 import com.ultiq.app.data.remote.dto.BatchCreateSleepAudioEventsDto
+import com.ultiq.app.data.remote.dto.ClipPlaybackUrlResponseDto
+import com.ultiq.app.data.remote.dto.ClipUploadUrlRequestDto
+import com.ultiq.app.data.remote.dto.ClipUploadUrlResponseDto
 import com.ultiq.app.data.remote.dto.PhonePickupDto
 import com.ultiq.app.data.remote.dto.SleepAudioEventDto
 import com.ultiq.app.data.remote.dto.SleepRecordDto
@@ -120,6 +124,29 @@ interface ApiService {
     suspend fun getSleepAudioEvents(
         @Query("sleep_record_id") sleepRecordId: String
     ): List<SleepAudioEventDto>
+
+    // §10.x — Pro-tier audio clip flow. Backend issues short-lived presigned
+    // URLs so the phone uploads AAC bytes directly to S3 (the API server
+    // never sees the audio); the attach call then binds the s3_key to the
+    // event row + records the duration for the playback UI.
+    @POST("sleep-audio-events/clip-upload-url")
+    suspend fun requestSleepAudioClipUploadUrl(
+        @Body body: ClipUploadUrlRequestDto
+    ): ClipUploadUrlResponseDto
+
+    @POST("sleep-audio-events/{id}/clip")
+    suspend fun attachSleepAudioClip(
+        @Path("id") eventId: String,
+        @Body body: AttachClipRequestDto
+    ): SleepAudioEventDto
+
+    @GET("sleep-audio-events/{id}/clip-url")
+    suspend fun getSleepAudioClipPlaybackUrl(
+        @Path("id") eventId: String
+    ): ClipPlaybackUrlResponseDto
+
+    @DELETE("sleep-audio-events/{id}/clip")
+    suspend fun deleteSleepAudioClip(@Path("id") eventId: String)
 
     // §10 — Phone-pickup batch upload + lookup. Same pattern as sleep audio
     // events: client buffers individual events during the session, uploads

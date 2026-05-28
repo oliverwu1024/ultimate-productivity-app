@@ -46,3 +46,6 @@ aws-sdk-bedrockruntime = { version = "1", default-features = false, features = [
 # can reach the `Document` / `Number` types used to construct tool input
 # schemas and to decode tool_use blocks in §9.5 NL parse.
 aws-smithy-types = "1"
+# §10.x — S3 client for sleep-audio Pro-tier clips. Same secure feature set
+# as the Bedrock SDK above (no legacy rustls-webpki 0.101 chain).
+aws-sdk-s3 = { version = "1", default-features = false, features = ["rt-tokio", "default-https-client"] }

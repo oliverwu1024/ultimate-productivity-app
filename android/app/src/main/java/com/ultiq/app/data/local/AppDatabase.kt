@@ -37,7 +37,7 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
         AlarmTombstoneEntity::class,
         SleepAudioEventEntity::class,
     ],
-    version = 12,
+    version = 13,
     exportSchema = false
 )
 @androidx.room.TypeConverters(com.ultiq.app.data.local.converters.IntListConverter::class)
@@ -269,6 +269,23 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        // §10.x — Pro-tier clip metadata on sleep_audio_events. hasClip is
+        // server-truth: a row only flips true after the backend confirms the
+        // S3 attach. clipDurationMs is the encoded clip length so the playback
+        // UI can render duration without round-tripping to S3.
+        private val MIGRATION_12_13 = object : Migration(12, 13) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE `sleep_audio_events` " +
+                        "ADD COLUMN `hasClip` INTEGER NOT NULL DEFAULT 0"
+                )
+                db.execSQL(
+                    "ALTER TABLE `sleep_audio_events` " +
+                        "ADD COLUMN `clipDurationMs` INTEGER"
+                )
+            }
+        }
+
         private val MIGRATION_6_7 = object : Migration(6, 7) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(
@@ -360,6 +377,7 @@ abstract class AppDatabase : RoomDatabase() {
                     MIGRATION_9_10,
                     MIGRATION_10_11,
                     MIGRATION_11_12,
+                    MIGRATION_12_13,
                 )
                 // Legacy DB has been dropped if it existed; if Room can't
                 // open the file (corrupt / version mismatch from a prior

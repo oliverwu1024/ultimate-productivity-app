@@ -20,4 +20,10 @@ data class SleepAudioEventEntity(
     val peakConfidence: Float,
     val createdAt: Long,
     val isSynced: Boolean = false,
+    // §10.x — Pro-tier audio clip metadata, mirrored from the server.
+    // Null/false on every row created locally before upload; the server
+    // response after attachClip is the source of truth and overwrites
+    // the local cache via toEntity().
+    val hasClip: Boolean = false,
+    val clipDurationMs: Int? = null,
 )

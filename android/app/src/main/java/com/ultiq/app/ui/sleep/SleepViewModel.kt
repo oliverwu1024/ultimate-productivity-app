@@ -84,6 +84,7 @@ data class SleepUiState(
     // one event was captured.
     val tonightSnoreCount: Int = 0,
     val tonightCoughCount: Int = 0,
+    val tonightSleepTalkCount: Int = 0,
     val tonightSleepRecordId: String? = null,
     val tonightSleepBedtimeMs: Long = 0L,
     // §10 — Audio events snapshotted at session end for the End Sleep dialog
@@ -222,6 +223,73 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
     fun setAudioTrackingEnabled(enabled: Boolean) = viewModelScope.launch {
         userPreferences.setAudioTrackingEnabled(enabled)
         pushPrefs { addProperty("audio_tracking_enabled", enabled) }
+    }
+
+    // §10.x — Sleep-talk is an independent on/off that adds YAMNet's
+    // `Speech` class to the detector. The classifier only extracts the
+    // Speech score when this is true, so detection-wise it's "free" until
+    // the user explicitly opts in.
+    fun setSleepTalkDetectionEnabled(enabled: Boolean) = viewModelScope.launch {
+        userPreferences.setSleepTalkDetectionEnabled(enabled)
+        pushPrefs { addProperty("sleep_talk_detection_enabled", enabled) }
+    }
+
+    // §10.x — Pro-tier master toggle for storing audio clips of detected
+    // events. Per-type sub-toggles below are AND-gated with this; turning
+    // the master off effectively disables all three per-type flags.
+    fun setSleepAudioRecordingEnabled(enabled: Boolean) = viewModelScope.launch {
+        userPreferences.setSleepAudioRecordingEnabled(enabled)
+        pushPrefs { addProperty("sleep_audio_recording_enabled", enabled) }
+    }
+
+    fun setSleepAudioRecordSnore(enabled: Boolean) = viewModelScope.launch {
+        userPreferences.setSleepAudioRecordSnore(enabled)
+        pushPrefs { addProperty("sleep_audio_record_snore", enabled) }
+    }
+
+    fun setSleepAudioRecordCough(enabled: Boolean) = viewModelScope.launch {
+        userPreferences.setSleepAudioRecordCough(enabled)
+        pushPrefs { addProperty("sleep_audio_record_cough", enabled) }
+    }
+
+    fun setSleepAudioRecordSleepTalk(enabled: Boolean) = viewModelScope.launch {
+        userPreferences.setSleepAudioRecordSleepTalk(enabled)
+        pushPrefs { addProperty("sleep_audio_record_sleep_talk", enabled) }
+    }
+
+    fun markSleepAudioRecordingConsentSeen() = viewModelScope.launch {
+        userPreferences.setSleepAudioRecordingConsentSeen(true)
+    }
+
+    /**
+     * §10.x — Fetch a short-lived presigned GET URL for a clip's playback.
+     * Returns null on any error (auth, network, 404 because the clip
+     * expired, 402 because the user is no longer Pro). The caller should
+     * surface a short toast or skip silently rather than crashing — clips
+     * are best-effort by design.
+     */
+    suspend fun fetchClipPlaybackUrl(eventId: String): String? {
+        return runCatching {
+            api.getSleepAudioClipPlaybackUrl(eventId).get_url
+        }.getOrNull()
+    }
+
+    /**
+     * §10.x — Delete a single clip from the backend (S3 + DB column).
+     * The detection event row stays — stats are still accurate.
+     * The local Room cache is refreshed by reloading the record details
+     * after a successful delete so the UI flips out of the play state.
+     */
+    fun deleteClip(eventId: String, sleepRecordId: String, onDone: () -> Unit = {}) {
+        viewModelScope.launch {
+            runCatching { api.deleteSleepAudioClip(eventId) }
+            // Reload to surface the updated has_clip=false state. The list
+            // refresh path is via SleepRepository.fetchAudioEventsForRecord,
+            // which writes through to Room and re-emits via the existing
+            // observers.
+            runCatching { repository.fetchAudioEventsForRecord(sleepRecordId) }
+            onDone()
+        }
     }
 
     /**
@@ -628,6 +696,7 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
             _uiState.value = _uiState.value.copy(
                 tonightSnoreCount = 0,
                 tonightCoughCount = 0,
+                tonightSleepTalkCount = 0,
                 tonightSleepRecordId = null,
                 tonightSleepBedtimeMs = 0L,
             )
@@ -636,9 +705,11 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
         val dao = db.sleepAudioEventDao()
         val snore = runCatching { dao.countByType(latest.id, "snore") }.getOrDefault(0)
         val cough = runCatching { dao.countByType(latest.id, "cough") }.getOrDefault(0)
+        val talk = runCatching { dao.countByType(latest.id, "sleep_talk") }.getOrDefault(0)
         _uiState.value = _uiState.value.copy(
             tonightSnoreCount = snore,
             tonightCoughCount = cough,
+            tonightSleepTalkCount = talk,
             tonightSleepRecordId = latest.id,
             tonightSleepBedtimeMs = latest.actualBedtime,
         )

@@ -1,5 +1,7 @@
 package com.ultiq.app.data.repository
 
+import com.ultiq.app.audio.SleepAudioClipCapture
+import com.ultiq.app.audio.SleepAudioClipUploader
 import com.ultiq.app.data.achievements.AchievementChecker
 import com.ultiq.app.data.local.dao.SleepAudioEventDao
 import com.ultiq.app.data.local.dao.SleepDao
@@ -24,6 +26,14 @@ class SleepRepository(
     private val achievementChecker: AchievementChecker? = null,
     private val sleepAudioEventDao: SleepAudioEventDao? = null,
 ) {
+    // §10.x — Lazy uploader so existing call sites that construct
+    // SleepRepository without an explicit uploader still work (sync worker
+    // doesn't need it; only saveAudioEvents does). The uploader is a thin
+    // facade over ApiService + OkHttp, so creating it on first use is cheap.
+    private val clipUploader: SleepAudioClipUploader by lazy {
+        SleepAudioClipUploader(apiService)
+    }
+
     fun getSleepRecords(): Flow<List<SleepRecordEntity>> = sleepDao.getAllRecords()
 
     fun getSleepRecordsBetween(start: Long, end: Long): Flow<List<SleepRecordEntity>> =
@@ -141,16 +151,45 @@ class SleepRepository(
         }
 
         return try {
-            apiService.batchCreateSleepAudioEvents(
+            val serverEvents = apiService.batchCreateSleepAudioEvents(
                 BatchCreateSleepAudioEventsDto(
                     sleep_record_id = sleepRecordId,
                     events = stamped.map { it.toCreateDto() },
                 ),
             )
             dao.markSyncedBatch(stamped.map { it.id })
+
+            // §10.x — Upload any clips captured during the session. The
+            // backend returns events in the same order we posted them, so
+            // we pair positionally: stamped[i] (local id, may have a clip
+            // on disk) → serverEvents[i] (server id, target of POST .../clip).
+            // Failures are non-fatal — the event row is already saved; the
+            // clip just doesn't appear in playback. Captured-but-unuploaded
+            // files are cleared by [SleepAudioClipCapture.clearAll] at the
+            // end of this pass so disk doesn't grow unbounded.
+            uploadCapturedClips(stamped, serverEvents)
+            SleepAudioClipCapture.clearAll()
+
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
+        }
+    }
+
+    private suspend fun uploadCapturedClips(
+        local: List<SleepAudioEventEntity>,
+        server: List<com.ultiq.app.data.remote.dto.SleepAudioEventDto>,
+    ) {
+        if (SleepAudioClipCapture.pendingCount() == 0) return
+        val n = minOf(local.size, server.size)
+        for (i in 0 until n) {
+            val clipFile = SleepAudioClipCapture.takeClipFor(local[i].id) ?: continue
+            try {
+                clipUploader.upload(server[i].id, clipFile)
+            } catch (_: Throwable) {
+                // Logged inside uploader; swallow here so one failed clip
+                // doesn't abort the rest of the upload pass.
+            }
         }
     }
 

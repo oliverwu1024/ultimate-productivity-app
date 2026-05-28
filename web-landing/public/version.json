@@ -1,6 +1,6 @@
 {
-  "versionCode": 76,
-  "versionName": "2.13.22",
-  "url": "https://ultiqapp.com/ultiq.2.13.22.apk",
-  "releaseNotes": "Dashboard \"This week\" layout fix — \"Marked done · N\" now sits in the same row as the \"Last week\" comparison values, in the Calendar events column. The Calendar events tile is back to the same height as its siblings."
+  "versionCode": 77,
+  "versionName": "2.14.0",
+  "url": "https://ultiqapp.com/ultiq.2.14.0.apk",
+  "releaseNotes": "Sleep audio v2: independent sleep-talk detection toggle (off by default), plus Pro-tier audio recordings — store a ~10 s clip per detected snore/cough/sleep-talk, play it back from the past-night view, auto-deletes after 7 days."
 }

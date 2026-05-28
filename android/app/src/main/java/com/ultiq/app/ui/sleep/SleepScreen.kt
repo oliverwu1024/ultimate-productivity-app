@@ -30,6 +30,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.MicOff
 import androidx.compose.material.icons.filled.PhoneAndroid
@@ -78,6 +80,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -99,6 +102,7 @@ import com.ultiq.app.ui.copy.WarmCopy
 import com.ultiq.app.ui.theme.AnimatedAppear
 import com.ultiq.app.ui.theme.QualityStar
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalTime
 import java.time.ZoneId
@@ -421,12 +425,13 @@ private fun SleepSubTab(
         // §10 — Show the on-device snore + cough counts for the latest sleep
         // session. Card hides when neither type fired during the night, so
         // users who don't snore / never enable the toggle never see it.
-        if (uiState.tonightSnoreCount > 0 || uiState.tonightCoughCount > 0) {
+        if (uiState.tonightSnoreCount > 0 || uiState.tonightCoughCount > 0 || uiState.tonightSleepTalkCount > 0) {
             item(key = "tonight-sounds") {
                 AnimatedAppear {
                     TonightSoundsCard(
                         snoreCount = uiState.tonightSnoreCount,
                         coughCount = uiState.tonightCoughCount,
+                        sleepTalkCount = uiState.tonightSleepTalkCount,
                         bedtimeMs = uiState.tonightSleepBedtimeMs,
                     )
                 }
@@ -495,6 +500,10 @@ private fun SleepSubTab(
                         details = uiState.recordDetails[record.id],
                         onExpand = { viewModel.fetchRecordDetails(record.id) },
                         onDelete = { viewModel.deleteRecord(record.id) },
+                        onFetchClipUrl = { eventId -> viewModel.fetchClipPlaybackUrl(eventId) },
+                        onDeleteClip = { eventId, sleepRecId, onDone ->
+                            viewModel.deleteClip(eventId, sleepRecId, onDone)
+                        },
                         modifier = Modifier
                             .padding(horizontal = 16.dp)
                             .animateItem(),
@@ -832,6 +841,8 @@ private fun SleepRecordItem(
     details: SleepRecordDetails?,
     onExpand: () -> Unit,
     onDelete: () -> Unit,
+    onFetchClipUrl: suspend (eventId: String) -> String?,
+    onDeleteClip: (eventId: String, sleepRecordId: String, onDone: () -> Unit) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -918,7 +929,14 @@ private fun SleepRecordItem(
                         // cough event list. The ViewModel fetches pickups from
                         // backend and audio events from Room when the user
                         // first expands the card.
-                        RecordDetailSection(details = details, zone = zone, timeFormat = timeFormat)
+                        RecordDetailSection(
+                            details = details,
+                            sleepRecordId = record.id,
+                            onFetchClipUrl = onFetchClipUrl,
+                            onDeleteClip = onDeleteClip,
+                            zone = zone,
+                            timeFormat = timeFormat,
+                        )
                     }
                 }
             }
@@ -935,12 +953,15 @@ private fun DetailRow(label: String, value: String) {
 }
 
 /// §10 — Lazy-loaded detail section beneath the existing target/actual rows.
-/// Renders pickup timeline + snore + cough event lists for the record. Hidden
-/// before [details] is loaded; "Loading…" placeholder while in flight; quiet
-/// if loaded but empty (record had no pickups or sounds).
+/// Renders pickup timeline + snore + cough + sleep_talk event lists for the
+/// record. Hidden before [details] is loaded; "Loading…" placeholder while
+/// in flight; quiet if loaded but empty.
 @Composable
 private fun RecordDetailSection(
     details: SleepRecordDetails?,
+    sleepRecordId: String,
+    onFetchClipUrl: suspend (eventId: String) -> String?,
+    onDeleteClip: (eventId: String, sleepRecordId: String, onDone: () -> Unit) -> Unit,
     zone: ZoneId,
     timeFormat: DateTimeFormatter,
 ) {
@@ -959,7 +980,8 @@ private fun RecordDetailSection(
     val pickups = details.pickups
     val snores = details.audioEvents.filter { it.eventType == "snore" }
     val coughs = details.audioEvents.filter { it.eventType == "cough" }
-    if (pickups.isEmpty() && snores.isEmpty() && coughs.isEmpty()) return
+    val sleepTalks = details.audioEvents.filter { it.eventType == "sleep_talk" }
+    if (pickups.isEmpty() && snores.isEmpty() && coughs.isEmpty() && sleepTalks.isEmpty()) return
 
     HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp))
 
@@ -983,18 +1005,107 @@ private fun RecordDetailSection(
         }
     }
 
+    // §10.x — One AudioEventGroup per type. Each owns its own playback
+    // state so playing a snore doesn't kick off a cough; auto-advance
+    // within the group works like the web dashboard.
     if (snores.isNotEmpty()) {
         if (pickups.isNotEmpty()) Spacer(Modifier.height(8.dp))
-        val totalSnoreSecs = snores.sumOf { (it.endedAt - it.startedAt) / 1000L }
-        Text(
-            "Snoring · ${snores.size} episode${if (snores.size != 1) "s" else ""} (${totalSnoreSecs}s)",
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        SleepAudioEventGroup(
+            title = "Snoring",
+            events = snores,
+            sleepRecordId = sleepRecordId,
+            onFetchClipUrl = onFetchClipUrl,
+            onDeleteClip = onDeleteClip,
+            zone = zone,
+            timeFormat = timeFormat,
         )
-        snores.forEachIndexed { index, e ->
-            val time = Instant.ofEpochMilli(e.startedAt).atZone(zone).format(timeFormat)
-            val durSec = ((e.endedAt - e.startedAt) / 1000L).coerceAtLeast(1L)
+    }
+
+    if (coughs.isNotEmpty()) {
+        if (snores.isNotEmpty() || pickups.isNotEmpty()) Spacer(Modifier.height(8.dp))
+        SleepAudioEventGroup(
+            title = "Coughing",
+            events = coughs,
+            sleepRecordId = sleepRecordId,
+            onFetchClipUrl = onFetchClipUrl,
+            onDeleteClip = onDeleteClip,
+            zone = zone,
+            timeFormat = timeFormat,
+        )
+    }
+
+    if (sleepTalks.isNotEmpty()) {
+        if (snores.isNotEmpty() || coughs.isNotEmpty() || pickups.isNotEmpty()) {
+            Spacer(Modifier.height(8.dp))
+        }
+        SleepAudioEventGroup(
+            title = "Sleep-talk",
+            events = sleepTalks,
+            sleepRecordId = sleepRecordId,
+            onFetchClipUrl = onFetchClipUrl,
+            onDeleteClip = onDeleteClip,
+            zone = zone,
+            timeFormat = timeFormat,
+        )
+    }
+}
+
+/**
+ * §10.x — Renders one event-type's full list with inline playback for
+ * rows that have a clip. Owns:
+ *   - `playingId`: which event is currently expanded with a player
+ *   - `mediaPlayer`: single MediaPlayer instance reused across rows
+ *
+ * Auto-advance: when the active clip's MediaPlayer fires onCompletion, we
+ * walk to the next event in the list with `hasClip = true` and switch.
+ */
+@Composable
+private fun SleepAudioEventGroup(
+    title: String,
+    events: List<com.ultiq.app.data.local.entity.SleepAudioEventEntity>,
+    sleepRecordId: String,
+    onFetchClipUrl: suspend (eventId: String) -> String?,
+    onDeleteClip: (eventId: String, sleepRecordId: String, onDone: () -> Unit) -> Unit,
+    zone: ZoneId,
+    timeFormat: DateTimeFormatter,
+) {
+    val totalSecs = events.sumOf { (it.endedAt - it.startedAt) / 1000L }
+    val anyClips = events.any { it.hasClip }
+
+    Text(
+        "$title · ${events.size} episode${if (events.size != 1) "s" else ""} (${totalSecs}s)" +
+            if (anyClips) " · tap ▶ to play" else "",
+        style = MaterialTheme.typography.labelMedium,
+        fontWeight = FontWeight.SemiBold,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+
+    var playingId by remember { mutableStateOf<String?>(null) }
+
+    events.forEachIndexed { index, e ->
+        val time = Instant.ofEpochMilli(e.startedAt).atZone(zone).format(timeFormat)
+        val durSec = ((e.endedAt - e.startedAt) / 1000L).coerceAtLeast(1L)
+        if (e.hasClip) {
+            EventPlaybackRow(
+                event = e,
+                index = index,
+                label = "#${index + 1} at $time",
+                durationText = "${durSec}s",
+                isExpanded = playingId == e.id,
+                onToggle = { playingId = if (playingId == e.id) null else e.id },
+                onCompleted = {
+                    // Walk to the next event with a clip (or stop).
+                    val next = events.drop(index + 1).firstOrNull { it.hasClip }
+                    playingId = next?.id
+                },
+                onFetchUrl = { onFetchClipUrl(e.id) },
+                onConfirmDelete = {
+                    onDeleteClip(e.id, sleepRecordId) {
+                        if (playingId == e.id) playingId = null
+                    }
+                },
+            )
+        } else {
             DetailEventRow(
                 icon = Icons.Default.GraphicEq,
                 label = "#${index + 1} at $time",
@@ -1002,25 +1113,169 @@ private fun RecordDetailSection(
             )
         }
     }
+}
 
-    if (coughs.isNotEmpty()) {
-        if (snores.isNotEmpty() || pickups.isNotEmpty()) Spacer(Modifier.height(8.dp))
-        val totalCoughSecs = coughs.sumOf { (it.endedAt - it.startedAt) / 1000L }
-        Text(
-            "Coughing · ${coughs.size} episode${if (coughs.size != 1) "s" else ""} (${totalCoughSecs}s)",
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        coughs.forEachIndexed { index, e ->
-            val time = Instant.ofEpochMilli(e.startedAt).atZone(zone).format(timeFormat)
-            val durSec = ((e.endedAt - e.startedAt) / 1000L).coerceAtLeast(1L)
-            DetailEventRow(
-                icon = Icons.Default.GraphicEq,
-                label = "#${index + 1} at $time",
-                trailing = "${durSec}s",
+/**
+ * §10.x — Compact row that expands inline to a MediaPlayer-backed audio
+ * player on tap. State machine:
+ *   collapsed   → tap row → fetch presigned URL → play
+ *   playing     → tap row again → stop + collapse
+ *   playing end → auto-advance via [onCompleted]
+ *
+ * Delete uses an AlertDialog confirm step per the project-wide swipe+confirm
+ * pattern (feedback_destructive_confirmation): a Pro-tier clip is a real
+ * artifact the user might tap by accident.
+ */
+@Composable
+private fun EventPlaybackRow(
+    event: com.ultiq.app.data.local.entity.SleepAudioEventEntity,
+    index: Int,
+    label: String,
+    durationText: String,
+    isExpanded: Boolean,
+    onToggle: () -> Unit,
+    onCompleted: () -> Unit,
+    onFetchUrl: suspend () -> String?,
+    onConfirmDelete: () -> Unit,
+) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var confirmingDelete by remember { mutableStateOf(false) }
+    var loadingUrl by remember { mutableStateOf(false) }
+    var loadError by remember { mutableStateOf<String?>(null) }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onToggle() }
+            .padding(vertical = 2.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                if (isExpanded) Icons.Default.Pause else Icons.Default.PlayArrow,
+                contentDescription = if (isExpanded) "Stop" else "Play",
+                modifier = Modifier.size(16.dp),
+                tint = MaterialTheme.colorScheme.primary,
+            )
+            Text(
+                "  $label",
+                style = MaterialTheme.typography.bodySmall,
             )
         }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            event.clipDurationMs?.let { ms ->
+                Text(
+                    "${(ms + 500) / 1000}s clip · ",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Text(
+                durationText,
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+
+    if (isExpanded) {
+        // Single-player-per-expanded-row. Released on dispose so a row
+        // collapsing doesn't leave a MediaPlayer instance dangling.
+        val player = remember { android.media.MediaPlayer() }
+        val playerScope = rememberCoroutineScope()
+        DisposableEffect(event.id) {
+            loadingUrl = true
+            loadError = null
+            val job = playerScope.launch {
+                val url = try { onFetchUrl() } catch (_: Throwable) { null }
+                loadingUrl = false
+                if (url == null) {
+                    loadError = "Couldn't load clip"
+                    return@launch
+                }
+                try {
+                    player.reset()
+                    player.setAudioAttributes(
+                        android.media.AudioAttributes.Builder()
+                            .setUsage(android.media.AudioAttributes.USAGE_MEDIA)
+                            .setContentType(android.media.AudioAttributes.CONTENT_TYPE_MUSIC)
+                            .build(),
+                    )
+                    player.setDataSource(url)
+                    player.setOnPreparedListener { it.start() }
+                    player.setOnCompletionListener { onCompleted() }
+                    player.setOnErrorListener { _, _, _ ->
+                        loadError = "Playback failed"
+                        true
+                    }
+                    player.prepareAsync()
+                } catch (e: Throwable) {
+                    loadError = "Playback failed"
+                }
+            }
+            onDispose {
+                job.cancel()
+                try { player.stop() } catch (_: Throwable) {}
+                try { player.release() } catch (_: Throwable) {}
+            }
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 24.dp, top = 4.dp, bottom = 8.dp),
+        ) {
+            when {
+                loadingUrl -> Text(
+                    "Loading…",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                loadError != null -> Text(
+                    loadError!!,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+                else -> Text(
+                    "Playing… (tap row again to stop)",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+            Row(
+                modifier = Modifier.padding(top = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    "Confidence ${"%.0f".format(event.peakConfidence * 100)}%",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                TextButton(onClick = { confirmingDelete = true }) {
+                    Text("Delete clip", color = MaterialTheme.colorScheme.error)
+                }
+            }
+        }
+    }
+
+    if (confirmingDelete) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { confirmingDelete = false },
+            title = { Text("Delete this recording?") },
+            text = { Text("The detection event stays — only the audio clip is removed.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmingDelete = false
+                    onConfirmDelete()
+                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmingDelete = false }) { Text("Cancel") }
+            },
+        )
     }
 }
 
@@ -1123,6 +1378,7 @@ private fun SetSessionTargetDialog(
 private fun TonightSoundsCard(
     snoreCount: Int,
     coughCount: Int,
+    sleepTalkCount: Int,
     bedtimeMs: Long,
 ) {
     val date = java.time.Instant.ofEpochMilli(bedtimeMs)
@@ -1172,6 +1428,9 @@ private fun TonightSoundsCard(
                 }
                 if (coughCount > 0) {
                     SoundCountTile("Cough", coughCount, Modifier.weight(1f))
+                }
+                if (sleepTalkCount > 0) {
+                    SoundCountTile("Sleep-talk", sleepTalkCount, Modifier.weight(1f))
                 }
             }
         }
