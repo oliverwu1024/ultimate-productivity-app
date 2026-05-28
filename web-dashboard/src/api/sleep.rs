@@ -1,7 +1,7 @@
 use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
 use serde::Deserialize;
 
-use crate::api::client::{get, ApiError};
+use crate::api::client::{delete, get, ApiError};
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct SleepRecord {
@@ -45,9 +45,10 @@ pub async fn fetch_stats(range: &str) -> Result<SleepStats, ApiError> {
     get(&path).await
 }
 
-/// §10 — On-device YAMNet event row, one per debounced snore / cough episode
-/// during a sleep session. Audio never leaves the phone; only labels +
-/// timestamps + peak confidence are persisted server-side.
+/// §10 — On-device YAMNet event row, one per debounced snore / cough / sleep_talk
+/// episode during a sleep session. Labels + timestamps are always uploaded;
+/// the raw audio clip (`has_clip = true`) is Pro-tier only and fetched via
+/// a separate presigned-URL call.
 #[derive(Debug, Clone, Deserialize)]
 pub struct SleepAudioEvent {
     pub id: String,
@@ -58,6 +59,13 @@ pub struct SleepAudioEvent {
     pub ended_at: DateTime<Utc>,
     pub peak_confidence: f32,
     pub created_at: DateTime<Utc>,
+    /// §10.x — True when this event has a Pro-tier audio clip in S3.
+    /// `serde(default)` so a backend running pre-023 (before the column
+    /// existed) still deserialises to `false` — safe rollback path.
+    #[serde(default)]
+    pub has_clip: bool,
+    #[serde(default)]
+    pub clip_duration_ms: Option<i32>,
 }
 
 pub async fn list_audio_events_for_record(
@@ -65,4 +73,23 @@ pub async fn list_audio_events_for_record(
 ) -> Result<Vec<SleepAudioEvent>, ApiError> {
     let path = format!("/sleep-audio-events?sleep_record_id={}", sleep_record_id);
     get(&path).await
+}
+
+/// §10.x — Short-lived presigned GET for the AAC clip behind a specific
+/// event. Fetched fresh on every ▶ tap; the URL is intentionally
+/// single-use-shaped (1 min TTL, server-side).
+#[derive(Debug, Clone, Deserialize)]
+pub struct ClipPlaybackUrl {
+    pub get_url: String,
+    pub expires_in_secs: u64,
+}
+
+pub async fn fetch_clip_playback_url(event_id: &str) -> Result<ClipPlaybackUrl, ApiError> {
+    let path = format!("/sleep-audio-events/{}/clip-url", event_id);
+    get(&path).await
+}
+
+pub async fn delete_audio_clip(event_id: &str) -> Result<(), ApiError> {
+    let path = format!("/sleep-audio-events/{}/clip", event_id);
+    delete(&path).await
 }

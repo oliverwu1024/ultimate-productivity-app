@@ -45,10 +45,17 @@ class SleepAudioEventAggregator(
         timestampMs: Long,
         snoreConf: Float,
         coughConf: Float,
+        sleepTalkConf: Float = 0f,
     ) {
         mutex.withLock {
             processInternal("snore", snoreConf, SleepAudioConfig.SNORE_CONF_THRESHOLD, timestampMs)
             processInternal("cough", coughConf, SleepAudioConfig.COUGH_CONF_THRESHOLD, timestampMs)
+            // §10.x — Sleep-talk is opted-in (caller passes 0f when the user
+            // has it disabled), so this line is a no-op for users who never
+            // turn it on. When enabled, it follows the same finalise-on-gap
+            // path as the other two but with a stricter min-window count
+            // applied during finalise (see [finalize]).
+            processInternal("sleep_talk", sleepTalkConf, SleepAudioConfig.SLEEP_TALK_CONF_THRESHOLD, timestampMs)
             val stale = active.values.filter { timestampMs - it.lastHitAt > SleepAudioConfig.EVENT_GAP_MS }
             stale.forEach { event ->
                 finalize(event)
@@ -87,7 +94,15 @@ class SleepAudioEventAggregator(
     }
 
     private suspend fun finalize(event: ActiveEvent) {
-        if (event.hitCount < SleepAudioConfig.MIN_WINDOWS_PER_EVENT) return
+        // Sleep-talk uses a stricter min-window count than snore/cough — a
+        // single TV sentence or a one-word mumble shouldn't surface as an
+        // event the way a multi-second snore run does.
+        val minWindows = if (event.type == "sleep_talk") {
+            SleepAudioConfig.MIN_WINDOWS_PER_SLEEP_TALK_EVENT
+        } else {
+            SleepAudioConfig.MIN_WINDOWS_PER_EVENT
+        }
+        if (event.hitCount < minWindows) return
         onEventReady(
             SleepAudioEventEntity(
                 id = UUID.randomUUID().toString(),

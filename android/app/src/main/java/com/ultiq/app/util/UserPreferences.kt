@@ -57,6 +57,26 @@ data class UserSettings(
      *  permission; the SleepTrackingService only starts the mic loop when
      *  this flag is true AND the permission is granted at session start. */
     val audioTrackingEnabled: Boolean,
+    /** §10.x — Independent on/off for YAMNet's `Speech` class. Sleep talk
+     *  triggers far more false positives (TV / partner / podcast) than
+     *  snore/cough, so it ships as a separate flag that defaults off — the
+     *  classifier ignores the Speech class entirely until the user opts in. */
+    val sleepTalkDetectionEnabled: Boolean,
+    /** §10.x — Pro-tier master toggle for storing audio clips of detected
+     *  events. Off by default. When on, the SleepTrackingService keeps a
+     *  rolling PCM buffer and uploads a ~10 s clip per allowed event to the
+     *  backend S3 bucket; clips auto-expire after 7 days. */
+    val sleepAudioRecordingEnabled: Boolean,
+    /** §10.x — Per-event-type filter for the recording master toggle. Each
+     *  one is OR-gated with `sleepAudioRecordingEnabled`: a clip is captured
+     *  only when both the master and the per-type flag are on. */
+    val sleepAudioRecordSnore: Boolean,
+    val sleepAudioRecordCough: Boolean,
+    val sleepAudioRecordSleepTalk: Boolean,
+    /** §10.x — Has the user accepted the recording consent dialog at least
+     *  once? Gates the dialog so it only fires the first time the master
+     *  toggle is flipped on per device. */
+    val sleepAudioRecordingConsentSeen: Boolean,
 )
 
 class UserPreferences(private val context: Context) {
@@ -86,6 +106,12 @@ class UserPreferences(private val context: Context) {
         val LOCK_OVERLAY_HINT_SEEN = booleanPreferencesKey("lock_overlay_hint_seen")
         val DISMISSED_ANOMALY_INSIGHT_ID = stringPreferencesKey("dismissed_anomaly_insight_id")
         val AUDIO_TRACKING_ENABLED = booleanPreferencesKey("audio_tracking_enabled")
+        val SLEEP_TALK_DETECTION_ENABLED = booleanPreferencesKey("sleep_talk_detection_enabled")
+        val SLEEP_AUDIO_RECORDING_ENABLED = booleanPreferencesKey("sleep_audio_recording_enabled")
+        val SLEEP_AUDIO_RECORD_SNORE = booleanPreferencesKey("sleep_audio_record_snore")
+        val SLEEP_AUDIO_RECORD_COUGH = booleanPreferencesKey("sleep_audio_record_cough")
+        val SLEEP_AUDIO_RECORD_SLEEP_TALK = booleanPreferencesKey("sleep_audio_record_sleep_talk")
+        val SLEEP_AUDIO_RECORDING_CONSENT_SEEN = booleanPreferencesKey("sleep_audio_recording_consent_seen")
     }
 
     private val defaults = UserSettings(
@@ -110,6 +136,12 @@ class UserPreferences(private val context: Context) {
         lockOverlayHintSeen = false,
         dismissedAnomalyInsightId = "",
         audioTrackingEnabled = false,
+        sleepTalkDetectionEnabled = false,
+        sleepAudioRecordingEnabled = false,
+        sleepAudioRecordSnore = true,
+        sleepAudioRecordCough = true,
+        sleepAudioRecordSleepTalk = true,
+        sleepAudioRecordingConsentSeen = false,
     )
 
     val settings: Flow<UserSettings> = context.userDataStore.data.map { prefs ->
@@ -142,6 +174,12 @@ class UserPreferences(private val context: Context) {
             lockOverlayHintSeen = prefs[Keys.LOCK_OVERLAY_HINT_SEEN] ?: defaults.lockOverlayHintSeen,
             dismissedAnomalyInsightId = prefs[Keys.DISMISSED_ANOMALY_INSIGHT_ID] ?: defaults.dismissedAnomalyInsightId,
             audioTrackingEnabled = prefs[Keys.AUDIO_TRACKING_ENABLED] ?: defaults.audioTrackingEnabled,
+            sleepTalkDetectionEnabled = prefs[Keys.SLEEP_TALK_DETECTION_ENABLED] ?: defaults.sleepTalkDetectionEnabled,
+            sleepAudioRecordingEnabled = prefs[Keys.SLEEP_AUDIO_RECORDING_ENABLED] ?: defaults.sleepAudioRecordingEnabled,
+            sleepAudioRecordSnore = prefs[Keys.SLEEP_AUDIO_RECORD_SNORE] ?: defaults.sleepAudioRecordSnore,
+            sleepAudioRecordCough = prefs[Keys.SLEEP_AUDIO_RECORD_COUGH] ?: defaults.sleepAudioRecordCough,
+            sleepAudioRecordSleepTalk = prefs[Keys.SLEEP_AUDIO_RECORD_SLEEP_TALK] ?: defaults.sleepAudioRecordSleepTalk,
+            sleepAudioRecordingConsentSeen = prefs[Keys.SLEEP_AUDIO_RECORDING_CONSENT_SEEN] ?: defaults.sleepAudioRecordingConsentSeen,
         )
     }
 
@@ -235,6 +273,30 @@ class UserPreferences(private val context: Context) {
         context.userDataStore.edit { it[Keys.AUDIO_TRACKING_ENABLED] = enabled }
     }
 
+    suspend fun setSleepTalkDetectionEnabled(enabled: Boolean) {
+        context.userDataStore.edit { it[Keys.SLEEP_TALK_DETECTION_ENABLED] = enabled }
+    }
+
+    suspend fun setSleepAudioRecordingEnabled(enabled: Boolean) {
+        context.userDataStore.edit { it[Keys.SLEEP_AUDIO_RECORDING_ENABLED] = enabled }
+    }
+
+    suspend fun setSleepAudioRecordSnore(enabled: Boolean) {
+        context.userDataStore.edit { it[Keys.SLEEP_AUDIO_RECORD_SNORE] = enabled }
+    }
+
+    suspend fun setSleepAudioRecordCough(enabled: Boolean) {
+        context.userDataStore.edit { it[Keys.SLEEP_AUDIO_RECORD_COUGH] = enabled }
+    }
+
+    suspend fun setSleepAudioRecordSleepTalk(enabled: Boolean) {
+        context.userDataStore.edit { it[Keys.SLEEP_AUDIO_RECORD_SLEEP_TALK] = enabled }
+    }
+
+    suspend fun setSleepAudioRecordingConsentSeen(seen: Boolean) {
+        context.userDataStore.edit { it[Keys.SLEEP_AUDIO_RECORDING_CONSENT_SEEN] = seen }
+    }
+
     /** Wipe every preference back to defaults — used when deleting the account. */
     suspend fun clearAll() {
         context.userDataStore.edit { it.clear() }
@@ -282,6 +344,21 @@ class UserPreferences(private val context: Context) {
             }
             server.get("audio_tracking_enabled")?.takeIf { !it.isJsonNull }?.asBoolean?.let {
                 prefs[Keys.AUDIO_TRACKING_ENABLED] = it
+            }
+            server.get("sleep_talk_detection_enabled")?.takeIf { !it.isJsonNull }?.asBoolean?.let {
+                prefs[Keys.SLEEP_TALK_DETECTION_ENABLED] = it
+            }
+            server.get("sleep_audio_recording_enabled")?.takeIf { !it.isJsonNull }?.asBoolean?.let {
+                prefs[Keys.SLEEP_AUDIO_RECORDING_ENABLED] = it
+            }
+            server.get("sleep_audio_record_snore")?.takeIf { !it.isJsonNull }?.asBoolean?.let {
+                prefs[Keys.SLEEP_AUDIO_RECORD_SNORE] = it
+            }
+            server.get("sleep_audio_record_cough")?.takeIf { !it.isJsonNull }?.asBoolean?.let {
+                prefs[Keys.SLEEP_AUDIO_RECORD_COUGH] = it
+            }
+            server.get("sleep_audio_record_sleep_talk")?.takeIf { !it.isJsonNull }?.asBoolean?.let {
+                prefs[Keys.SLEEP_AUDIO_RECORD_SLEEP_TALK] = it
             }
         }
     }

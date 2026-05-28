@@ -9,6 +9,7 @@ mod middleware;
 mod models;
 mod routes;
 mod scheduler;
+mod sleep_audio_clips;
 mod ticket;
 mod tz;
 
@@ -53,6 +54,14 @@ async fn main() {
     let events = EventBus::new();
     let tickets = TicketStore::new();
     let ai = ai::AiClient::new().await;
+    // §10.x — Sleep-audio clip store. None when SLEEP_AUDIO_S3_BUCKET env
+    // is unset (dev / freshly-cut env); the clip routes 503 instead of
+    // crashing, and the rest of the sleep-audio pipeline keeps working.
+    let sleep_audio_clips = sleep_audio_clips::SleepAudioClipStore::try_new().await;
+    match &sleep_audio_clips {
+        Some(s) => tracing::info!(target: "sleep-audio", "S3 clip store initialised (bucket={})", s.bucket()),
+        None => tracing::info!(target: "sleep-audio", "SLEEP_AUDIO_S3_BUCKET unset — Pro-tier clip routes will 503"),
+    }
     // §9.8 — FCM client. Returns None when GOOGLE_APPLICATION_CREDENTIALS
     // is unset or the file is unreadable (e.g. fresh dev / CI). The backend
     // continues to start; push-dependent routes 503 instead.
@@ -129,7 +138,7 @@ async fn main() {
             .expect("valid governor config"),
     );
 
-    let state = AppState { pool, config, email, events, tickets, ai, fcm };
+    let state = AppState { pool, config, email, events, tickets, ai, fcm, sleep_audio_clips };
 
     // §9.8 Phase C — daily anomaly scan. No-op unless
     // ANOMALY_SCHEDULER_ENABLED=true at task launch.

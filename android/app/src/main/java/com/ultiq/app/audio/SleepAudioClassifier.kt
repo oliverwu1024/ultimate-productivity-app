@@ -38,6 +38,8 @@ import kotlinx.coroutines.runBlocking
 class SleepAudioClassifier private constructor(
     private val context: Context,
     private val aggregator: SleepAudioEventAggregator,
+    private val sleepTalkEnabled: Boolean,
+    private val pcmBuffer: PcmRingBuffer?,
 ) {
     companion object {
         private const val TAG = "SleepAudioClassifier"
@@ -50,13 +52,27 @@ class SleepAudioClassifier private constructor(
 
         /** Returns null if RECORD_AUDIO isn't granted. Other init failures
          *  (missing asset, AudioRecord rejection) surface inside [start]
-         *  with logged errors but no crash. */
-        fun create(context: Context, aggregator: SleepAudioEventAggregator): SleepAudioClassifier? {
+         *  with logged errors but no crash.
+         *
+         *  [sleepTalkEnabled] — when false, the classifier never extracts
+         *  YAMNet's `Speech` score, so the aggregator never sees a sleep-talk
+         *  signal. Off by default per the user's independent sleep-talk pref.
+         *
+         *  [pcmBuffer] — optional rolling PCM store. Non-null when the user
+         *  has the Pro-tier "Record events" master toggle on; the classifier
+         *  copies every read into the buffer so the clip recorder can slice
+         *  audio around each finalised event. */
+        fun create(
+            context: Context,
+            aggregator: SleepAudioEventAggregator,
+            sleepTalkEnabled: Boolean = false,
+            pcmBuffer: PcmRingBuffer? = null,
+        ): SleepAudioClassifier? {
             if (!isMicPermitted(context)) {
                 Log.w(TAG, "RECORD_AUDIO not granted — audio tracking skipped")
                 return null
             }
-            return SleepAudioClassifier(context, aggregator)
+            return SleepAudioClassifier(context, aggregator, sleepTalkEnabled, pcmBuffer)
         }
     }
 
@@ -173,6 +189,12 @@ class SleepAudioClassifier private constructor(
                     Log.w(TAG, "recorder.read returned $read after $iterations iterations — exiting loop")
                     break
                 }
+                val wallNow = System.currentTimeMillis()
+                // §10.x — Push to rolling PCM buffer *before* we hand the
+                // FloatArray to MediaPipe. The buffer copies on append, so
+                // the next iteration's read() is free to overwrite floatBuf
+                // without corrupting what the clip recorder might slice.
+                pcmBuffer?.append(floatBuf, read, wallNow, sampleRate)
                 val data = try {
                     AudioData.create(format, read)
                 } catch (e: Throwable) {
@@ -180,7 +202,7 @@ class SleepAudioClassifier private constructor(
                     continue
                 }
                 data.load(floatBuf, 0, read)
-                val streamMs = System.currentTimeMillis() - streamStartedAt
+                val streamMs = wallNow - streamStartedAt
                 try {
                     classifier?.classifyAsync(data, streamMs)
                 } catch (e: Throwable) {
@@ -257,10 +279,10 @@ class SleepAudioClassifier private constructor(
     private fun onClassifierResult(result: AudioClassifierResult) {
         // AUDIO_STREAM mode: classificationResults() is a list of per-window
         // results. Each window has one Classifications head whose categories()
-        // gives the labelled probabilities. We pluck Snoring + Cough scores;
-        // everything else (Silence / Speech / 519 other classes) is ignored.
-        // ClassificationResult.timestampMs() is Optional<Long> in the
-        // MediaPipe Java API; default to 0 if not provided.
+        // gives the labelled probabilities. We pluck Snoring + Cough (always)
+        // and Speech (only when the user has opted into sleep-talk detection);
+        // every other class is ignored. ClassificationResult.timestampMs() is
+        // Optional<Long> in the MediaPipe Java API; default to 0 if not given.
         val results = result.classificationResults()
         for (r in results) {
             val resultMs = r.timestampMs().orElse(0L)
@@ -268,16 +290,18 @@ class SleepAudioClassifier private constructor(
             val cats = r.classifications().firstOrNull()?.categories() ?: continue
             var snoreConf = 0f
             var coughConf = 0f
+            var sleepTalkConf = 0f
             for (cat in cats) {
                 when (cat.categoryName()) {
                     SleepAudioConfig.LABEL_SNORE -> snoreConf = cat.score()
                     SleepAudioConfig.LABEL_COUGH -> coughConf = cat.score()
+                    SleepAudioConfig.LABEL_SLEEP_TALK -> if (sleepTalkEnabled) sleepTalkConf = cat.score()
                 }
             }
-            if (snoreConf <= 0f && coughConf <= 0f) continue
+            if (snoreConf <= 0f && coughConf <= 0f && sleepTalkConf <= 0f) continue
             scope.launch {
                 try {
-                    aggregator.onClassification(timestampMs, snoreConf, coughConf)
+                    aggregator.onClassification(timestampMs, snoreConf, coughConf, sleepTalkConf)
                 } catch (e: Throwable) {
                     Log.w(TAG, "aggregator.onClassification failed", e)
                 }

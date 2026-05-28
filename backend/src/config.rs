@@ -4,6 +4,7 @@ use crate::ai::AiClient;
 use crate::email::EmailClient;
 use crate::event_bus::EventBus;
 use crate::fcm::FcmClient;
+use crate::sleep_audio_clips::SleepAudioClipStore;
 use crate::ticket::TicketStore;
 
 pub const JWT_ISSUER: &str = "ultiq-api";
@@ -55,4 +56,9 @@ pub struct AppState {
     /// unset or the file failed to load (CI, fresh dev). Routes that need
     /// push must check and return 503 ServiceUnavailable rather than crash.
     pub fcm: Option<FcmClient>,
+    /// §10.x — Pro-tier sleep-audio clip store. `None` when
+    /// SLEEP_AUDIO_S3_BUCKET is unset (dev / freshly-cut env). Pro-clip
+    /// routes return 503 instead of crashing; non-clip detection (labels +
+    /// timestamps) keeps working since it doesn't touch S3.
+    pub sleep_audio_clips: Option<SleepAudioClipStore>,
 }

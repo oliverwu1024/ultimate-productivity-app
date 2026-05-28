@@ -17,7 +17,10 @@ import androidx.core.app.NotificationCompat
 import com.ultiq.app.MainActivity
 import com.ultiq.app.alarm.AlarmRingService
 import com.ultiq.app.audio.AudioInitStatus
+import com.ultiq.app.audio.PcmRingBuffer
 import com.ultiq.app.audio.SleepAudioClassifier
+import com.ultiq.app.audio.SleepAudioClipCapture
+import com.ultiq.app.audio.SleepAudioConfig
 import com.ultiq.app.audio.SleepAudioEventAggregator
 import com.ultiq.app.data.local.entity.SleepAudioEventEntity
 import com.ultiq.app.ui.lockout.LockoutMode
@@ -106,6 +109,7 @@ class SleepTrackingService : Service() {
     private var foregroundWatcherJob: Job? = null
     private var audioClassifier: SleepAudioClassifier? = null
     private var audioAggregator: SleepAudioEventAggregator? = null
+    private var pcmBuffer: PcmRingBuffer? = null
 
     private val screenReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -222,13 +226,17 @@ class SleepTrackingService : Service() {
     private fun maybeStartAudioTracking() {
         AudioInitStatus.set("Reading prefs…")
         serviceScope.launch {
-            val enabled = try {
-                userPreferences.snapshot().audioTrackingEnabled
+            // §10.x — Snapshot the full settings up front so the recording-
+            // related flags + the audio-tracking flag come from a single
+            // consistent DataStore read.
+            val settings = try {
+                userPreferences.snapshot()
             } catch (e: Throwable) {
-                Log.w(TAG, "Failed to read audio tracking pref", e)
-                AudioInitStatus.setError("Reading audio_tracking_enabled pref", e)
-                false
+                Log.w(TAG, "Failed to read user preferences", e)
+                AudioInitStatus.setError("Reading user preferences", e)
+                return@launch
             }
+            val enabled = settings.audioTrackingEnabled
             if (!enabled) {
                 AudioInitStatus.set("Off — toggle is disabled in Sleep Preferences.")
                 return@launch
@@ -265,6 +273,24 @@ class SleepTrackingService : Service() {
                 }
             }
 
+            // §10.x — Read recording-related flags up front so the
+            // aggregator's onEventReady callback can decide whether to
+            // capture a clip without re-reading DataStore on every event
+            // (which would be ~hundreds of reads over a snore-heavy night).
+            val recordingEnabled = settings.sleepAudioRecordingEnabled
+            val recordSnore = settings.sleepAudioRecordSnore
+            val recordCough = settings.sleepAudioRecordCough
+            val recordSleepTalk = settings.sleepAudioRecordSleepTalk
+            val sleepTalkDetectionEnabled = settings.sleepTalkDetectionEnabled
+
+            // Build a rolling PCM buffer only when recording is on; an
+            // always-on 1.9 MB heap allocation would be wasteful for the
+            // common case where the user just wants snore counts.
+            val pcm = if (recordingEnabled) {
+                SleepAudioClipCapture.pruneStale(applicationContext.cacheDir)
+                PcmRingBuffer(SleepAudioConfig.CLIP_RING_BUFFER_MS).also { pcmBuffer = it }
+            } else null
+
             // userId + sleepRecordId are stamped at session-end by the
             // SleepRepository when the actual sleep_record row is created;
             // the aggregator emits with placeholders that get rewritten.
@@ -279,6 +305,17 @@ class SleepTrackingService : Service() {
                             "Audio event: ${event.eventType} @${event.startedAt} → ${event.endedAt} " +
                                 "(peak conf=${event.peakConfidence})",
                         )
+                        if (recordingEnabled && pcm != null) {
+                            val typeAllowed = when (event.eventType) {
+                                "snore" -> recordSnore
+                                "cough" -> recordCough
+                                "sleep_talk" -> recordSleepTalk
+                                else -> false
+                            }
+                            if (typeAllowed) {
+                                tryCaptureClip(event, pcm)
+                            }
+                        }
                     },
                 )
             } catch (e: Throwable) {
@@ -290,7 +327,12 @@ class SleepTrackingService : Service() {
             audioAggregator = agg
 
             val classifier = try {
-                SleepAudioClassifier.create(applicationContext, agg)
+                SleepAudioClassifier.create(
+                    applicationContext,
+                    agg,
+                    sleepTalkEnabled = sleepTalkDetectionEnabled,
+                    pcmBuffer = pcm,
+                )
             } catch (e: Throwable) {
                 Log.e(TAG, "SleepAudioClassifier.create threw", e)
                 AudioInitStatus.setError("SleepAudioClassifier.create", e)
@@ -330,6 +372,33 @@ class SleepTrackingService : Service() {
             audioClassifierRef = classifier
             audioTrackingActive.value = true
             Log.i(TAG, "Audio tracking started — pipeline confirmed live")
+        }
+    }
+
+    /** §10.x — Slice a clip window around the just-finalised event and
+     *  hand it to the encoder/capture pipeline. Runs on the service's IO
+     *  scope so the aggregator's mutex isn't held while MediaCodec spins
+     *  up. The pre-pad picks up audio from before the event was identified
+     *  (the event finalises after a 5 s gap close, so its `startedAt` is
+     *  already in the past) — important for snores where the first ~2 s
+     *  is the most distinctive part. */
+    private fun tryCaptureClip(event: SleepAudioEventEntity, pcm: PcmRingBuffer) {
+        val sliceStart = event.startedAt - SleepAudioConfig.CLIP_PRE_PAD_MS
+        val sliceEnd = minOf(
+            event.endedAt + 1_000L,
+            sliceStart + SleepAudioConfig.CLIP_MAX_DURATION_MS,
+        )
+        serviceScope.launch {
+            try {
+                val slice = pcm.slice(sliceStart, sliceEnd)
+                if (slice == null) {
+                    Log.w(TAG, "PCM slice unavailable for ${event.eventType} (window outside ring buffer)")
+                    return@launch
+                }
+                SleepAudioClipCapture.captureClip(event, slice, applicationContext.cacheDir)
+            } catch (e: Throwable) {
+                Log.w(TAG, "Clip capture failed for ${event.eventType}", e)
+            }
         }
     }
 
@@ -440,6 +509,7 @@ class SleepTrackingService : Service() {
         flushAudioNow()
         audioClassifier = null
         audioAggregator = null
+        pcmBuffer = null
         audioTrackingActive.value = false
 
         try {

@@ -84,6 +84,7 @@ jobs:
             ANOMALY_SCHEDULER_ENABLED=true
             ANOMALY_SCAN_HOUR_UTC=22
             AI_CHAT_TOOLS_ENABLED=true
+            SLEEP_AUDIO_S3_BUCKET=ultiq-sleep-audio
 
       - name: Deploy to ECS
         uses: aws-actions/amazon-ecs-deploy-task-definition@a310a830f5c14e583e35d84e4e1ec7dd177c3c9c # v2.6.2

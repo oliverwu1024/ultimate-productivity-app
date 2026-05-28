@@ -4,8 +4,8 @@ use leptos::prelude::*;
 use leptos_meta::Title;
 
 use crate::api::sleep::{
-    fetch_stats, list_audio_events_for_record, list_records, SleepAudioEvent, SleepRecord,
-    SleepStats,
+    delete_audio_clip, fetch_clip_playback_url, fetch_stats, list_audio_events_for_record,
+    list_records, SleepAudioEvent, SleepRecord, SleepStats,
 };
 use crate::api::sse::{use_sse, SyncEvent};
 use crate::components::layout::AppShell;
@@ -166,27 +166,29 @@ pub fn SleepPage() -> impl IntoView {
     }
 }
 
-/// §10 — Renders snore + cough counts for the most-recent sleep_record so
-/// the web dashboard matches the mobile "Sleep sounds — Last night" card.
-/// Auto-hides when no audio events were captured (users who never turned the
-/// toggle on never see this surface).
+/// §10.x — Renders the per-event detection list for the most-recent
+/// sleep_record. Each row shows time + type + duration; rows with an
+/// attached Pro clip get an inline ▶ that expands to a scrub bar + delete.
+/// Auto-hides entirely when no events were captured (users who never
+/// turned audio tracking on never see this surface).
 #[component]
 fn LastNightSoundsCard(
     events: RwSignal<Vec<SleepAudioEvent>>,
     records: RwSignal<Vec<SleepRecord>>,
 ) -> impl IntoView {
+    // Single-row-expanded state: which event id is currently expanded for
+    // playback. None = nothing expanded. Auto-advance updates this when
+    // one clip ends so the next clipped event opens itself.
+    let playing_event_id: RwSignal<Option<String>> = RwSignal::new(None);
+
     view! {
         {move || {
             let evs = events.get();
-            let snore_count = evs.iter().filter(|e| e.event_type == "snore").count();
-            let cough_count = evs.iter().filter(|e| e.event_type == "cough").count();
-            if snore_count == 0 && cough_count == 0 {
+            if evs.is_empty() {
                 return Either::Left(view! { <></> });
             }
-            // Date label: "Last night" for records within ~36h, else MMM dd.
-            // §sleep-day — Older records label by sleep_day (Mon 25) not
-            // the raw bedtime calendar date (Tue 26 for a Tue 02:00 night),
-            // so the card name matches the chart bar that night sits in.
+            // Date label: "Last night" for records within ~36h, else
+            // MMM dd by sleep_day so the card name matches the chart bar.
             let label = records
                 .get()
                 .first()
@@ -202,41 +204,308 @@ fn LastNightSoundsCard(
                     }
                 })
                 .unwrap_or_else(|| "Last night".to_string());
+
+            let any_clips = evs.iter().any(|e| e.has_clip);
+            let snore_count = evs.iter().filter(|e| e.event_type == "snore").count();
+            let cough_count = evs.iter().filter(|e| e.event_type == "cough").count();
+            let talk_count = evs.iter().filter(|e| e.event_type == "sleep_talk").count();
+
             Either::Right(view! {
                 <section class="bg-white rounded-2xl shadow p-6 mt-6">
-                    <header class="flex items-center justify-between mb-4">
+                    <header class="flex items-center justify-between mb-3 flex-wrap gap-2">
                         <h2 class="text-lg font-semibold text-ultiq-indigo">
                             "Sleep sounds — " {label}
                         </h2>
                         <p class="text-xs text-ultiq-indigo/50">
-                            "On-device · audio never uploaded"
+                            {if any_clips { "Clips auto-expire after 7 days" } else { "Detection only · audio not uploaded" }}
                         </p>
                     </header>
-                    <div class="grid grid-cols-2 gap-6">
+
+                    <div class="flex flex-wrap gap-x-4 gap-y-1 mb-4 text-sm text-ultiq-indigo/70">
                         {(snore_count > 0).then(|| view! {
-                            <div>
-                                <p class="text-3xl font-semibold text-ultiq-indigo">
-                                    {snore_count}
-                                </p>
-                                <p class="text-sm text-ultiq-indigo/70">
-                                    {if snore_count == 1 { "Snoring episode" } else { "Snoring episodes" }}
-                                </p>
-                            </div>
+                            <span><span class="inline-block w-2 h-2 rounded-full mr-1.5" style="background:#7C8AFC"></span>{format!("{} snore", snore_count)}</span>
                         })}
                         {(cough_count > 0).then(|| view! {
-                            <div>
-                                <p class="text-3xl font-semibold text-ultiq-indigo">
-                                    {cough_count}
-                                </p>
-                                <p class="text-sm text-ultiq-indigo/70">
-                                    {if cough_count == 1 { "Coughing episode" } else { "Coughing episodes" }}
-                                </p>
-                            </div>
+                            <span><span class="inline-block w-2 h-2 rounded-full mr-1.5" style="background:#FFC83D"></span>{format!("{} cough", cough_count)}</span>
+                        })}
+                        {(talk_count > 0).then(|| view! {
+                            <span><span class="inline-block w-2 h-2 rounded-full mr-1.5" style="background:#2ECC71"></span>{format!("{} sleep-talk", talk_count)}</span>
                         })}
                     </div>
+
+                    <ul class="divide-y divide-ultiq-indigo/10">
+                        {evs.iter().enumerate().map(|(idx, e)| {
+                            let event_owned = e.clone();
+                            let all_events = evs.clone();
+                            view! {
+                                <li>
+                                    <EventRow
+                                        event=event_owned
+                                        all_events=all_events
+                                        index=idx
+                                        playing_event_id=playing_event_id
+                                        on_deleted=move |id: String| {
+                                            events.update(|list| {
+                                                if let Some(found) = list.iter_mut().find(|x| x.id == id) {
+                                                    found.has_clip = false;
+                                                    found.clip_duration_ms = None;
+                                                }
+                                            });
+                                        }
+                                    />
+                                </li>
+                            }
+                        }).collect_view()}
+                    </ul>
                 </section>
             })
         }}
+    }
+}
+
+fn event_label(event_type: &str) -> &'static str {
+    match event_type {
+        "snore" => "Snore",
+        "cough" => "Cough",
+        "sleep_talk" => "Sleep-talk",
+        _ => "Event",
+    }
+}
+
+fn event_color(event_type: &str) -> &'static str {
+    match event_type {
+        "snore" => "#7C8AFC",
+        "cough" => "#FFC83D",
+        "sleep_talk" => "#2ECC71",
+        _ => "#7C8AFC",
+    }
+}
+
+fn format_clip_duration(ms: Option<i32>) -> String {
+    let ms = ms.unwrap_or(0);
+    if ms <= 0 {
+        return "—".to_string();
+    }
+    let secs = (ms + 500) / 1000;
+    format!("{}s", secs)
+}
+
+#[component]
+fn EventRow<F>(
+    event: SleepAudioEvent,
+    all_events: Vec<SleepAudioEvent>,
+    index: usize,
+    playing_event_id: RwSignal<Option<String>>,
+    on_deleted: F,
+) -> impl IntoView
+where
+    F: Fn(String) + 'static + Clone + Send + Sync,
+{
+    let event_id_for_play = event.id.clone();
+    let event_id_for_collapse = event.id.clone();
+    let event_id_for_render = event.id.clone();
+    let event_id_for_audio = event.id.clone();
+    let event_id_for_delete = event.id.clone();
+    let has_clip = event.has_clip;
+    let event_type = event.event_type.clone();
+    let duration_label = format_clip_duration(event.clip_duration_ms);
+    let confidence_pct = (event.peak_confidence * 100.0).round() as i32;
+
+    // Format started_at in the user's local timezone.
+    let time_label = event.started_at.with_timezone(&Local).format("%H:%M:%S").to_string();
+    let color = event_color(&event_type);
+    let label = event_label(&event_type);
+
+    let is_expanded = {
+        let id = event_id_for_render.clone();
+        std::sync::Arc::new(move || playing_event_id.get().as_deref() == Some(id.as_str()))
+    };
+
+    let toggle = {
+        let ev_id = event_id_for_play.clone();
+        let collapse_id = event_id_for_collapse.clone();
+        move |_| {
+            if !has_clip {
+                return;
+            }
+            playing_event_id.update(|p| {
+                if p.as_deref() == Some(collapse_id.as_str()) {
+                    *p = None;
+                } else {
+                    *p = Some(ev_id.clone());
+                }
+            });
+        }
+    };
+
+    view! {
+        <div class="py-2">
+            <button
+                class=move || {
+                    let base = "w-full flex items-center justify-between gap-3 text-left rounded-lg px-2 py-2 transition-colors";
+                    if has_clip {
+                        format!("{} hover:bg-ultiq-indigo/5 cursor-pointer", base)
+                    } else {
+                        format!("{} cursor-default opacity-80", base)
+                    }
+                }
+                disabled=!has_clip
+                on:click=toggle
+            >
+                <div class="flex items-center gap-3">
+                    <span
+                        class="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0"
+                        style=format!("background:{}", color)
+                    />
+                    <span class="font-mono text-sm text-ultiq-indigo/80 tabular-nums">{time_label.clone()}</span>
+                    <span class="text-sm text-ultiq-indigo">{label}</span>
+                </div>
+                <div class="flex items-center gap-3 text-sm text-ultiq-indigo/60">
+                    {if has_clip {
+                        let is_exp = is_expanded.clone();
+                        Either::Left(view! {
+                            <span class="text-xs">{duration_label.clone()}</span>
+                            <span class="text-ultiq-indigo">{move || if is_exp() { "▾" } else { "▸" }}</span>
+                        })
+                    } else {
+                        Either::Right(view! {
+                            <span class="text-xs italic text-ultiq-indigo/40">"no clip"</span>
+                        })
+                    }}
+                </div>
+            </button>
+
+            <Show when={
+                let is_exp = is_expanded.clone();
+                move || is_exp() && has_clip
+            }>
+                <ExpandedPlayer
+                    event_id=event_id_for_audio.clone()
+                    all_events=all_events.clone()
+                    index=index
+                    confidence_pct=confidence_pct
+                    playing_event_id=playing_event_id
+                    on_deleted={
+                        let cb = on_deleted.clone();
+                        let id = event_id_for_delete.clone();
+                        move || cb(id.clone())
+                    }
+                />
+            </Show>
+        </div>
+    }
+}
+
+#[component]
+fn ExpandedPlayer<F>(
+    event_id: String,
+    all_events: Vec<SleepAudioEvent>,
+    index: usize,
+    confidence_pct: i32,
+    playing_event_id: RwSignal<Option<String>>,
+    on_deleted: F,
+) -> impl IntoView
+where
+    F: Fn() + 'static + Clone + Send + Sync,
+{
+    let url: RwSignal<Option<String>> = RwSignal::new(None);
+    let load_error: RwSignal<Option<String>> = RwSignal::new(None);
+    let deleting = RwSignal::new(false);
+    let confirming_delete = RwSignal::new(false);
+
+    {
+        let event_id = event_id.clone();
+        wasm_bindgen_futures::spawn_local(async move {
+            match fetch_clip_playback_url(&event_id).await {
+                Ok(resp) => url.set(Some(resp.get_url)),
+                Err(e) => load_error.set(Some(e.message)),
+            }
+        });
+    }
+
+    // Auto-advance: when this clip ends, look for the next event (later in
+    // the list) that still has a clip and expand it. Stops at the end of
+    // the list so the user isn't surprised by a sudden silence-then-replay.
+    let on_ended = {
+        let all_events = all_events.clone();
+        move |_| {
+            let next = all_events
+                .iter()
+                .skip(index + 1)
+                .find(|e| e.has_clip)
+                .map(|e| e.id.clone());
+            playing_event_id.set(next);
+        }
+    };
+
+    let confirm_delete = {
+        let event_id = event_id.clone();
+        let on_deleted = on_deleted.clone();
+        move |_| {
+            deleting.set(true);
+            let event_id = event_id.clone();
+            let on_deleted = on_deleted.clone();
+            wasm_bindgen_futures::spawn_local(async move {
+                let _ = delete_audio_clip(&event_id).await;
+                deleting.set(false);
+                confirming_delete.set(false);
+                playing_event_id.set(None);
+                on_deleted();
+            });
+        }
+    };
+
+    view! {
+        <div class="px-2 pt-2 pb-3 bg-ultiq-indigo/5 rounded-lg mx-2 mt-1">
+            {move || match (url.get(), load_error.get()) {
+                (Some(u), _) => Either::Left(view! {
+                    <audio
+                        src=u
+                        controls=true
+                        autoplay=true
+                        class="w-full"
+                        on:ended=on_ended.clone()
+                    />
+                }),
+                (None, Some(err)) => Either::Right(Either::Left(view! {
+                    <p class="text-xs text-ultiq-red px-1 py-2">{err}</p>
+                })),
+                (None, None) => Either::Right(Either::Right(view! {
+                    <p class="text-xs text-ultiq-indigo/50 px-1 py-2">"Loading clip…"</p>
+                })),
+            }}
+            <div class="flex items-center justify-between mt-2 px-1">
+                <span class="text-xs text-ultiq-indigo/60">
+                    {format!("Detection confidence {}%", confidence_pct)}
+                </span>
+                <Show when=move || !confirming_delete.get()>
+                    <button
+                        class="text-xs text-ultiq-red hover:underline cursor-pointer"
+                        on:click=move |_| confirming_delete.set(true)
+                    >
+                        "Delete clip"
+                    </button>
+                </Show>
+                <Show when=move || confirming_delete.get()>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-ultiq-indigo/70">"Delete this recording?"</span>
+                        <button
+                            class="text-xs text-ultiq-red font-medium hover:underline cursor-pointer disabled:opacity-50"
+                            disabled=move || deleting.get()
+                            on:click=confirm_delete.clone()
+                        >
+                            {move || if deleting.get() { "Deleting…" } else { "Confirm" }}
+                        </button>
+                        <button
+                            class="text-xs text-ultiq-indigo/60 hover:underline cursor-pointer"
+                            on:click=move |_| confirming_delete.set(false)
+                        >
+                            "Cancel"
+                        </button>
+                    </div>
+                </Show>
+            </div>
+        </div>
     }
 }
 
