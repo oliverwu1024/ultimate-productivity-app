@@ -1,6 +1,6 @@
 {
-  "versionCode": 79,
-  "versionName": "2.14.2",
-  "url": "https://ultiqapp.com/ultiq.2.14.2.apk",
-  "releaseNotes": "Sleep audio v2 follow-ups: web dashboard now plays clips (added S3 CORS + live SSE refresh so ▶ appears as clips upload — no manual refresh). Android per-clip Delete collapses the row instantly instead of showing 'couldn't load'."
+  "versionCode": 80,
+  "versionName": "2.14.3",
+  "url": "https://ultiqapp.com/ultiq.2.14.3.apk",
+  "releaseNotes": "Sleep audio fixes: first snore of each session now records (PCM buffer clamps to what's available instead of dropping the clip); web dashboard plays clips reliably via a blob-URL approach that side-steps the cross-origin S3 issues; End Sleep dialog now lists sleep-talk episodes alongside snore + cough."
 }

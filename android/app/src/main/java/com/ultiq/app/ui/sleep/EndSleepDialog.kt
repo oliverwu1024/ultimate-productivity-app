@@ -158,11 +158,17 @@ fun EndSleepDialog(
                 HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
             }
 
-            // §10 — Snore + cough breakdown. Hidden when no events were
-            // captured (e.g. audio tracking off, or a quiet night).
+            // §10 — Snore + cough + sleep-talk breakdown. Hidden when no
+            // events were captured (audio tracking off, or a quiet night).
+            // §10.x-fix (v2.14.3) — Sleep-talk was missing from this
+            // summary in v2.14.0-v2.14.2 even though it appeared in the
+            // past-records expansion; users with sleep-talk detection on
+            // saw events vanish from the End Sleep dialog and reappear
+            // later in the Sleep tab. Now mirrored alongside snore + cough.
             val snoreEvents = audioEvents.filter { it.eventType == "snore" }
             val coughEvents = audioEvents.filter { it.eventType == "cough" }
-            if (snoreEvents.isNotEmpty() || coughEvents.isNotEmpty()) {
+            val sleepTalkEvents = audioEvents.filter { it.eventType == "sleep_talk" }
+            if (snoreEvents.isNotEmpty() || coughEvents.isNotEmpty() || sleepTalkEvents.isNotEmpty()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         Icons.Default.GraphicEq,
@@ -202,6 +208,24 @@ fun EndSleepDialog(
                     coughEvents.forEachIndexed { index, event ->
                         AudioEventRow(
                             label = "Cough #${index + 1}",
+                            startedAt = event.startedAt,
+                            durationSec = ((event.endedAt - event.startedAt) / 1000L).coerceAtLeast(1L),
+                            zone = zone,
+                            timeFormat = timeFormat,
+                        )
+                    }
+                }
+                if (sleepTalkEvents.isNotEmpty()) {
+                    val totalTalkSecs =
+                        sleepTalkEvents.sumOf { (it.endedAt - it.startedAt) / 1000L }
+                    Text(
+                        "${sleepTalkEvents.size} sleep-talk episode${if (sleepTalkEvents.size != 1) "s" else ""} — ${totalTalkSecs}s total",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    sleepTalkEvents.forEachIndexed { index, event ->
+                        AudioEventRow(
+                            label = "Sleep-talk #${index + 1}",
                             startedAt = event.startedAt,
                             durationSec = ((event.endedAt - event.startedAt) / 1000L).coerceAtLeast(1L),
                             zone = zone,
