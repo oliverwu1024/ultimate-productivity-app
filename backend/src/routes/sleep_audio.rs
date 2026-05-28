@@ -370,6 +370,7 @@ async fn clip_bytes(
     Path(event_id): Path<Uuid>,
 ) -> Result<axum::response::Response, AppError> {
     let user_id = parse_user_id(&claims)?;
+    tracing::info!(target: "sleep-audio", "clip-bytes start: user={user_id} event={event_id}");
     require_pro_tier(&state.pool, user_id).await?;
 
     let store = state
@@ -382,6 +383,7 @@ async fn clip_bytes(
         .clip_s3_key
         .as_ref()
         .ok_or_else(|| AppError::new(StatusCode::NOT_FOUND, "Event has no clip"))?;
+    tracing::info!(target: "sleep-audio", "clip-bytes fetching s3 key={key}");
 
     let bytes = store
         .get_bytes(key)
@@ -390,14 +392,26 @@ async fn clip_bytes(
             tracing::warn!(target: "sleep-audio", "clip-bytes fetch failed for {key}: {e}");
             AppError::new(StatusCode::BAD_GATEWAY, "Couldn't fetch clip")
         })?;
+    tracing::info!(target: "sleep-audio", "clip-bytes returning {} bytes for event={event_id}", bytes.len());
 
-    use axum::http::header;
-    use axum::response::IntoResponse;
-    let mut resp = bytes.into_response();
-    resp.headers_mut().insert(
-        header::CONTENT_TYPE,
-        axum::http::HeaderValue::from_static("audio/mp4"),
-    );
+    // §10.x-fix (v2.14.5) — Construct the response explicitly with
+    // axum::body::Bytes instead of relying on Vec<u8>'s IntoResponse impl.
+    // The user reported web playback still failed with 0:00 after v2.14.4
+    // even though the endpoint is reachable + CORS preflight succeeds.
+    // Going explicit guarantees the body is a single chunk with the
+    // correct Content-Length + Content-Type headers.
+    let body = axum::body::Bytes::from(bytes);
+    let content_length = body.len();
+    let resp = axum::http::Response::builder()
+        .status(axum::http::StatusCode::OK)
+        .header(axum::http::header::CONTENT_TYPE, "audio/mp4")
+        .header(axum::http::header::CONTENT_LENGTH, content_length)
+        .header(axum::http::header::CACHE_CONTROL, "private, no-store")
+        .body(axum::body::Body::from(body))
+        .map_err(|e| {
+            tracing::error!(target: "sleep-audio", "clip-bytes response build failed: {e}");
+            AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "Response build failed")
+        })?;
     Ok(resp)
 }
 
