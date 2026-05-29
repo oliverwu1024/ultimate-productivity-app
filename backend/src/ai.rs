@@ -38,14 +38,17 @@ pub const MODEL_HAIKU: &str = "au.anthropic.claude-haiku-4-5-20251001-v1:0";
 /// Default per-user-per-day request cap. AI is Pro-tier only at launch, so
 /// this is the Pro limit. Override with `AI_DAILY_REQUEST_CAP` env var.
 ///
-/// Raised from 30 → 500 alongside the Coach tool-loop expansion. Each
-/// tool-using chat turn can spend 1-3 quota tickets (one per Bedrock call
-/// inside the loop), so the per-turn budget moved up by roughly 3× while
-/// the per-day request budget moved up by 16×. The hard cap exists purely
-/// as a blast-radius limit for runaway clients / abuse — actual everyday
-/// usage stays well under it. Cost ceiling at 500/day/user is bounded by
-/// the $20/day CloudWatch billing alarm on Bedrock.
-pub const DEFAULT_DAILY_REQUEST_CAP: i32 = 500;
+/// Per-day request cap for Free-tier users. Combined with email-verification
+/// gating, this bounds the worst-case cost from a scripted-account flood:
+/// N verified accounts × FREE cap × per-call price = total damage. Keeping
+/// this tight (50/day) means even 100 fake accounts only burn ~5k Bedrock
+/// calls/day — well below the $20 daily billing alarm threshold.
+pub const DEFAULT_DAILY_REQUEST_CAP_FREE: i32 = 50;
+
+/// Per-day request cap for Pro-tier users (is_pro = true). Sized to support
+/// heavy Coach + sleep-rating + parse-event use without throttling a real
+/// power user. Was the single global default before the Free/Pro split.
+pub const DEFAULT_DAILY_REQUEST_CAP_PRO: i32 = 500;
 
 /// Max characters logged per prompt/response field when sampling.
 const LOG_TRUNCATE_CHARS: usize = 200;
@@ -56,7 +59,8 @@ const LOG_SAMPLE_EVERY: u32 = 10;
 #[derive(Clone)]
 pub struct AiClient {
     bedrock: bedrock::Client,
-    daily_request_cap: i32,
+    daily_request_cap_free: i32,
+    daily_request_cap_pro: i32,
     log_counter: std::sync::Arc<AtomicU32>,
 }
 
@@ -67,14 +71,27 @@ impl AiClient {
     pub async fn new() -> Self {
         let config = aws_config::load_from_env().await;
         let bedrock = bedrock::Client::new(&config);
-        let daily_request_cap = env::var("AI_DAILY_REQUEST_CAP")
+        // Legacy single AI_DAILY_REQUEST_CAP still applies to Pro for
+        // backward compatibility with existing task-def env vars.
+        let legacy_or_pro = env::var("AI_DAILY_REQUEST_CAP")
+            .ok()
+            .and_then(|s| s.parse().ok())
+            .filter(|n| *n > 0);
+        let daily_request_cap_pro = env::var("AI_DAILY_REQUEST_CAP_PRO")
             .ok()
             .and_then(|s| s.parse().ok())
             .filter(|n| *n > 0)
-            .unwrap_or(DEFAULT_DAILY_REQUEST_CAP);
+            .or(legacy_or_pro)
+            .unwrap_or(DEFAULT_DAILY_REQUEST_CAP_PRO);
+        let daily_request_cap_free = env::var("AI_DAILY_REQUEST_CAP_FREE")
+            .ok()
+            .and_then(|s| s.parse().ok())
+            .filter(|n| *n > 0)
+            .unwrap_or(DEFAULT_DAILY_REQUEST_CAP_FREE);
         Self {
             bedrock,
-            daily_request_cap,
+            daily_request_cap_free,
+            daily_request_cap_pro,
             log_counter: std::sync::Arc::new(AtomicU32::new(0)),
         }
     }
@@ -86,28 +103,42 @@ impl AiClient {
         &self.bedrock
     }
 
-    pub fn daily_request_cap(&self) -> i32 {
-        self.daily_request_cap
+    pub fn daily_request_cap_free(&self) -> i32 {
+        self.daily_request_cap_free
+    }
+
+    pub fn daily_request_cap_pro(&self) -> i32 {
+        self.daily_request_cap_pro
     }
 
     /// Read today's request count and reject if the user has hit the cap.
     /// Call this *before* invoking Bedrock; pair with `record_usage` after a
     /// successful call.
     pub async fn check_quota(&self, pool: &PgPool, user_id: Uuid) -> Result<(), AppError> {
-        // Email-verification gate. Without this, a scripted attacker can
-        // register N throwaway accounts and drain N × daily_cap Bedrock
-        // calls with no upper bound on spend.
-        let verified: Option<(bool,)> =
-            sqlx::query_as("SELECT email_verified FROM users WHERE id = $1")
+        // Pull the verification flag + tier in one round-trip so the gate
+        // check and the cap selection share a single query.
+        let row: Option<(bool, bool)> =
+            sqlx::query_as("SELECT email_verified, is_pro FROM users WHERE id = $1")
                 .bind(user_id)
                 .fetch_optional(pool)
                 .await?;
-        if !verified.map(|(v,)| v).unwrap_or(false) {
+        let (verified, is_pro) = row.unwrap_or((false, false));
+
+        // Email-verification gate. Without this, a scripted attacker can
+        // register N throwaway accounts and drain N × daily_cap Bedrock
+        // calls with no upper bound on spend.
+        if !verified {
             return Err(AppError::new(
                 StatusCode::FORBIDDEN,
                 "Please verify your email address to use AI features",
             ));
         }
+
+        let cap = if is_pro {
+            self.daily_request_cap_pro
+        } else {
+            self.daily_request_cap_free
+        };
 
         let today = Utc::now().date_naive();
         let used: i32 = sqlx::query_scalar(
@@ -121,7 +152,7 @@ impl AiClient {
         .await?
         .unwrap_or(0);
 
-        if used >= self.daily_request_cap {
+        if used >= cap {
             return Err(AppError::new(
                 StatusCode::TOO_MANY_REQUESTS,
                 "Daily AI request limit reached",

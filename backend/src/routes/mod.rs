@@ -43,7 +43,6 @@ pub fn other_routes() -> Router<AppState> {
         .merge(calendar::router())
         .merge(checklist::router())
         .merge(alarms::router())
-        .merge(admin::router())
         .merge(sync::router())
         .merge(devices::router())
 }
@@ -55,4 +54,13 @@ pub fn other_routes() -> Router<AppState> {
 /// tighter than the global 200 rps that covers normal CRUD traffic.
 pub fn ai_routes() -> Router<AppState> {
     ai::router()
+}
+
+/// `/admin/**` endpoints sit behind their own governor so a leaked admin
+/// JWT can't enumerate users / dispatch test-pushes / revoke tokens at
+/// the global 200 rps ceiling. Tighter than the global bucket but looser
+/// than auth — admin tooling is interactive and bursty (signup chart
+/// loads + user list refresh fire close together).
+pub fn admin_routes() -> Router<AppState> {
+    admin::router()
 }

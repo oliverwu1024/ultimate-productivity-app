@@ -20,6 +20,11 @@ pub struct User {
     /// per-user 08:00-local fan-out.
     pub timezone: String,
     pub email_verified: bool,
+    pub is_pro: bool,
+}
+
+fn is_false(b: &bool) -> bool {
+    !*b
 }
 
 #[derive(Debug, Deserialize)]
@@ -73,7 +78,15 @@ pub struct UserResponse {
     pub email: String,
     pub created_at: DateTime<Utc>,
     pub sleep_target_minutes: i32,
+    /// Omitted from the JSON response for non-admin users so the
+    /// admin tier's existence isn't an info-leak via /auth/me.
+    #[serde(skip_serializing_if = "is_false")]
     pub is_admin: bool,
+    /// Omitted from the JSON response for non-Pro users for the same
+    /// reason — keeps the client view minimal and unsurprising for
+    /// the free tier.
+    #[serde(skip_serializing_if = "is_false")]
+    pub is_pro: bool,
     pub preferences: JsonValue,
     /// §i18n — Mirrored to clients so the Settings → Region row can
     /// display "as known by the server" and let the user override if
@@ -96,6 +109,7 @@ impl From<User> for UserResponse {
             created_at: user.created_at,
             sleep_target_minutes: user.sleep_target_minutes,
             is_admin: user.is_admin,
+            is_pro: user.is_pro,
             preferences: user.preferences,
             timezone: user.timezone,
             email_verified: user.email_verified,
