@@ -6,6 +6,7 @@ use axum::routing::{get, post};
 use axum::{Json, Router};
 use chrono::{DateTime, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
+use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::config::AppState;
@@ -21,7 +22,10 @@ pub fn router() -> Router<AppState> {
         .route("/admin/test-push", post(admin_test_push))
 }
 
-pub struct AdminUser;
+pub struct AdminUser {
+    pub id: Uuid,
+    pub ip: Option<String>,
+}
 
 #[async_trait]
 impl FromRequestParts<AppState> for AdminUser {
@@ -43,10 +47,47 @@ impl FromRequestParts<AppState> for AdminUser {
             .fetch_optional(&state.pool)
             .await?;
         match row {
-            Some((true,)) => Ok(Self),
+            Some((true,)) => Ok(Self {
+                id: user_id,
+                ip: extract_client_ip(parts),
+            }),
             Some(_) => Err(AppError::new(StatusCode::FORBIDDEN, "Admin access required")),
             None => Err(AppError::new(StatusCode::UNAUTHORIZED, "User not found")),
         }
+    }
+}
+
+fn extract_client_ip(parts: &Parts) -> Option<String> {
+    parts
+        .headers
+        .get("x-forwarded-for")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|s| s.split(',').next())
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+}
+
+async fn record_admin_action(
+    pool: &PgPool,
+    admin_id: Uuid,
+    action: &str,
+    target_user_id: Option<Uuid>,
+    payload: Option<serde_json::Value>,
+    ip: Option<&str>,
+) {
+    let result = sqlx::query(
+        "INSERT INTO admin_audit_log (admin_id, action, target_user_id, payload, ip)
+         VALUES ($1, $2, $3, $4, $5)",
+    )
+    .bind(admin_id)
+    .bind(action)
+    .bind(target_user_id)
+    .bind(payload)
+    .bind(ip)
+    .execute(pool)
+    .await;
+    if let Err(e) = result {
+        tracing::error!("admin audit log write failed: {}", e);
     }
 }
 
@@ -66,8 +107,18 @@ pub struct AdminStats {
 
 async fn admin_stats(
     State(state): State<AppState>,
-    _admin: AdminUser,
+    admin: AdminUser,
 ) -> Result<Json<AdminStats>, AppError> {
+    record_admin_action(
+        &state.pool,
+        admin.id,
+        "GET /admin/stats",
+        None,
+        None,
+        admin.ip.as_deref(),
+    )
+    .await;
+
     let total: (i64,) = sqlx::query_as("SELECT COUNT(*)::BIGINT FROM users")
         .fetch_one(&state.pool)
         .await?;
@@ -138,8 +189,7 @@ pub struct TestPushResponse {
 
 async fn admin_test_push(
     State(state): State<AppState>,
-    _admin: AdminUser,
-    claims: Claims,
+    admin: AdminUser,
     Json(input): Json<TestPushRequest>,
 ) -> Result<Json<TestPushResponse>, AppError> {
     let Some(fcm) = state.fcm.as_ref() else {
@@ -154,20 +204,35 @@ async fn admin_test_push(
             "title and body must not be empty",
         ));
     }
-    let target = claims
-        .sub
-        .parse::<Uuid>()
-        .map_err(|_| AppError::new(StatusCode::UNAUTHORIZED, "Invalid token subject"))?;
+    record_admin_action(
+        &state.pool,
+        admin.id,
+        "POST /admin/test-push",
+        Some(admin.id),
+        Some(serde_json::json!({ "title": input.title })),
+        admin.ip.as_deref(),
+    )
+    .await;
     let delivered = fcm
-        .send_to_user(&state.pool, target, input.title.trim(), input.body.trim(), None)
+        .send_to_user(&state.pool, admin.id, input.title.trim(), input.body.trim(), None)
         .await?;
     Ok(Json(TestPushResponse { delivered }))
 }
 
 async fn admin_users(
     State(state): State<AppState>,
-    _admin: AdminUser,
+    admin: AdminUser,
 ) -> Result<Json<Vec<AdminUserEntry>>, AppError> {
+    record_admin_action(
+        &state.pool,
+        admin.id,
+        "GET /admin/users",
+        None,
+        None,
+        admin.ip.as_deref(),
+    )
+    .await;
+
     let rows: Vec<(Uuid, String, DateTime<Utc>, bool)> = sqlx::query_as(
         "SELECT id, email, created_at, is_admin FROM users ORDER BY created_at DESC",
     )
