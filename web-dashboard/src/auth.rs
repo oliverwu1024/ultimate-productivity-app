@@ -9,6 +9,8 @@ pub struct User {
     pub created_at: String,
     pub sleep_target_minutes: i32,
     pub is_admin: bool,
+    #[serde(default)]
+    pub email_verified: bool,
 }
 
 const TOKEN_KEY: &str = "ultiq_jwt";
