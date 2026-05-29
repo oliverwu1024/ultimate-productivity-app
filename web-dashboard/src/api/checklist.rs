@@ -71,11 +71,17 @@ pub struct ChecklistItem {
     /// (or until its due_date passes). Distinct from recurrence.
     #[serde(default)]
     pub show_until_due: bool,
-    /// For recurring items: the epoch day on which this row was last
-    /// marked done. `Some(today)` = ticked for today; the row should
-    /// re-open on the next occurrence.
+    /// Legacy single-day stamp (pre-§024). Kept on the wire for
+    /// backward compat with older backend builds but UI no longer reads
+    /// from it. Source of truth for recurring "done on day X" is
+    /// `completed_epoch_days`.
     #[serde(default)]
     pub last_completed_epoch_day: Option<i64>,
+    /// §024 — Every epoch day this recurring row has been ticked. Empty
+    /// for non-recurring items. A tick on Tue no longer overwrites
+    /// Mon's stamp, so navigating back to Mon still shows it as done.
+    #[serde(default)]
+    pub completed_epoch_days: Vec<i64>,
 }
 
 impl ChecklistItem {
@@ -87,11 +93,19 @@ impl ChecklistItem {
         self.recurrence_days_mask != 0
     }
 
-    /// True if this item is "done for today" — recurring items use the
-    /// epoch-day stamp, non-recurring use the boolean.
+    /// True if this item is "done for [day]" — recurring items check the
+    /// per-day completion log, non-recurring use the boolean. Falls back
+    /// to the legacy `last_completed_epoch_day` when the new field is
+    /// empty so users hitting a pre-§024 backend still see correct
+    /// done-state (only the most-recent tick survives in that mode).
     pub fn is_done_on(&self, day: NaiveDate) -> bool {
         if self.is_recurring() {
-            self.last_completed_epoch_day == Some(day.num_days_from_ce() as i64 - 719_163)
+            let epoch = naive_date_to_epoch_day(day);
+            if !self.completed_epoch_days.is_empty() {
+                self.completed_epoch_days.contains(&epoch)
+            } else {
+                self.last_completed_epoch_day == Some(epoch)
+            }
         } else {
             self.completed
         }
@@ -180,6 +194,24 @@ pub async fn complete_item(id: &str) -> Result<ChecklistItem, ApiError> {
 /// atomically so recurring un-ticks survive the next sync.
 pub async fn uncomplete_item(id: &str) -> Result<ChecklistItem, ApiError> {
     let path = format!("/checklist/{}/uncomplete", id);
+    let empty = serde_json::json!({});
+    post(&path, &empty).await
+}
+
+/// §024 — Tick a recurring item for a specific epoch day. Server
+/// inserts a row into checklist_completions (idempotent). Use this
+/// instead of the legacy PUT-with-last_completed_epoch_day path so a
+/// tick on day X doesn't clobber a tick on day Y.
+pub async fn complete_item_on(id: &str, epoch_day: i64) -> Result<ChecklistItem, ApiError> {
+    let path = format!("/checklist/{}/complete-on/{}", id, epoch_day);
+    let empty = serde_json::json!({});
+    post(&path, &empty).await
+}
+
+/// §024 — Symmetric inverse of [complete_item_on]. Removes the
+/// (item, day) row from checklist_completions. Idempotent.
+pub async fn uncomplete_item_on(id: &str, epoch_day: i64) -> Result<ChecklistItem, ApiError> {
+    let path = format!("/checklist/{}/uncomplete-on/{}", id, epoch_day);
     let empty = serde_json::json!({});
     post(&path, &empty).await
 }

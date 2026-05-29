@@ -15,6 +15,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
@@ -57,7 +58,11 @@ class ChecklistViewModel(application: Application) : AndroidViewModel(applicatio
     private val tokenManager = TokenManager(application)
     private val api = RetrofitClient.create(tokenManager)
     private val db = AppDatabase.getInstance(application)
-    private val repository = ChecklistRepository(db.checklistDao(), api)
+    private val repository = ChecklistRepository(
+        db.checklistDao(),
+        db.checklistCompletionDao(),
+        api,
+    )
     private val userPreferences = UserPreferences(application)
 
     private val _uiState = MutableStateFlow(ChecklistUiState())
@@ -274,12 +279,13 @@ class ChecklistViewModel(application: Application) : AndroidViewModel(applicatio
     fun toggleCompleted(item: ChecklistEntity) {
         viewModelScope.launch {
             if (item.recurrenceDaysMask != 0) {
-                // Recurring: stamp / unstamp lastCompletedEpochDay for the
-                // currently-selected day so the row reopens next occurrence.
+                // §024 — Recurring rows track completion per day in the
+                // dedicated table, NOT on the row itself. So toggling today
+                // only affects today's row; yesterday's stamp survives.
                 val day = _uiState.value.selectedDate.toEpochDay()
-                val doneToday = item.lastCompletedEpochDay == day
-                if (doneToday) {
-                    repository.markRecurringIncompleteOn(item.id)
+                val doneOnDay = db.checklistCompletionDao().isCompleted(item.id, day)
+                if (doneOnDay) {
+                    repository.markRecurringIncompleteOn(item.id, day)
                 } else {
                     repository.markRecurringCompletedOn(item.id, day)
                 }
@@ -318,14 +324,27 @@ class ChecklistViewModel(application: Application) : AndroidViewModel(applicatio
             // bit index that matches recurrenceDaysMask's encoding.
             val dow = _uiState.value.selectedDate.dayOfWeek.value % 7
             val dayBit = 1 shl dow
-            repository.getByDate(day, dayBit).collectLatest { items ->
-                val (open, done) = items.partition { item ->
+            // §024 — Combine the items flow with the completion log so a
+            // tick on the day flips immediately without waiting for a sync.
+            // We only need the set of itemIds completed on `day`; the rest
+            // of the table doesn't affect this view.
+            combine(
+                repository.getByDate(day, dayBit),
+                repository.observeCompletions(),
+            ) { items, completions ->
+                val doneIdsForDay = completions
+                    .asSequence()
+                    .filter { it.epochDay == day }
+                    .map { it.itemId }
+                    .toHashSet()
+                items.partition { item ->
                     if (item.recurrenceDaysMask != 0) {
-                        item.lastCompletedEpochDay != day
+                        item.id !in doneIdsForDay
                     } else {
                         !item.completed
                     }
                 }
+            }.collectLatest { (open, done) ->
                 _uiState.value = _uiState.value.copy(
                     openItems = open,
                     completedItems = done,

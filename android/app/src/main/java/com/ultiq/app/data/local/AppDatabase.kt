@@ -9,6 +9,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.ultiq.app.data.local.dao.AchievementDao
 import com.ultiq.app.data.local.dao.AlarmDao
 import com.ultiq.app.data.local.dao.CalendarEventDao
+import com.ultiq.app.data.local.dao.ChecklistCompletionDao
 import com.ultiq.app.data.local.dao.ChecklistDao
 import com.ultiq.app.data.local.dao.SessionDao
 import com.ultiq.app.data.local.dao.SleepAudioEventDao
@@ -18,6 +19,7 @@ import com.ultiq.app.data.local.entity.AlarmEntity
 import com.ultiq.app.data.local.entity.AlarmEventEntity
 import com.ultiq.app.data.local.entity.AlarmTombstoneEntity
 import com.ultiq.app.data.local.entity.CalendarEventEntity
+import com.ultiq.app.data.local.entity.ChecklistCompletionEntity
 import com.ultiq.app.data.local.entity.ChecklistEntity
 import com.ultiq.app.data.local.entity.SessionEntity
 import com.ultiq.app.data.local.entity.SleepAudioEventEntity
@@ -32,12 +34,13 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
         CalendarEventEntity::class,
         AchievementEntity::class,
         ChecklistEntity::class,
+        ChecklistCompletionEntity::class,
         AlarmEntity::class,
         AlarmEventEntity::class,
         AlarmTombstoneEntity::class,
         SleepAudioEventEntity::class,
     ],
-    version = 13,
+    version = 14,
     exportSchema = false
 )
 @androidx.room.TypeConverters(com.ultiq.app.data.local.converters.IntListConverter::class)
@@ -47,6 +50,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun calendarEventDao(): CalendarEventDao
     abstract fun achievementDao(): AchievementDao
     abstract fun checklistDao(): ChecklistDao
+    abstract fun checklistCompletionDao(): ChecklistCompletionDao
     abstract fun alarmDao(): AlarmDao
     abstract fun sleepAudioEventDao(): SleepAudioEventDao
 
@@ -286,6 +290,44 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        // §024 — Per-day completion log for recurring checklist items.
+        // The single `lastCompletedEpochDay` column could only remember
+        // the latest tick, so completing the row on Tue overwrote Mon's
+        // stamp and Mon's view silently un-ticked. New table stores one
+        // row per (item, epoch_day) so every past tick survives.
+        //
+        // Backfill copies the existing single stamp into the new table
+        // for every recurring row that had one. Old column is kept for
+        // backward-compat with older clients sharing the same DB file
+        // (e.g. after a rollback); nothing in this codebase reads it
+        // anymore.
+        private val MIGRATION_13_14 = object : Migration(13, 14) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """CREATE TABLE IF NOT EXISTS `checklist_completions` (
+                        `itemId` TEXT NOT NULL,
+                        `epochDay` INTEGER NOT NULL,
+                        `completedAtMs` INTEGER NOT NULL,
+                        PRIMARY KEY(`itemId`, `epochDay`),
+                        FOREIGN KEY(`itemId`) REFERENCES `checklist_items`(`id`)
+                            ON UPDATE NO ACTION ON DELETE CASCADE
+                    )"""
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `idx_checklist_completions_item` " +
+                        "ON `checklist_completions` (`itemId`)"
+                )
+                db.execSQL(
+                    """INSERT OR IGNORE INTO `checklist_completions`
+                        (itemId, epochDay, completedAtMs)
+                       SELECT id, lastCompletedEpochDay, updatedAt
+                       FROM `checklist_items`
+                       WHERE lastCompletedEpochDay IS NOT NULL
+                         AND recurrenceDaysMask != 0"""
+                )
+            }
+        }
+
         private val MIGRATION_6_7 = object : Migration(6, 7) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(
@@ -378,6 +420,7 @@ abstract class AppDatabase : RoomDatabase() {
                     MIGRATION_10_11,
                     MIGRATION_11_12,
                     MIGRATION_12_13,
+                    MIGRATION_13_14,
                 )
                 // Legacy DB has been dropped if it existed; if Room can't
                 // open the file (corrupt / version mismatch from a prior

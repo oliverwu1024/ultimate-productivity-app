@@ -194,7 +194,6 @@ fun ChecklistScreen(
                             onToggle = viewModel::toggleCompleted,
                             onEdit = viewModel::openEditDialog,
                             onDelete = viewModel::deleteItem,
-                            todayEpochDay = state.selectedDate.toEpochDay(),
                         )
                     }
                 }
@@ -468,7 +467,6 @@ private fun CompletedSection(
     onToggle: (ChecklistEntity) -> Unit,
     onEdit: (ChecklistEntity) -> Unit,
     onDelete: (ChecklistEntity) -> Unit,
-    todayEpochDay: Long,
 ) {
     var expanded by remember { mutableStateOf(false) }
     Column(modifier = Modifier.padding(top = 16.dp)) {
@@ -499,13 +497,12 @@ private fun CompletedSection(
         if (expanded) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items.forEach { item ->
-                    // §3 — recurring rows report "done-for-today" via the
-                    // stamped epoch day; non-recurring rows use the boolean.
-                    val doneNow = if (item.recurrenceDaysMask != 0) {
-                        item.lastCompletedEpochDay == todayEpochDay
-                    } else {
-                        item.completed
-                    }
+                    // §024 — Everything in `items` is in the completed
+                    // bucket by virtue of being partitioned that way in
+                    // the ViewModel (recurring → tick exists in
+                    // checklist_completions for the day; non-recurring →
+                    // completed = true). So `isDoneNow` is unconditionally
+                    // true; no per-row re-check needed.
                     com.ultiq.app.ui.common.SwipeToDeleteBox(
                         confirmTitle = "Delete this item?",
                         confirmBody = "'${item.title}' will be removed.",
@@ -513,7 +510,7 @@ private fun CompletedSection(
                     ) {
                         ChecklistRow(
                             item = item,
-                            isDoneNow = doneNow,
+                            isDoneNow = true,
                             onToggle = { onToggle(item) },
                             onEdit = { onEdit(item) },
                         )

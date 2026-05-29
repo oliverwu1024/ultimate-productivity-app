@@ -5,12 +5,16 @@ import com.ultiq.app.BuildConfig
 import com.ultiq.app.alarm.WakeAlarmScheduler
 import com.ultiq.app.data.local.dao.AlarmDao
 import com.ultiq.app.data.local.dao.CalendarEventDao
+import com.ultiq.app.data.local.dao.ChecklistCompletionDao
 import com.ultiq.app.data.local.dao.ChecklistDao
 import com.ultiq.app.data.local.dao.SessionDao
 import com.ultiq.app.data.local.dao.SleepDao
+import com.ultiq.app.data.remote.dto.ChecklistItemDto
 import com.ultiq.app.data.remote.dto.SyncEvent
+import com.ultiq.app.data.remote.dto.completionEntities
 import com.ultiq.app.data.remote.dto.parseSyncEvent
 import com.ultiq.app.data.remote.dto.toEntity
+import java.time.Instant
 import com.ultiq.app.util.AlarmScheduler
 import com.ultiq.app.util.TokenManager
 import kotlinx.coroutines.CoroutineScope
@@ -41,6 +45,11 @@ class SyncEventClient(
     private val tokenManager: TokenManager,
     private val calendarDao: CalendarEventDao,
     private val checklistDao: ChecklistDao,
+    /// §024 — Required so SSE ChecklistCreated/Updated events also
+    /// reconcile the per-day completion log. Nullable for transitional
+    /// safety; callers that haven't been updated to pass it lose the
+    /// per-day sync but the main row still updates.
+    private val checklistCompletionDao: ChecklistCompletionDao? = null,
     private val sleepDao: SleepDao,
     private val sessionDao: SessionDao,
     private val alarmDao: AlarmDao,
@@ -191,9 +200,18 @@ class SyncEventClient(
                     calendarDao.deleteById(event.id)
                     alarmScheduler?.cancelEventReminder(event.id)
                 }
-                is SyncEvent.ChecklistCreated -> checklistDao.insert(event.item.toEntity())
-                is SyncEvent.ChecklistUpdated -> checklistDao.insert(event.item.toEntity())
-                is SyncEvent.ChecklistDeleted -> checklistDao.deleteById(event.id)
+                is SyncEvent.ChecklistCreated -> {
+                    checklistDao.insert(event.item.toEntity())
+                    applyChecklistCompletions(event.item)
+                }
+                is SyncEvent.ChecklistUpdated -> {
+                    checklistDao.insert(event.item.toEntity())
+                    applyChecklistCompletions(event.item)
+                }
+                is SyncEvent.ChecklistDeleted -> {
+                    checklistCompletionDao?.deleteAllForItem(event.id)
+                    checklistDao.deleteById(event.id)
+                }
                 is SyncEvent.SleepCreated -> sleepDao.insert(event.record.toEntity())
                 is SyncEvent.SleepUpdated -> sleepDao.insert(event.record.toEntity())
                 is SyncEvent.SleepDeleted -> sleepDao.deleteById(event.id)
@@ -222,6 +240,20 @@ class SyncEventClient(
         } catch (e: Exception) {
             Log.e(TAG, "applyEvent failed for ${event.javaClass.simpleName}", e)
         }
+    }
+
+    /// §024 — Mirror the server's `completed_epoch_days` snapshot into
+    /// the local table. Wipe + reinsert because the server is source of
+    /// truth for synced rows. No-op on pre-024 payloads (field absent),
+    /// so an older server can't accidentally erase local ticks.
+    private suspend fun applyChecklistCompletions(dto: ChecklistItemDto) {
+        val dao = checklistCompletionDao ?: return
+        val days = dto.completed_epoch_days ?: return
+        dao.deleteAllForItem(dto.id)
+        if (days.isEmpty()) return
+        val ts = runCatching { Instant.parse(dto.updated_at).toEpochMilli() }
+            .getOrDefault(System.currentTimeMillis())
+        dao.insertAll(dto.completionEntities(ts))
     }
 
     companion object {

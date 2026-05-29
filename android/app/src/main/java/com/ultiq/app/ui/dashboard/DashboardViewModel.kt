@@ -193,7 +193,11 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     )
     private val sessionRepo = SessionRepository(sessionDao, api)
     private val calendarRepo = CalendarRepository(db.calendarEventDao(), api, AlarmScheduler(application))
-    private val checklistRepo = ChecklistRepository(db.checklistDao(), api)
+    private val checklistRepo = ChecklistRepository(
+        db.checklistDao(),
+        db.checklistCompletionDao(),
+        api,
+    )
     private val alarmRepo = com.ultiq.app.data.repository.AlarmRepository(application, db.alarmDao(), api)
     private val syncManager = SyncManager(sleepRepo, sessionRepo, calendarRepo, alarmRepo, checklistRepo)
     private val userPreferences = UserPreferences(application)
@@ -363,22 +367,33 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             val todayEpochDay = today.toEpochDay()
             // Sun=0..Sat=6 — match the bitmask packing used by the dialog.
             val dayBit = 1 shl (today.dayOfWeek.value % 7)
-            db.checklistDao().getByDate(todayEpochDay, dayBit).collect { all ->
-                // Recurring rows are "open today" iff the per-day stamp is not
-                // today; non-recurring rows follow the completed flag.
+            // §024 — Recurring "done today" is now per-(item, day) rows in
+            // checklist_completions, not a single column. Join the two
+            // flows so a tick anywhere in the app updates the dashboard
+            // immediately without waiting for a sync round-trip.
+            kotlinx.coroutines.flow.combine(
+                db.checklistDao().getByDate(todayEpochDay, dayBit),
+                db.checklistCompletionDao().observeAll(),
+            ) { all, completions ->
+                val doneIdsForToday = completions
+                    .asSequence()
+                    .filter { it.epochDay == todayEpochDay }
+                    .map { it.itemId }
+                    .toHashSet()
                 val open = all.filter { item ->
                     if (item.recurrenceDaysMask != 0) {
-                        item.lastCompletedEpochDay != todayEpochDay
+                        item.id !in doneIdsForToday
                     } else {
                         !item.completed
                     }
                 }
-                val doneCount = all.size - open.size
+                Triple(open, all.size - open.size, all.size)
+            }.collect { (open, doneCount, totalCount) ->
                 _uiState.value = _uiState.value.copy(
                     todayChecklist = TodayChecklistSummary(
                         openItems = open,
                         completedCount = doneCount,
-                        totalCount = all.size,
+                        totalCount = totalCount,
                     ),
                 )
             }

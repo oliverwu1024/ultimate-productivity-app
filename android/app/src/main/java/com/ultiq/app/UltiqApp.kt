@@ -107,12 +107,17 @@ class UltiqApp : Application() {
                 AlarmScheduler(this),
             ),
             alarmRepo = com.ultiq.app.data.repository.AlarmRepository(this, db.alarmDao(), api),
-            checklistRepo = com.ultiq.app.data.repository.ChecklistRepository(db.checklistDao(), api),
+            checklistRepo = com.ultiq.app.data.repository.ChecklistRepository(
+                db.checklistDao(),
+                db.checklistCompletionDao(),
+                api,
+            ),
         )
         syncEventClient = SyncEventClient(
             tokenManager = tokenManager,
             calendarDao = db.calendarEventDao(),
             checklistDao = db.checklistDao(),
+            checklistCompletionDao = db.checklistCompletionDao(),
             sleepDao = db.sleepDao(),
             sessionDao = db.sessionDao(),
             alarmDao = db.alarmDao(),
