@@ -111,6 +111,9 @@ fun SettingsScreen(
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 viewModel.refreshOverlayPermission()
+                // Picks up an email verification that happened outside the
+                // app (typical: tap link in Gmail → Chrome → dashboard).
+                viewModel.refreshUserStatus()
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)

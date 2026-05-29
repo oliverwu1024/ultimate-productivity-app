@@ -126,6 +126,23 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         loadHistory()
     }
 
+    /// Re-fetches /auth/me to pick up a verification that happened in the
+    /// browser (the common case: user taps the email link in Gmail, which
+    /// hands off to Chrome and the dashboard processes the token there).
+    /// Without this, the in-app banner stayed visible until the next full
+    /// app launch / re-login.
+    fun refreshUserStatus() {
+        viewModelScope.launch {
+            runCatching { api.getMe() }
+                .onSuccess { me ->
+                    tokenManager.saveEmailVerified(me.email_verified)
+                    _uiState.value = _uiState.value.copy(isEmailVerified = me.email_verified)
+                }
+            // failure is silent — we already render whatever the cached
+            // value said. Network blip shouldn't flicker the banner.
+        }
+    }
+
     /// Resends the verification email. Triggers from the in-Coach banner so
     /// users who hit the AI-gate can recover without leaving the chat.
     fun resendVerificationEmail() {
