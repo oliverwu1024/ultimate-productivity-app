@@ -19,6 +19,7 @@ pub struct Config {
     pub resend_api_key: String,
     pub allowed_origins: Vec<String>,
     pub reset_link_base: String,
+    pub verify_link_base: String,
 }
 
 impl Config {
@@ -40,6 +41,8 @@ impl Config {
             allowed_origins: origins,
             reset_link_base: env::var("RESET_LINK_BASE")
                 .unwrap_or_else(|_| "https://app.ultiqapp.com/reset".to_string()),
+            verify_link_base: env::var("VERIFY_LINK_BASE")
+                .unwrap_or_else(|_| "https://app.ultiqapp.com/verify-email".to_string()),
         }
     }
 }

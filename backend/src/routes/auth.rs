@@ -12,7 +12,7 @@ use crate::error::AppError;
 use crate::middleware::auth::Claims;
 use crate::models::user::{
     AuthResponse, ChangePassword, CreateUser, ForgotPassword, LoginUser, ResetPassword,
-    UpdateProfile, User, UserResponse,
+    UpdateProfile, User, UserResponse, VerifyEmail,
 };
 
 use argon2::{
@@ -69,6 +69,8 @@ pub fn router() -> Router<AppState> {
         .route("/auth/password", post(change_password))
         .route("/auth/password/forgot", post(forgot_password))
         .route("/auth/password/reset", post(reset_password))
+        .route("/auth/verify-email", post(verify_email))
+        .route("/auth/verify-email/resend", post(resend_verification))
 }
 
 async fn register(
@@ -104,7 +106,15 @@ async fn register(
         _ => e.into(),
     })?;
 
-    // Generate JWT
+    // Best-effort: send the verification email. Don't fail the signup if
+    // Resend is down — the user can request a resend via
+    // /auth/verify-email/resend once they're logged in.
+    if let Err(e) = create_and_send_verification(&state, &user).await {
+        tracing::error!("Failed to send verification email on signup: {:?}", e);
+    }
+
+    // Generate JWT — user can log in immediately, but AI features stay
+    // gated until they click the verification link.
     let token = create_token(&user.id, user.token_version, &state.config.jwt_secret)?;
 
     Ok(Json(AuthResponse {
@@ -455,6 +465,131 @@ struct ResetTokenRow {
 fn sha256_hex(s: &str) -> String {
     let digest = Sha256::digest(s.as_bytes());
     digest.iter().map(|b| format!("{:02x}", b)).collect()
+}
+
+async fn verify_email(
+    State(state): State<AppState>,
+    Json(input): Json<VerifyEmail>,
+) -> Result<StatusCode, AppError> {
+    let token_hash = sha256_hex(&input.token);
+    let invalid = || AppError::new(StatusCode::BAD_REQUEST, "Invalid or expired verification link");
+
+    // Same constant-time-compare pattern as the password reset flow — pull
+    // a bounded set of unused tokens and compare in app code so the DB
+    // can't leak per-byte timing on the token hash.
+    let rows = sqlx::query_as::<_, VerificationRow>(
+        "SELECT id, user_id, token_hash \
+         FROM email_verifications \
+         WHERE used_at IS NULL AND expires_at > NOW() \
+         ORDER BY expires_at DESC LIMIT 1000",
+    )
+    .fetch_all(&state.pool)
+    .await?;
+
+    let candidate = token_hash.as_bytes();
+    let mut matched: Option<&VerificationRow> = None;
+    for row in &rows {
+        if row.token_hash.as_bytes().ct_eq(candidate).into() {
+            matched = Some(row);
+        }
+    }
+    let row = matched.ok_or_else(invalid)?;
+
+    let mut tx = state.pool.begin().await?;
+    sqlx::query("UPDATE users SET email_verified = true WHERE id = $1")
+        .bind(row.user_id)
+        .execute(&mut *tx)
+        .await?;
+    sqlx::query("UPDATE email_verifications SET used_at = NOW() WHERE id = $1")
+        .bind(row.id)
+        .execute(&mut *tx)
+        .await?;
+    tx.commit().await?;
+
+    Ok(StatusCode::OK)
+}
+
+async fn resend_verification(
+    State(state): State<AppState>,
+    claims: Claims,
+) -> Result<StatusCode, AppError> {
+    let user_id = parse_user_id(&claims)?;
+    let user = sqlx::query_as::<_, User>("SELECT * FROM users WHERE id = $1")
+        .bind(user_id)
+        .fetch_optional(&state.pool)
+        .await?
+        .ok_or_else(|| AppError::new(StatusCode::UNAUTHORIZED, "User not found"))?;
+
+    // Idempotent for already-verified users — return 200 without re-sending.
+    if user.email_verified {
+        return Ok(StatusCode::OK);
+    }
+
+    sqlx::query(
+        "UPDATE email_verifications SET used_at = NOW() \
+         WHERE user_id = $1 AND used_at IS NULL",
+    )
+    .bind(user.id)
+    .execute(&state.pool)
+    .await?;
+
+    create_and_send_verification(&state, &user).await?;
+    Ok(StatusCode::OK)
+}
+
+#[derive(sqlx::FromRow)]
+struct VerificationRow {
+    id: i64,
+    user_id: Uuid,
+    token_hash: String,
+}
+
+async fn create_and_send_verification(state: &AppState, user: &User) -> Result<(), AppError> {
+    let raw = Uuid::new_v4().to_string();
+    let hash = sha256_hex(&raw);
+    let expires_at = Utc::now() + chrono::Duration::hours(24);
+
+    sqlx::query(
+        "INSERT INTO email_verifications (user_id, token_hash, expires_at) \
+         VALUES ($1, $2, $3)",
+    )
+    .bind(user.id)
+    .bind(&hash)
+    .bind(expires_at)
+    .execute(&state.pool)
+    .await?;
+
+    send_verification_email(state, &user.email, &raw).await
+}
+
+async fn send_verification_email(state: &AppState, to: &str, token: &str) -> Result<(), AppError> {
+    let link = format!("{}?token={}", state.config.verify_link_base, token);
+    let body_text = format!(
+        "Welcome to Ultiq!\n\nTap the link below to verify your email address so you can use Coach and other AI features:\n\n{}\n\nThis link expires in 24 hours. If you didn't sign up for Ultiq, you can safely ignore this email.\n\n— Ultiq",
+        link
+    );
+    let body_html = format!(
+        "<div style=\"font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#2A1B6E;line-height:1.55;\">\
+         <p>Welcome to Ultiq!</p>\
+         <p>Tap the button below to verify your email address so you can use Coach and other AI features:</p>\
+         <p style=\"margin:24px 0\"><a href=\"{link}\" style=\"display:inline-block;padding:12px 28px;background:#2A1B6E;color:#FFF4E6;border-radius:24px;text-decoration:none;font-weight:600;\">Verify email</a></p>\
+         <p style=\"font-size:14px;color:#2A1B6Eaa\">If the button doesn't work, paste this link into your browser:<br><code style=\"background:#FFF4E6;padding:4px 8px;border-radius:4px;\">{link}</code></p>\
+         <p style=\"font-size:14px;color:#2A1B6Eaa\">This link expires in 24 hours. If you didn't sign up for Ultiq, you can safely ignore this email.</p>\
+         <p style=\"margin-top:32px;color:#2A1B6E\">— Ultiq</p></div>",
+        link = link
+    );
+
+    state
+        .email
+        .send(
+            &state.config.from_address,
+            &state.config.reply_to,
+            to,
+            "Verify your Ultiq email",
+            &body_text,
+            &body_html,
+        )
+        .await
 }
 
 async fn send_reset_email(state: &AppState, to: &str, token: &str) -> Result<(), AppError> {
