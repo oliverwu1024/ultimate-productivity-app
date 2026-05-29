@@ -125,12 +125,8 @@ pub struct AdminUserEntry {
 
 // ── §9.8 — Test push ─────────────────────────────────────────────────────
 
-/// Body for `POST /admin/test-push`. `target_user_id` optional — when
-/// omitted, sends to the calling admin's own registered devices, which is
-/// the typical "is FCM wired correctly?" flow.
 #[derive(Debug, Deserialize)]
 pub struct TestPushRequest {
-    pub target_user_id: Option<Uuid>,
     pub title: String,
     pub body: String,
 }
@@ -158,12 +154,10 @@ async fn admin_test_push(
             "title and body must not be empty",
         ));
     }
-    let target = match input.target_user_id {
-        Some(id) => id,
-        None => claims.sub.parse::<Uuid>().map_err(|_| {
-            AppError::new(StatusCode::UNAUTHORIZED, "Invalid token subject")
-        })?,
-    };
+    let target = claims
+        .sub
+        .parse::<Uuid>()
+        .map_err(|_| AppError::new(StatusCode::UNAUTHORIZED, "Invalid token subject"))?;
     let delivered = fcm
         .send_to_user(&state.pool, target, input.title.trim(), input.body.trim(), None)
         .await?;
