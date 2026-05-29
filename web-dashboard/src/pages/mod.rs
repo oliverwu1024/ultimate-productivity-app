@@ -10,3 +10,4 @@ pub mod overview;
 pub mod reports;
 pub mod reset_password;
 pub mod sleep;
+pub mod verify_email;

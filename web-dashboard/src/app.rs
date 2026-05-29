@@ -17,6 +17,7 @@ use crate::pages::overview::OverviewPage;
 use crate::pages::reports::ReportsPage;
 use crate::pages::reset_password::ResetPasswordPage;
 use crate::pages::sleep::SleepPage;
+use crate::pages::verify_email::VerifyEmailPage;
 
 #[component]
 pub fn App() -> impl IntoView {
@@ -44,6 +45,7 @@ pub fn App() -> impl IntoView {
                 <Route path=path!("/login") view=LoginPage />
                 <Route path=path!("/forgot-password") view=ForgotPasswordPage />
                 <Route path=path!("/reset") view=ResetPasswordPage />
+                <Route path=path!("/verify-email") view=VerifyEmailPage />
                 <Route path=path!("/") view=OverviewPage />
                 <Route path=path!("/calendar") view=CalendarPage />
                 <Route path=path!("/checklist") view=ChecklistPage />

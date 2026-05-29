@@ -4,6 +4,7 @@ use leptos_router::hooks::{use_location, use_navigate};
 
 use crate::api::sse::use_sse;
 use crate::auth::{use_auth, AuthContext};
+use crate::components::email_verification_banner::EmailVerificationBanner;
 use crate::theme::{use_theme, Theme};
 
 #[component]
@@ -62,6 +63,7 @@ pub fn AppShell(children: Children) -> impl IntoView {
                     <span class="font-bold">"Ultiq"</span>
                     <span class="w-10" />
                 </header>
+                <EmailVerificationBanner />
                 <main class="flex-1 overflow-auto min-w-0">
                     {children()}
                 </main>
@@ -118,6 +120,11 @@ fn SidebarFooter(
             <div class="opacity-80 break-words">
                 {move || auth.user.get().map(|u| u.email).unwrap_or_else(|| "—".into())}
             </div>
+            <Show when=move || auth.user.get().map(|u| !u.email_verified).unwrap_or(false)>
+                <div class="mt-1 inline-block text-[10px] uppercase tracking-wider bg-ultiq-yellow/20 text-ultiq-yellow px-1.5 py-0.5 rounded">
+                    "Unverified"
+                </div>
+            </Show>
             <ConnectionIndicator />
             <ThemeToggle />
             <button
