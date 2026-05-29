@@ -9,6 +9,18 @@ data class ReleaseNote(
 object ReleaseNotes {
     val history: List<ReleaseNote> = listOf(
         ReleaseNote(
+            versionName = "2.14.5",
+            versionCode = 82,
+            summary = "Recurring checklist fix: marking today done no longer un-ticks " +
+                "previous days. Pre-v2.14.5, each recurring row only stored a single " +
+                "\"last completed\" epoch day — ticking on Tue overwrote Mon's stamp, " +
+                "and navigating back to Mon showed it as open again. Now every per-day " +
+                "tick lives in its own row (new checklist_completions table on backend " +
+                "+ Room migration 13→14), so every day's done state is preserved " +
+                "independently. Also finalizes the v2.14.4 sleep-clip web-playback fix " +
+                "(CSP media-src 'self' blob: + Uint8Array blob constructor).",
+        ),
+        ReleaseNote(
             versionName = "2.13.19",
             versionCode = 73,
             summary = "Four calendar + alarm polish fixes. (1) Calendar reminder " +

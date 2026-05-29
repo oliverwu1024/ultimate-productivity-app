@@ -242,6 +242,23 @@ interface ApiService {
     @POST("checklist/{id}/uncomplete")
     suspend fun uncompleteChecklistItem(@Path("id") id: String): ChecklistItemDto
 
+    // §024 — Per-day completion routes for recurring items. The plain
+    // /complete + /uncomplete pair only flips the boolean, which is
+    // wrong for recurring rows because the single `lastCompletedEpochDay`
+    // column couldn't remember more than one tick. These endpoints
+    // operate on checklist_completions (one row per item, day).
+    @POST("checklist/{id}/complete-on/{epochDay}")
+    suspend fun completeChecklistItemOn(
+        @Path("id") id: String,
+        @Path("epochDay") epochDay: Long,
+    ): ChecklistItemDto
+
+    @POST("checklist/{id}/uncomplete-on/{epochDay}")
+    suspend fun uncompleteChecklistItemOn(
+        @Path("id") id: String,
+        @Path("epochDay") epochDay: Long,
+    ): ChecklistItemDto
+
     @DELETE("checklist/{id}")
     suspend fun deleteChecklistItem(@Path("id") id: String)
 

@@ -324,16 +324,35 @@ async fn fetch_clip_bytes_as_blob_url(event_id: &str) -> Result<String, String> 
         .binary()
         .await
         .map_err(|e| format!("Couldn't read clip body: {}", e))?;
-    let array = js_sys::Uint8Array::new_with_length(bytes.len() as u32);
-    array.copy_from(&bytes);
-    let parts = js_sys::Array::new();
-    parts.push(&array.buffer());
+
+    web_sys::console::log_1(
+        &format!("clip-bytes: received {} bytes", bytes.len()).into(),
+    );
+
+    // §10.x-fix (v2.14.5) — Use `new_with_u8_array_sequence_and_options`
+    // (the wasm-bindgen-blessed path) instead of buffer_source. Same idea
+    // but with explicit Uint8Array semantics. v2.14.4's
+    // `parts.push(&array.buffer())` pushed the underlying ArrayBuffer,
+    // which Chrome's Blob constructor apparently interpreted weirdly
+    // (audio element decoded as 0 sec despite valid bytes arriving).
+    let uint8 = js_sys::Uint8Array::from(&bytes[..]);
+    let parts = js_sys::Array::of1(&uint8);
     let opts = web_sys::BlobPropertyBag::new();
     opts.set_type("audio/mp4");
-    let blob = web_sys::Blob::new_with_buffer_source_sequence_and_options(&parts, &opts)
-        .map_err(|_| "Couldn't wrap clip in a Blob".to_string())?;
-    web_sys::Url::create_object_url_with_blob(&blob)
-        .map_err(|_| "Couldn't create blob URL".to_string())
+    let blob = web_sys::Blob::new_with_u8_array_sequence_and_options(&parts, &opts)
+        .map_err(|e| {
+            web_sys::console::error_1(&format!("blob new failed: {:?}", e).into());
+            "Couldn't wrap clip in a Blob".to_string()
+        })?;
+    web_sys::console::log_1(
+        &format!("clip-bytes: blob size={} type={}", blob.size(), blob.type_()).into(),
+    );
+    let blob_url = web_sys::Url::create_object_url_with_blob(&blob).map_err(|e| {
+        web_sys::console::error_1(&format!("createObjectURL failed: {:?}", e).into());
+        "Couldn't create blob URL".to_string()
+    })?;
+    web_sys::console::log_1(&format!("clip-bytes: blob URL = {}", blob_url).into());
+    Ok(blob_url)
 }
 
 fn format_clip_duration(ms: Option<i32>) -> String {

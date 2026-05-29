@@ -97,7 +97,11 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
         db.achievementDao(), db.sleepDao(), db.sessionDao(), userPreferences,
     )
     private val repository = SessionRepository(sessionDao, api, achievementChecker)
-    private val checklistRepository = ChecklistRepository(db.checklistDao(), api)
+    private val checklistRepository = ChecklistRepository(
+        db.checklistDao(),
+        db.checklistCompletionDao(),
+        api,
+    )
 
     private val usageTracker = PhoneUsageTracker(application)
 
@@ -233,17 +237,27 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
             // Sun=0..Sat=6 to match recurrence_days_mask packing.
             val todayBit = 1 shl (today.dayOfWeek.value % 7)
             android.util.Log.d("SessionsViewModel", "observing checklist for epochDay=$todayEpochDay")
-            // §fix-carryover-recurring — getOpenForDate is gone; use the
-            // canonical per-day query and filter to items that are still
-            // "open for today" (recurring vs one-off semantics differ).
-            db.checklistDao().getByDate(todayEpochDay, todayBit).collect { items ->
-                val open = items.filter { item ->
+            // §024 — Recurring "done today" is now stored per (item, day)
+            // in checklist_completions, so we join the items flow with the
+            // completion log instead of reading the single column on the
+            // row.
+            kotlinx.coroutines.flow.combine(
+                db.checklistDao().getByDate(todayEpochDay, todayBit),
+                db.checklistCompletionDao().observeAll(),
+            ) { items, completions ->
+                val doneIdsForToday = completions
+                    .asSequence()
+                    .filter { it.epochDay == todayEpochDay }
+                    .map { it.itemId }
+                    .toHashSet()
+                items.filter { item ->
                     if (item.recurrenceDaysMask != 0) {
-                        item.lastCompletedEpochDay != todayEpochDay
+                        item.id !in doneIdsForToday
                     } else {
                         !item.completed
                     }
                 }
+            }.collect { open ->
                 android.util.Log.d("SessionsViewModel", "checklist update: ${open.size} open item(s) for today")
                 _uiState.value = _uiState.value.copy(openChecklistItems = open)
             }

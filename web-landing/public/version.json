@@ -1,6 +1,6 @@
 {
-  "versionCode": 81,
-  "versionName": "2.14.4",
-  "url": "https://ultiqapp.com/ultiq.2.14.4.apk",
-  "releaseNotes": "Sleep audio fixes: web playback now works via a backend-proxied stream (sidesteps the cross-origin S3 issues that v2.14.1/.2/.3 attempts couldn't fix). Diagnostic logs added on clip capture + upload so adb logcat shows each event's outcome."
+  "versionCode": 82,
+  "versionName": "2.14.5",
+  "url": "https://ultiqapp.com/ultiq.2.14.5.apk",
+  "releaseNotes": "Recurring checklist tasks no longer un-tick previous days when you mark today done — each day's tick is now stored independently in a per-day completion log instead of a single 'last completed' stamp. Plus the v2.14.4 sleep-clip web-playback diagnostics are finalized (CSP media-src + blob constructor fix)."
 }

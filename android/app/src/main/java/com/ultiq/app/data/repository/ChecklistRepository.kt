@@ -1,10 +1,14 @@
 package com.ultiq.app.data.repository
 
 import android.util.Log
+import com.ultiq.app.data.local.dao.ChecklistCompletionDao
 import com.ultiq.app.data.local.dao.ChecklistDao
+import com.ultiq.app.data.local.entity.ChecklistCompletionEntity
 import com.ultiq.app.data.local.entity.ChecklistEntity
 import com.ultiq.app.data.remote.ApiService
+import com.ultiq.app.data.remote.dto.ChecklistItemDto
 import com.ultiq.app.data.remote.dto.CreateChecklistItemDto
+import com.ultiq.app.data.remote.dto.completionEntities
 import com.ultiq.app.data.remote.dto.toCreateDto
 import com.ultiq.app.data.remote.dto.toEntity
 import com.ultiq.app.data.remote.dto.toUpdateDto
@@ -16,6 +20,7 @@ import java.util.UUID
 
 class ChecklistRepository(
     private val dao: ChecklistDao,
+    private val completionDao: ChecklistCompletionDao,
     private val apiService: ApiService,
 ) {
     private val tag = "ChecklistRepo"
@@ -32,6 +37,11 @@ class ChecklistRepository(
 
     fun getInRange(startEpochDay: Long, endEpochDay: Long): Flow<List<ChecklistEntity>> =
         dao.getInRange(startEpochDay, endEpochDay)
+
+    /// Stream all (item, day) completion stamps. ViewModels join this
+    /// against [getByDate] to decide which rows are "done today" for
+    /// recurring items.
+    fun observeCompletions(): Flow<List<ChecklistCompletionEntity>> = completionDao.observeAll()
 
     suspend fun create(
         userId: String,
@@ -61,6 +71,7 @@ class ChecklistRepository(
                 showUntilDue = showUntilDue,
             )
             dao.insert(entity)
+            persistCompletionsFromServer(server)
             Log.d(tag, "create — server returned id=${server.id}")
             Result.success(entity)
         } catch (e: Exception) {
@@ -107,47 +118,37 @@ class ChecklistRepository(
                 lastCompletedEpochDay = item.lastCompletedEpochDay,
             )
             dao.insert(entity)
+            persistCompletionsFromServer(server)
             Result.success(entity)
         } catch (_: Exception) {
             Result.success(updated)
         }
     }
 
-    /** Recurring-item toggle: stamps lastCompletedEpochDay so the row re-opens
-     *  the next time its day-of-week comes round. completed flag stays false. */
+    /// §024 — Tick a recurring row for a specific day. Local row is
+    /// inserted first so the UI flips immediately even when offline;
+    /// the server call is best-effort. If the network fails the next
+    /// sync pull will reconcile via `completed_epoch_days`.
     suspend fun markRecurringCompletedOn(id: String, epochDay: Long): Result<Unit> {
         val now = System.currentTimeMillis()
-        dao.setLastCompletedEpochDay(id, epochDay, now)
-        // Push as a regular update so the schedule fields ride along.
+        completionDao.insert(ChecklistCompletionEntity(id, epochDay, now))
         return try {
-            val existing = dao.getById(id) ?: return Result.success(Unit)
-            val server = apiService.updateChecklistItem(id, existing.toUpdateDto())
-            dao.insert(
-                server.toEntity().copy(
-                    recurrenceDaysMask = existing.recurrenceDaysMask,
-                    showUntilDue = existing.showUntilDue,
-                    lastCompletedEpochDay = existing.lastCompletedEpochDay,
-                ),
-            )
+            val server = apiService.completeChecklistItemOn(id, epochDay)
+            applyServerSnapshot(server)
             Result.success(Unit)
         } catch (_: Exception) {
             Result.success(Unit)
         }
     }
 
-    suspend fun markRecurringIncompleteOn(id: String): Result<Unit> {
-        val now = System.currentTimeMillis()
-        dao.setLastCompletedEpochDay(id, null, now)
+    /// §024 — Untick a recurring row for a specific day. Symmetric with
+    /// [markRecurringCompletedOn] — local row is deleted immediately,
+    /// server call is best-effort.
+    suspend fun markRecurringIncompleteOn(id: String, epochDay: Long): Result<Unit> {
+        completionDao.delete(id, epochDay)
         return try {
-            // §recurring-uncomplete-fix — go through the dedicated
-            // /uncomplete endpoint so the server actually clears
-            // `last_completed_epoch_day`. The old path (PUT with
-            // last_completed_epoch_day = null) couldn't be distinguished
-            // from "field omitted" on the wire, so the server kept the
-            // old stamp and the row flipped back to completed on next
-            // sync.
-            val server = apiService.uncompleteChecklistItem(id)
-            dao.insert(server.toEntity())
+            val server = apiService.uncompleteChecklistItemOn(id, epochDay)
+            applyServerSnapshot(server)
             Result.success(Unit)
         } catch (_: Exception) {
             Result.success(Unit)
@@ -160,6 +161,7 @@ class ChecklistRepository(
         return try {
             val server = apiService.completeChecklistItem(id)
             dao.insert(server.toEntity())
+            persistCompletionsFromServer(server)
             Result.success(Unit)
         } catch (_: Exception) {
             Result.success(Unit)
@@ -175,6 +177,7 @@ class ChecklistRepository(
             // cleared without ambiguity from the generic update body.
             val server = apiService.uncompleteChecklistItem(id)
             dao.insert(server.toEntity())
+            persistCompletionsFromServer(server)
             Result.success(Unit)
         } catch (_: Exception) {
             Result.success(Unit)
@@ -186,6 +189,10 @@ class ChecklistRepository(
         Log.d(tag, "delete id=$id existsLocally=${existing != null} isSynced=${existing?.isSynced}")
 
         if (existing != null && !existing.isSynced) {
+            // FK cascade handles the completions table; explicit call kept
+            // for clarity and to cover any edge case where the local row was
+            // created before the FK was wired.
+            completionDao.deleteAllForItem(id)
             dao.deleteById(id)
             Log.d(tag, "delete id=$id — dropped local-only row, no API call")
             return Result.success(Unit)
@@ -193,12 +200,14 @@ class ChecklistRepository(
 
         return try {
             apiService.deleteChecklistItem(id)
+            completionDao.deleteAllForItem(id)
             dao.deleteById(id)
             Log.d(tag, "delete id=$id — API + local both succeeded")
             Result.success(Unit)
         } catch (e: HttpException) {
             Log.w(tag, "delete id=$id — API HTTP ${e.code()}", e)
             if (e.code() == 404) {
+                completionDao.deleteAllForItem(id)
                 dao.deleteById(id)
                 Result.success(Unit)
             } else {
@@ -216,6 +225,7 @@ class ChecklistRepository(
             val server = apiService.bulkCreateChecklistItems(items)
             val entities = server.map { it.toEntity() }
             dao.insertAll(entities)
+            for (dto in server) persistCompletionsFromServer(dto)
             Result.success(entities)
         } catch (e: Exception) {
             Result.failure(e)
@@ -235,6 +245,7 @@ class ChecklistRepository(
                     }
                     dao.deleteById(item.id)
                     dao.insert(server.toEntity())
+                    persistCompletionsFromServer(server)
                 } catch (_: Exception) {
                     // skip, retry on next sync
                 }
@@ -253,6 +264,7 @@ class ChecklistRepository(
             var reconcileDeletes = 0
             for (id in localSyncedIds) {
                 if (id !in serverIds) {
+                    completionDao.deleteAllForItem(id)
                     dao.deleteById(id)
                     reconcileDeletes++
                     Log.d(tag, "sync — orphan local row deleted: id=$id")
@@ -279,9 +291,47 @@ class ChecklistRepository(
                 }
             }
             dao.insertAll(merged)
+            for (dto in serverItems) persistCompletionsFromServer(dto)
             Log.d(tag, "sync — inserted ${serverItems.size} item(s) from server")
         } catch (e: Exception) {
             Log.w(tag, "sync — failed (offline or API error)", e)
         }
+    }
+
+    /// §024 — Reconcile the local `checklist_completions` mirror with
+    /// the server's `completed_epoch_days` array. Strategy: wipe the
+    /// item's local completions and re-insert from the server. Safe
+    /// because the server is source-of-truth for synced rows.
+    ///
+    /// Pre-024 backend payloads omit `completed_epoch_days` entirely;
+    /// in that case we leave the local mirror alone so an older server
+    /// can't accidentally erase the user's local ticks.
+    private suspend fun persistCompletionsFromServer(dto: ChecklistItemDto) {
+        val days = dto.completed_epoch_days ?: return
+        completionDao.deleteAllForItem(dto.id)
+        if (days.isEmpty()) return
+        val updatedAt = runCatching {
+            java.time.Instant.parse(dto.updated_at).toEpochMilli()
+        }.getOrDefault(System.currentTimeMillis())
+        completionDao.insertAll(dto.completionEntities(updatedAt))
+    }
+
+    /// Single-item version of the post-API reconciliation used by toggle
+    /// flows: write the entity *and* refresh its completion mirror.
+    /// Schedule fields fall back to the local row when the server omits
+    /// them (older backend deploys), mirroring the sync() merge logic.
+    private suspend fun applyServerSnapshot(dto: ChecklistItemDto) {
+        val local = dao.getById(dto.id)
+        val entity = if (local != null) {
+            dto.toEntity().copy(
+                recurrenceDaysMask = dto.recurrence_days_mask
+                    ?: local.recurrenceDaysMask,
+                showUntilDue = dto.show_until_due ?: local.showUntilDue,
+            )
+        } else {
+            dto.toEntity()
+        }
+        dao.insert(entity)
+        persistCompletionsFromServer(dto)
     }
 }

@@ -1,5 +1,6 @@
 package com.ultiq.app.data.remote.dto
 
+import com.ultiq.app.data.local.entity.ChecklistCompletionEntity
 import com.ultiq.app.data.local.entity.ChecklistEntity
 import java.time.Instant
 import java.time.LocalDate
@@ -25,6 +26,10 @@ data class UpdateChecklistItemDto(
     val completed: Boolean? = null,
     val recurrence_days_mask: Int? = null,
     val show_until_due: Boolean? = null,
+    // Sent for backward-compat against older backend builds but client
+    // code stopped reading it after §024. The per-day completion log on
+    // checklist_completions is now the source of truth for recurring
+    // "done today" state.
     val last_completed_epoch_day: Long? = null,
 )
 
@@ -44,6 +49,11 @@ data class ChecklistItemDto(
     val recurrence_days_mask: Int? = null,
     val show_until_due: Boolean? = null,
     val last_completed_epoch_day: Long? = null,
+    // §024 — Per-day completion list for recurring rows. Empty for
+    // non-recurring items. Older backends without migration 024 omit
+    // this field; in that case clients should fall back to the local
+    // checklist_completions table they already have.
+    val completed_epoch_days: List<Long>? = null,
 )
 
 private val ISO_DATE: DateTimeFormatter = DateTimeFormatter.ISO_LOCAL_DATE
@@ -66,6 +76,21 @@ fun ChecklistItemDto.toEntity(): ChecklistEntity {
         showUntilDue = show_until_due ?: false,
         lastCompletedEpochDay = last_completed_epoch_day,
     )
+}
+
+/// §024 — Expand the server's `completed_epoch_days` array into per-day
+/// rows for the local `checklist_completions` table. Returns an empty
+/// list when the server hasn't supplied the field (pre-024 backend) so
+/// the caller can leave its local mirror untouched.
+fun ChecklistItemDto.completionEntities(updatedAt: Long): List<ChecklistCompletionEntity> {
+    val days = completed_epoch_days ?: return emptyList()
+    return days.map { day ->
+        ChecklistCompletionEntity(
+            itemId = id,
+            epochDay = day,
+            completedAtMs = updatedAt,
+        )
+    }
 }
 
 fun ChecklistEntity.toCreateDto(): CreateChecklistItemDto {

@@ -37,7 +37,11 @@ class WeeklyPlannerViewModel(application: Application) : AndroidViewModel(applic
     private val tokenManager = TokenManager(application)
     private val api = RetrofitClient.create(tokenManager)
     private val db = AppDatabase.getInstance(application)
-    private val repository = ChecklistRepository(db.checklistDao(), api)
+    private val repository = ChecklistRepository(
+        db.checklistDao(),
+        db.checklistCompletionDao(),
+        api,
+    )
 
     private val _uiState = MutableStateFlow(WeeklyPlannerUiState())
     val uiState: StateFlow<WeeklyPlannerUiState> = _uiState

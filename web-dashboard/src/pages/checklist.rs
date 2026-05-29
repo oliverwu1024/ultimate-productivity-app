@@ -8,8 +8,9 @@ use crate::api::calendar::{
     create_event as create_calendar_event, CreateCalendarEvent, EventCategory, EventPriority,
 };
 use crate::api::checklist::{
-    complete_item, create_item, delete_item, list_for_range, naive_date_to_epoch_day,
-    uncomplete_item, update_item, ChecklistItem, CreateChecklistItem, Priority, UpdateChecklistItem,
+    complete_item, complete_item_on, create_item, delete_item, list_for_range,
+    naive_date_to_epoch_day, uncomplete_item, uncomplete_item_on, update_item, ChecklistItem,
+    CreateChecklistItem, Priority, UpdateChecklistItem,
 };
 use crate::api::sse::{use_sse, SyncEvent};
 use crate::components::ai_parse_dialog::{AiParsePromptDialog, AiSurface};
@@ -138,33 +139,18 @@ pub fn ChecklistPage() -> impl IntoView {
         let was_done = item.is_done_on(day);
         let recurring = item.is_recurring();
         wasm_bindgen_futures::spawn_local(async move {
-            let result = if was_done {
-                // §recurring-uncomplete-fix — dedicated endpoint clears
-                // `completed`, `completed_at`, and `last_completed_epoch_day`
-                // atomically, fixing the "recurring task flips back to
-                // completed on next sync" bug.
+            // §024 — Recurring rows now use the per-day endpoints which
+            // touch checklist_completions, so a tick on Tue stays tied
+            // to Tue and doesn't undo Mon's stamp. Non-recurring rows
+            // keep the legacy complete/uncomplete pair.
+            let result = if recurring {
+                if was_done {
+                    uncomplete_item_on(&id, day_epoch).await.map(|_| ())
+                } else {
+                    complete_item_on(&id, day_epoch).await.map(|_| ())
+                }
+            } else if was_done {
                 uncomplete_item(&id).await.map(|_| ())
-            } else if recurring {
-                // Stamping the recurring "done for today" marker still
-                // goes through the generic PUT, since here we have a
-                // value to send (the epoch day) — no null-vs-omitted
-                // ambiguity.
-                update_item(
-                    &id,
-                    &UpdateChecklistItem {
-                        title: None,
-                        description: None,
-                        due_date: None,
-                        estimated_minutes: None,
-                        priority: None,
-                        completed: None,
-                        recurrence_days_mask: None,
-                        show_until_due: None,
-                        last_completed_epoch_day: Some(day_epoch),
-                    },
-                )
-                .await
-                .map(|_| ())
             } else {
                 complete_item(&id).await.map(|_| ())
             };

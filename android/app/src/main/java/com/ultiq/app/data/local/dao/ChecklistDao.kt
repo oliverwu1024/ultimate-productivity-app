@@ -56,6 +56,11 @@ interface ChecklistDao {
      *      already includes the row, it'll show on today's list naturally
      *      so we skip it here to avoid a redundant nudge.
      *
+     * §024 — recurring "wasn't ticked for epochDay" check moved from the
+     * old single `lastCompletedEpochDay` column to a NOT EXISTS against
+     * checklist_completions, so a tick on today no longer hides yesterday
+     * from the carry-forward list.
+     *
      * `showUntilDue` items deliberately never appear — they persist across
      * days under their own rules, so "carry forward" doesn't apply.
      */
@@ -67,7 +72,9 @@ interface ChecklistDao {
             "(recurrenceDaysMask != 0 " +
             " AND (recurrenceDaysMask & :yesterdayBit) != 0 " +
             " AND (recurrenceDaysMask & :todayBit) = 0 " +
-            " AND (lastCompletedEpochDay IS NULL OR lastCompletedEpochDay != :epochDay) " +
+            " AND NOT EXISTS (SELECT 1 FROM checklist_completions " +
+            "                 WHERE itemId = checklist_items.id " +
+            "                   AND epochDay = :epochDay) " +
             " AND dueDateEpochDay <= :epochDay) " +
             "ORDER BY priority DESC, createdAt ASC"
     )
