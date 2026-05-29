@@ -1,5 +1,5 @@
 use axum::async_trait;
-use axum::extract::{FromRequestParts, State};
+use axum::extract::{FromRequestParts, Path, State};
 use axum::http::request::Parts;
 use axum::http::StatusCode;
 use axum::routing::{get, post};
@@ -20,6 +20,7 @@ pub fn router() -> Router<AppState> {
         // §9.8 — Debug endpoint to manually verify the FCM end-to-end path
         // before the daily anomaly scheduler is wired. Keep gated to admins.
         .route("/admin/test-push", post(admin_test_push))
+        .route("/admin/users/:id/revoke-tokens", post(admin_revoke_tokens))
 }
 
 pub struct AdminUser {
@@ -217,6 +218,35 @@ async fn admin_test_push(
         .send_to_user(&state.pool, admin.id, input.title.trim(), input.body.trim(), None)
         .await?;
     Ok(Json(TestPushResponse { delivered }))
+}
+
+/// Force-revoke every session token for a target user. Increments their
+/// token_version, which the auth middleware compares to the version baked
+/// into each JWT — any pre-existing token immediately fails the next call.
+/// Use cases: leaked credentials response, abusive-account isolation,
+/// support tooling.
+async fn admin_revoke_tokens(
+    State(state): State<AppState>,
+    admin: AdminUser,
+    Path(target_id): Path<Uuid>,
+) -> Result<StatusCode, AppError> {
+    let result = sqlx::query("UPDATE users SET token_version = token_version + 1 WHERE id = $1")
+        .bind(target_id)
+        .execute(&state.pool)
+        .await?;
+    if result.rows_affected() == 0 {
+        return Err(AppError::new(StatusCode::NOT_FOUND, "User not found"));
+    }
+    record_admin_action(
+        &state.pool,
+        admin.id,
+        "POST /admin/users/:id/revoke-tokens",
+        Some(target_id),
+        None,
+        admin.ip.as_deref(),
+    )
+    .await;
+    Ok(StatusCode::NO_CONTENT)
 }
 
 async fn admin_users(

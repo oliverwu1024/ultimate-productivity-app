@@ -18,13 +18,12 @@ use crate::sleep_audio_clips::{CLIP_CONTENT_TYPE, MAX_CLIP_BYTES};
 // shouldn't be able to flood the table from a single sync.
 const MAX_BATCH: usize = 2000;
 
-/// §10.x — Independent clip recording is Pro-tier only. We don't yet have a
-/// billing-backed `is_pro` column (Phase 11 — Launch will introduce it via
-/// Play Billing webhooks), so the stand-in is `is_admin`: only the dev
-/// account passes, which matches our closed-testing rollout. Swap this
-/// implementation when monetization lands; every route is the same call.
+/// §10.x — Independent clip recording is Pro-tier only. Reads the
+/// dedicated `is_pro` column added in migration 027. Existing admins
+/// were backfilled to is_pro=true so the dev account keeps access; new
+/// Pro accounts will land via Play Billing webhooks in Phase 11.
 async fn require_pro_tier(pool: &sqlx::PgPool, user_id: Uuid) -> Result<(), AppError> {
-    let is_pro: bool = sqlx::query_scalar("SELECT is_admin FROM users WHERE id = $1")
+    let is_pro: bool = sqlx::query_scalar("SELECT is_pro FROM users WHERE id = $1")
         .bind(user_id)
         .fetch_optional(pool)
         .await?

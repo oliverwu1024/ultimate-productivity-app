@@ -138,6 +138,19 @@ async fn main() {
             .expect("valid governor config"),
     );
 
+    // `/admin/**` rate limit. 1 rps with burst 60 smooths to "60 req/min",
+    // which is enough headroom for the dashboard's signup chart + user
+    // list rendering back-to-back. Without this, a leaked admin JWT could
+    // enumerate users / dispatch test pushes at the global 200 rps ceiling.
+    let admin_governor = Arc::new(
+        GovernorConfigBuilder::default()
+            .per_second(1)
+            .burst_size(60)
+            .use_headers()
+            .finish()
+            .expect("valid governor config"),
+    );
+
     let state = AppState { pool, config, email, events, tickets, ai, fcm, sleep_audio_clips };
 
     // §9.8 Phase C — daily anomaly scan. No-op unless
@@ -152,6 +165,10 @@ async fn main() {
     // bucket because each request burns Bedrock dollars and quota.
     let ai_routes = routes::ai_routes()
         .layer(GovernorLayer { config: ai_governor });
+    // Admin routes sit behind their own governor — limits the blast
+    // radius of a leaked admin JWT (enumeration, test-push spam, etc.).
+    let admin_routes = routes::admin_routes()
+        .layer(GovernorLayer { config: admin_governor });
     // `/health` is mounted outside both governors. ALB probes must never
     // be rate-limited — a burst from real traffic depleting the bucket
     // would otherwise 429 the next probe and make ECS kill the task.
@@ -164,6 +181,7 @@ async fn main() {
     let app = auth_routes
         .merge(other_routes)
         .merge(ai_routes)
+        .merge(admin_routes)
         .merge(health_routes)
         // 1 MiB hard cap on request bodies — well above the largest legitimate
         // bulk_create payload but cheap to enforce.
