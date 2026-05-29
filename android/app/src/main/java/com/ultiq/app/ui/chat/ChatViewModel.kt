@@ -77,6 +77,11 @@ data class ChatUiState(
     val isLoading: Boolean = false,
     val isSending: Boolean = false,
     val error: String? = null,
+    /// Email-verification gate visibility. True = banner hidden (AI
+    /// surfaces are usable). Defaults true so first-render doesn't flash
+    /// a banner before TokenManager is read.
+    val isEmailVerified: Boolean = true,
+    val resendingVerification: Boolean = false,
 )
 
 /// One-shot UI event for the undo snackbar. The screen collects these and
@@ -112,8 +117,40 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     init {
         viewModelScope.launch {
             userId = tokenManager.getUserId().firstOrNull() ?: ""
+            // Seed the verification banner from the cached flag. AuthViewModel
+            // re-syncs this from /auth/me on every app launch, so it's fresh
+            // enough for a screen the user opens after launch.
+            val verified = tokenManager.getEmailVerified().firstOrNull() ?: true
+            _uiState.value = _uiState.value.copy(isEmailVerified = verified)
         }
         loadHistory()
+    }
+
+    /// Resends the verification email. Triggers from the in-Coach banner so
+    /// users who hit the AI-gate can recover without leaving the chat.
+    fun resendVerificationEmail() {
+        if (_uiState.value.resendingVerification) return
+        _uiState.value = _uiState.value.copy(
+            resendingVerification = true,
+            error = null,
+        )
+        viewModelScope.launch {
+            runCatching { api.resendVerificationEmail() }
+                .onSuccess {
+                    _uiState.value = _uiState.value.copy(
+                        resendingVerification = false,
+                        error = "Verification email sent — check your inbox.",
+                    )
+                }
+                .onFailure { e ->
+                    _uiState.value = _uiState.value.copy(
+                        resendingVerification = false,
+                        error = e.toUserMessage(
+                            "Couldn't send a new verification email. Try again."
+                        ),
+                    )
+                }
+        }
     }
 
     fun loadHistory() {

@@ -43,6 +43,7 @@ import com.ultiq.app.ui.auth.ForgotPasswordScreen
 import com.ultiq.app.ui.auth.LoginScreen
 import com.ultiq.app.ui.auth.RegisterScreen
 import com.ultiq.app.ui.auth.ResetPasswordScreen
+import com.ultiq.app.ui.auth.VerifyEmailScreen
 import com.ultiq.app.ui.calendar.CalendarScreen
 import com.ultiq.app.ui.chat.ChatScreen
 import com.ultiq.app.ui.checklist.ChecklistScreen
@@ -68,6 +69,9 @@ sealed class Screen(val route: String) {
     data object ForgotPassword : Screen("forgot_password")
     data object ResetPassword : Screen("reset_password?token={token}") {
         fun route(token: String) = "reset_password?token=$token"
+    }
+    data object VerifyEmail : Screen("verify_email?token={token}") {
+        fun route(token: String) = "verify_email?token=$token"
     }
     data object Dashboard : Screen("dashboard")
     data object Checklist : Screen("checklist")
@@ -240,6 +244,36 @@ fun AppNavigation(
                     },
                 )
             }
+            composable(
+                route = Screen.VerifyEmail.route,
+                arguments = listOf(navArgument("token") {
+                    type = NavType.StringType
+                    defaultValue = ""
+                }),
+                deepLinks = listOf(
+                    navDeepLink { uriPattern = "ultiq://verify-email?token={token}" },
+                    navDeepLink { uriPattern = "https://app.ultiqapp.com/verify-email?token={token}" },
+                ),
+            ) { entry ->
+                val rawToken = entry.arguments?.getString("token").orEmpty()
+                val token = if (rawToken.length in 16..256) rawToken else ""
+                VerifyEmailScreen(
+                    uiState = uiState,
+                    token = token,
+                    onVerify = { t -> authViewModel.verifyEmail(t) },
+                    onContinue = {
+                        authViewModel.consumeVerifyEmailResult()
+                        val destination = if (uiState.isLoggedIn) {
+                            Screen.Dashboard.route
+                        } else {
+                            Screen.Login.route
+                        }
+                        navController.navigate(destination) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    },
+                )
+            }
             composable(Screen.Dashboard.route) {
                 DashboardScreen(
                     onNavigateToSleep = { navigateToTab(navController, Screen.Sleep) },
@@ -358,6 +392,7 @@ fun AppNavigation(
                 Screen.Register.route,
                 Screen.ForgotPassword.route,
                 Screen.ResetPassword.route,
+                Screen.VerifyEmail.route,
             )
             if (current !in allowedUnauthRoutes) {
                 navController.navigate(Screen.Login.route) {

@@ -27,6 +27,15 @@ data class UserResponse(
      *  server thinks the user is in. Default 'UTC' from the v2.13.9
      *  migration before the client first pushes its detected zone. */
     val timezone: String = "UTC",
+    /** Migration 026: existing users backfilled to true. New signups
+     *  start false and unlock after clicking the verification link.
+     *  Defaults true so older backend builds (without the column) keep
+     *  the AI surfaces working in the absence of a real signal. */
+    val email_verified: Boolean = true,
+)
+
+data class VerifyEmailRequest(
+    val token: String,
 )
 
 data class UpdateProfileRequest(

@@ -143,6 +143,12 @@ fun ChatScreen(
                 .fillMaxSize()
                 .padding(padding),
         ) {
+            if (!state.isEmailVerified) {
+                EmailVerificationBanner(
+                    sending = state.resendingVerification,
+                    onResend = { viewModel.resendVerificationEmail() },
+                )
+            }
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -732,6 +738,45 @@ private fun ChatComposer(
                         MaterialTheme.colorScheme.onSurfaceVariant
                     },
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun EmailVerificationBanner(
+    sending: Boolean,
+    onResend: () -> Unit,
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.tertiaryContainer,
+        tonalElevation = 2.dp,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Verify your email",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                )
+                Text(
+                    text = "Coach stays locked until you confirm the address.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                )
+            }
+            Spacer(Modifier.width(12.dp))
+            OutlinedButton(
+                onClick = onResend,
+                enabled = !sending,
+            ) {
+                Text(if (sending) "Sending…" else "Resend")
             }
         }
     }

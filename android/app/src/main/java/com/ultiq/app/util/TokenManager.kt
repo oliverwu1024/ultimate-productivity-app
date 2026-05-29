@@ -66,10 +66,22 @@ class TokenManager(context: Context) {
     fun getToken(): Flow<String?> = readFresh(KEY_TOKEN)
     fun getUserId(): Flow<String?> = readFresh(KEY_USER_ID)
     fun getEmail(): Flow<String?> = readFresh(KEY_EMAIL)
+    /** Defaults to true so a missing/legacy key (pre-026 backend, or any
+     *  session that hasn't refreshed /auth/me yet) doesn't lock the user
+     *  out of the AI surface. AuthViewModel overwrites this on every
+     *  login / register / checkAuth using the real /auth/me response. */
+    fun getEmailVerified(): Flow<Boolean> = flow {
+        emit(withContext(Dispatchers.IO) { prefs.getBoolean(KEY_EMAIL_VERIFIED, true) })
+    }
 
     suspend fun saveToken(token: String) = write(KEY_TOKEN, token)
     suspend fun saveUserId(userId: String) = write(KEY_USER_ID, userId)
     suspend fun saveEmail(email: String) = write(KEY_EMAIL, email)
+    suspend fun saveEmailVerified(verified: Boolean) {
+        withContext(Dispatchers.IO) {
+            prefs.edit().putBoolean(KEY_EMAIL_VERIFIED, verified).apply()
+        }
+    }
 
     suspend fun clearToken() {
         withContext(Dispatchers.IO) {
@@ -77,6 +89,7 @@ class TokenManager(context: Context) {
                 .remove(KEY_TOKEN)
                 .remove(KEY_USER_ID)
                 .remove(KEY_EMAIL)
+                .remove(KEY_EMAIL_VERIFIED)
                 .apply()
         }
     }
@@ -95,5 +108,6 @@ class TokenManager(context: Context) {
         private const val KEY_TOKEN = "jwt_token"
         private const val KEY_USER_ID = "user_id"
         private const val KEY_EMAIL = "user_email"
+        private const val KEY_EMAIL_VERIFIED = "email_verified"
     }
 }
