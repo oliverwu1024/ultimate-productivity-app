@@ -66,6 +66,18 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         refreshOverlayPermission()
     }
 
+    /// Re-fetches /auth/me to pick up a verification that happened
+    /// outside the app (typical: Gmail → Chrome → dashboard /verify-email).
+    fun refreshUserStatus() {
+        viewModelScope.launch {
+            runCatching { api.getMe() }
+                .onSuccess { me ->
+                    tokenManager.saveEmailVerified(me.email_verified)
+                    _uiState.value = _uiState.value.copy(emailVerified = me.email_verified)
+                }
+        }
+    }
+
     fun resendVerificationEmail() {
         if (_uiState.value.resendingVerification) return
         _uiState.value = _uiState.value.copy(

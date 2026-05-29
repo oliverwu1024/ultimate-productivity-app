@@ -89,6 +89,13 @@ fun ChatScreen(
     val listState = rememberLazyListState()
     var showResetDialog by remember { mutableStateOf(false) }
 
+    // Re-sync the cached verification flag every time the screen mounts.
+    // Catches the "verified in Gmail → Chrome → bounce back to Ultiq" path
+    // that would otherwise leave the banner stuck until the next login.
+    LaunchedEffect(Unit) {
+        viewModel.refreshUserStatus()
+    }
+
     LaunchedEffect(state.turns.size) {
         if (state.turns.isNotEmpty()) {
             listState.animateScrollToItem(state.turns.size - 1)
