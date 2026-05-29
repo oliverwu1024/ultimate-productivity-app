@@ -45,6 +45,7 @@ import com.ultiq.app.data.remote.dto.SessionDebriefResponseDto
 import com.ultiq.app.data.remote.dto.SleepRatingRequestDto
 import com.ultiq.app.data.remote.dto.SleepRatingResponseDto
 import com.ultiq.app.data.remote.dto.UserResponse
+import com.ultiq.app.data.remote.dto.VerifyEmailRequest
 import com.ultiq.app.data.remote.dto.WeeklyInsightDto
 import retrofit2.http.Body
 import retrofit2.http.DELETE
@@ -83,6 +84,12 @@ interface ApiService {
 
     @POST("auth/password/reset")
     suspend fun resetPassword(@Body request: ResetPasswordRequest)
+
+    @POST("auth/verify-email")
+    suspend fun verifyEmail(@Body request: VerifyEmailRequest)
+
+    @POST("auth/verify-email/resend")
+    suspend fun resendVerificationEmail()
 
     @POST("sleep")
     suspend fun createSleepRecord(@Body record: CreateSleepRecordDto): SleepRecordDto

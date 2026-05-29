@@ -12,6 +12,7 @@ import com.ultiq.app.util.ThemePreference
 import com.ultiq.app.util.TokenManager
 import com.ultiq.app.util.UserPreferences
 import com.ultiq.app.util.UserSettings
+import com.ultiq.app.util.toUserMessage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
@@ -25,6 +26,11 @@ data class SettingsUiState(
     val isStrictLockEnabled: Boolean = false,
     val versionName: String = BuildConfig.VERSION_NAME,
     val versionCode: Int = BuildConfig.VERSION_CODE,
+    /// Mirrored from TokenManager. Default true so existing sessions don't
+    /// flash an "unverified" row before the cached value is read.
+    val emailVerified: Boolean = true,
+    val resendingVerification: Boolean = false,
+    val verificationFeedback: String? = null,
 )
 
 class SettingsViewModel(application: Application) : AndroidViewModel(application) {
@@ -52,7 +58,41 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 _uiState.value = _uiState.value.copy(email = email)
             }
         }
+        viewModelScope.launch {
+            tokenManager.getEmailVerified().collectLatest { verified ->
+                _uiState.value = _uiState.value.copy(emailVerified = verified)
+            }
+        }
         refreshOverlayPermission()
+    }
+
+    fun resendVerificationEmail() {
+        if (_uiState.value.resendingVerification) return
+        _uiState.value = _uiState.value.copy(
+            resendingVerification = true,
+            verificationFeedback = null,
+        )
+        viewModelScope.launch {
+            runCatching { api.resendVerificationEmail() }
+                .onSuccess {
+                    _uiState.value = _uiState.value.copy(
+                        resendingVerification = false,
+                        verificationFeedback = "Verification email sent — check your inbox.",
+                    )
+                }
+                .onFailure { e ->
+                    _uiState.value = _uiState.value.copy(
+                        resendingVerification = false,
+                        verificationFeedback = e.toUserMessage(
+                            "Couldn't send a new verification email. Try again."
+                        ),
+                    )
+                }
+        }
+    }
+
+    fun clearVerificationFeedback() {
+        _uiState.value = _uiState.value.copy(verificationFeedback = null)
     }
 
     fun refreshOverlayPermission() {

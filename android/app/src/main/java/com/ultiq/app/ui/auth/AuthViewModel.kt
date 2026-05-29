@@ -11,6 +11,7 @@ import com.ultiq.app.data.remote.dto.ForgotPasswordRequest
 import com.ultiq.app.data.remote.dto.LoginRequest
 import com.ultiq.app.data.remote.dto.RegisterRequest
 import com.ultiq.app.data.remote.dto.ResetPasswordRequest
+import com.ultiq.app.data.remote.dto.VerifyEmailRequest
 import com.ultiq.app.fcm.FcmTokenSyncer
 import com.ultiq.app.util.TokenManager
 import com.ultiq.app.util.UserPreferences
@@ -32,6 +33,12 @@ data class AuthUiState(
     val isCheckingOnboarding: Boolean = true,
     val forgotPasswordEmailSent: Boolean = false,
     val resetPasswordSuccess: Boolean = false,
+    val verifyEmailLoading: Boolean = false,
+    val verifyEmailSuccess: Boolean = false,
+    val verifyEmailError: String? = null,
+    val resendVerificationLoading: Boolean = false,
+    val resendVerificationSuccess: Boolean = false,
+    val resendVerificationError: String? = null,
 )
 
 class AuthViewModel(application: Application) : AndroidViewModel(application) {
@@ -69,6 +76,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                     if (tokenManager.getEmail().firstOrNull().isNullOrBlank()) {
                         tokenManager.saveEmail(me.email)
                     }
+                    tokenManager.saveEmailVerified(me.email_verified)
                     _uiState.value = _uiState.value.copy(
                         isLoggedIn = true,
                         isCheckingAuth = false,
@@ -101,6 +109,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                 tokenManager.saveToken(response.token)
                 tokenManager.saveUserId(response.user.id)
                 tokenManager.saveEmail(response.user.email)
+                tokenManager.saveEmailVerified(response.user.email_verified)
                 // §sync-prefs: pull server's preferences into local DataStore so
                 // a fresh install on a new device picks up the user's existing
                 // bedtime/wake/focus config rather than starting from defaults.
@@ -143,6 +152,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                 tokenManager.saveToken(response.token)
                 tokenManager.saveUserId(response.user.id)
                 tokenManager.saveEmail(response.user.email)
+                tokenManager.saveEmailVerified(response.user.email_verified)
                 // §sync-prefs: a brand-new account has an empty preferences
                 // blob server-side, so this is a no-op. The hook is here for
                 // symmetry with login (and so that account-merge flows work
@@ -320,5 +330,73 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
 
     fun consumeResetPasswordSuccess() {
         _uiState.value = _uiState.value.copy(resetPasswordSuccess = false)
+    }
+
+    /** Public endpoint — accepts the raw token from the verification email
+     *  link. On success, flips the cached email_verified flag so banners
+     *  hide and AI surfaces unlock without requiring another /auth/me. */
+    fun verifyEmail(token: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                verifyEmailLoading = true,
+                verifyEmailError = null,
+                verifyEmailSuccess = false,
+            )
+            try {
+                api.verifyEmail(VerifyEmailRequest(token))
+                tokenManager.saveEmailVerified(true)
+                _uiState.value = _uiState.value.copy(
+                    verifyEmailLoading = false,
+                    verifyEmailSuccess = true,
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    verifyEmailLoading = false,
+                    verifyEmailError = e.toUserMessage(
+                        "Verification failed. The link may have expired."
+                    ),
+                )
+            }
+        }
+    }
+
+    /** Auth-required — invalidates any prior open token and sends a fresh
+     *  verification email. Idempotent for already-verified accounts. */
+    fun resendVerificationEmail() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                resendVerificationLoading = true,
+                resendVerificationError = null,
+                resendVerificationSuccess = false,
+            )
+            try {
+                api.resendVerificationEmail()
+                _uiState.value = _uiState.value.copy(
+                    resendVerificationLoading = false,
+                    resendVerificationSuccess = true,
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    resendVerificationLoading = false,
+                    resendVerificationError = e.toUserMessage(
+                        "Couldn't send a new verification email. Try again."
+                    ),
+                )
+            }
+        }
+    }
+
+    fun consumeVerifyEmailResult() {
+        _uiState.value = _uiState.value.copy(
+            verifyEmailSuccess = false,
+            verifyEmailError = null,
+        )
+    }
+
+    fun consumeResendVerificationResult() {
+        _uiState.value = _uiState.value.copy(
+            resendVerificationSuccess = false,
+            resendVerificationError = null,
+        )
     }
 }

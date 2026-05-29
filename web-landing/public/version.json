@@ -1,6 +1,6 @@
 {
-  "versionCode": 82,
-  "versionName": "2.14.5",
-  "url": "https://ultiqapp.com/ultiq.2.14.5.apk",
-  "releaseNotes": "Recurring checklist tasks no longer un-tick previous days when you mark today done — each day's tick is now stored independently in a per-day completion log instead of a single 'last completed' stamp. Plus the v2.14.4 sleep-clip web-playback diagnostics are finalized (CSP media-src + blob constructor fix)."
+  "versionCode": 83,
+  "versionName": "2.15.0",
+  "url": "https://ultiqapp.com/ultiq.2.15.0.apk",
+  "releaseNotes": "Email verification: new signups now confirm their address before Coach and other AI features unlock. Includes a Verify-your-email banner in Coach, a status row + Resend action in Settings, and deep-link handling so tapping the verification email opens Ultiq directly."
 }

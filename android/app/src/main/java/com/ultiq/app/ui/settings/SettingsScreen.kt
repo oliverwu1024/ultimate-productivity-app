@@ -251,7 +251,29 @@ fun SettingsScreen(
                                     fontWeight = FontWeight.Medium,
                                 )
                                 Text(
-                                    "Signed in",
+                                    if (uiState.emailVerified) "Email verified" else "Email not verified",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = if (uiState.emailVerified) {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    } else {
+                                        MaterialTheme.colorScheme.error
+                                    },
+                                )
+                            }
+                        }
+                        if (!uiState.emailVerified) {
+                            OutlinedButton(
+                                onClick = { viewModel.resendVerificationEmail() },
+                                enabled = !uiState.resendingVerification,
+                            ) {
+                                Text(
+                                    if (uiState.resendingVerification) "Sending…"
+                                    else "Resend verification email"
+                                )
+                            }
+                            uiState.verificationFeedback?.let { msg ->
+                                Text(
+                                    msg,
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
