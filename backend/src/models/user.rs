@@ -19,6 +19,7 @@ pub struct User {
     /// bucketing across all routes + for the anomaly scheduler's
     /// per-user 08:00-local fan-out.
     pub timezone: String,
+    pub email_verified: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -78,6 +79,7 @@ pub struct UserResponse {
     /// display "as known by the server" and let the user override if
     /// auto-detection got it wrong (e.g. phone reports UTC).
     pub timezone: String,
+    pub email_verified: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -96,6 +98,12 @@ impl From<User> for UserResponse {
             is_admin: user.is_admin,
             preferences: user.preferences,
             timezone: user.timezone,
+            email_verified: user.email_verified,
         }
     }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct VerifyEmail {
+    pub token: String,
 }

@@ -94,6 +94,21 @@ impl AiClient {
     /// Call this *before* invoking Bedrock; pair with `record_usage` after a
     /// successful call.
     pub async fn check_quota(&self, pool: &PgPool, user_id: Uuid) -> Result<(), AppError> {
+        // Email-verification gate. Without this, a scripted attacker can
+        // register N throwaway accounts and drain N × daily_cap Bedrock
+        // calls with no upper bound on spend.
+        let verified: Option<(bool,)> =
+            sqlx::query_as("SELECT email_verified FROM users WHERE id = $1")
+                .bind(user_id)
+                .fetch_optional(pool)
+                .await?;
+        if !verified.map(|(v,)| v).unwrap_or(false) {
+            return Err(AppError::new(
+                StatusCode::FORBIDDEN,
+                "Please verify your email address to use AI features",
+            ));
+        }
+
         let today = Utc::now().date_naive();
         let used: i32 = sqlx::query_scalar(
             "SELECT COALESCE(requests_used, 0)
