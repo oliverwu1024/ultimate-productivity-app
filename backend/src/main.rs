@@ -11,6 +11,7 @@ mod routes;
 mod scheduler;
 mod sleep_audio_clips;
 mod ticket;
+mod turnstile;
 mod tz;
 
 use std::sync::Arc;
