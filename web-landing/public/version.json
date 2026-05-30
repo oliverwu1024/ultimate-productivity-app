@@ -1,6 +1,6 @@
 {
-  "versionCode": 84,
-  "versionName": "2.15.1",
-  "url": "https://ultiqapp.com/ultiq.2.15.1.apk",
-  "releaseNotes": "Privacy hardening: alarm dismiss + lockout + auth screens are now FLAG_SECURE so they can't appear in screenshots or screen recordings. Verbose internal logs (sleep-clip file paths, FCM token prefixes) stripped from the release build so logcat captures stay minimal."
+  "versionCode": 85,
+  "versionName": "2.15.2",
+  "url": "https://ultiqapp.com/ultiq.2.15.2.apk",
+  "releaseNotes": "Sleep tracking reliability: detected snore/cough/sleep-talk events now save reliably even if the upload to our servers hiccups at the end of the night. A new banner on the Sleep tab tells you when sounds are still syncing, and the app keeps retrying in the background until it succeeds. If you've ever ended a sleep session and noticed no events showed up, this fixes it."
 }
