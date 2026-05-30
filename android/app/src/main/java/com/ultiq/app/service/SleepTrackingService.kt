@@ -22,6 +22,7 @@ import com.ultiq.app.audio.SleepAudioClassifier
 import com.ultiq.app.audio.SleepAudioClipCapture
 import com.ultiq.app.audio.SleepAudioConfig
 import com.ultiq.app.audio.SleepAudioEventAggregator
+import com.ultiq.app.data.local.AppDatabase
 import com.ultiq.app.data.local.entity.SleepAudioEventEntity
 import com.ultiq.app.ui.lockout.LockoutMode
 import com.ultiq.app.ui.lockout.LockoutOverlayController
@@ -64,6 +65,14 @@ class SleepTrackingService : Service() {
         // session-end. Buffer is cleared at each session start.
         val pendingAudioEvents = MutableStateFlow<List<SleepAudioEventEntity>>(emptyList())
         val audioTrackingActive = MutableStateFlow(false)
+
+        // §10.x-fix (4th piece) — Placeholder sleepRecordId stamped on
+        // every event the aggregator writes to Room during the live
+        // session. Format: "pending-{sessionStartMs}". At session-end the
+        // ViewModel passes this back to SleepRepository.saveAudioEvents
+        // so it can relink every row to the real sleep_record.id with one
+        // UPDATE. Empty string when no session is active.
+        val currentPendingSessionId = MutableStateFlow("")
 
         // §10.x — Static handle to the running classifier so the End Sleep
         // flow can flush the aggregator synchronously *before* it snapshots
@@ -181,6 +190,11 @@ class SleepTrackingService : Service() {
         sessionUnlockCount.value = 0
         sessionStartTime.value = System.currentTimeMillis()
         pendingAudioEvents.value = emptyList()
+        // §10.x-fix (4th piece) — Stamp a placeholder id for this session
+        // before any audio detection can fire. The aggregator's Room write
+        // uses this id; the ViewModel passes it back to the repository at
+        // session-end so the rows get relinked to the real sleep_record.id.
+        currentPendingSessionId.value = "pending-${sessionStartTime.value}"
         audioTrackingActive.value = false
         lastScreenOnTime = null
         isRunning.value = true
@@ -294,6 +308,14 @@ class SleepTrackingService : Service() {
             // userId + sleepRecordId are stamped at session-end by the
             // SleepRepository when the actual sleep_record row is created;
             // the aggregator emits with placeholders that get rewritten.
+            //
+            // §10.x-fix (4th piece) — In parallel with the in-memory emit
+            // we persist each event to Room with a placeholder
+            // sleepRecordId. If the service is killed (OOM, force-stop,
+            // reboot) before End Sleep runs, the rows still survive on
+            // disk. saveAudioEvents() relinks them at session-end.
+            val dao = AppDatabase.getInstance(applicationContext).sleepAudioEventDao()
+            val pendingId = currentPendingSessionId.value
             val agg = try {
                 SleepAudioEventAggregator(
                     userId = "",
@@ -314,6 +336,24 @@ class SleepTrackingService : Service() {
                             }
                             if (typeAllowed) {
                                 tryCaptureClip(event, pcm)
+                            }
+                        }
+                        // 4th-piece Room write. Fire-and-forget on the
+                        // service scope so the aggregator callback stays
+                        // non-blocking. Failure is logged and tolerated
+                        // (worst case: this event is lost if the service
+                        // dies before End Sleep, same as today's
+                        // behaviour).
+                        serviceScope.launch {
+                            try {
+                                dao.insert(
+                                    event.copy(
+                                        sleepRecordId = pendingId,
+                                        userId = "",
+                                    ),
+                                )
+                            } catch (t: Throwable) {
+                                Log.w(TAG, "Persist audio event to Room failed (non-fatal)", t)
                             }
                         }
                     },

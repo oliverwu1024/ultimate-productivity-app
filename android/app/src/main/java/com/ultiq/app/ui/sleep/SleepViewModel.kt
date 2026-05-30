@@ -16,6 +16,7 @@ import com.ultiq.app.data.remote.dto.CreateSleepRecordDto
 import com.ultiq.app.data.remote.dto.SleepRatingRequestDto
 import com.ultiq.app.data.remote.dto.SleepStats
 import com.ultiq.app.data.remote.dto.toLocalStats
+import com.ultiq.app.data.repository.SleepAudioUploadWorker
 import com.ultiq.app.data.repository.SleepRepository
 import com.ultiq.app.data.achievements.AchievementChecker
 import com.ultiq.app.service.FocusTrackingService
@@ -101,6 +102,16 @@ data class SleepUiState(
     // hit the cache. Loading + audio events + pickup events are all bundled
     // so SleepRecordItem only reads one entry.
     val recordDetails: Map<String, SleepRecordDetails> = emptyMap(),
+    // §10.x-fix (banner) — Count of audio events still waiting to upload to
+    // the backend. Drives the "Last night's sounds haven't synced yet"
+    // banner on the Sleep tab. Excludes rows from a still-live session
+    // (those use a pending-* placeholder sleepRecordId).
+    val unsyncedAudioEventCount: Int = 0,
+    // §10.x-fix — Set true when the in-session retry of the events batch
+    // exhausted at session-end. Cleared the moment the unsynced count
+    // hits zero (WorkManager succeeded). Drives an inline toast on the
+    // End Sleep dialog / Sleep tab.
+    val lastUploadFailed: Boolean = false,
 )
 
 /// §10 — Haiku's 1-5 rating + one-line reasoning for the just-ended session.
@@ -162,6 +173,20 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
             observeServiceState()
             loadRecords()
             sync()
+        }
+        // §10.x-fix (banner) — Reactive count of audio events still waiting
+        // to upload. Banner appears whenever > 0, disappears whenever
+        // WorkManager catches up.
+        viewModelScope.launch {
+            repository.observeUnsyncedAudioEventCount()?.collect { n ->
+                _uiState.value = _uiState.value.copy(
+                    unsyncedAudioEventCount = n,
+                    // Clear the louder "last upload failed" toast once
+                    // everything's synced — the banner is the right level
+                    // of UI urgency for the steady-state case.
+                    lastUploadFailed = if (n == 0) false else _uiState.value.lastUploadFailed,
+                )
+            }
         }
         // Continuous mirror so the SLEEP PREFERENCES cards stay in sync when
         // the user changes them.
@@ -451,6 +476,13 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
             sessionTargetWakeTime = targetWakeTime,
         )
         val context = getApplication<Application>()
+        // §10.x-fix (4th piece) — Drop placeholder rows from any prior
+        // session that never reached "End Sleep" (force-stop, crash,
+        // forgotten session). Runs before the service starts so the new
+        // session's pending-* rows don't accidentally get caught.
+        viewModelScope.launch {
+            repository.cleanupOrphanPendingEvents()
+        }
         val intent = Intent(context, SleepTrackingService::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             context.startForegroundService(intent)
@@ -638,17 +670,29 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
             // created sleep_record.id back to the repository so the events
             // can be stamped + persisted + uploaded as a batch.
             val capturedAudioEvents = SleepTrackingService.pendingAudioEvents.value
+            // §10.x-fix (4th piece) — Snapshot the placeholder id before
+            // the service gets cleared. saveAudioEvents() uses it to
+            // relink any rows the live session wrote to Room.
+            val pendingSessionId = SleepTrackingService.currentPendingSessionId.value
+                .takeIf { it.isNotEmpty() }
 
             val result = repository.createSleepRecord(dto, userId)
 
             result.getOrNull()?.let { record ->
-                if (capturedAudioEvents.isNotEmpty()) {
-                    runCatching {
-                        repository.saveAudioEvents(
-                            sleepRecordId = record.id,
-                            userId = userId,
-                            events = capturedAudioEvents,
-                        )
+                if (capturedAudioEvents.isNotEmpty() || pendingSessionId != null) {
+                    // §10.x-fix — Stop swallowing the upload Result. If the
+                    // in-session retry exhausted, set the lastUploadFailed
+                    // flag so the End Sleep dialog can show an inline
+                    // warning. WorkManager will keep retrying in the
+                    // background regardless of this outcome.
+                    val uploadResult = repository.saveAudioEvents(
+                        sleepRecordId = record.id,
+                        userId = userId,
+                        events = capturedAudioEvents,
+                        pendingSessionId = pendingSessionId,
+                    )
+                    if (uploadResult.isFailure) {
+                        _uiState.value = _uiState.value.copy(lastUploadFailed = true)
                     }
                     // §10 — Refresh the "Sleep sounds" card immediately. The
                     // records Flow already emitted (when the sleep_record was
@@ -671,6 +715,12 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
             SleepTrackingService.pendingAudioEvents.value = emptyList()
+            SleepTrackingService.currentPendingSessionId.value = ""
+            // §10.x-fix (WorkManager) — Schedule the durable retry job
+            // regardless of whether the in-session upload succeeded.
+            // It's cheap when there's nothing to do (DAO count → 0 → no
+            // work) and the safety net we need when there is.
+            SleepAudioUploadWorker.enqueue(getApplication<Application>(), replace = true)
 
             _uiState.value = _uiState.value.copy(
                 isLoading = false,
