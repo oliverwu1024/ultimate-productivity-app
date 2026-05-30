@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ultiq.app.ui.auth.PasswordStrengthChecklist
 import com.ultiq.app.util.PasswordStrength
+import com.ultiq.app.util.SecureWindow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,6 +49,7 @@ fun ChangePasswordScreen(
     onBack: () -> Unit,
     viewModel: ChangePasswordViewModel = viewModel(),
 ) {
+    SecureWindow()
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 

@@ -29,7 +29,9 @@ class UltiqMessagingService : FirebaseMessagingService() {
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)
-        Log.i(TAG, "FCM token issued (prefix=${token.take(16)}…)")
+        // Don't log even a prefix of the token — even 16 chars is enough
+        // to fingerprint a device + correlate with backend logs.
+        Log.i(TAG, "FCM token issued")
         scope.launch {
             FcmTokenSyncer(applicationContext).sync(token)
         }

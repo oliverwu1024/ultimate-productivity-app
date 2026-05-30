@@ -1,6 +1,6 @@
 {
-  "versionCode": 83,
-  "versionName": "2.15.0",
-  "url": "https://ultiqapp.com/ultiq.2.15.0.apk",
-  "releaseNotes": "Email verification: new signups now confirm their address before Coach and other AI features unlock. Includes a Verify-your-email banner in Coach, a status row + Resend action in Settings, and deep-link handling so tapping the verification email opens Ultiq directly."
+  "versionCode": 84,
+  "versionName": "2.15.1",
+  "url": "https://ultiqapp.com/ultiq.2.15.1.apk",
+  "releaseNotes": "Privacy hardening: alarm dismiss + lockout + auth screens are now FLAG_SECURE so they can't appear in screenshots or screen recordings. Verbose internal logs (sleep-clip file paths, FCM token prefixes) stripped from the release build so logcat captures stay minimal."
 }

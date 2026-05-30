@@ -43,12 +43,14 @@ class SleepAudioClipUploader(
     suspend fun upload(serverEventId: String, clipFile: File): Boolean = withContext(Dispatchers.IO) {
         Log.i(TAG, "Upload start: serverId=$serverEventId file=${clipFile.name}")
         if (!clipFile.exists()) {
-            Log.w(TAG, "Clip file gone before upload: ${clipFile.absolutePath}")
+            // Log the filename only — absolutePath includes the per-user app
+            // data dir which doesn't need to surface in logcat.
+            Log.w(TAG, "Clip file gone before upload: ${clipFile.name}")
             return@withContext false
         }
         val len = clipFile.length()
         if (len <= 0) {
-            Log.w(TAG, "Empty clip file: ${clipFile.absolutePath}")
+            Log.w(TAG, "Empty clip file: ${clipFile.name}")
             try { clipFile.delete() } catch (_: Throwable) {}
             return@withContext false
         }
@@ -92,7 +94,7 @@ class SleepAudioClipUploader(
 
         val durationMs = readM4aDurationMs(clipFile)
         if (durationMs <= 0) {
-            Log.w(TAG, "Couldn't read duration for ${clipFile.absolutePath}")
+            Log.w(TAG, "Couldn't read duration for ${clipFile.name}")
             // Best-effort fallback: server caps at 60s, so claim something
             // reasonable rather than failing the attach outright.
             return@withContext attachClip(serverEventId, presign.s3_key, 10_000, clipFile)
@@ -128,7 +130,7 @@ class SleepAudioClipUploader(
                 ?.toIntOrNull()
                 ?: 0
         } catch (e: Throwable) {
-            Log.w(TAG, "MediaMetadataRetriever failed for ${file.absolutePath}", e)
+            Log.w(TAG, "MediaMetadataRetriever failed for ${file.name}", e)
             0
         } finally {
             try { retriever.release() } catch (_: Throwable) {}

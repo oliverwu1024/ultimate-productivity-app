@@ -32,6 +32,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.ultiq.app.util.PasswordStrength
+import com.ultiq.app.util.SecureWindow
 
 @Composable
 fun ResetPasswordScreen(
@@ -40,6 +41,7 @@ fun ResetPasswordScreen(
     onSubmit: (String, String) -> Unit,
     onDoneNavigateBack: () -> Unit,
 ) {
+    SecureWindow()
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
