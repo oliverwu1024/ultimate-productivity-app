@@ -26,6 +26,12 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 sha2 = "0.11"
 subtle = "2"
+# §16 — TOTP (RFC 6238) for admin two-factor auth. `qr` feature dropped — we
+# return the provisioning URI as text and let the client render its own QR
+# code; saves the `qrcodegen` + `image` transitive bloat.
+totp-rs = { version = "5", default-features = false, features = ["otpauth"] }
+base32 = "0.5"
+rand = "0.8"
 tokio-stream = { version = "0.1", features = ["sync"] }
 futures = "0.3"
 
