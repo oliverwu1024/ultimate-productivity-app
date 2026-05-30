@@ -36,6 +36,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import com.ultiq.app.util.PasswordStrength
+import com.ultiq.app.util.SecureWindow
 
 @Composable
 fun RegisterScreen(
@@ -43,6 +44,7 @@ fun RegisterScreen(
     onRegister: (String, String) -> Unit,
     onNavigateToLogin: () -> Unit
 ) {
+    SecureWindow()
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }

@@ -37,7 +37,7 @@ class FcmTokenSyncer(context: Context) {
             api.registerDevice(
                 RegisterDeviceTokenRequest(token = fcmToken, platform = "android"),
             )
-            Log.i(TAG, "FCM token synced to backend (prefix=${fcmToken.take(16)}…)")
+            Log.i(TAG, "FCM token synced to backend")
         }.onFailure { e ->
             // Non-fatal: a transient network failure here just means the
             // next sync attempt (next login, next token rotation) will
@@ -58,7 +58,7 @@ class FcmTokenSyncer(context: Context) {
             api.registerDevice(
                 RegisterDeviceTokenRequest(token = fcmToken, platform = "android"),
             )
-            Log.i(TAG, "FCM token rotated + synced (prefix=${fcmToken.take(16)}…)")
+            Log.i(TAG, "FCM token rotated + synced")
         }.onFailure { e ->
             Log.w(TAG, "rotated FCM token sync failed (non-fatal): ${e.message}")
         }

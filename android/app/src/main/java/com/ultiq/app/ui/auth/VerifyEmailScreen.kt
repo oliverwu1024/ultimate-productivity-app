@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.ultiq.app.util.SecureWindow
 
 @Composable
 fun VerifyEmailScreen(
@@ -27,6 +28,7 @@ fun VerifyEmailScreen(
     onVerify: (String) -> Unit,
     onContinue: () -> Unit,
 ) {
+    SecureWindow()
     // Fire the verification call once, when the screen mounts with a token.
     // Re-entering after success / failure won't re-trigger because uiState
     // already reflects the previous outcome.

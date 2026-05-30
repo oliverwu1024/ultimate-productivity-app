@@ -64,6 +64,10 @@ class AlarmActivity : ComponentActivity() {
             setTurnScreenOn(true)
         }
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        // Block screenshots + screen recording. Math missions, photo dismiss
+        // captures, and the dismiss button itself shouldn't end up in a
+        // screen-recording session that runs through the alarm fire.
+        window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
 
         val themePref = ThemePreference(applicationContext)
 

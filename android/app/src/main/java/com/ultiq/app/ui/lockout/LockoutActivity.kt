@@ -48,6 +48,10 @@ class LockoutActivity : ComponentActivity() {
             setShowWhenLocked(true)
             setTurnScreenOn(true)
         }
+        // Block screenshots / screen recording — lockout screen + the
+        // "still locked, exit if you want" override should not be capturable
+        // by background screen recordings.
+        window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
 
         val mode = runCatching {
             LockoutMode.valueOf(intent.getStringExtra(EXTRA_MODE) ?: LockoutMode.FOCUS.name)
