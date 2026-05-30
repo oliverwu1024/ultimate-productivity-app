@@ -16,8 +16,10 @@ import com.ultiq.app.data.remote.dto.toBatchItemDto
 import com.ultiq.app.data.remote.dto.toCreateDto
 import com.ultiq.app.data.remote.dto.toEntity
 import com.ultiq.app.service.PickupEvent
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
+import java.io.File
 import java.util.UUID
 
 class SleepRepository(
@@ -120,85 +122,206 @@ class SleepRepository(
     }
 
     /**
-     * §10 — Persist sleep audio events (snore/cough) captured during the
-     * session that was just saved. The events were emitted by the aggregator
-     * with placeholder userId/sleepRecordId because the sleep_record didn't
-     * exist yet; this method stamps the real IDs, writes to Room, and
-     * batch-uploads to the backend.
+     * §10 — Persist sleep audio events (snore/cough/sleep_talk) captured
+     * during the session that was just saved. Stamps events with the real
+     * sleep_record id, writes to Room, batch-uploads to backend, then
+     * uploads any pro-tier clips independently.
      *
-     * Failure modes:
-     *  - Backend upload fails → events stay in Room with isSynced=false and
-     *    will be retried by a later [syncAudioEvents] pass.
-     *  - Room insert fails → returned as Result.failure; the in-memory
-     *    buffer the caller pulled from is the only loss point.
+     * §10.x-fix — Decoupled retry pipeline.
+     *  Phase 1: in-session retry of the events batch (3 attempts, 0/2/8s).
+     *           Failure leaves events in Room with isSynced=false; the
+     *           caller (ViewModel) schedules a WorkManager job to keep
+     *           retrying after the user closes the app.
+     *  Phase 2: per-clip retry, fully decoupled. A clip failure no longer
+     *           rolls back the events status, and an events failure no
+     *           longer skips the clip upload step.
+     *  Phase 3: refresh canonical state so local Room reflects the server
+     *           (has_clip / clip_duration_ms flipping to true).
+     *
+     * §10.x-fix (4th piece) — `pendingSessionId` re-links rows the
+     * SleepTrackingService aggregator wrote to Room during the session
+     * with sleepRecordId="pending-{startMs}". Same primary keys, so the
+     * subsequent insertAll is INSERT OR REPLACE — no duplicates. If the
+     * service died mid-session and `events` is empty, the relink still
+     * recovers everything that made it to disk.
      */
     suspend fun saveAudioEvents(
         sleepRecordId: String,
         userId: String,
         events: List<SleepAudioEventEntity>,
+        pendingSessionId: String? = null,
     ): Result<Unit> {
         val dao = sleepAudioEventDao ?: return Result.success(Unit)
-        if (events.isEmpty()) return Result.success(Unit)
+
+        // 4th piece: re-link rows the aggregator wrote during the live
+        // session. Runs before the insertAll so the snapshot's row wins
+        // on the PK conflict (REPLACE strategy).
+        if (pendingSessionId != null) {
+            try {
+                dao.relinkPendingSession(pendingSessionId, sleepRecordId, userId)
+            } catch (_: Exception) {
+                // Non-fatal — worst case the rows are still keyed to the
+                // placeholder and orphan cleanup gets them in 24h. The
+                // insertAll below also fixes anything the snapshot covers.
+            }
+        }
 
         val stamped = events.map { e ->
             e.copy(sleepRecordId = sleepRecordId, userId = userId)
         }
+        if (stamped.isNotEmpty()) {
+            try {
+                dao.insertAll(stamped)
+            } catch (e: Exception) {
+                return Result.failure(e)
+            }
+        }
 
+        // Read the full set of events for this record from Room. Covers
+        // (a) the in-memory snapshot, (b) anything written during the
+        // live session that the snapshot didn't see (service restart),
+        // (c) anything still unsynced from a prior failed attempt.
+        val allLocal = try {
+            dao.getBySleepRecord(sleepRecordId)
+        } catch (_: Exception) {
+            stamped
+        }
+        val unsynced = allLocal.filter { !it.isSynced }
+
+        if (unsynced.isEmpty()) {
+            // Everything already on backend. Still attempt any pending
+            // clip uploads + refresh canonical state.
+            runCatching { uploadCapturedClipsWithRetry(allLocal) }
+            SleepAudioClipCapture.clearAll()
+            runCatching { fetchAudioEventsForRecord(sleepRecordId) }
+            return Result.success(Unit)
+        }
+
+        // Phase 1: events batch upload with retry. ServerEvents response
+        // is intentionally discarded — since v2.14.1 client-supplied ids
+        // equal server ids, so the local `unsynced` list is already the
+        // authoritative pairing key for clip uploads.
         try {
-            dao.insertAll(stamped)
-        } catch (e: Exception) {
+            withRetry {
+                apiService.batchCreateSleepAudioEvents(
+                    BatchCreateSleepAudioEventsDto(
+                        sleep_record_id = sleepRecordId,
+                        events = unsynced.map { it.toCreateDto() },
+                    ),
+                )
+            }
+        } catch (e: Throwable) {
+            // Events upload exhausted retries. Rows stay isSynced=false.
+            // Caller schedules WorkManager which will keep trying after
+            // the app is closed.
             return Result.failure(e)
         }
 
-        return try {
-            // §10.x-fix (v2.14.1) — Send local ids so backend honours them.
-            // serverEvents back are now keyed identically to `stamped`, so
-            // there's no pairing problem and no risk of duplicate rows on
-            // the next fetchAudioEventsForRecord pass.
-            val serverEvents = apiService.batchCreateSleepAudioEvents(
-                BatchCreateSleepAudioEventsDto(
-                    sleep_record_id = sleepRecordId,
-                    events = stamped.map { it.toCreateDto() },
-                ),
-            )
-            dao.markSyncedBatch(stamped.map { it.id })
+        try {
+            dao.markSyncedBatch(unsynced.map { it.id })
+        } catch (_: Exception) {
+            // Non-fatal — the next sync pass will re-mark.
+        }
 
-            // §10.x — Upload any clips captured during the session. With
-            // client-supplied ids, stamped[i].id == serverEvents[i].id, so
-            // the clip-attach POST hits the right row + the local Room id
-            // we'll keep matches the row the dashboard / Android UI later
-            // ask for via /clip-url + /clip DELETE. Failures are non-fatal.
-            uploadCapturedClips(stamped, serverEvents)
-            SleepAudioClipCapture.clearAll()
+        // Phase 2: clip uploads, decoupled from events status. One bad
+        // clip doesn't roll anything back. Failures stay on disk for the
+        // WorkManager pass.
+        runCatching { uploadCapturedClipsWithRetry(unsynced) }
+        SleepAudioClipCapture.clearAll()
 
-            // §10.x-fix (v2.14.1) — Pull the canonical post-attach state
-            // back from the server now that uploads are done. This flips
-            // has_clip + clip_duration_ms in local Room so the next record
-            // expansion shows the ▶ icons without requiring an app restart.
-            // No-op if the fetch fails (network blip): UI will catch up on
-            // the next sync pass.
-            runCatching { fetchAudioEventsForRecord(sleepRecordId) }
+        // Phase 3: pull post-attach state so has_clip + clip_duration_ms
+        // are correct locally.
+        runCatching { fetchAudioEventsForRecord(sleepRecordId) }
+        return Result.success(Unit)
+    }
 
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Result.failure(e)
+    /**
+     * §10.x-fix — Per-clip retry. A failed clip doesn't abort the rest of
+     * the pass; remaining clip files stay on disk for the WorkManager
+     * pass to pick up by scanning `cacheDir/audio-clips/`.
+     */
+    private suspend fun uploadCapturedClipsWithRetry(
+        events: List<SleepAudioEventEntity>,
+    ) {
+        if (SleepAudioClipCapture.pendingCount() == 0) return
+        for (event in events) {
+            val clipFile = SleepAudioClipCapture.takeClipFor(event.id) ?: continue
+            try {
+                withRetry {
+                    val ok = clipUploader.upload(event.id, clipFile)
+                    if (!ok) throw RuntimeException("clip upload returned false")
+                }
+            } catch (_: Throwable) {
+                // Logged inside uploader; swallow here. The file is still
+                // on disk (uploader only deletes on success), so the
+                // WorkManager scan-disk pass can retry it.
+            }
         }
     }
 
-    private suspend fun uploadCapturedClips(
-        local: List<SleepAudioEventEntity>,
-        server: List<com.ultiq.app.data.remote.dto.SleepAudioEventDto>,
-    ) {
-        if (SleepAudioClipCapture.pendingCount() == 0) return
-        val n = minOf(local.size, server.size)
-        for (i in 0 until n) {
-            val clipFile = SleepAudioClipCapture.takeClipFor(local[i].id) ?: continue
+    /**
+     * §10.x-fix — Linear backoff retry helper. 3 attempts at 0/2/8s
+     * covers the common transient-network case while keeping the user's
+     * "I just hit save" interaction under ~10s. The caller surfaces
+     * exhaustion explicitly so the ViewModel can show a banner +
+     * schedule WorkManager.
+     */
+    private suspend fun <T> withRetry(
+        attempts: Int = 3,
+        delays: List<Long> = listOf(0L, 2_000L, 8_000L),
+        block: suspend () -> T,
+    ): T {
+        require(delays.size == attempts) { "delays size must equal attempts" }
+        var last: Throwable? = null
+        for (i in 0 until attempts) {
+            if (delays[i] > 0) delay(delays[i])
             try {
-                clipUploader.upload(server[i].id, clipFile)
-            } catch (_: Throwable) {
-                // Logged inside uploader; swallow here so one failed clip
-                // doesn't abort the rest of the upload pass.
+                return block()
+            } catch (e: Throwable) {
+                last = e
             }
+        }
+        throw last ?: IllegalStateException("withRetry: no exception captured")
+    }
+
+    /**
+     * §10.x-fix (banner) — Observable count of events still waiting to
+     * sync to the backend. Excludes rows from a live in-progress session
+     * (those use the "pending-*" placeholder sleepRecordId).
+     */
+    fun observeUnsyncedAudioEventCount(): Flow<Int>? =
+        sleepAudioEventDao?.observeUnsyncedCount()
+
+    /**
+     * §10.x-fix (4th piece) — Drop placeholder rows from sessions that
+     * never reached "End Sleep". Called at session-start to keep the
+     * table from growing forever after force-stops / uninstalls.
+     */
+    suspend fun cleanupOrphanPendingEvents() {
+        val dao = sleepAudioEventDao ?: return
+        val cutoff = System.currentTimeMillis() - 24L * 60L * 60L * 1000L
+        try {
+            dao.deleteOrphanPendingEvents(cutoff)
+        } catch (_: Exception) { /* non-fatal */ }
+    }
+
+    /**
+     * §10.x-fix (WorkManager) — Scan `cacheDir/audio-clips/` for any
+     * leftover clip files (named `clip-{eventId}.m4a`) and try to upload
+     * each one. The uploader returns false on 404 (event not yet on
+     * backend) or 409 (already attached) and the file stays on disk;
+     * [SleepAudioClipCapture.pruneStale] handles eventual eviction at
+     * the next session start. Files are removed on successful upload.
+     */
+    suspend fun uploadOrphanClipFiles(cacheDir: File) {
+        if (sleepAudioEventDao == null) return
+        val dir = SleepAudioClipCapture.clipDir(cacheDir)
+        val files = dir.listFiles() ?: return
+        for (file in files) {
+            val name = file.name
+            if (!name.startsWith("clip-") || !name.endsWith(".m4a")) continue
+            val eventId = name.removePrefix("clip-").removeSuffix(".m4a")
+            runCatching { clipUploader.upload(eventId, file) }
         }
     }
 

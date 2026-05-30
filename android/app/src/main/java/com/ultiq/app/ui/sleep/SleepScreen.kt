@@ -251,6 +251,68 @@ fun SleepScreen(
 }
 
 @Composable
+private fun UnsyncedAudioBanner(
+    count: Int,
+    failedThisSession: Boolean,
+) {
+    // §10.x-fix — Tertiary container (warmer than error, more attention
+    // than surface) keeps the banner informational. If the user already
+    // saw the in-session upload fail (lastUploadFailed=true) we lead with
+    // a stronger title; otherwise it's the steady-state "still syncing"
+    // message that the WorkManager will resolve in the background.
+    val title = if (failedThisSession) {
+        "Last night's sounds didn't sync"
+    } else {
+        "Syncing last night's sounds…"
+    }
+    val body = if (failedThisSession) {
+        "$count event${if (count == 1) "" else "s"} are stored locally but " +
+            "haven't reached the server yet. Keep the app open so they can " +
+            "upload; otherwise they'll retry when you next have signal."
+    } else {
+        "$count event${if (count == 1) "" else "s"} waiting to upload. " +
+            "They'll send automatically when your connection is available."
+    }
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+        ),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = Icons.Default.GraphicEq,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                modifier = Modifier.size(28.dp),
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = body,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun MicPermissionBanner(
     onGrant: () -> Unit,
 ) {
@@ -401,6 +463,21 @@ private fun SleepSubTab(
                     onGrant = {
                         micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                     },
+                )
+            }
+        }
+
+        // §10.x-fix — Surface unsynced audio events so the user knows to
+        // keep the app open while the WorkManager retry runs. Banner
+        // disappears the moment the count hits zero. The stronger
+        // lastUploadFailed flag drives a more urgent tone right after a
+        // failed session-end; once enough time passes for the worker to
+        // start trying, the steady-state banner takes over.
+        if (uiState.unsyncedAudioEventCount > 0) {
+            item(key = "unsynced-audio-banner") {
+                UnsyncedAudioBanner(
+                    count = uiState.unsyncedAudioEventCount,
+                    failedThisSession = uiState.lastUploadFailed,
                 )
             }
         }
