@@ -20,6 +20,13 @@ pub struct Config {
     pub allowed_origins: Vec<String>,
     pub reset_link_base: String,
     pub verify_link_base: String,
+    /// Cloudflare Turnstile secret key. When set, `/auth/register` requests
+    /// that include a `turnstile_token` are validated against Cloudflare
+    /// before the user row is created. Unset → captcha is skipped entirely
+    /// (dev / pre-Cloudflare-account state). Set + token-missing → request
+    /// is allowed for now (web sends the token, Android doesn't have a
+    /// widget yet; tightening to "required everywhere" is a follow-up).
+    pub turnstile_secret: Option<String>,
 }
 
 impl Config {
@@ -43,6 +50,7 @@ impl Config {
                 .unwrap_or_else(|_| "https://app.ultiqapp.com/reset".to_string()),
             verify_link_base: env::var("VERIFY_LINK_BASE")
                 .unwrap_or_else(|_| "https://app.ultiqapp.com/verify-email".to_string()),
+            turnstile_secret: env::var("TURNSTILE_SECRET").ok().filter(|s| !s.is_empty()),
         }
     }
 }

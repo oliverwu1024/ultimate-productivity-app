@@ -1,5 +1,5 @@
 use axum::extract::State;
-use axum::http::StatusCode;
+use axum::http::{HeaderMap, StatusCode};
 use axum::routing::{delete, get, patch, post};
 use axum::{Json, Router};
 use chrono::Utc;
@@ -78,6 +78,7 @@ pub fn router() -> Router<AppState> {
 
 async fn register(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Json(input): Json<CreateUser>,
 ) -> Result<Json<AuthResponse>, AppError> {
     let email = normalize_email(&input.email);
@@ -86,6 +87,32 @@ async fn register(
     }
 
     validate_password_strength(&input.password)?;
+
+    // Cloudflare Turnstile gate. Only kicks in when the secret is
+    // configured + the client sent a token (web sends one, Android
+    // doesn't have a widget yet). Tightening to "required on all paths"
+    // is a follow-up once Android ships its captcha integration.
+    if let Some(secret) = state.config.turnstile_secret.as_deref() {
+        if let Some(token) = input.turnstile_token.as_deref() {
+            let ip = client_ip_from(&headers);
+            match crate::turnstile::verify(secret, token, ip.as_deref()).await {
+                Ok(true) => { /* passed — fall through */ }
+                Ok(false) => {
+                    return Err(AppError::new(
+                        StatusCode::BAD_REQUEST,
+                        "Captcha check failed — refresh the page and try again",
+                    ));
+                }
+                Err(e) => {
+                    tracing::error!("Turnstile verify call failed: {:?}", e);
+                    return Err(AppError::new(
+                        StatusCode::SERVICE_UNAVAILABLE,
+                        "Captcha service is unavailable — try again in a moment",
+                    ));
+                }
+            }
+        }
+    }
 
     // Hash password
     let salt = SaltString::generate(&mut OsRng);
@@ -568,13 +595,13 @@ async fn create_and_send_verification(state: &AppState, user: &User) -> Result<(
 async fn send_verification_email(state: &AppState, to: &str, token: &str) -> Result<(), AppError> {
     let link = format!("{}?token={}", state.config.verify_link_base, token);
     let body_text = format!(
-        "Welcome to Ultiq!\n\nTap the link below to verify your email address so you can use Coach and other AI features:\n\n{}\n\nThis link expires in 24 hours. If you didn't sign up for Ultiq, you can safely ignore this email.\n\n— Ultiq",
+        "Welcome to Ultiq!\n\nTap the link below to verify your email address. This protects your account and lets you reset your password if you ever forget it:\n\n{}\n\nThis link expires in 24 hours. If you didn't sign up for Ultiq, you can safely ignore this email.\n\n— Ultiq",
         link
     );
     let body_html = format!(
         "<div style=\"font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#2A1B6E;line-height:1.55;\">\
          <p>Welcome to Ultiq!</p>\
-         <p>Tap the button below to verify your email address so you can use Coach and other AI features:</p>\
+         <p>Tap the button below to verify your email address. This protects your account and lets you reset your password if you ever forget it:</p>\
          <p style=\"margin:24px 0\"><a href=\"{link}\" style=\"display:inline-block;padding:12px 28px;background:#2A1B6E;color:#FFF4E6;border-radius:24px;text-decoration:none;font-weight:600;\">Verify email</a></p>\
          <p style=\"font-size:14px;color:#2A1B6Eaa\">If the button doesn't work, paste this link into your browser:<br><code style=\"background:#FFF4E6;padding:4px 8px;border-radius:4px;\">{link}</code></p>\
          <p style=\"font-size:14px;color:#2A1B6Eaa\">This link expires in 24 hours. If you didn't sign up for Ultiq, you can safely ignore this email.</p>\
@@ -787,6 +814,19 @@ fn parse_user_id(claims: &Claims) -> Result<Uuid, AppError> {
         .sub
         .parse::<Uuid>()
         .map_err(|_| AppError::new(StatusCode::UNAUTHORIZED, "Invalid token"))
+}
+
+/// Pulls the original client IP from the leftmost X-Forwarded-For value
+/// set by the ALB. Used for the optional `remoteip` field that Cloudflare
+/// Turnstile accepts to harden token validation against replay. Returns
+/// None when the header is absent (direct hits in dev).
+fn client_ip_from(headers: &HeaderMap) -> Option<String> {
+    headers
+        .get("x-forwarded-for")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|s| s.split(',').next())
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
 }
 
 fn create_token(user_id: &Uuid, token_version: i32, jwt_secret: &str) -> Result<String, AppError> {

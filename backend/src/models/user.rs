@@ -51,6 +51,14 @@ pub struct UpdateProfile {
 pub struct CreateUser {
     pub email: String,
     pub password: String,
+    /// Cloudflare Turnstile token from the signup form. Web sends this;
+    /// Android doesn't yet (its captcha integration is a follow-up). When
+    /// the backend has TURNSTILE_SECRET set and this field is provided,
+    /// it's validated against Cloudflare before the user row is created.
+    /// Missing token + TURNSTILE_SECRET configured → currently allowed
+    /// (Android path); will tighten once Android ships its widget.
+    #[serde(default)]
+    pub turnstile_token: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
