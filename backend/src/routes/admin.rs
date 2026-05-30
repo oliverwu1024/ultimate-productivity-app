@@ -23,6 +23,7 @@ pub fn router() -> Router<AppState> {
         // before the daily anomaly scheduler is wired. Keep gated to admins.
         .route("/admin/test-push", post(admin_test_push))
         .route("/admin/users/:id/revoke-tokens", post(admin_revoke_tokens))
+        .route("/admin/users/:id/disable-2fa", post(admin_disable_2fa))
 }
 
 pub struct AdminUser {
@@ -220,6 +221,39 @@ async fn admin_test_push(
         .send_to_user(&state.pool, admin.id, input.title.trim(), input.body.trim(), None)
         .await?;
     Ok(Json(TestPushResponse { delivered }))
+}
+
+/// Emergency lockout recovery — force-disables a user's TOTP enrollment
+/// and wipes their stored secret. Use case: user lost their authenticator
+/// device and has no backup. Once cleared, they log in with just password
+/// and can re-enroll via /auth/2fa/setup.
+///
+/// Audited the same way as revoke-tokens — there's no user-side action
+/// here so the audit log is the only record this happened.
+async fn admin_disable_2fa(
+    State(state): State<AppState>,
+    admin: AdminUser,
+    Path(target_id): Path<Uuid>,
+) -> Result<StatusCode, AppError> {
+    let result = sqlx::query(
+        "UPDATE users SET totp_enabled = false, totp_secret_b32 = NULL WHERE id = $1",
+    )
+    .bind(target_id)
+    .execute(&state.pool)
+    .await?;
+    if result.rows_affected() == 0 {
+        return Err(AppError::new(StatusCode::NOT_FOUND, "User not found"));
+    }
+    record_admin_action(
+        &state.pool,
+        admin.id,
+        "POST /admin/users/:id/disable-2fa",
+        Some(target_id),
+        None,
+        admin.ip.as_deref(),
+    )
+    .await;
+    Ok(StatusCode::NO_CONTENT)
 }
 
 /// Force-revoke every session token for a target user. Increments their

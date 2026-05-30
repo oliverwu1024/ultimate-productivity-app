@@ -12,7 +12,7 @@ use crate::error::AppError;
 use crate::middleware::auth::Claims;
 use crate::models::user::{
     AuthResponse, ChangePassword, CreateUser, ForgotPassword, LoginUser, ResetPassword,
-    UpdateProfile, User, UserResponse, VerifyEmail,
+    TotpCode, TotpSetupResponse, UpdateProfile, User, UserResponse, VerifyEmail,
 };
 
 use argon2::{
@@ -71,6 +71,9 @@ pub fn router() -> Router<AppState> {
         .route("/auth/password/reset", post(reset_password))
         .route("/auth/verify-email", post(verify_email))
         .route("/auth/verify-email/resend", post(resend_verification))
+        .route("/auth/2fa/setup", post(totp_setup))
+        .route("/auth/2fa/confirm", post(totp_confirm))
+        .route("/auth/2fa/disable", post(totp_disable))
 }
 
 async fn register(
@@ -647,6 +650,136 @@ fn validate_password_strength(password: &str) -> Result<(), AppError> {
         ));
     }
     Ok(())
+}
+
+// ── §16 — Two-factor auth (TOTP) enrollment endpoints ──────────────────
+// Login-side enforcement (challenge → code → JWT) is a follow-up PR. This
+// PR ships enrollment only, so an admin can /setup + /confirm via curl
+// today; their login flow stays untouched until the next ship.
+
+async fn totp_setup(
+    State(state): State<AppState>,
+    claims: Claims,
+) -> Result<Json<TotpSetupResponse>, AppError> {
+    let user_id = parse_user_id(&claims)?;
+    let user = sqlx::query_as::<_, User>("SELECT * FROM users WHERE id = $1")
+        .bind(user_id)
+        .fetch_optional(&state.pool)
+        .await?
+        .ok_or_else(|| AppError::new(StatusCode::UNAUTHORIZED, "User not found"))?;
+
+    if user.totp_enabled {
+        return Err(AppError::new(
+            StatusCode::BAD_REQUEST,
+            "Two-factor is already enabled. Disable it first to re-enroll.",
+        ));
+    }
+
+    let secret = crate::totp::generate_secret();
+    let secret_b32 = crate::totp::encode_b32(&secret);
+    let provisioning_uri = crate::totp::provisioning_uri(&secret, &user.email)
+        .ok_or_else(|| AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "TOTP init failed"))?;
+
+    // Store the secret unconfirmed. totp_enabled stays false until /confirm
+    // proves the user actually scanned this into an authenticator. Each
+    // /setup call overwrites — if the user gives up midway and starts over,
+    // the old unused secret is just replaced.
+    sqlx::query("UPDATE users SET totp_secret_b32 = $1 WHERE id = $2")
+        .bind(&secret_b32)
+        .bind(user_id)
+        .execute(&state.pool)
+        .await?;
+
+    Ok(Json(TotpSetupResponse {
+        provisioning_uri,
+        secret_b32,
+    }))
+}
+
+async fn totp_confirm(
+    State(state): State<AppState>,
+    claims: Claims,
+    Json(input): Json<TotpCode>,
+) -> Result<StatusCode, AppError> {
+    let user_id = parse_user_id(&claims)?;
+    let row: Option<(Option<String>, bool)> =
+        sqlx::query_as("SELECT totp_secret_b32, totp_enabled FROM users WHERE id = $1")
+            .bind(user_id)
+            .fetch_optional(&state.pool)
+            .await?;
+    let (secret_b32, enabled) = row
+        .ok_or_else(|| AppError::new(StatusCode::UNAUTHORIZED, "User not found"))?;
+
+    if enabled {
+        return Err(AppError::new(
+            StatusCode::BAD_REQUEST,
+            "Two-factor is already enabled.",
+        ));
+    }
+    let secret_b32 = secret_b32.ok_or_else(|| {
+        AppError::new(
+            StatusCode::BAD_REQUEST,
+            "Call /auth/2fa/setup before confirming.",
+        )
+    })?;
+    let secret = crate::totp::decode_b32(&secret_b32).ok_or_else(|| {
+        AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "Stored TOTP secret is corrupted")
+    })?;
+
+    if !crate::totp::verify(&secret, input.code.trim()) {
+        return Err(AppError::new(
+            StatusCode::BAD_REQUEST,
+            "Invalid code. Check your authenticator and try again.",
+        ));
+    }
+
+    sqlx::query("UPDATE users SET totp_enabled = true WHERE id = $1")
+        .bind(user_id)
+        .execute(&state.pool)
+        .await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+async fn totp_disable(
+    State(state): State<AppState>,
+    claims: Claims,
+    Json(input): Json<TotpCode>,
+) -> Result<StatusCode, AppError> {
+    let user_id = parse_user_id(&claims)?;
+    let row: Option<(Option<String>, bool)> =
+        sqlx::query_as("SELECT totp_secret_b32, totp_enabled FROM users WHERE id = $1")
+            .bind(user_id)
+            .fetch_optional(&state.pool)
+            .await?;
+    let (secret_b32, enabled) = row
+        .ok_or_else(|| AppError::new(StatusCode::UNAUTHORIZED, "User not found"))?;
+
+    if !enabled {
+        return Err(AppError::new(
+            StatusCode::BAD_REQUEST,
+            "Two-factor is not enabled.",
+        ));
+    }
+    let secret = secret_b32
+        .as_deref()
+        .and_then(crate::totp::decode_b32)
+        .ok_or_else(|| {
+            AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "Stored TOTP secret is corrupted")
+        })?;
+    if !crate::totp::verify(&secret, input.code.trim()) {
+        return Err(AppError::new(
+            StatusCode::BAD_REQUEST,
+            "Invalid code. Two-factor disable requires a current code from your authenticator.",
+        ));
+    }
+
+    sqlx::query(
+        "UPDATE users SET totp_enabled = false, totp_secret_b32 = NULL WHERE id = $1",
+    )
+    .bind(user_id)
+    .execute(&state.pool)
+    .await?;
+    Ok(StatusCode::NO_CONTENT)
 }
 
 fn parse_user_id(claims: &Claims) -> Result<Uuid, AppError> {

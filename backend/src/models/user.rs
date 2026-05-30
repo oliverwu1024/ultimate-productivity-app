@@ -21,6 +21,10 @@ pub struct User {
     pub timezone: String,
     pub email_verified: bool,
     pub is_pro: bool,
+    /// §16 — base32 TOTP seed. Populated when the user calls /auth/2fa/setup
+    /// but only trusted once `totp_enabled` flips to true via /confirm.
+    pub totp_secret_b32: Option<String>,
+    pub totp_enabled: bool,
 }
 
 fn is_false(b: &bool) -> bool {
@@ -120,4 +124,18 @@ impl From<User> for UserResponse {
 #[derive(Debug, Deserialize)]
 pub struct VerifyEmail {
     pub token: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct TotpSetupResponse {
+    /// otpauth://totp/... URI. Authenticator apps either accept this
+    /// directly or render it as a QR code from the client side.
+    pub provisioning_uri: String,
+    /// Base32 secret. Apps that can't parse the URI take this manually.
+    pub secret_b32: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct TotpCode {
+    pub code: String,
 }
