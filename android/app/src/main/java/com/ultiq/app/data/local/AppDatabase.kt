@@ -42,7 +42,7 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
         SleepAudioEventEntity::class,
         SleepTombstoneEntity::class,
     ],
-    version = 15,
+    version = 16,
     exportSchema = false
 )
 @androidx.room.TypeConverters(com.ultiq.app.data.local.converters.IntListConverter::class)
@@ -350,6 +350,19 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        // §v2.16.0 — Per-occurrence overrides for recurring calendar
+        // events. doneDates + excludedDates are comma-separated
+        // YYYY-MM-DD lists; expandRecurrence reads them to set
+        // isDone-per-instance and skip excluded dates. The master row's
+        // `isDone` column stays meaningful only for non-recurring rows.
+        // Backend mirror lives in migration 029.
+        private val MIGRATION_15_16 = object : Migration(15, 16) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `calendar_events` ADD COLUMN `doneDates` TEXT")
+                db.execSQL("ALTER TABLE `calendar_events` ADD COLUMN `excludedDates` TEXT")
+            }
+        }
+
         private val MIGRATION_6_7 = object : Migration(6, 7) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(
@@ -444,6 +457,7 @@ abstract class AppDatabase : RoomDatabase() {
                     MIGRATION_12_13,
                     MIGRATION_13_14,
                     MIGRATION_14_15,
+                    MIGRATION_15_16,
                 )
                 // Legacy DB has been dropped if it existed; if Room can't
                 // open the file (corrupt / version mismatch from a prior

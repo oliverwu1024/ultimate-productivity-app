@@ -16,9 +16,16 @@ import java.time.LocalTime
 import java.time.YearMonth
 import java.time.ZoneId
 import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 import java.util.UUID
 
 private val LOCAL_ZONE: ZoneId get() = ZoneId.systemDefault()
+private val ISO_DATE: DateTimeFormatter = DateTimeFormatter.ISO_LOCAL_DATE
+
+/** v2.16.0 — Three-way scope used by edit + delete on a recurring event.
+ *  Mirrors Google Calendar's "Edit recurring event" dialog. Mark-done is
+ *  always JUST_THIS (no prompt, by design). */
+enum class RecurringScope { JUST_THIS, THIS_AND_FOLLOWING, ALL }
 
 class CalendarRepository(
     private val calendarEventDao: CalendarEventDao,
@@ -130,24 +137,240 @@ class CalendarRepository(
         return result
     }
 
-    /** Toggle a calendar event's done flag. Reuses the full PUT update so the
-     *  server / local stay consistent with the existing single-update path. */
-    suspend fun setEventDone(id: String, userId: String, isDone: Boolean): Result<CalendarEventEntity> {
+    /** Toggle a calendar event's done flag.
+     *
+     *  When `occurrenceDate` is null, flips the master row's `isDone` — this
+     *  is the only meaningful path for non-recurring events.
+     *
+     *  When `occurrenceDate` is non-null, treats it as a per-occurrence
+     *  toggle on a recurring series: the occurrence's local date is added
+     *  to (or removed from) the master row's `doneDates` set without
+     *  touching the row's own `isDone` column. This is the v2.16.0 fix
+     *  for "marking one occurrence ticked every occurrence." */
+    suspend fun setEventDone(
+        id: String,
+        userId: String,
+        isDone: Boolean,
+        occurrenceDate: LocalDate? = null,
+    ): Result<CalendarEventEntity> {
         val existing = calendarEventDao.getById(id)
             ?: return Result.failure(IllegalStateException("event not found locally"))
-        val dto = existing.toCreateDto().copy(is_done = isDone)
-        return updateEvent(id, dto, userId)
+
+        if (occurrenceDate == null || !existing.isRecurring) {
+            // One-shot path: same as pre-2.16 — flip master via full PUT.
+            val dto = existing.toCreateDto().copy(is_done = isDone)
+            return updateEvent(id, dto, userId)
+        }
+
+        // Per-occurrence path. Optimistic local update first, then a
+        // narrowly-scoped server PUT that targets only `done_dates`.
+        val dateStr = occurrenceDate.format(ISO_DATE)
+        val updatedDates = toggleDate(existing.doneDates, dateStr, present = isDone)
+        val localUpdated = existing.copy(
+            doneDates = updatedDates,
+            updatedAt = System.currentTimeMillis(),
+            isSynced = false,
+        )
+        calendarEventDao.insert(localUpdated)
+
+        return try {
+            val body = existing.toCreateDto().copy(is_done = isDone)
+            val serverEvent = apiService.updateCalendarOccurrence(id, dateStr, body)
+            val entity = serverEvent.toEntity()
+            calendarEventDao.insert(entity)
+            Result.success(entity)
+        } catch (_: Exception) {
+            // Server unreachable: keep local change unsynced so sync()
+            // retries on the next opportunity. Mark-done is idempotent on
+            // the backend (set semantics) so a retried PUT is safe.
+            Result.success(localUpdated)
+        }
     }
 
-    suspend fun deleteEvent(id: String): Result<Unit> {
-        calendarEventDao.deleteById(id)
-        alarmScheduler?.cancelEventReminder(id)
+    /** Delete a calendar event. Scope controls the radius of the action on
+     *  recurring series; for non-recurring rows the scope is ignored. */
+    suspend fun deleteEvent(
+        id: String,
+        occurrenceDate: LocalDate? = null,
+        scope: RecurringScope = RecurringScope.ALL,
+    ): Result<Unit> {
+        val existing = calendarEventDao.getById(id)
+        // Defensive: missing row → fall through to whole-row delete to
+        // keep the legacy behaviour. The server call still runs in case
+        // there's a row server-side we haven't pulled yet.
+        if (existing == null || !existing.isRecurring || scope == RecurringScope.ALL) {
+            calendarEventDao.deleteById(id)
+            alarmScheduler?.cancelEventReminder(id)
+            return try {
+                apiService.deleteCalendarEvent(id)
+                Result.success(Unit)
+            } catch (_: Exception) {
+                Result.success(Unit)
+            }
+        }
+
+        val date = occurrenceDate ?: run {
+            // Recurring scope was set but caller didn't supply an
+            // occurrence date — fall back to whole-series delete rather
+            // than silently doing nothing.
+            calendarEventDao.deleteById(id)
+            alarmScheduler?.cancelEventReminder(id)
+            return try {
+                apiService.deleteCalendarEvent(id)
+                Result.success(Unit)
+            } catch (_: Exception) {
+                Result.success(Unit)
+            }
+        }
+
+        return when (scope) {
+            RecurringScope.JUST_THIS -> deleteJustThisOccurrence(existing, date)
+            RecurringScope.THIS_AND_FOLLOWING -> deleteThisAndFollowing(existing, date)
+            RecurringScope.ALL -> error("handled above")
+        }
+    }
+
+    private suspend fun deleteJustThisOccurrence(
+        existing: CalendarEventEntity,
+        date: LocalDate,
+    ): Result<Unit> {
+        val dateStr = date.format(ISO_DATE)
+        val updated = existing.copy(
+            excludedDates = toggleDate(existing.excludedDates, dateStr, present = true),
+            updatedAt = System.currentTimeMillis(),
+            isSynced = false,
+        )
+        calendarEventDao.insert(updated)
+
         return try {
-            apiService.deleteCalendarEvent(id)
+            apiService.deleteCalendarOccurrence(existing.id, dateStr)
+            // Mark synced by re-pulling the canonical server row, which
+            // also picks up any backend-side normalisation of the
+            // excluded_dates string.
+            val server = apiService.getCalendarEvent(existing.id)
+            calendarEventDao.insert(server.toEntity())
             Result.success(Unit)
         } catch (_: Exception) {
+            // Offline: keep local change for sync() to retry. Excluded-
+            // date append is set-semantics on the server so a re-send is
+            // a no-op.
             Result.success(Unit)
         }
+    }
+
+    private suspend fun deleteThisAndFollowing(
+        existing: CalendarEventEntity,
+        date: LocalDate,
+    ): Result<Unit> {
+        // "This and following" = cap the series the day before. The
+        // picked occurrence and every future occurrence stop appearing.
+        // If `date` is on or before the series start, this is identical
+        // to a whole-series delete — short-circuit.
+        val seriesStart = Instant.ofEpochMilli(existing.startTime)
+            .atZone(LOCAL_ZONE).toLocalDate()
+        if (!date.isAfter(seriesStart)) {
+            calendarEventDao.deleteById(existing.id)
+            alarmScheduler?.cancelEventReminder(existing.id)
+            return try {
+                apiService.deleteCalendarEvent(existing.id)
+                Result.success(Unit)
+            } catch (_: Exception) {
+                Result.success(Unit)
+            }
+        }
+        val newRule = setUntil(existing.recurrenceRule, date.minusDays(1))
+        val updatedDto = existing.toCreateDto().copy(recurrence_rule = newRule)
+        return updateEvent(existing.id, updatedDto, existing.userId).map { }
+    }
+
+    /** Edit a recurring event with an explicit scope. Used by the
+     *  three-button dialog on Save. For one-shot events / ALL on a
+     *  recurring series, this is equivalent to `updateEvent`. */
+    suspend fun updateEventWithScope(
+        id: String,
+        dto: CreateCalendarEventDto,
+        userId: String,
+        occurrenceDate: LocalDate?,
+        scope: RecurringScope,
+    ): Result<CalendarEventEntity> {
+        val existing = calendarEventDao.getById(id)
+        if (existing == null || !existing.isRecurring || scope == RecurringScope.ALL) {
+            return updateEvent(id, dto, userId)
+        }
+        val date = occurrenceDate ?: return updateEvent(id, dto, userId)
+
+        return when (scope) {
+            RecurringScope.JUST_THIS -> editJustThisOccurrence(existing, dto, userId, date)
+            RecurringScope.THIS_AND_FOLLOWING -> editThisAndFollowing(existing, dto, userId, date)
+            RecurringScope.ALL -> updateEvent(id, dto, userId)
+        }
+    }
+
+    private suspend fun editJustThisOccurrence(
+        existing: CalendarEventEntity,
+        editedDto: CreateCalendarEventDto,
+        userId: String,
+        date: LocalDate,
+    ): Result<CalendarEventEntity> {
+        // Detach pattern: (1) add the date to the master's excluded set
+        // so the recurring expansion skips that day, then (2) create a
+        // brand-new non-recurring event for that date with the edited
+        // fields. Step 2 happens whether or not step 1 reached the
+        // server — the local Room write for step 1 is enough to keep the
+        // visible UI consistent, and sync() will reconcile.
+        deleteJustThisOccurrence(existing, date)
+        val detachedDto = editedDto.copy(
+            is_recurring = false,
+            recurrence_rule = null,
+        )
+        return createEvent(detachedDto, userId)
+    }
+
+    private suspend fun editThisAndFollowing(
+        existing: CalendarEventEntity,
+        editedDto: CreateCalendarEventDto,
+        userId: String,
+        date: LocalDate,
+    ): Result<CalendarEventEntity> {
+        // Cap the original series the day before, then create a new
+        // master starting at `date` with the edited fields. The new
+        // master keeps its own recurrence rule (the user's edits flow
+        // through normally). If the picked date equals the series
+        // start, the original master has nothing left to express — drop
+        // it and just create the replacement.
+        val seriesStart = Instant.ofEpochMilli(existing.startTime)
+            .atZone(LOCAL_ZONE).toLocalDate()
+        if (date.isAfter(seriesStart)) {
+            val cappedRule = setUntil(existing.recurrenceRule, date.minusDays(1))
+            val cappedDto = existing.toCreateDto().copy(recurrence_rule = cappedRule)
+            updateEvent(existing.id, cappedDto, userId)
+        } else {
+            // Replace the whole original — same effect as picking the
+            // first occurrence to start the rewrite from.
+            deleteEvent(existing.id)
+        }
+        return createEvent(editedDto, userId)
+    }
+
+    /** v2.16.0 — Insert / remove a YYYY-MM-DD into a comma-separated set.
+     *  Order is preserved (sorted) so the wire format is stable across
+     *  clients; empty list → null so the column reads NULL on the server. */
+    private fun toggleDate(raw: String?, date: String, present: Boolean): String? {
+        val set = raw?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() }?.toMutableSet()
+            ?: mutableSetOf()
+        if (present) set.add(date) else set.remove(date)
+        if (set.isEmpty()) return null
+        return set.sorted().joinToString(",")
+    }
+
+    /** v2.16.0 — Append (or replace) the `:UNTIL=YYYY-MM-DD` suffix on a
+     *  recurrence rule. Used by "This and following" to cap the original
+     *  series. Returns null if the input rule was null (a non-recurring
+     *  row should never reach this path). */
+    private fun setUntil(rule: String?, until: LocalDate): String? {
+        if (rule == null) return null
+        val base = rule.substringBefore(":UNTIL=")
+        return "$base:UNTIL=${until.format(ISO_DATE)}"
     }
 
     suspend fun sync() {
@@ -248,25 +471,34 @@ class CalendarRepository(
         rangeStart: Long,
         rangeEnd: Long
     ): List<CalendarEventEntity> {
-        val rule = event.recurrenceRule ?: return emptyList()
+        val ruleRaw = event.recurrenceRule ?: return emptyList()
+        val (base, until) = parseRule(ruleRaw)
         val duration = event.endTime - event.startTime
         val eventTime = Instant.ofEpochMilli(event.startTime).atZone(LOCAL_ZONE).toLocalTime()
         val eventStartDate = Instant.ofEpochMilli(event.startTime).atZone(LOCAL_ZONE).toLocalDate()
         val rangeStartDate = Instant.ofEpochMilli(rangeStart).atZone(LOCAL_ZONE).toLocalDate()
-        val rangeEndDate = Instant.ofEpochMilli(rangeEnd).atZone(LOCAL_ZONE).toLocalDate()
+        val rangeEndDateRaw = Instant.ofEpochMilli(rangeEnd).atZone(LOCAL_ZONE).toLocalDate()
+        // v2.16.0 — Apply UNTIL cap to the effective end.
+        val rangeEndDate = if (until != null && until.isBefore(rangeEndDateRaw)) until else rangeEndDateRaw
+        if (rangeEndDate.isBefore(rangeStartDate)) return emptyList()
+
+        // v2.16.0 — Per-occurrence overrides. Decoded once for the whole
+        // pass so each generated date is a cheap O(1) set lookup.
+        val excluded = parseDateSet(event.excludedDates)
+        val done = parseDateSet(event.doneDates)
 
         val instances = mutableListOf<CalendarEventEntity>()
 
         when {
-            rule == "DAILY" -> {
+            base == "DAILY" -> {
                 var cur = maxOf(eventStartDate, rangeStartDate)
                 while (!cur.isAfter(rangeEndDate)) {
-                    instances.add(makeInstance(event, cur, eventTime, duration))
+                    addIfVisible(instances, event, cur, eventTime, duration, excluded, done)
                     cur = cur.plusDays(1)
                 }
             }
-            rule.startsWith("WEEKLY:") -> {
-                val targetDays = rule.removePrefix("WEEKLY:")
+            base.startsWith("WEEKLY:") -> {
+                val targetDays = base.removePrefix("WEEKLY:")
                     .split(",")
                     .mapNotNull { parseWeekday(it.trim()) }
                 if (targetDays.isEmpty()) return emptyList()
@@ -274,13 +506,13 @@ class CalendarRepository(
                 var cur = maxOf(eventStartDate, rangeStartDate)
                 while (!cur.isAfter(rangeEndDate)) {
                     if (cur.dayOfWeek in targetDays) {
-                        instances.add(makeInstance(event, cur, eventTime, duration))
+                        addIfVisible(instances, event, cur, eventTime, duration, excluded, done)
                     }
                     cur = cur.plusDays(1)
                 }
             }
-            rule.startsWith("MONTHLY:") -> {
-                val targetDay = rule.removePrefix("MONTHLY:").trim().toIntOrNull()
+            base.startsWith("MONTHLY:") -> {
+                val targetDay = base.removePrefix("MONTHLY:").trim().toIntOrNull()
                     ?: return emptyList()
                 val first = maxOf(eventStartDate, rangeStartDate)
                 var ym = YearMonth.of(first.year, first.month)
@@ -290,7 +522,7 @@ class CalendarRepository(
                     if (targetDay <= ym.lengthOfMonth()) {
                         val date = ym.atDay(targetDay)
                         if (!date.isBefore(eventStartDate) && !date.isBefore(rangeStartDate) && !date.isAfter(rangeEndDate)) {
-                            instances.add(makeInstance(event, date, eventTime, duration))
+                            addIfVisible(instances, event, date, eventTime, duration, excluded, done)
                         }
                     }
                     ym = ym.plusMonths(1)
@@ -301,6 +533,20 @@ class CalendarRepository(
         return instances
     }
 
+    private fun addIfVisible(
+        instances: MutableList<CalendarEventEntity>,
+        master: CalendarEventEntity,
+        date: LocalDate,
+        time: LocalTime,
+        duration: Long,
+        excluded: Set<LocalDate>,
+        done: Set<LocalDate>,
+    ) {
+        if (date in excluded) return
+        val instance = makeInstance(master, date, time, duration)
+        instances += if (date in done) instance.copy(isDone = true) else instance
+    }
+
     private fun makeInstance(
         event: CalendarEventEntity,
         date: LocalDate,
@@ -309,6 +555,24 @@ class CalendarRepository(
     ): CalendarEventEntity {
         val start = date.atTime(time).atZone(LOCAL_ZONE).toInstant().toEpochMilli()
         return event.copy(startTime = start, endTime = start + duration)
+    }
+
+    /** v2.16.0 — Split a rule into its base + optional UNTIL cap.
+     *  "WEEKLY:MON,WED:UNTIL=2026-06-15" → ("WEEKLY:MON,WED", 2026-06-15). */
+    private fun parseRule(rule: String): Pair<String, LocalDate?> {
+        val idx = rule.indexOf(":UNTIL=")
+        if (idx < 0) return rule to null
+        val base = rule.substring(0, idx)
+        val suffix = rule.substring(idx + ":UNTIL=".length).trim()
+        val until = runCatching { LocalDate.parse(suffix) }.getOrNull()
+        return base to until
+    }
+
+    private fun parseDateSet(raw: String?): Set<LocalDate> {
+        if (raw.isNullOrBlank()) return emptySet()
+        return raw.split(",")
+            .mapNotNull { runCatching { LocalDate.parse(it.trim()) }.getOrNull() }
+            .toSet()
     }
 
     private fun parseWeekday(s: String): DayOfWeek? = when (s.uppercase()) {

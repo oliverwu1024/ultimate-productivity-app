@@ -9,6 +9,7 @@ import com.ultiq.app.data.remote.RetrofitClient
 import com.ultiq.app.data.remote.dto.CreateCalendarEventDto
 import com.ultiq.app.data.remote.dto.ParseEventRequestDto
 import com.ultiq.app.data.repository.CalendarRepository
+import com.ultiq.app.data.repository.RecurringScope
 import com.ultiq.app.util.AlarmScheduler
 import com.ultiq.app.util.TokenManager
 import com.ultiq.app.util.toUserMessage
@@ -200,27 +201,50 @@ class CalendarViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun updateEvent(id: String, dto: CreateCalendarEventDto) {
+    /** Edit a calendar event. For recurring events the `scope` decides
+     *  whether the change hits one occurrence, this+following, or the
+     *  whole series; for one-shot events the scope is ignored. The
+     *  caller supplies `occurrenceDate` (the local date of the tapped
+     *  instance) so JUST_THIS / THIS_AND_FOLLOWING can detach / cap
+     *  at the right pivot. */
+    fun updateEvent(
+        id: String,
+        dto: CreateCalendarEventDto,
+        occurrenceDate: LocalDate? = null,
+        scope: RecurringScope = RecurringScope.ALL,
+    ) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
-            repository.updateEvent(id, dto, userId)
+            repository.updateEventWithScope(id, dto, userId, occurrenceDate, scope)
                 .onFailure { _uiState.value = _uiState.value.copy(error = it.toUserMessage("Couldn't update event. Try again.")) }
             _uiState.value = _uiState.value.copy(isLoading = false, showAddDialog = false, editingEvent = null)
         }
     }
 
-    fun deleteEvent(id: String) {
+    /** Delete a calendar event. For recurring events the `scope` controls
+     *  whether only the tapped occurrence is removed (JUST_THIS), the
+     *  picked occurrence plus all future ones are removed
+     *  (THIS_AND_FOLLOWING), or the entire series is removed (ALL).
+     *  `occurrenceDate` is required for the first two — the local date
+     *  of the instance the user tapped. */
+    fun deleteEvent(
+        id: String,
+        occurrenceDate: LocalDate? = null,
+        scope: RecurringScope = RecurringScope.ALL,
+    ) {
         viewModelScope.launch {
-            repository.deleteEvent(id)
+            repository.deleteEvent(id, occurrenceDate, scope)
             hideDialog()
         }
     }
 
-    /** Toggle the "I actually did this" flag on a past event. Only meaningful
-     *  for events whose end_time is already in the past — the UI gates that. */
-    fun setEventDone(id: String, isDone: Boolean) {
+    /** Toggle the "I actually did this" flag on a past event. For recurring
+     *  events, this is always per-occurrence — `occurrenceDate` is the
+     *  local date of the tapped instance. For one-shot events, pass null
+     *  (or any date) and the master row is flipped. */
+    fun setEventDone(id: String, isDone: Boolean, occurrenceDate: LocalDate? = null) {
         viewModelScope.launch {
-            repository.setEventDone(id, userId, isDone)
+            repository.setEventDone(id, userId, isDone, occurrenceDate)
                 .onFailure { _uiState.value = _uiState.value.copy(error = it.toUserMessage("Couldn't update event. Try again.")) }
         }
     }

@@ -7,8 +7,8 @@ use leptos_meta::Title;
 
 use crate::api::ai::{parse_event, ParseEventRequest, ParsedCalendarFields};
 use crate::api::calendar::{
-    create_event, delete_event, list_events, update_event, CalendarEvent, CreateCalendarEvent,
-    EventCategory, EventPriority,
+    create_event, delete_event, delete_occurrence, list_events, update_event, update_occurrence,
+    CalendarEvent, CreateCalendarEvent, EventCategory, EventPriority,
 };
 use crate::api::sse::{use_sse, SyncEvent};
 use crate::components::ai_parse_dialog::{AiParsePromptDialog, AiSurface};
@@ -600,9 +600,16 @@ fn DayEvents(
                                                     move |_| {
                                                         let new_done = !is_done;
                                                         // Optimistic local flip — the row re-renders immediately.
+                                                        // v2.16.0 — Recurring expansions share an id, so for the
+                                                        // optimistic update we narrow by id + start_time to flip
+                                                        // only the specific instance the user clicked.
+                                                        let click_start = src.start_time;
+                                                        let is_recurring = src.is_recurring;
                                                         events.update(|list| {
-                                                            if let Some(item) = list.iter_mut().find(|x| x.id == event_id) {
-                                                                item.is_done = new_done;
+                                                            for item in list.iter_mut().filter(|x| x.id == event_id) {
+                                                                if !is_recurring || item.start_time == click_start {
+                                                                    item.is_done = new_done;
+                                                                }
                                                             }
                                                         });
                                                         // Backend's update endpoint is full-replacement, so we
@@ -625,8 +632,19 @@ fn DayEvents(
                                                             // preserves whatever reminder was set.
                                                             reminder_minutes: None,
                                                         };
+                                                        // v2.16.0 — Recurring events flip per-occurrence so a
+                                                        // single tap on Tuesday doesn't mark every Monday +
+                                                        // Wednesday done. The occurrence_date is the LOCAL date
+                                                        // of the clicked instance (matches Android).
+                                                        let occ_local = src.start_time
+                                                            .with_timezone(&Local)
+                                                            .date_naive();
                                                         wasm_bindgen_futures::spawn_local(async move {
-                                                            let _ = update_event(&event_id, &body).await;
+                                                            if is_recurring {
+                                                                let _ = update_occurrence(&event_id, occ_local, &body).await;
+                                                            } else {
+                                                                let _ = update_event(&event_id, &body).await;
+                                                            }
                                                         });
                                                     }
                                                 }
@@ -871,9 +889,67 @@ fn EventDialog(
         });
     };
 
+    // v2.16.0 — Recurring events get a per-occurrence delete path. The
+    // browser's native confirm dialog only does yes/no so we two-step
+    // it: first ask "just this one?" (OK = JustThis, Cancel = continue
+    // to whole-series prompt), then ask "delete the whole series?". Not
+    // as nice as the Android three-button dialog but keeps the change
+    // contained to the existing dialog. The full custom modal can come
+    // in a follow-up. One-shot events fall through to the original
+    // single confirm.
+    let existing_is_recurring = existing.as_ref().map(|e| e.is_recurring).unwrap_or(false);
+    let occurrence_local_date = existing
+        .as_ref()
+        .map(|e| e.start_time.with_timezone(&Local).date_naive());
     let on_delete = move |_| {
         let Some(id) = event_id_store.get_value() else { return; };
-        let confirmed = web_sys::window()
+        let win = web_sys::window();
+        if existing_is_recurring {
+            let just_this = win
+                .as_ref()
+                .and_then(|w| {
+                    w.confirm_with_message(
+                        "This event repeats. Click OK to delete just this occurrence, or Cancel to choose 'delete all'.",
+                    )
+                    .ok()
+                })
+                .unwrap_or(false);
+            if just_this {
+                let Some(date) = occurrence_local_date else { return; };
+                submitting.set(true);
+                wasm_bindgen_futures::spawn_local(async move {
+                    match delete_occurrence(&id, date).await {
+                        Ok(_) => on_saved(),
+                        Err(e) => {
+                            dialog_error.set(Some(e.message));
+                            submitting.set(false);
+                        }
+                    }
+                });
+                return;
+            }
+            let confirmed_all = win
+                .and_then(|w| {
+                    w.confirm_with_message(
+                        "Delete the entire recurring series? This cannot be undone.",
+                    )
+                    .ok()
+                })
+                .unwrap_or(false);
+            if !confirmed_all { return; }
+            submitting.set(true);
+            wasm_bindgen_futures::spawn_local(async move {
+                match delete_event(&id).await {
+                    Ok(_) => on_saved(),
+                    Err(e) => {
+                        dialog_error.set(Some(e.message));
+                        submitting.set(false);
+                    }
+                }
+            });
+            return;
+        }
+        let confirmed = win
             .and_then(|w| w.confirm_with_message("Delete this event? This cannot be undone.").ok())
             .unwrap_or(false);
         if !confirmed { return; }

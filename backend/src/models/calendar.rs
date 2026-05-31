@@ -65,6 +65,17 @@ pub struct CalendarEvent {
     /// before"). NULL = client default (single 15-min reminder); empty array
     /// = explicit opt-out; non-empty = explicit list.
     pub reminder_minutes: Option<Vec<i32>>,
+    /// §029 — Comma-separated YYYY-MM-DD list of occurrence dates that
+    /// the user has explicitly marked done. Meaningful only when
+    /// is_recurring is true. Expansion (`expand_recurrence`) sets
+    /// is_done=true on instances whose local date is in this set.
+    /// NULL = no per-occurrence done state (every occurrence inherits
+    /// is_done from the master row).
+    pub done_dates: Option<String>,
+    /// §029 — Comma-separated YYYY-MM-DD list of dates to skip entirely
+    /// when expanding (iCal EXDATE). Drives the "Just this one" delete
+    /// + "Just this one" edit paths.
+    pub excluded_dates: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
