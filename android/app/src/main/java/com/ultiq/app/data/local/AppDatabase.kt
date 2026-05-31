@@ -24,6 +24,7 @@ import com.ultiq.app.data.local.entity.ChecklistEntity
 import com.ultiq.app.data.local.entity.SessionEntity
 import com.ultiq.app.data.local.entity.SleepAudioEventEntity
 import com.ultiq.app.data.local.entity.SleepRecordEntity
+import com.ultiq.app.data.local.entity.SleepTombstoneEntity
 import com.ultiq.app.util.DatabaseSecurity
 import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 
@@ -39,8 +40,9 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
         AlarmEventEntity::class,
         AlarmTombstoneEntity::class,
         SleepAudioEventEntity::class,
+        SleepTombstoneEntity::class,
     ],
-    version = 14,
+    version = 15,
     exportSchema = false
 )
 @androidx.room.TypeConverters(com.ultiq.app.data.local.converters.IntListConverter::class)
@@ -328,6 +330,26 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        // §v2.15.9 — sleep_tombstones table. Same shape as
+        // alarm_tombstones (created in MIGRATION_7_8). Lets a delete
+        // survive a failed server call: we write the tombstone before
+        // wiping the local row, then sync() retries the server delete
+        // until it succeeds (or 404s, meaning never existed there).
+        // Without this, deletes during a 429 / network blip silently
+        // succeeded locally but left the server row alive — on next
+        // pull from server the record reappeared.
+        private val MIGRATION_14_15 = object : Migration(14, 15) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """CREATE TABLE IF NOT EXISTS `sleep_tombstones` (
+                        `id` TEXT NOT NULL,
+                        `deletedAt` INTEGER NOT NULL,
+                        PRIMARY KEY(`id`)
+                    )"""
+                )
+            }
+        }
+
         private val MIGRATION_6_7 = object : Migration(6, 7) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(
@@ -421,6 +443,7 @@ abstract class AppDatabase : RoomDatabase() {
                     MIGRATION_11_12,
                     MIGRATION_12_13,
                     MIGRATION_13_14,
+                    MIGRATION_14_15,
                 )
                 // Legacy DB has been dropped if it existed; if Room can't
                 // open the file (corrupt / version mismatch from a prior
