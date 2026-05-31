@@ -254,6 +254,7 @@ fun SleepScreen(
 private fun UnsyncedAudioBanner(
     count: Int,
     failedThisSession: Boolean,
+    onRetryNow: () -> Unit,
 ) {
     // §10.x-fix — Tertiary container (warmer than error, more attention
     // than surface) keeps the banner informational. If the user already
@@ -267,8 +268,8 @@ private fun UnsyncedAudioBanner(
     }
     val body = if (failedThisSession) {
         "$count event${if (count == 1) "" else "s"} are stored locally but " +
-            "haven't reached the server yet. Keep the app open so they can " +
-            "upload; otherwise they'll retry when you next have signal."
+            "haven't reached the server yet. Tap Retry to upload now, or " +
+            "they'll retry automatically when you next have signal."
     } else {
         "$count event${if (count == 1) "" else "s"} waiting to upload. " +
             "They'll send automatically when your connection is available."
@@ -307,6 +308,17 @@ private fun UnsyncedAudioBanner(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onTertiaryContainer,
                 )
+                Spacer(modifier = Modifier.height(8.dp))
+                TextButton(
+                    onClick = onRetryNow,
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                ) {
+                    Text(
+                        text = "Retry now",
+                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
             }
         }
     }
@@ -478,6 +490,7 @@ private fun SleepSubTab(
                 UnsyncedAudioBanner(
                     count = uiState.unsyncedAudioEventCount,
                     failedThisSession = uiState.lastUploadFailed,
+                    onRetryNow = { viewModel.retryUnsyncedNow() },
                 )
             }
         }

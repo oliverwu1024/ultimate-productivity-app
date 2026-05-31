@@ -79,4 +79,26 @@ interface SleepAudioEventDao {
     // *before* deleting the local sleep_record row.
     @Query("UPDATE sleep_audio_events SET sleepRecordId = :newId WHERE sleepRecordId = :oldId")
     suspend fun relinkSleepRecord(oldId: String, newId: String)
+
+    // §10.x-fix (v2.15.4) — Orphan sweep. Deletes rows whose sleepRecordId
+    // doesn't match any current sleep_record row (and isn't a live-session
+    // placeholder). Catches three failure modes:
+    //   1. User deleted a local-fallback sleep_record before sync() could
+    //      re-create it on the backend → events were left referencing the
+    //      dead local UUID.
+    //   2. v2.15.2 users with already-stuck banners from the original Test
+    //      A bug (sleep_record was re-created with a new id but events
+    //      were never relinked).
+    //   3. Any future case where a sleep_record disappears underneath
+    //      events that haven't been uploaded yet.
+    // The banner observe-count query filters on isSynced=0 only, so this
+    // sweep is what actually clears the banner in those cases — the
+    // alternative would be to make the banner query also exclude orphans,
+    // but then we'd be hiding a data-loss event instead of resolving it.
+    @Query("""
+        DELETE FROM sleep_audio_events
+        WHERE sleepRecordId NOT LIKE 'pending-%'
+          AND sleepRecordId NOT IN (SELECT id FROM sleep_records)
+    """)
+    suspend fun deleteOrphanedAudioEvents(): Int
 }

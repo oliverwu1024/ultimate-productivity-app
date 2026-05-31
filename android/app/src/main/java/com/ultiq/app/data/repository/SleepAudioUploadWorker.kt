@@ -61,6 +61,17 @@ class SleepAudioUploadWorker(
             // remaining mismatch via retry.
         }
 
+        // 1b) §v2.15.4 — Sweep events whose parent sleep_record was deleted
+        //     or never made it to the backend. Without this, orphan events
+        //     keep the banner stuck and the upload below keeps 404-ing for
+        //     them forever.
+        try {
+            val n = repo.cleanupOrphanedAudioEvents()
+            if (n > 0) Log.i(TAG, "Swept $n orphan audio events")
+        } catch (t: Throwable) {
+            Log.w(TAG, "cleanupOrphanedAudioEvents failed", t)
+        }
+
         // 2) Upload any unsynced events, batched per sleep_record. Skip
         //    placeholder rows (sleepRecordId starts with "pending-") — those
         //    belong to a live session and will be relinked at End Sleep.
@@ -123,10 +134,15 @@ class SleepAudioUploadWorker(
             val constraints = Constraints.Builder()
                 .setRequiredNetworkType(NetworkType.CONNECTED)
                 .build()
+            // §v2.15.4 — LINEAR (not EXPONENTIAL) backoff so successive
+            // retries stay close together instead of doubling out to
+            // 5+ minutes. EXPONENTIAL was punishing the airplane-mode
+            // case: by the time the user disabled airplane mode the
+            // next retry was scheduled many minutes out.
             val request = OneTimeWorkRequestBuilder<SleepAudioUploadWorker>()
                 .setConstraints(constraints)
                 .setBackoffCriteria(
-                    BackoffPolicy.EXPONENTIAL,
+                    BackoffPolicy.LINEAR,
                     30, TimeUnit.SECONDS,
                 )
                 .build()
