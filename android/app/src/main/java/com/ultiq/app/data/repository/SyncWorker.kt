@@ -17,20 +17,30 @@ class SyncWorker(
         val tokenManager = TokenManager(applicationContext)
         val api = RetrofitClient.create(tokenManager)
         val db = AppDatabase.getInstance(applicationContext)
+        // §v2.15.10 — Shared sync-state store so all three guarded
+        // repositories see the same persistent empty-streak counter.
+        val syncStateStore = SyncStateStore(applicationContext)
 
         val syncManager = SyncManager(
             sleepRepo = SleepRepository(
                 sleepDao = db.sleepDao(),
                 apiService = api,
                 sleepAudioEventDao = db.sleepAudioEventDao(),
+                syncStateStore = syncStateStore,
             ),
             sessionRepo = SessionRepository(db.sessionDao(), api),
-            calendarRepo = CalendarRepository(db.calendarEventDao(), api, AlarmScheduler(applicationContext)),
+            calendarRepo = CalendarRepository(
+                db.calendarEventDao(),
+                api,
+                AlarmScheduler(applicationContext),
+                syncStateStore = syncStateStore,
+            ),
             alarmRepo = AlarmRepository(applicationContext, db.alarmDao(), api),
             checklistRepo = ChecklistRepository(
                 db.checklistDao(),
                 db.checklistCompletionDao(),
                 api,
+                syncStateStore = syncStateStore,
             ),
         )
 

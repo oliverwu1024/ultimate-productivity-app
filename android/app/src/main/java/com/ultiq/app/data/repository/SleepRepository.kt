@@ -31,6 +31,7 @@ class SleepRepository(
     private val apiService: ApiService,
     private val achievementChecker: AchievementChecker? = null,
     private val sleepAudioEventDao: SleepAudioEventDao? = null,
+    private val syncStateStore: SyncStateStore? = null,
 ) {
     // §10.x — Lazy uploader so existing call sites that construct
     // SleepRepository without an explicit uploader still work (sync worker
@@ -588,9 +589,24 @@ class SleepRepository(
             val rangeStart = now - 30L * day
             val rangeEnd = now
             val localSyncedIds = sleepDao.getSyncedIdsInRange(rangeStart, rangeEnd)
-            for (id in localSyncedIds) {
-                if (id !in serverIds) {
-                    sleepDao.deleteById(id)
+
+            // §v2.15.10 — Two-empty-response guard. A single empty
+            // server response is suspicious (backend hiccup, rate
+            // limit, auth quirk, query-window edge case). Require two
+            // in a row before believing it and mirroring the deletion
+            // to local. Without this, the user's calendar / checklist
+            // disappeared during the v2.15.7 rate-limit storm even
+            // though the backend was intact.
+            val shouldReconcile = shouldReconcile(
+                serverEmpty = effectiveServerRecords.isEmpty(),
+                localHasRows = localSyncedIds.isNotEmpty(),
+                entityKey = SyncStateStore.ENTITY_SLEEP,
+            )
+            if (shouldReconcile) {
+                for (id in localSyncedIds) {
+                    if (id !in serverIds) {
+                        sleepDao.deleteById(id)
+                    }
                 }
             }
 
@@ -663,6 +679,43 @@ class SleepRepository(
                 // Skip this record; next sync will retry. Per-record
                 // failure shouldn't abort the rest of the back-fill.
             }
+        }
+    }
+
+    /**
+     * §v2.15.10 — Two-empty-response guard helper. Returns true when
+     * the destructive reconciliation should proceed. Same logic in
+     * CalendarRepository and ChecklistRepository.
+     *
+     * Decision matrix:
+     *   - serverEmpty=false → reset streak, proceed (normal case)
+     *   - serverEmpty=true, local empty → no-op either way, reset
+     *     streak so future signal isn't stale, proceed
+     *   - serverEmpty=true, local has rows, streak <  2 → suspicious,
+     *     bump streak, SKIP reconcile this cycle
+     *   - serverEmpty=true, local has rows, streak >= 2 → confirmed,
+     *     reset streak, PROCEED (the wipe was real)
+     */
+    private fun shouldReconcile(
+        serverEmpty: Boolean,
+        localHasRows: Boolean,
+        entityKey: String,
+    ): Boolean {
+        val store = syncStateStore ?: return true // not wired → behave like before
+        if (!serverEmpty) {
+            store.resetEmptyStreak(entityKey)
+            return true
+        }
+        if (!localHasRows) {
+            store.resetEmptyStreak(entityKey)
+            return true
+        }
+        val streak = store.incrementEmptyStreak(entityKey)
+        return if (streak >= SyncStateStore.REQUIRED_EMPTY_STREAK) {
+            store.resetEmptyStreak(entityKey)
+            true
+        } else {
+            false
         }
     }
 }

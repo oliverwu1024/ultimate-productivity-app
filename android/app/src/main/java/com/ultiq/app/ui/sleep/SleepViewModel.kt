@@ -152,6 +152,7 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
         apiService = api,
         achievementChecker = achievementChecker,
         sleepAudioEventDao = db.sleepAudioEventDao(),
+        syncStateStore = com.ultiq.app.data.repository.SyncStateStore(application),
     )
 
     private val _uiState = MutableStateFlow(SleepUiState())

@@ -24,6 +24,7 @@ class CalendarRepository(
     private val calendarEventDao: CalendarEventDao,
     private val apiService: ApiService,
     private val alarmScheduler: AlarmScheduler? = null,
+    private val syncStateStore: SyncStateStore? = null,
 ) {
 
     fun getEventsForMonth(year: Int, month: Int): Flow<List<CalendarEventEntity>> {
@@ -196,10 +197,23 @@ class CalendarRepository(
             val rangeStart = today.minusDays(30).atStartOfDay(LOCAL_ZONE).toInstant().toEpochMilli()
             val rangeEnd = today.plusDays(365).atTime(23, 59, 59).atZone(LOCAL_ZONE).toInstant().toEpochMilli()
             val localSyncedIds = calendarEventDao.getSyncedIdsInRange(rangeStart, rangeEnd)
-            for (id in localSyncedIds) {
-                if (id !in serverIds) {
-                    calendarEventDao.deleteById(id)
-                    alarmScheduler?.cancelEventReminder(id)
+
+            // §v2.15.10 — Two-empty-response guard. See SleepRepository
+            // for the full rationale. Without it, a single empty server
+            // response (the v2.15.7 storm caused several) wipes every
+            // local row in the window even though backend still has
+            // the data.
+            val shouldReconcile = shouldReconcile(
+                serverEmpty = serverEvents.isEmpty(),
+                localHasRows = localSyncedIds.isNotEmpty(),
+                entityKey = SyncStateStore.ENTITY_CALENDAR,
+            )
+            if (shouldReconcile) {
+                for (id in localSyncedIds) {
+                    if (id !in serverIds) {
+                        calendarEventDao.deleteById(id)
+                        alarmScheduler?.cancelEventReminder(id)
+                    }
                 }
             }
 
@@ -310,4 +324,33 @@ class CalendarRepository(
 
     private fun defaultColor(category: String): String =
         com.ultiq.app.ui.theme.CategoryColors.hexForCategory(category)
+
+    /**
+     * §v2.15.10 — Two-empty-response guard. Same logic as
+     * SleepRepository.shouldReconcile / ChecklistRepository.
+     * Returns true when the destructive reconciliation should proceed,
+     * false when we want to wait for a second corroborating response.
+     */
+    private fun shouldReconcile(
+        serverEmpty: Boolean,
+        localHasRows: Boolean,
+        entityKey: String,
+    ): Boolean {
+        val store = syncStateStore ?: return true
+        if (!serverEmpty) {
+            store.resetEmptyStreak(entityKey)
+            return true
+        }
+        if (!localHasRows) {
+            store.resetEmptyStreak(entityKey)
+            return true
+        }
+        val streak = store.incrementEmptyStreak(entityKey)
+        return if (streak >= SyncStateStore.REQUIRED_EMPTY_STREAK) {
+            store.resetEmptyStreak(entityKey)
+            true
+        } else {
+            false
+        }
+    }
 }

@@ -22,6 +22,7 @@ class ChecklistRepository(
     private val dao: ChecklistDao,
     private val completionDao: ChecklistCompletionDao,
     private val apiService: ApiService,
+    private val syncStateStore: SyncStateStore? = null,
 ) {
     private val tag = "ChecklistRepo"
     private val isoDate: DateTimeFormatter = DateTimeFormatter.ISO_LOCAL_DATE
@@ -261,14 +262,28 @@ class ChecklistRepository(
 
             val localSyncedIds = dao.getSyncedIds()
             Log.d(tag, "sync — localSyncedIds=$localSyncedIds")
+
+            // §v2.15.10 — Two-empty-response guard. Don't mirror a
+            // server "you have nothing" response if local still has
+            // rows, until we've seen it confirmed by a second sync.
+            // See SleepRepository.shouldReconcile for the rationale.
+            val shouldReconcile = shouldReconcile(
+                serverEmpty = serverItems.isEmpty(),
+                localHasRows = localSyncedIds.isNotEmpty(),
+                entityKey = SyncStateStore.ENTITY_CHECKLIST,
+            )
             var reconcileDeletes = 0
-            for (id in localSyncedIds) {
-                if (id !in serverIds) {
-                    completionDao.deleteAllForItem(id)
-                    dao.deleteById(id)
-                    reconcileDeletes++
-                    Log.d(tag, "sync — orphan local row deleted: id=$id")
+            if (shouldReconcile) {
+                for (id in localSyncedIds) {
+                    if (id !in serverIds) {
+                        completionDao.deleteAllForItem(id)
+                        dao.deleteById(id)
+                        reconcileDeletes++
+                        Log.d(tag, "sync — orphan local row deleted: id=$id")
+                    }
                 }
+            } else {
+                Log.w(tag, "sync — defer reconcile (server empty, local has ${localSyncedIds.size} rows)")
             }
             Log.d(tag, "sync — reconcile deleted $reconcileDeletes orphan local row(s)")
 
@@ -333,5 +348,32 @@ class ChecklistRepository(
         }
         dao.insert(entity)
         persistCompletionsFromServer(dto)
+    }
+
+    /**
+     * §v2.15.10 — Two-empty-response guard. Same logic as
+     * SleepRepository.shouldReconcile / CalendarRepository.
+     */
+    private fun shouldReconcile(
+        serverEmpty: Boolean,
+        localHasRows: Boolean,
+        entityKey: String,
+    ): Boolean {
+        val store = syncStateStore ?: return true
+        if (!serverEmpty) {
+            store.resetEmptyStreak(entityKey)
+            return true
+        }
+        if (!localHasRows) {
+            store.resetEmptyStreak(entityKey)
+            return true
+        }
+        val streak = store.incrementEmptyStreak(entityKey)
+        return if (streak >= SyncStateStore.REQUIRED_EMPTY_STREAK) {
+            store.resetEmptyStreak(entityKey)
+            true
+        } else {
+            false
+        }
     }
 }

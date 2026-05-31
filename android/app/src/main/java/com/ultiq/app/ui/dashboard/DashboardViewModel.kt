@@ -186,17 +186,28 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     private val sleepDao = db.sleepDao()
     private val sessionDao = db.sessionDao()
     private val achievementDao = db.achievementDao()
+    // §v2.15.10 — Shared SyncStateStore so all guarded repos in this
+    // ViewModel see the same empty-streak counter (also shared with the
+    // SyncWorker and other VMs via SharedPreferences).
+    private val syncStateStore = com.ultiq.app.data.repository.SyncStateStore(application)
     private val sleepRepo = SleepRepository(
         sleepDao = sleepDao,
         apiService = api,
         sleepAudioEventDao = db.sleepAudioEventDao(),
+        syncStateStore = syncStateStore,
     )
     private val sessionRepo = SessionRepository(sessionDao, api)
-    private val calendarRepo = CalendarRepository(db.calendarEventDao(), api, AlarmScheduler(application))
+    private val calendarRepo = CalendarRepository(
+        db.calendarEventDao(),
+        api,
+        AlarmScheduler(application),
+        syncStateStore = syncStateStore,
+    )
     private val checklistRepo = ChecklistRepository(
         db.checklistDao(),
         db.checklistCompletionDao(),
         api,
+        syncStateStore = syncStateStore,
     )
     private val alarmRepo = com.ultiq.app.data.repository.AlarmRepository(application, db.alarmDao(), api)
     private val syncManager = SyncManager(sleepRepo, sessionRepo, calendarRepo, alarmRepo, checklistRepo)

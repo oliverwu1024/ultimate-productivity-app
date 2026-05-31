@@ -52,7 +52,12 @@ class CalendarViewModel(application: Application) : AndroidViewModel(application
     private val api = RetrofitClient.create(tokenManager)
     private val db = AppDatabase.getInstance(application)
     private val alarmScheduler = AlarmScheduler(application)
-    private val repository = CalendarRepository(db.calendarEventDao(), api, alarmScheduler)
+    private val repository = CalendarRepository(
+        db.calendarEventDao(),
+        api,
+        alarmScheduler,
+        syncStateStore = com.ultiq.app.data.repository.SyncStateStore(application),
+    )
 
     private val _uiState = MutableStateFlow(CalendarUiState())
     val uiState: StateFlow<CalendarUiState> = _uiState
