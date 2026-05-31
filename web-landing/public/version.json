@@ -1,6 +1,6 @@
 {
-  "versionCode": 87,
-  "versionName": "2.15.4",
-  "url": "https://ultiqapp.com/ultiq.2.15.4.apk",
-  "releaseNotes": "Sleep tracking reliability follow-up: the syncing banner now clears immediately when your connection returns instead of waiting on a retry timer, and you can tap Retry now if you want to force it. Cleaned up orphaned audio events that could keep the banner stuck after deleting a record."
+  "versionCode": 88,
+  "versionName": "2.15.5",
+  "url": "https://ultiqapp.com/ultiq.2.15.5.apk",
+  "releaseNotes": "Sleep tracking polish: clip play buttons now appear right when uploads finish instead of waiting for an app restart. No more 'I have the timestamps but can't hear my snores until I swipe the app off and reopen it'."
 }
