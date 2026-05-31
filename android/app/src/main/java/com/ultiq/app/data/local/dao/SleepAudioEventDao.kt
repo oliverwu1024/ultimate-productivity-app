@@ -67,4 +67,16 @@ interface SleepAudioEventDao {
     // in-memory `pendingAudioEvents` was lost to a service restart.
     @Query("SELECT * FROM sleep_audio_events WHERE sleepRecordId = :pendingId ORDER BY startedAt ASC")
     suspend fun getByPendingSession(pendingId: String): List<SleepAudioEventEntity>
+
+    // §10.x-fix (v2.15.3) — Cascade rewrite for the local-fallback path.
+    // When createSleepRecord fails over the network at session-end, the
+    // ViewModel inserts a local-only sleep_record with a random UUID and
+    // saveAudioEvents stamps the audio events with that UUID. Later
+    // SleepRepository.sync() re-creates the sleep_record on the backend
+    // and the backend issues a new id; the old local row is deleted. Without
+    // this UPDATE, the audio events are orphaned forever — they reference
+    // a sleepRecordId the backend never knew. Caller must invoke this
+    // *before* deleting the local sleep_record row.
+    @Query("UPDATE sleep_audio_events SET sleepRecordId = :newId WHERE sleepRecordId = :oldId")
+    suspend fun relinkSleepRecord(oldId: String, newId: String)
 }

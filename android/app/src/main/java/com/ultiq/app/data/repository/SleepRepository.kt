@@ -397,19 +397,47 @@ class SleepRepository(
         }
     }
 
+    /**
+     * §10.x-fix (v2.15.3) — Extracted helper so both the foreground sync()
+     * pass and the SleepAudioUploadWorker can drive it. Uploads any locally-
+     * created sleep_record rows (isSynced=false from the network-fallback
+     * path in createSleepRecord) and, crucially, **relinks every audio event
+     * that referenced the old local id** to the new server-issued id BEFORE
+     * deleting the local row. Without the relink the audio events would be
+     * permanently orphaned — the WorkManager event-upload pass would loop
+     * on a 404 forever.
+     */
+    suspend fun syncUnsyncedSleepRecords() {
+        val unsynced = try {
+            sleepDao.getUnsyncedRecords()
+        } catch (_: Exception) {
+            return
+        }
+        for (record in unsynced) {
+            try {
+                val dto = record.toCreateDto()
+                val serverRecord = apiService.createSleepRecord(dto)
+                val newId = serverRecord.toEntity().id
+                if (newId != record.id) {
+                    // Cascade-rewrite audio events from the local UUID to
+                    // the server-issued one. No-op if newId == oldId
+                    // (defensive — shouldn't happen, server always issues
+                    // its own id, but cheap to check).
+                    try {
+                        sleepAudioEventDao?.relinkSleepRecord(record.id, newId)
+                    } catch (_: Exception) { /* non-fatal */ }
+                }
+                sleepDao.deleteById(record.id)
+                sleepDao.insert(serverRecord.toEntity())
+            } catch (_: Exception) {
+                // skip, will retry next sync
+            }
+        }
+    }
+
     suspend fun sync() {
         try {
-            val unsynced = sleepDao.getUnsyncedRecords()
-            for (record in unsynced) {
-                try {
-                    val dto = record.toCreateDto()
-                    val serverRecord = apiService.createSleepRecord(dto)
-                    sleepDao.deleteById(record.id)
-                    sleepDao.insert(serverRecord.toEntity())
-                } catch (_: Exception) {
-                    // skip, will retry next sync
-                }
-            }
+            syncUnsyncedSleepRecords()
 
             val serverRecords = apiService.getSleepRecords(null, null)
             val serverIds = serverRecords.map { it.id }.toSet()
