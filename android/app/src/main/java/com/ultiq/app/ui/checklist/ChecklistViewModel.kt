@@ -62,6 +62,7 @@ class ChecklistViewModel(application: Application) : AndroidViewModel(applicatio
         db.checklistDao(),
         db.checklistCompletionDao(),
         api,
+        syncStateStore = com.ultiq.app.data.repository.SyncStateStore(application),
     )
     private val userPreferences = UserPreferences(application)
 
