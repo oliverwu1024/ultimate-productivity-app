@@ -1,6 +1,6 @@
 {
-  "versionCode": 92,
-  "versionName": "2.15.9",
-  "url": "https://ultiqapp.com/ultiq.2.15.9.apk",
-  "releaseNotes": "Bug fix: when a delete request to the server failed (network blip, rate-limited), the record disappeared locally but came back on the next sync. Deletes are now tracked locally and retried automatically until the server confirms — no more zombie records reappearing after reinstall."
+  "versionCode": 93,
+  "versionName": "2.15.10",
+  "url": "https://ultiqapp.com/ultiq.2.15.10.apk",
+  "releaseNotes": "Data-loss prevention: a single bad sync response (rate limit, backend hiccup, etc.) could wipe local calendar/checklist items even when the server still had them. The app now requires the same empty response twice in a row before believing it, so a momentary hiccup can't take down your data."
 }
