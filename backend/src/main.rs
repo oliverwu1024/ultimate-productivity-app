@@ -23,6 +23,7 @@ use email::EmailClient;
 use event_bus::EventBus;
 use ticket::TicketStore;
 use tower_governor::governor::GovernorConfigBuilder;
+use tower_governor::key_extractor::SmartIpKeyExtractor;
 use tower_governor::GovernorLayer;
 use tower_http::cors::{AllowOrigin, CorsLayer};
 use tower_http::limit::RequestBodyLimitLayer;
@@ -108,11 +109,21 @@ async fn main() {
     //   - Auth endpoints stay strict at 1 rps / burst 5 — that's where
     //     real abuse surfaces are (brute-force, account flood, draining
     //     Resend's email quota via `forgot-password`).
-    // ECS sits behind an ALB, so we read X-Forwarded-For for the real client IP.
+    //
+    // ECS sits behind an ALB, so we MUST use SmartIpKeyExtractor to read
+    // the real client IP from `X-Forwarded-For`. Without this every
+    // request's "peer IP" is the ALB's internal IP — every user on the
+    // planet shares one bucket per ALB-IP, and any traffic burst from
+    // the dashboard / SSE reconnects / background workers exhausts the
+    // bucket and 429s everyone else. Symptom we saw in v2.15.7 testing:
+    // the sleep-audio worker's first request would 429 immediately,
+    // banner stuck, retry no-op, all because the global bucket was
+    // already empty from unrelated traffic.
     let global_governor = Arc::new(
         GovernorConfigBuilder::default()
             .per_second(200)
             .burst_size(500)
+            .key_extractor(SmartIpKeyExtractor)
             .use_headers()
             .finish()
             .expect("valid governor config"),
@@ -121,6 +132,7 @@ async fn main() {
         GovernorConfigBuilder::default()
             .per_second(1)
             .burst_size(5)
+            .key_extractor(SmartIpKeyExtractor)
             .use_headers()
             .finish()
             .expect("valid governor config"),
@@ -135,6 +147,7 @@ async fn main() {
         GovernorConfigBuilder::default()
             .per_second(1)
             .burst_size(10)
+            .key_extractor(SmartIpKeyExtractor)
             .use_headers()
             .finish()
             .expect("valid governor config"),
@@ -148,6 +161,7 @@ async fn main() {
         GovernorConfigBuilder::default()
             .per_second(1)
             .burst_size(60)
+            .key_extractor(SmartIpKeyExtractor)
             .use_headers()
             .finish()
             .expect("valid governor config"),
