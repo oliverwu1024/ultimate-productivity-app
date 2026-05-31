@@ -159,6 +159,9 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
 
     private var userId: String = ""
     private var recordsJob: Job? = null
+    // §v2.15.4 — Connectivity callback; nullable because device may refuse
+    // to register (max-callbacks SecurityException is non-fatal).
+    private var networkCallback: android.net.ConnectivityManager.NetworkCallback? = null
 
     init {
         viewModelScope.launch {
@@ -188,6 +191,12 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
                 )
             }
         }
+        // §v2.15.4 — Listen for connectivity becoming available and force
+        // a fresh worker enqueue (REPLACE) so any pending backoff timer
+        // gets reset and the worker fires immediately. Without this, the
+        // user disabling airplane mode could wait minutes for the next
+        // WorkManager retry to elapse before the banner clears.
+        registerNetworkCallback()
         // Continuous mirror so the SLEEP PREFERENCES cards stay in sync when
         // the user changes them.
         viewModelScope.launch {
@@ -750,6 +759,65 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
                 error = result.exceptionOrNull()?.toUserMessage("Couldn't save sleep. Try again.")
             )
         }
+    }
+
+    /**
+     * §v2.15.4 — Banner action. Force-fires the WorkManager job with
+     * REPLACE policy: cancels any pending backoff timer, runs the
+     * sleep-record sync + orphan sweep + events upload now (or as soon
+     * as the network constraint is met). Idempotent — safe to spam.
+     */
+    fun retryUnsyncedNow() {
+        SleepAudioUploadWorker.enqueue(
+            getApplication<Application>(),
+            replace = true,
+        )
+    }
+
+    /**
+     * §v2.15.4 — Register a ConnectivityManager callback that fires
+     * whenever a network becomes available. Each fire re-enqueues the
+     * sleep-audio worker with REPLACE so any in-flight exponential
+     * backoff timer gets reset. Without this, the airplane-mode →
+     * airplane-mode-off flow could wait minutes for the next scheduled
+     * retry before the banner clears.
+     */
+    private fun registerNetworkCallback() {
+        val app = getApplication<Application>()
+        val cm = app.getSystemService(android.content.Context.CONNECTIVITY_SERVICE)
+            as? android.net.ConnectivityManager ?: return
+        val request = android.net.NetworkRequest.Builder()
+            .addCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            .addCapability(android.net.NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+            .build()
+        networkCallback = object : android.net.ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: android.net.Network) {
+                // Only re-enqueue if there's something to retry — avoids
+                // pinging WorkManager on every wifi switch in normal use.
+                if (_uiState.value.unsyncedAudioEventCount > 0) {
+                    SleepAudioUploadWorker.enqueue(app, replace = true)
+                }
+            }
+        }
+        try {
+            cm.registerNetworkCallback(request, networkCallback!!)
+        } catch (_: Throwable) {
+            // Some devices throw SecurityException if too many callbacks
+            // are registered; non-fatal — WorkManager backoff still
+            // catches up eventually.
+            networkCallback = null
+        }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        val cm = getApplication<Application>()
+            .getSystemService(android.content.Context.CONNECTIVITY_SERVICE)
+            as? android.net.ConnectivityManager
+        networkCallback?.let { cb ->
+            try { cm?.unregisterNetworkCallback(cb) } catch (_: Throwable) {}
+        }
+        networkCallback = null
     }
 
     private fun loadRecords() {

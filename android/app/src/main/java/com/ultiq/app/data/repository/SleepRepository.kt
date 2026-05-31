@@ -112,6 +112,13 @@ class SleepRepository(
     }
 
     suspend fun deleteSleepRecord(id: String): Result<Unit> {
+        // §10.x-fix (v2.15.4) — Cascade-delete audio events so they don't
+        // outlive their parent and end up driving the unsynced-events
+        // banner with a sleepRecordId that no longer maps to anything.
+        // Backend has its own ON DELETE CASCADE for the server copy.
+        try {
+            sleepAudioEventDao?.deleteBySleepRecord(id)
+        } catch (_: Exception) { /* non-fatal */ }
         sleepDao.deleteById(id)
         return try {
             apiService.deleteSleepRecord(id)
@@ -306,6 +313,27 @@ class SleepRepository(
     }
 
     /**
+     * §10.x-fix (v2.15.4) — Sweep audio events whose parent sleep_record
+     * no longer exists locally. Catches three cases:
+     *   1. User deleted a local-fallback record before sync() could
+     *      upload it.
+     *   2. v2.15.2 users with already-stuck banners from the original
+     *      Test A bug (where the relink never ran).
+     *   3. Any future drift between the two tables.
+     * Called from sync() AFTER syncUnsyncedSleepRecords (which gets first
+     * shot at recovering events by relinking) and from the WorkManager
+     * worker. Returns the number of rows deleted for logging.
+     */
+    suspend fun cleanupOrphanedAudioEvents(): Int {
+        val dao = sleepAudioEventDao ?: return 0
+        return try {
+            dao.deleteOrphanedAudioEvents()
+        } catch (_: Exception) {
+            0
+        }
+    }
+
+    /**
      * §10.x-fix (WorkManager) — Scan `cacheDir/audio-clips/` for any
      * leftover clip files (named `clip-{eventId}.m4a`) and try to upload
      * each one. The uploader returns false on 404 (event not yet on
@@ -438,6 +466,10 @@ class SleepRepository(
     suspend fun sync() {
         try {
             syncUnsyncedSleepRecords()
+            // §10.x-fix (v2.15.4) — Sweep orphans after the relink had
+            // first crack at recovering them. Anything left has no
+            // parent sleep_record and would only drive a stuck banner.
+            cleanupOrphanedAudioEvents()
 
             val serverRecords = apiService.getSleepRecords(null, null)
             val serverIds = serverRecords.map { it.id }.toSet()
