@@ -8,6 +8,7 @@ import com.ultiq.app.data.local.dao.SleepAudioEventDao
 import com.ultiq.app.data.local.dao.SleepDao
 import com.ultiq.app.data.local.entity.SleepAudioEventEntity
 import com.ultiq.app.data.local.entity.SleepRecordEntity
+import com.ultiq.app.data.local.entity.SleepTombstoneEntity
 import com.ultiq.app.data.remote.ApiService
 import com.ultiq.app.data.remote.dto.BatchCreatePhonePickupsDto
 import com.ultiq.app.data.remote.dto.BatchCreateSleepAudioEventsDto
@@ -20,7 +21,9 @@ import com.ultiq.app.service.PickupEvent
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
+import retrofit2.HttpException
 import java.io.File
+import java.io.IOException
 import java.util.UUID
 
 class SleepRepository(
@@ -120,11 +123,27 @@ class SleepRepository(
         try {
             sleepAudioEventDao?.deleteBySleepRecord(id)
         } catch (_: Exception) { /* non-fatal */ }
+        // §v2.15.9 — Write a tombstone BEFORE removing the local row so a
+        // sync pull that races with the delete sees the tombstone and
+        // skips re-inserting from the server. Without this, deletes that
+        // failed at the server step (network blip, 429, force-stop)
+        // silently disappeared locally but resurrected on the next pull.
+        // Observed during v2.15.7 testing under the shared-bucket rate
+        // limit: users saw their cleanup work undo itself on reinstall.
+        sleepDao.insertTombstone(SleepTombstoneEntity(id, System.currentTimeMillis()))
         sleepDao.deleteById(id)
         return try {
             apiService.deleteSleepRecord(id)
+            sleepDao.deleteTombstone(id) // server confirmed; tombstone done.
             Result.success(Unit)
-        } catch (_: Exception) {
+        } catch (e: HttpException) {
+            // 404 → record never existed on server (local-only fallback
+            // row that hadn't synced yet). Tombstone done either way.
+            if (e.code() == 404) sleepDao.deleteTombstone(id)
+            // Anything else: keep the tombstone, sync will retry.
+            Result.success(Unit)
+        } catch (_: IOException) {
+            // Offline; tombstone remains, sync will retry.
             Result.success(Unit)
         }
     }
@@ -526,6 +545,25 @@ class SleepRepository(
 
     suspend fun sync() {
         try {
+            // §v2.15.9 — Retry server-side deletes for any pending
+            // tombstones BEFORE pulling fresh server state. Otherwise
+            // the subsequent getSleepRecords + insertAll would
+            // resurrect rows the user already deleted but whose backend
+            // call failed (the common case under the rate-limit issue
+            // PR #137 fixed). Same pattern as AlarmRepository.sync().
+            val tombstones = try { sleepDao.getAllTombstones() } catch (_: Exception) { emptyList() }
+            for (t in tombstones) {
+                try {
+                    apiService.deleteSleepRecord(t.id)
+                    sleepDao.deleteTombstone(t.id)
+                } catch (e: HttpException) {
+                    if (e.code() == 404) sleepDao.deleteTombstone(t.id)
+                    // 5xx / 4xx-other: keep tombstone, try next sync
+                } catch (_: IOException) {
+                    // Network blip; try next sync
+                }
+            }
+
             syncUnsyncedSleepRecords()
             // §10.x-fix (v2.15.4) — Sweep orphans after the relink had
             // first crack at recovering them. Anything left has no
@@ -533,7 +571,15 @@ class SleepRepository(
             cleanupOrphanedAudioEvents()
 
             val serverRecords = apiService.getSleepRecords(null, null)
-            val serverIds = serverRecords.map { it.id }.toSet()
+            // §v2.15.9 — Exclude any records still tombstoned locally so
+            // we don't re-insert what we're still trying to delete. Real
+            // tombstones get cleared at the top of next sync once the
+            // server delete finally goes through.
+            val activeTombstones = try {
+                sleepDao.getTombstonedIds().toSet()
+            } catch (_: Exception) { emptySet() }
+            val effectiveServerRecords = serverRecords.filter { it.id !in activeTombstones }
+            val serverIds = effectiveServerRecords.map { it.id }.toSet()
 
             // Reconcile: drop local synced rows in the pulled window that no longer
             // exist on the server (deleted from web or another device).
@@ -548,7 +594,7 @@ class SleepRepository(
                 }
             }
 
-            sleepDao.insertAll(serverRecords.map { it.toEntity() })
+            sleepDao.insertAll(effectiveServerRecords.map { it.toEntity() })
 
             // §10 — Also retry any unsynced audio events as part of the
             // standard sync pass. Failures here don't abort the outer sync.
@@ -563,7 +609,7 @@ class SleepRepository(
             // generated new ones. Idempotent — INSERT OR REPLACE on the
             // primary id de-dupes if the events are already local.
             try {
-                fetchRecentAudioEvents(serverRecords.map { it.id }, sinceMs = now - 7L * day)
+                fetchRecentAudioEvents(effectiveServerRecords.map { it.id }, sinceMs = now - 7L * day)
             } catch (_: Exception) { /* non-fatal */ }
         } catch (_: Exception) {
             // offline, skip sync

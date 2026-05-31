@@ -6,6 +6,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.ultiq.app.data.local.entity.SleepRecordEntity
+import com.ultiq.app.data.local.entity.SleepTombstoneEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -40,4 +41,21 @@ interface SleepDao {
 
     @Query("SELECT id FROM sleep_records WHERE isSynced = 1 AND actualBedtime BETWEEN :start AND :end")
     suspend fun getSyncedIdsInRange(start: Long, end: Long): List<String>
+
+    // ── sleep_tombstones ────────────────────────────────────────────────────
+    // §v2.15.9 — same pattern as alarm_tombstones. Mark for delete BEFORE
+    // wiping local row, so a sync race can't resurrect the record from
+    // the server copy. Clear once the server confirms the delete (or 404s).
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertTombstone(tombstone: SleepTombstoneEntity)
+
+    @Query("DELETE FROM sleep_tombstones WHERE id = :id")
+    suspend fun deleteTombstone(id: String)
+
+    @Query("SELECT * FROM sleep_tombstones")
+    suspend fun getAllTombstones(): List<SleepTombstoneEntity>
+
+    @Query("SELECT id FROM sleep_tombstones")
+    suspend fun getTombstonedIds(): List<String>
 }
