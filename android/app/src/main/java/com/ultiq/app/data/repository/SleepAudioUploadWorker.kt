@@ -83,6 +83,14 @@ class SleepAudioUploadWorker(
         }
 
         var anyFailed = false
+        // §v2.15.6 — Track which records' uploads actually succeeded in
+        // THIS worker run. fetchAudioEventsForRecord below does a
+        // deleteBySleepRecord then re-inserts from the server response,
+        // so calling it for a record whose upload just failed would
+        // wipe the local rows (server returns empty → local goes empty)
+        // and the next retry has nothing to resend. Only refresh records
+        // we successfully synced.
+        val successfulRecordIds = mutableSetOf<String>()
         for ((sleepRecordId, batch) in unsynced.groupBy { it.sleepRecordId }) {
             try {
                 api.batchCreateSleepAudioEvents(
@@ -92,6 +100,7 @@ class SleepAudioUploadWorker(
                     ),
                 )
                 dao.markSyncedBatch(batch.map { it.id })
+                successfulRecordIds.add(sleepRecordId)
                 Log.i(TAG, "Uploaded ${batch.size} events for $sleepRecordId")
             } catch (t: Throwable) {
                 Log.w(TAG, "batch upload failed for $sleepRecordId", t)
@@ -113,16 +122,21 @@ class SleepAudioUploadWorker(
         }
 
         // 4) §v2.15.5 — Refresh local Room from the backend for every
-        //    sleep_record we just touched. The attachClip endpoint set
-        //    has_clip=true server-side, but local rows still have
-        //    has_clip=false until somebody pulls the canonical state
-        //    back down. Without this, the user sees their just-uploaded
-        //    events with timestamps but no ▶ play button — they have to
-        //    kill the app and reopen to trigger sync() and see the
-        //    icons. fetchAudioEventsForRecord replaces the per-record
-        //    Room slice with what the server has now.
-        val touchedRecordIds = unsynced.map { it.sleepRecordId }.toSet()
-        for (recordId in touchedRecordIds) {
+        //    sleep_record we *successfully* synced. The attachClip
+        //    endpoint set has_clip=true server-side, but local rows
+        //    still have has_clip=false until somebody pulls the
+        //    canonical state back down. Without this, the user sees
+        //    their just-uploaded events with timestamps but no ▶ play
+        //    button — they have to kill the app and reopen to trigger
+        //    sync() and see the icons. fetchAudioEventsForRecord
+        //    replaces the per-record Room slice with what the server
+        //    has now.
+        //
+        //    §v2.15.6 — Refresh ONLY successfulRecordIds, not every
+        //    touched record. A failed-upload record has nothing on the
+        //    server yet, so the GET-empty + delete-local path here
+        //    would wipe the rows we're trying to retry.
+        for (recordId in successfulRecordIds) {
             try {
                 repo.fetchAudioEventsForRecord(recordId)
             } catch (t: Throwable) {
