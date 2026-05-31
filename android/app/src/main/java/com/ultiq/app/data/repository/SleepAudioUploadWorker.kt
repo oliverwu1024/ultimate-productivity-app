@@ -38,8 +38,30 @@ class SleepAudioUploadWorker(
         val api = RetrofitClient.create(tokenManager)
         val db = AppDatabase.getInstance(applicationContext)
         val dao = db.sleepAudioEventDao()
+        val repo = SleepRepository(
+            sleepDao = db.sleepDao(),
+            apiService = api,
+            sleepAudioEventDao = dao,
+        )
 
-        // 1) Upload any unsynced events, batched per sleep_record. Skip
+        // 1) §v2.15.3 — Sync any local-fallback sleep_records first. If the
+        //    user's network was down at End Sleep, createSleepRecord fell
+        //    back to a local-only row and audio events were stamped with
+        //    its random UUID. We need the backend to know about the
+        //    sleep_record before the audio events can be uploaded —
+        //    otherwise the owns_sleep_record check on the batch endpoint
+        //    returns 404 and the events stay stuck forever.
+        //    syncUnsyncedSleepRecords also cascade-rewrites audio event
+        //    references to the new server-issued id.
+        try {
+            repo.syncUnsyncedSleepRecords()
+        } catch (t: Throwable) {
+            Log.w(TAG, "syncUnsyncedSleepRecords failed", t)
+            // Continue anyway — the events upload below will surface any
+            // remaining mismatch via retry.
+        }
+
+        // 2) Upload any unsynced events, batched per sleep_record. Skip
         //    placeholder rows (sleepRecordId starts with "pending-") — those
         //    belong to a live session and will be relinked at End Sleep.
         val unsynced = try {
@@ -66,16 +88,11 @@ class SleepAudioUploadWorker(
             }
         }
 
-        // 2) Upload any orphan clip files. The repository's helper scans
+        // 3) Upload any orphan clip files. The repository's helper scans
         //    cacheDir/audio-clips/, attempts each upload, deletes on
         //    success. Failures (404, 409, transient network) stay on
         //    disk; SleepAudioClipCapture.pruneStale evicts them after
         //    24h at the next session start.
-        val repo = SleepRepository(
-            sleepDao = db.sleepDao(),
-            apiService = api,
-            sleepAudioEventDao = dao,
-        )
         try {
             repo.uploadOrphanClipFiles(applicationContext.cacheDir)
         } catch (t: Throwable) {
