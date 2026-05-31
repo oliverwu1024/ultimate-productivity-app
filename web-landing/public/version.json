@@ -1,6 +1,6 @@
 {
-  "versionCode": 88,
-  "versionName": "2.15.5",
-  "url": "https://ultiqapp.com/ultiq.2.15.5.apk",
-  "releaseNotes": "Sleep tracking polish: clip play buttons now appear right when uploads finish instead of waiting for an app restart. No more 'I have the timestamps but can't hear my snores until I swipe the app off and reopen it'."
+  "versionCode": 89,
+  "versionName": "2.15.6",
+  "url": "https://ultiqapp.com/ultiq.2.15.6.apk",
+  "releaseNotes": "Bug fix: a follow-up to yesterday's sleep tracking changes could wipe local audio events when a retry failed, leaving the banner stuck. The retry path now only refreshes the records that successfully uploaded, leaving failed ones in place so the next attempt has something to send."
 }
