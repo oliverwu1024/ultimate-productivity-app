@@ -1,6 +1,6 @@
 {
-  "versionCode": 91,
-  "versionName": "2.15.8",
-  "url": "https://ultiqapp.com/ultiq.2.15.8.apk",
-  "releaseNotes": "Bug fix: yesterday's clip-cleanup change could accidentally delete recording files when their events were still waiting to upload. The app now only attempts to upload clips whose events are already on the server, leaving the rest safely on disk until their turn."
+  "versionCode": 92,
+  "versionName": "2.15.9",
+  "url": "https://ultiqapp.com/ultiq.2.15.9.apk",
+  "releaseNotes": "Bug fix: when a delete request to the server failed (network blip, rate-limited), the record disappeared locally but came back on the next sync. Deletes are now tracked locally and retried automatically until the server confirms — no more zombie records reappearing after reinstall."
 }
