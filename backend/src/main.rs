@@ -121,17 +121,27 @@ async fn main() {
     // already empty from unrelated traffic.
     let global_governor = Arc::new(
         GovernorConfigBuilder::default()
-            .per_second(200)
-            .burst_size(500)
+            .per_second(500)
+            .burst_size(2000)
             .key_extractor(SmartIpKeyExtractor)
             .use_headers()
             .finish()
             .expect("valid governor config"),
     );
+    // §v2.15.10 — Widened from 1 rps / burst 5 after the previous
+    // limit started 429-ing the web dashboard on routine page loads
+    // (the dashboard calls /auth/me from auth gate + multiple
+    // components + on SSE reconnect, which together exhausts burst 5
+    // in <1 s on a tab switch). Brute-force concerns on /auth/login
+    // and /auth/forgot-password are mitigated at the application
+    // layer (password hashing cost + Resend daily quota), so a tighter
+    // transport-level limit was strictly defense-in-depth that
+    // tripped on the happy path. 5 rps / burst 30 still bounds the
+    // bucket-per-IP usefully but stops false-positive-429-ing the UI.
     let auth_governor = Arc::new(
         GovernorConfigBuilder::default()
-            .per_second(1)
-            .burst_size(5)
+            .per_second(5)
+            .burst_size(30)
             .key_extractor(SmartIpKeyExtractor)
             .use_headers()
             .finish()
