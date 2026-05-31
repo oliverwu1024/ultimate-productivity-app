@@ -1,6 +1,6 @@
 {
-  "versionCode": 90,
-  "versionName": "2.15.7",
-  "url": "https://ultiqapp.com/ultiq.2.15.7.apk",
-  "releaseNotes": "Clip upload cleanup: old broken clip files from prior failed sessions were piling up in the cache and getting retried on every sync, eventually triggering the server's rate limit and preventing the play buttons from appearing. The app now deletes orphan files and paces requests so it doesn't hammer the server."
+  "versionCode": 91,
+  "versionName": "2.15.8",
+  "url": "https://ultiqapp.com/ultiq.2.15.8.apk",
+  "releaseNotes": "Bug fix: yesterday's clip-cleanup change could accidentally delete recording files when their events were still waiting to upload. The app now only attempts to upload clips whose events are already on the server, leaving the rest safely on disk until their turn."
 }
