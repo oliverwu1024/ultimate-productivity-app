@@ -68,6 +68,8 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.material.icons.filled.EventAvailable
 import com.ultiq.app.data.local.entity.CalendarEventEntity
+import com.ultiq.app.data.remote.dto.CreateCalendarEventDto
+import com.ultiq.app.data.repository.RecurringScope
 import com.ultiq.app.ui.common.AiParsePromptDialog
 import com.ultiq.app.ui.common.AiParseSurface
 import com.ultiq.app.ui.common.MascotEmptyState
@@ -90,6 +92,17 @@ fun CalendarScreen(viewModel: CalendarViewModel = viewModel()) {
     // through a confirm dialog at this layer, matching the other tabs.
     var pendingDeleteId by remember { mutableStateOf<String?>(null) }
     var pendingDeleteTitle by remember { mutableStateOf("") }
+    // v2.16.0 — When a recurring event is touched, we ask the user
+    // whether the action applies to just-this / this-and-following / all.
+    // Three queues, one per action — delete, save (edit), and the Delete
+    // button inside the edit sheet all flow through their own pending
+    // state so the dialog rendering is straightforward at the bottom.
+    var pendingRecurringDelete by remember {
+        mutableStateOf<RecurringActionTarget?>(null)
+    }
+    var pendingRecurringEdit by remember {
+        mutableStateOf<RecurringEditTarget?>(null)
+    }
 
     LaunchedEffect(uiState.error) {
         uiState.error?.let {
@@ -188,14 +201,38 @@ fun CalendarScreen(viewModel: CalendarViewModel = viewModel()) {
                     SwipeToDeleteBox(
                         confirmTitle = "Delete event?",
                         confirmBody = "'${event.title}' will be removed from your calendar.",
-                        onDelete = { viewModel.deleteEvent(event.id) },
+                        onDelete = {
+                            // v2.16.0 — For recurring events, intercept and
+                            // ask the user which scope they want. For one-
+                            // shot events the confirm dialog already ran
+                            // inside SwipeToDeleteBox, so just delete.
+                            if (event.isRecurring) {
+                                pendingRecurringDelete = RecurringActionTarget(
+                                    id = event.id,
+                                    title = event.title,
+                                    occurrenceDate = uiState.selectedDate,
+                                )
+                            } else {
+                                viewModel.deleteEvent(event.id)
+                            }
+                        },
                         modifier = Modifier.animateItem(),
                     ) {
                         EventItem(
                             event = event,
                             viewDate = uiState.selectedDate,
                             onClick = { viewModel.showEditDialog(event) },
-                            onSetDone = { done -> viewModel.setEventDone(event.id, done) },
+                            onSetDone = { done ->
+                                // v2.16.0 — Per-occurrence done flag for
+                                // recurring events; the master flag for
+                                // one-shot events. No dialog either way —
+                                // mark-done is always "just this one."
+                                viewModel.setEventDone(
+                                    id = event.id,
+                                    isDone = done,
+                                    occurrenceDate = if (event.isRecurring) uiState.selectedDate else null,
+                                )
+                            },
                         )
                     }
                 }
@@ -222,16 +259,38 @@ fun CalendarScreen(viewModel: CalendarViewModel = viewModel()) {
             onSave = { dto ->
                 val editing = uiState.editingEvent
                 if (editing != null) {
-                    viewModel.updateEvent(editing.id, dto)
+                    // v2.16.0 — Editing a recurring event opens the same
+                    // three-button chooser as delete. One-shot events
+                    // skip straight to update.
+                    if (editing.isRecurring) {
+                        pendingRecurringEdit = RecurringEditTarget(
+                            id = editing.id,
+                            title = editing.title,
+                            occurrenceDate = uiState.selectedDate,
+                            dto = dto,
+                        )
+                        viewModel.hideDialog()
+                    } else {
+                        viewModel.updateEvent(editing.id, dto)
+                    }
                 } else {
                     viewModel.createEvent(dto)
                 }
             },
             onDelete = uiState.editingEvent?.let { event ->
                 {
-                    pendingDeleteId = event.id
-                    pendingDeleteTitle = event.title
-                    viewModel.hideDialog()
+                    if (event.isRecurring) {
+                        pendingRecurringDelete = RecurringActionTarget(
+                            id = event.id,
+                            title = event.title,
+                            occurrenceDate = uiState.selectedDate,
+                        )
+                        viewModel.hideDialog()
+                    } else {
+                        pendingDeleteId = event.id
+                        pendingDeleteTitle = event.title
+                        viewModel.hideDialog()
+                    }
                 }
             },
             prefilledNewEvent = uiState.aiPrefill,
@@ -268,6 +327,132 @@ fun CalendarScreen(viewModel: CalendarViewModel = viewModel()) {
                 TextButton(onClick = { pendingDeleteId = null }) { Text("Cancel") }
             },
         )
+    }
+
+    // v2.16.0 — Three-button recurring-event chooser, used by both delete
+    // and edit. Stacking buttons vertically keeps the labels readable on
+    // narrow widths (M3 AlertDialog's confirm/dismiss row gets cramped
+    // with three).
+    pendingRecurringDelete?.let { target ->
+        RecurringScopeDialog(
+            title = "Delete recurring event?",
+            body = "'${target.title}' repeats. What would you like to delete?",
+            actionLabel = "Delete",
+            isDestructive = true,
+            onDismiss = { pendingRecurringDelete = null },
+            onPick = { scope ->
+                pendingRecurringDelete = null
+                viewModel.deleteEvent(
+                    id = target.id,
+                    occurrenceDate = target.occurrenceDate,
+                    scope = scope,
+                )
+            },
+        )
+    }
+
+    pendingRecurringEdit?.let { target ->
+        RecurringScopeDialog(
+            title = "Edit recurring event?",
+            body = "'${target.title}' repeats. Apply changes to:",
+            actionLabel = "Save",
+            isDestructive = false,
+            onDismiss = { pendingRecurringEdit = null },
+            onPick = { scope ->
+                pendingRecurringEdit = null
+                viewModel.updateEvent(
+                    id = target.id,
+                    dto = target.dto,
+                    occurrenceDate = target.occurrenceDate,
+                    scope = scope,
+                )
+            },
+        )
+    }
+}
+
+// v2.16.0 — Targets carried by the pending-action state. Holding the
+// occurrence date locally (rather than re-reading uiState.selectedDate at
+// dialog confirm time) makes the dialog robust against the user
+// switching days while it's open.
+private data class RecurringActionTarget(
+    val id: String,
+    val title: String,
+    val occurrenceDate: LocalDate,
+)
+
+private data class RecurringEditTarget(
+    val id: String,
+    val title: String,
+    val occurrenceDate: LocalDate,
+    val dto: CreateCalendarEventDto,
+)
+
+@Composable
+private fun RecurringScopeDialog(
+    title: String,
+    body: String,
+    actionLabel: String,
+    isDestructive: Boolean,
+    onDismiss: () -> Unit,
+    onPick: (RecurringScope) -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(body)
+                ScopeOptionButton(
+                    label = "Just this one",
+                    actionLabel = actionLabel,
+                    isDestructive = isDestructive,
+                    onClick = { onPick(RecurringScope.JUST_THIS) },
+                )
+                ScopeOptionButton(
+                    label = "This and following",
+                    actionLabel = actionLabel,
+                    isDestructive = isDestructive,
+                    onClick = { onPick(RecurringScope.THIS_AND_FOLLOWING) },
+                )
+                ScopeOptionButton(
+                    label = "All occurrences",
+                    actionLabel = actionLabel,
+                    isDestructive = isDestructive,
+                    onClick = { onPick(RecurringScope.ALL) },
+                )
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        },
+    )
+}
+
+@Composable
+private fun ScopeOptionButton(
+    label: String,
+    actionLabel: String,
+    isDestructive: Boolean,
+    onClick: () -> Unit,
+) {
+    val colors = if (isDestructive) {
+        ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.errorContainer,
+            contentColor = MaterialTheme.colorScheme.onErrorContainer,
+        )
+    } else {
+        ButtonDefaults.buttonColors()
+    }
+    Button(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        colors = colors,
+    ) {
+        // actionLabel makes the dialog double as both delete + edit; the
+        // body line ("Delete: Just this one") reads naturally for either.
+        Text("$actionLabel: $label")
     }
 }
 

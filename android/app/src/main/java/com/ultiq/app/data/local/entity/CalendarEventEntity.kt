@@ -24,6 +24,20 @@ data class CalendarEventEntity(
     /// migration 11→12 widens to TEXT and IntListConverter does the
     /// Kotlin↔SQLite marshalling.
     val reminderMinutes: List<Int>? = null,
+    /// v2.16.0 — Comma-separated YYYY-MM-DD list of occurrence dates the
+    /// user has explicitly marked done on this recurring series. Each
+    /// expanded instance whose local date is in this set renders with
+    /// isDone=true; the master row's own `isDone` becomes meaningless
+    /// for recurring events (kept for one-shot events only). Null on
+    /// non-recurring rows.
+    val doneDates: String? = null,
+    /// v2.16.0 — Comma-separated YYYY-MM-DD list of dates to skip when
+    /// expanding the recurring series. Drives the "Just this one"
+    /// delete + the "Just this one" edit path (the edit detaches the
+    /// occurrence by adding its date here AND spawning a new
+    /// non-recurring row for that date with the edited fields). Null
+    /// on non-recurring rows.
+    val excludedDates: String? = null,
     val createdAt: Long,
     val updatedAt: Long,
     val isSynced: Boolean = false

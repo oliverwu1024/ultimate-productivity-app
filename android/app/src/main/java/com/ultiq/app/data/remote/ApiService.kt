@@ -214,8 +214,29 @@ interface ApiService {
         @Body event: CreateCalendarEventDto
     ): CalendarEventDto
 
+    /// v2.16.0 — Per-occurrence toggle. Backend only honours `is_done`
+    /// from the body when occurrence_date is present; every other field
+    /// is ignored, so it's safe to send a freshly-built DTO with only
+    /// `is_done` set. The occurrence date is the user-local date of the
+    /// instance the user tapped.
+    @PUT("calendar/{id}")
+    suspend fun updateCalendarOccurrence(
+        @Path("id") id: String,
+        @Query("occurrence_date") occurrenceDate: String,
+        @Body event: CreateCalendarEventDto
+    ): CalendarEventDto
+
     @DELETE("calendar/{id}")
     suspend fun deleteCalendarEvent(@Path("id") id: String)
+
+    /// v2.16.0 — Per-occurrence delete. Appends the date to the master
+    /// row's excluded_dates; the master row itself stays so every
+    /// other occurrence in the series continues to render.
+    @DELETE("calendar/{id}")
+    suspend fun deleteCalendarOccurrence(
+        @Path("id") id: String,
+        @Query("occurrence_date") occurrenceDate: String,
+    )
 
     @POST("checklist")
     suspend fun createChecklistItem(@Body item: CreateChecklistItemDto): ChecklistItemDto

@@ -1,6 +1,6 @@
 {
-  "versionCode": 93,
-  "versionName": "2.15.10",
-  "url": "https://ultiqapp.com/ultiq.2.15.10.apk",
-  "releaseNotes": "Data-loss prevention: a single bad sync response (rate limit, backend hiccup, etc.) could wipe local calendar/checklist items even when the server still had them. The app now requires the same empty response twice in a row before believing it, so a momentary hiccup can't take down your data."
+  "versionCode": 94,
+  "versionName": "2.16.0",
+  "url": "https://ultiqapp.com/ultiq.2.16.0.apk",
+  "releaseNotes": "Recurring calendar events now respect per-occurrence actions. Marking one Tuesday done no longer marks every Tuesday done. Deleting a recurring event prompts whether you want to remove just this occurrence, this and all following, or the entire series. The same three-way prompt covers edits."
 }

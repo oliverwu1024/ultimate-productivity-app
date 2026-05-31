@@ -152,6 +152,13 @@ pub struct CreateCalendarEvent {
     pub reminder_minutes: Option<Vec<i32>>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RecurringScope {
+    JustThis,
+    ThisAndFollowing,
+    All,
+}
+
 pub async fn list_events(start: NaiveDate, end: NaiveDate) -> Result<Vec<CalendarEvent>, ApiError> {
     let path = format!("/calendar?start={}&end={}", start, end);
     get(&path).await
@@ -171,5 +178,33 @@ pub async fn update_event(
 
 pub async fn delete_event(id: &str) -> Result<(), ApiError> {
     let path = format!("/calendar/{}", id);
+    delete(&path).await
+}
+
+/// v2.16.0 — Per-occurrence toggle. Backend only honours `is_done` from
+/// the body when occurrence_date is present; every other field is
+/// ignored, so callers can build a minimal placeholder body and let the
+/// server preserve everything else.
+pub async fn update_occurrence(
+    id: &str,
+    occurrence_date: NaiveDate,
+    input: &CreateCalendarEvent,
+) -> Result<CalendarEvent, ApiError> {
+    let path = format!(
+        "/calendar/{}?occurrence_date={}",
+        id,
+        occurrence_date.format("%Y-%m-%d"),
+    );
+    put(&path, input).await
+}
+
+/// v2.16.0 — Per-occurrence delete. Appends the date to the master
+/// row's excluded_dates; the master row itself stays.
+pub async fn delete_occurrence(id: &str, occurrence_date: NaiveDate) -> Result<(), ApiError> {
+    let path = format!(
+        "/calendar/{}?occurrence_date={}",
+        id,
+        occurrence_date.format("%Y-%m-%d"),
+    );
     delete(&path).await
 }

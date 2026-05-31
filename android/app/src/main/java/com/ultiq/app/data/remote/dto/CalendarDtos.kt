@@ -36,6 +36,13 @@ data class CalendarEventDto(
     /// v2.13.1 — Optional on the wire. JSON shape: `null` (default) or
     /// an array `[]` / `[15]` / `[1440, 60, 5]`. Pre-2.13 rows: null.
     val reminder_minutes: List<Int>? = null,
+    /// v2.16.0 — Comma-separated YYYY-MM-DD list (server-canonical).
+    /// Drives the per-occurrence done flag on expanded instances.
+    /// Older servers omit the field, so default to null.
+    val done_dates: String? = null,
+    /// v2.16.0 — Comma-separated YYYY-MM-DD list of dates to skip when
+    /// expanding the series ("Just this one" delete).
+    val excluded_dates: String? = null,
     val created_at: String,
     val updated_at: String
 )
@@ -57,6 +64,10 @@ fun CalendarEventDto.toEntity(): CalendarEventEntity {
         // v2.13.1 — server may return null (default) or an array; pass
         // through directly. List type preserves opt-out (empty list).
         reminderMinutes = reminder_minutes,
+        // v2.16.0 — Per-occurrence override strings; backend writes
+        // these via PUT/DELETE with ?occurrence_date=.
+        doneDates = done_dates,
+        excludedDates = excluded_dates,
         createdAt = Instant.parse(created_at).toEpochMilli(),
         updatedAt = Instant.parse(updated_at).toEpochMilli(),
         isSynced = true
