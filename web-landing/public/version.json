@@ -1,6 +1,6 @@
 {
-  "versionCode": 86,
-  "versionName": "2.15.3",
-  "url": "https://ultiqapp.com/ultiq.2.15.3.apk",
-  "releaseNotes": "Follow-up to yesterday's sleep tracking fix: if your network drops at the exact moment you tap End Sleep, the app now correctly re-syncs the session and the audio events together once you're back online. Previously the sync banner could get stuck if airplane mode was on at session end."
+  "versionCode": 87,
+  "versionName": "2.15.4",
+  "url": "https://ultiqapp.com/ultiq.2.15.4.apk",
+  "releaseNotes": "Sleep tracking reliability follow-up: the syncing banner now clears immediately when your connection returns instead of waiting on a retry timer, and you can tap Retry now if you want to force it. Cleaned up orphaned audio events that could keep the banner stuck after deleting a record."
 }
