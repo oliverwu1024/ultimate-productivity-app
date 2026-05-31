@@ -1,6 +1,6 @@
 {
-  "versionCode": 89,
-  "versionName": "2.15.6",
-  "url": "https://ultiqapp.com/ultiq.2.15.6.apk",
-  "releaseNotes": "Bug fix: a follow-up to yesterday's sleep tracking changes could wipe local audio events when a retry failed, leaving the banner stuck. The retry path now only refreshes the records that successfully uploaded, leaving failed ones in place so the next attempt has something to send."
+  "versionCode": 90,
+  "versionName": "2.15.7",
+  "url": "https://ultiqapp.com/ultiq.2.15.7.apk",
+  "releaseNotes": "Clip upload cleanup: old broken clip files from prior failed sessions were piling up in the cache and getting retried on every sync, eventually triggering the server's rate limit and preventing the play buttons from appearing. The app now deletes orphan files and paces requests so it doesn't hammer the server."
 }
