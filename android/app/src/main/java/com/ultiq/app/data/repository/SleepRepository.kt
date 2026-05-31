@@ -357,13 +357,49 @@ class SleepRepository(
      * should let WorkManager retry the whole job).
      */
     suspend fun uploadOrphanClipFiles(cacheDir: File): Boolean {
-        if (sleepAudioEventDao == null) return true
+        val dao = sleepAudioEventDao ?: return true
         val dir = SleepAudioClipCapture.clipDir(cacheDir)
         val files = dir.listFiles() ?: return true
-        for ((i, file) in files.withIndex()) {
-            val name = file.name
-            if (!name.startsWith("clip-") || !name.endsWith(".m4a")) continue
-            val eventId = name.removePrefix("clip-").removeSuffix(".m4a")
+
+        // Collect candidate event IDs from filenames.
+        val candidates = files
+            .mapNotNull { f ->
+                val n = f.name
+                if (n.startsWith("clip-") && n.endsWith(".m4a")) {
+                    n.removePrefix("clip-").removeSuffix(".m4a") to f
+                } else null
+            }
+        if (candidates.isEmpty()) return true
+
+        // §v2.15.8 — Only attempt to upload a clip if its parent event is
+        // already synced to the backend. If the event is still
+        // isSynced=false locally, the presign request would 404 and the
+        // v2.15.7 orphan-detection path would DELETE the clip — even
+        // though the event is queued for the next batch retry. That's a
+        // real data-loss scenario whenever an events batch upload fails
+        // for any reason (rate limit, network blip, backend hiccup) and
+        // a subsequent uploadOrphanClipFiles runs against the same
+        // unsynced row. Filter unsynced events out here and let the next
+        // worker run pick them up after the batch upload succeeds.
+        val syncedIds = try {
+            dao.filterSyncedEventIds(candidates.map { it.first }).toSet()
+        } catch (_: Throwable) {
+            // If the lookup fails, fall back to the v2.15.7 behaviour —
+            // worse to silently skip uploads than to silently delete
+            // pending clips.
+            candidates.map { it.first }.toSet()
+        }
+        val uploadable = candidates.filter { it.first in syncedIds }
+        val skipped = candidates.size - uploadable.size
+        if (skipped > 0) {
+            android.util.Log.i(
+                "SleepRepository",
+                "Skipping $skipped clip file(s) whose parent event isn't synced yet",
+            )
+        }
+
+        for ((i, pair) in uploadable.withIndex()) {
+            val (eventId, file) = pair
             val outcome = runCatching {
                 clipUploader.uploadDetailed(eventId, file)
             }.getOrDefault(ClipUploadOutcome.Failed)
@@ -373,7 +409,7 @@ class SleepRepository(
             // Brief pause so 10+ files in cache don't burst-fire the
             // presign endpoint. 300 ms per upload caps at ~3/s — well
             // below typical rate limits.
-            if (i < files.size - 1) delay(300L)
+            if (i < uploadable.size - 1) delay(300L)
         }
         return true
     }

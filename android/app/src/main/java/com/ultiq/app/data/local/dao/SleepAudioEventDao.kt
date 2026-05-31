@@ -101,4 +101,20 @@ interface SleepAudioEventDao {
           AND sleepRecordId NOT IN (SELECT id FROM sleep_records)
     """)
     suspend fun deleteOrphanedAudioEvents(): Int
+
+    // §10.x-fix (v2.15.8) — Filter a set of event IDs down to the ones
+    // that are present locally AND isSynced=true. Used by
+    // uploadOrphanClipFiles to avoid trying to upload a clip whose
+    // parent event hasn't reached the backend yet — v2.15.7's
+    // "presign 404 → delete file" path would otherwise wipe clips that
+    // are just waiting on the next events-batch retry. Truly-orphan
+    // clips (parent event was uploaded and then deleted server-side,
+    // OR the event id never existed locally) are still detected by the
+    // upload path because they won't appear in this filter's result —
+    // the caller's caller of clean-up can handle them.
+    @Query("""
+        SELECT id FROM sleep_audio_events
+        WHERE id IN (:ids) AND isSynced = 1
+    """)
+    suspend fun filterSyncedEventIds(ids: List<String>): List<String>
 }
