@@ -112,6 +112,25 @@ class SleepAudioUploadWorker(
             // and the file lifecycle is already bounded by pruneStale.
         }
 
+        // 4) §v2.15.5 — Refresh local Room from the backend for every
+        //    sleep_record we just touched. The attachClip endpoint set
+        //    has_clip=true server-side, but local rows still have
+        //    has_clip=false until somebody pulls the canonical state
+        //    back down. Without this, the user sees their just-uploaded
+        //    events with timestamps but no ▶ play button — they have to
+        //    kill the app and reopen to trigger sync() and see the
+        //    icons. fetchAudioEventsForRecord replaces the per-record
+        //    Room slice with what the server has now.
+        val touchedRecordIds = unsynced.map { it.sleepRecordId }.toSet()
+        for (recordId in touchedRecordIds) {
+            try {
+                repo.fetchAudioEventsForRecord(recordId)
+            } catch (t: Throwable) {
+                Log.w(TAG, "fetchAudioEventsForRecord failed for $recordId", t)
+                // Non-fatal — UI will catch up on next sync().
+            }
+        }
+
         return if (anyFailed) {
             androidx.work.ListenableWorker.Result.retry()
         } else {
