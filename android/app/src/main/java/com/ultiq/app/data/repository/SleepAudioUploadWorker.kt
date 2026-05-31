@@ -108,17 +108,22 @@ class SleepAudioUploadWorker(
             }
         }
 
-        // 3) Upload any orphan clip files. The repository's helper scans
-        //    cacheDir/audio-clips/, attempts each upload, deletes on
-        //    success. Failures (404, 409, transient network) stay on
-        //    disk; SleepAudioClipCapture.pruneStale evicts them after
-        //    24h at the next session start.
-        try {
+        // 3) Upload any orphan clip files. The repository's helper now
+        //    (v2.15.7) deletes presign-404 files (orphans where the
+        //    target event will never exist) and bails out on HTTP 429
+        //    so we don't burn rate-limit budget. Returns false when it
+        //    bailed; treat that as a retry so WorkManager backs off and
+        //    we don't immediately do the step-4 refresh against the
+        //    same rate-limited backend.
+        val clipsComplete = try {
             repo.uploadOrphanClipFiles(applicationContext.cacheDir)
         } catch (t: Throwable) {
             Log.w(TAG, "uploadOrphanClipFiles failed", t)
-            // Not retry-worthy on its own — clip uploads are best-effort
-            // and the file lifecycle is already bounded by pruneStale.
+            true // unexpected exception — proceed to step 4, don't get stuck
+        }
+        if (!clipsComplete) {
+            Log.i(TAG, "clip upload hit rate limit — yielding to WorkManager backoff")
+            return androidx.work.ListenableWorker.Result.retry()
         }
 
         // 4) §v2.15.5 — Refresh local Room from the backend for every
@@ -143,6 +148,9 @@ class SleepAudioUploadWorker(
                 Log.w(TAG, "fetchAudioEventsForRecord failed for $recordId", t)
                 // Non-fatal — UI will catch up on next sync().
             }
+            // §v2.15.7 — Brief pause between per-record fetches so we
+            // don't pile on the rate limit after the clip-upload burst.
+            kotlinx.coroutines.delay(200L)
         }
 
         return if (anyFailed) {

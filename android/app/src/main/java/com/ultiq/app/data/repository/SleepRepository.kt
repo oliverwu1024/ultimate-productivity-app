@@ -1,5 +1,6 @@
 package com.ultiq.app.data.repository
 
+import com.ultiq.app.audio.ClipUploadOutcome
 import com.ultiq.app.audio.SleepAudioClipCapture
 import com.ultiq.app.audio.SleepAudioClipUploader
 import com.ultiq.app.data.achievements.AchievementChecker
@@ -336,21 +337,45 @@ class SleepRepository(
     /**
      * §10.x-fix (WorkManager) — Scan `cacheDir/audio-clips/` for any
      * leftover clip files (named `clip-{eventId}.m4a`) and try to upload
-     * each one. The uploader returns false on 404 (event not yet on
-     * backend) or 409 (already attached) and the file stays on disk;
-     * [SleepAudioClipCapture.pruneStale] handles eventual eviction at
-     * the next session start. Files are removed on successful upload.
+     * each one.
+     *
+     * §v2.15.7 — Uses [SleepAudioClipUploader.uploadDetailed] so we can:
+     *  - Delete clips whose target event is 404 on the backend (instead
+     *    of retrying them on every worker run forever — observed 12+
+     *    permanently-orphan clips piling up in the cache, all hitting
+     *    presign 404).
+     *  - Bail out of the loop on HTTP 429 (rate-limited) instead of
+     *    burning more rate-limit budget — observed the backend
+     *    throttling the worker after ~5–10 rapid presign calls, which
+     *    cascaded into 429s for the subsequent fetchAudioEventsForRecord
+     *    refresh and prevented has_clip from updating locally.
+     *  - Sleep 300 ms between uploads so we don't burst-fire 12 presign
+     *    requests in <1s.
+     *
+     * Returns true when the loop completed without rate-limiting (caller
+     * can treat as a complete pass); false when we bailed on 429 (caller
+     * should let WorkManager retry the whole job).
      */
-    suspend fun uploadOrphanClipFiles(cacheDir: File) {
-        if (sleepAudioEventDao == null) return
+    suspend fun uploadOrphanClipFiles(cacheDir: File): Boolean {
+        if (sleepAudioEventDao == null) return true
         val dir = SleepAudioClipCapture.clipDir(cacheDir)
-        val files = dir.listFiles() ?: return
-        for (file in files) {
+        val files = dir.listFiles() ?: return true
+        for ((i, file) in files.withIndex()) {
             val name = file.name
             if (!name.startsWith("clip-") || !name.endsWith(".m4a")) continue
             val eventId = name.removePrefix("clip-").removeSuffix(".m4a")
-            runCatching { clipUploader.upload(eventId, file) }
+            val outcome = runCatching {
+                clipUploader.uploadDetailed(eventId, file)
+            }.getOrDefault(ClipUploadOutcome.Failed)
+            if (outcome == ClipUploadOutcome.RateLimited) {
+                return false
+            }
+            // Brief pause so 10+ files in cache don't burst-fire the
+            // presign endpoint. 300 ms per upload caps at ~3/s — well
+            // below typical rate limits.
+            if (i < files.size - 1) delay(300L)
         }
+        return true
     }
 
     /**
