@@ -15,6 +15,7 @@ import com.ultiq.app.data.remote.RetrofitClient
 import com.ultiq.app.data.remote.dto.BatchCreateSleepAudioEventsDto
 import com.ultiq.app.data.remote.dto.toCreateDto
 import com.ultiq.app.util.TokenManager
+import retrofit2.HttpException
 import java.util.concurrent.TimeUnit
 
 /**
@@ -91,6 +92,7 @@ class SleepAudioUploadWorker(
         // and the next retry has nothing to resend. Only refresh records
         // we successfully synced.
         val successfulRecordIds = mutableSetOf<String>()
+        val sleepRecordDao = db.sleepDao()
         for ((sleepRecordId, batch) in unsynced.groupBy { it.sleepRecordId }) {
             try {
                 api.batchCreateSleepAudioEvents(
@@ -103,7 +105,27 @@ class SleepAudioUploadWorker(
                 successfulRecordIds.add(sleepRecordId)
                 Log.i(TAG, "Uploaded ${batch.size} events for $sleepRecordId")
             } catch (t: Throwable) {
-                Log.w(TAG, "batch upload failed for $sleepRecordId", t)
+                // §v2.16.1 — Self-heal the "local-synced-but-backend-gone"
+                // state. owns_sleep_record returns 403 when the parent
+                // sleep_record is missing on the backend; without this
+                // recovery the worker retries forever and the banner
+                // stays stuck. Flipping the parent to isSynced=false lets
+                // the next pass's step 1 (syncUnsyncedSleepRecords)
+                // re-create the row server-side and cascade-relink the
+                // events to the new server-issued UUID.
+                if (t is HttpException && t.code() == 403) {
+                    try {
+                        sleepRecordDao.markUnsynced(sleepRecordId)
+                        Log.w(
+                            TAG,
+                            "batch upload 403 for $sleepRecordId — marked parent unsynced for re-create",
+                        )
+                    } catch (markErr: Throwable) {
+                        Log.w(TAG, "markUnsynced failed for $sleepRecordId", markErr)
+                    }
+                } else {
+                    Log.w(TAG, "batch upload failed for $sleepRecordId", t)
+                }
                 anyFailed = true
             }
         }

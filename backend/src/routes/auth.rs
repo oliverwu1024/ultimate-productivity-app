@@ -310,6 +310,26 @@ async fn reset_account(
         .bind(user_id).execute(&mut *tx).await?;
     sqlx::query("DELETE FROM productivity_sessions WHERE user_id = $1")
         .bind(user_id).execute(&mut *tx).await?;
+    // §v2.16.1 — Audit each sleep_record id being wiped via account
+    // reset, so the v2.16.1 403-self-heal investigation has a record
+    // of mass deletions too (not just per-id DELETEs via the sleep
+    // route). Logged BEFORE the DELETE so we capture the ids even if
+    // the transaction rolls back.
+    let sleep_ids: Vec<(Uuid,)> = sqlx::query_as(
+        "SELECT id FROM sleep_records WHERE user_id = $1",
+    )
+    .bind(user_id)
+    .fetch_all(&mut *tx)
+    .await?;
+    for (rid,) in &sleep_ids {
+        tracing::info!(
+            target: "sleep-audit",
+            user_id = %user_id,
+            sleep_record_id = %rid,
+            caller = "POST /auth/reset-account",
+            "sleep_record deleted"
+        );
+    }
     sqlx::query("DELETE FROM sleep_records WHERE user_id = $1")
         .bind(user_id).execute(&mut *tx).await?;
     sqlx::query("DELETE FROM calendar_events WHERE user_id = $1")
