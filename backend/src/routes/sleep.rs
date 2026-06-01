@@ -228,6 +228,18 @@ async fn remove(
         return Err(AppError::new(StatusCode::NOT_FOUND, "Sleep record not found"));
     }
 
+    // §v2.16.1 — Audit trail for sleep_record deletions. Lets us answer
+    // "when/who/why did this row disappear" when an Android client hits
+    // the v2.16.1 403-self-heal path. Searchable in CloudWatch Logs
+    // Insights via target=sleep-audit + sleep_record_id.
+    tracing::info!(
+        target: "sleep-audit",
+        user_id = %user_id,
+        sleep_record_id = %id,
+        caller = "DELETE /sleep-records/:id",
+        "sleep_record deleted"
+    );
+
     state
         .events
         .publish(user_id, SyncEvent::SleepDeleted { id });

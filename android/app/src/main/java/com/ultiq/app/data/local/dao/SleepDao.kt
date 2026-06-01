@@ -39,6 +39,14 @@ interface SleepDao {
     @Query("UPDATE sleep_records SET isSynced = 1 WHERE id = :id")
     suspend fun markSynced(id: String)
 
+    // §v2.16.1 — Used by the audio-upload worker to self-heal when a
+    // batch-create returns 403. A 403 from owns_sleep_record means the
+    // local row is marked synced but the backend row is gone, so flip
+    // it back to unsynced and let syncUnsyncedSleepRecords re-create it
+    // on the next pass (which cascade-relinks the audio events).
+    @Query("UPDATE sleep_records SET isSynced = 0 WHERE id = :id")
+    suspend fun markUnsynced(id: String)
+
     @Query("SELECT id FROM sleep_records WHERE isSynced = 1 AND actualBedtime BETWEEN :start AND :end")
     suspend fun getSyncedIdsInRange(start: Long, end: Long): List<String>
 

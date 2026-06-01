@@ -239,6 +239,16 @@ class SleepRepository(
                 )
             }
         } catch (e: Throwable) {
+            // §v2.16.1 — Self-heal 403 (parent sleep_record gone from
+            // backend even though local row is marked synced). Flip the
+            // parent to isSynced=false so syncUnsyncedSleepRecords
+            // re-creates it on the next pass; the WorkManager retry
+            // will then succeed.
+            if (e is HttpException && e.code() == 403) {
+                try {
+                    sleepDao.markUnsynced(sleepRecordId)
+                } catch (_: Throwable) { /* non-fatal — worker will retry */ }
+            }
             // Events upload exhausted retries. Rows stay isSynced=false.
             // Caller schedules WorkManager which will keep trying after
             // the app is closed.
