@@ -1,6 +1,6 @@
 {
-  "versionCode": 95,
-  "versionName": "2.16.1",
-  "url": "https://ultiqapp.com/ultiq.2.16.1.apk",
-  "releaseNotes": "Fixed: the 'sounds waiting to upload' banner could get stuck forever if a sleep record was missing on the backend. The app now self-heals within ~30 seconds by re-creating the record and re-linking events automatically. Also: backend now keeps an audit trail for sleep-record deletions so we can investigate root cause if it ever recurs."
+  "versionCode": 96,
+  "versionName": "2.16.2",
+  "url": "https://ultiqapp.com/ultiq.2.16.2.apk",
+  "releaseNotes": "Fixed: heavy-snoring nights with 40+ audio events couldn't upload (WAF was silently dropping oversize batch requests, leaving the 'sounds waiting' banner stuck). The app now chunks batch uploads so any number of events syncs cleanly."
 }

@@ -26,6 +26,14 @@ import java.io.File
 import java.io.IOException
 import java.util.UUID
 
+// §v2.16.2 — Mirrors SleepAudioUploadWorker.BATCH_CHUNK_SIZE. Each event
+// serialises to ~200B of JSON; 25 events ≈ 5KB, well under the AWS WAF
+// ManagedRulesCommonRuleSet SizeRestrictions_BODY 8KB limit. Without
+// chunking, heavy-snoring nights with 50+ events were blocked by WAF
+// at 403 *before* reaching the backend, which v2.16.1's self-heal
+// misread as a missing sleep_record.
+private const val BATCH_CHUNK_SIZE = 25
+
 class SleepRepository(
     private val sleepDao: SleepDao,
     private val apiService: ApiService,
@@ -229,14 +237,24 @@ class SleepRepository(
         // is intentionally discarded — since v2.14.1 client-supplied ids
         // equal server ids, so the local `unsynced` list is already the
         // authoritative pairing key for clip uploads.
+        //
+        // §v2.16.2 — Chunk to stay under the AWS WAF SizeRestrictions_BODY
+        // 8KB limit. Mark each chunk synced as it lands so a mid-sequence
+        // failure doesn't roll back earlier progress (the worker can
+        // retry only what's still isSynced=false).
         try {
-            withRetry {
-                apiService.batchCreateSleepAudioEvents(
-                    BatchCreateSleepAudioEventsDto(
-                        sleep_record_id = sleepRecordId,
-                        events = unsynced.map { it.toCreateDto() },
-                    ),
-                )
+            for (chunk in unsynced.chunked(BATCH_CHUNK_SIZE)) {
+                withRetry {
+                    apiService.batchCreateSleepAudioEvents(
+                        BatchCreateSleepAudioEventsDto(
+                            sleep_record_id = sleepRecordId,
+                            events = chunk.map { it.toCreateDto() },
+                        ),
+                    )
+                }
+                try {
+                    dao.markSyncedBatch(chunk.map { it.id })
+                } catch (_: Exception) { /* non-fatal — worker re-marks next pass */ }
             }
         } catch (e: Throwable) {
             // §v2.16.1 — Self-heal 403 (parent sleep_record gone from
@@ -253,12 +271,6 @@ class SleepRepository(
             // Caller schedules WorkManager which will keep trying after
             // the app is closed.
             return Result.failure(e)
-        }
-
-        try {
-            dao.markSyncedBatch(unsynced.map { it.id })
-        } catch (_: Exception) {
-            // Non-fatal — the next sync pass will re-mark.
         }
 
         // Phase 2: clip uploads, decoupled from events status. One bad
@@ -503,13 +515,17 @@ class SleepRepository(
         val byRecord = unsynced.groupBy { it.sleepRecordId }
         for ((sleepRecordId, batch) in byRecord) {
             try {
-                apiService.batchCreateSleepAudioEvents(
-                    BatchCreateSleepAudioEventsDto(
-                        sleep_record_id = sleepRecordId,
-                        events = batch.map { it.toCreateDto() },
-                    ),
-                )
-                dao.markSyncedBatch(batch.map { it.id })
+                // §v2.16.2 — Chunk to stay under WAF 8KB body limit;
+                // markSyncedBatch per chunk so partial progress sticks.
+                for (chunk in batch.chunked(BATCH_CHUNK_SIZE)) {
+                    apiService.batchCreateSleepAudioEvents(
+                        BatchCreateSleepAudioEventsDto(
+                            sleep_record_id = sleepRecordId,
+                            events = chunk.map { it.toCreateDto() },
+                        ),
+                    )
+                    dao.markSyncedBatch(chunk.map { it.id })
+                }
             } catch (_: Exception) {
                 // skip — next sync will retry
             }

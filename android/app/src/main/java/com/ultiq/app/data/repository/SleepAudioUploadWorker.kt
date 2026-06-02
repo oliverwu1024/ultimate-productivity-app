@@ -95,15 +95,31 @@ class SleepAudioUploadWorker(
         val sleepRecordDao = db.sleepDao()
         for ((sleepRecordId, batch) in unsynced.groupBy { it.sleepRecordId }) {
             try {
-                api.batchCreateSleepAudioEvents(
-                    BatchCreateSleepAudioEventsDto(
-                        sleep_record_id = sleepRecordId,
-                        events = batch.map { it.toCreateDto() },
-                    ),
-                )
-                dao.markSyncedBatch(batch.map { it.id })
+                // §v2.16.2 — Chunk events to stay under the AWS WAF
+                // ManagedRulesCommonRuleSet SizeRestrictions_BODY 8KB
+                // body-inspection limit. A heavy snoring night was producing
+                // 57+ events ~200B each, exceeding 8KB in one batch, which
+                // WAF blocked with 403 *before* reaching the backend — the
+                // server never logged a thing, owns_sleep_record was never
+                // called, and v2.16.1's self-heal then kept recreating
+                // sleep_records on each pass because every batch upload
+                // appeared to 403. Chunking at 25 keeps each payload ~5KB
+                // with comfortable headroom; markSyncedBatch fires per
+                // chunk so a mid-sequence failure doesn't lose earlier
+                // progress.
+                var chunkCount = 0
+                for (chunk in batch.chunked(BATCH_CHUNK_SIZE)) {
+                    api.batchCreateSleepAudioEvents(
+                        BatchCreateSleepAudioEventsDto(
+                            sleep_record_id = sleepRecordId,
+                            events = chunk.map { it.toCreateDto() },
+                        ),
+                    )
+                    dao.markSyncedBatch(chunk.map { it.id })
+                    chunkCount++
+                }
                 successfulRecordIds.add(sleepRecordId)
-                Log.i(TAG, "Uploaded ${batch.size} events for $sleepRecordId")
+                Log.i(TAG, "Uploaded ${batch.size} events for $sleepRecordId in $chunkCount chunk(s)")
             } catch (t: Throwable) {
                 // §v2.16.1 — Self-heal the "local-synced-but-backend-gone"
                 // state. owns_sleep_record returns 403 when the parent
@@ -185,6 +201,11 @@ class SleepAudioUploadWorker(
     companion object {
         private const val TAG = "SleepAudioUploadWorker"
         private const val UNIQUE_WORK_NAME = "sleep-audio-upload"
+
+        // §v2.16.2 — Per-batch chunk size. Each event serialises to ~200B
+        // of JSON; 25 events ≈ 5KB, well under the 8KB WAF body limit.
+        // Backend's MAX_BATCH is 2000, so we're nowhere near that ceiling.
+        private const val BATCH_CHUNK_SIZE = 25
 
         /**
          * Enqueue (or replace) the unique sleep-audio upload job. KEEP
