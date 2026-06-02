@@ -761,11 +761,20 @@ fn DurationChart(
             let plot_w = w - pad_l - pad_r;
             let plot_h = h - pad_t - pad_b;
 
+            // §v2.16.4 chart-fix — Slot-based positioning. Each day
+            // occupies a slot of width plot_w/days; the bar centres in its
+            // slot. The previous formula put bar centres on the chart
+            // edges (idx=0 at pad_l, idx=days-1 at pad_l+plot_w), so the
+            // leftmost bar's left half extended into the y-axis label
+            // gutter and painted over the "2h"/"4h"/"6h" labels in the
+            // wide-bar Week view. With slots, every label is fully clear
+            // of bars regardless of view (Week / Month / 90d).
             let x_for = |idx: i64| -> f64 {
                 if days <= 1 {
                     pad_l + plot_w / 2.0
                 } else {
-                    pad_l + (idx as f64) * plot_w / (days - 1) as f64
+                    let slot_w = plot_w / (days as f64);
+                    pad_l + ((idx as f64) + 0.5) * slot_w
                 }
             };
             let y_for = |val: f64| -> f64 {
