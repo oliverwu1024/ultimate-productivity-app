@@ -129,6 +129,7 @@ class UltiqApp : Application() {
                 db.checklistDao(),
                 db.checklistCompletionDao(),
                 api,
+                database = db,
             ),
         )
         syncEventClient = SyncEventClient(

@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
@@ -63,6 +64,7 @@ class ChecklistViewModel(application: Application) : AndroidViewModel(applicatio
         db.checklistCompletionDao(),
         api,
         syncStateStore = com.ultiq.app.data.repository.SyncStateStore(application),
+        database = db,
     )
     private val userPreferences = UserPreferences(application)
 
@@ -345,12 +347,21 @@ class ChecklistViewModel(application: Application) : AndroidViewModel(applicatio
                         !item.completed
                     }
                 }
-            }.collectLatest { (open, done) ->
-                _uiState.value = _uiState.value.copy(
-                    openItems = open,
-                    completedItems = done,
-                )
             }
+                // §flicker-fix — drop identical (open, done) pairs that
+                // the upstream Room flows can re-emit mid-sync even when
+                // the partition outcome hasn't changed. Combined with
+                // the transaction-batched writes in ChecklistRepository
+                // this gives us "one StateFlow update per real change"
+                // semantics. Pair == checks structural equality of both
+                // lists, which is what we want here.
+                .distinctUntilChanged()
+                .collectLatest { (open, done) ->
+                    _uiState.value = _uiState.value.copy(
+                        openItems = open,
+                        completedItems = done,
+                    )
+                }
         }
     }
 

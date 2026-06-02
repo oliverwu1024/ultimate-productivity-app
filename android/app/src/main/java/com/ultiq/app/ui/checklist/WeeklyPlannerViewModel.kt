@@ -41,6 +41,7 @@ class WeeklyPlannerViewModel(application: Application) : AndroidViewModel(applic
         db.checklistDao(),
         db.checklistCompletionDao(),
         api,
+        database = db,
     )
 
     private val _uiState = MutableStateFlow(WeeklyPlannerUiState())

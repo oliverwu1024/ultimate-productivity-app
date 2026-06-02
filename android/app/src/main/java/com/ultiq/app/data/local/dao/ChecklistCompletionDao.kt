@@ -24,6 +24,17 @@ interface ChecklistCompletionDao {
     @Query("DELETE FROM checklist_completions WHERE itemId = :itemId")
     suspend fun deleteAllForItem(itemId: String)
 
+    /// Delete the item's stale rows — i.e. rows whose epochDay is NOT in
+    /// [keepDays]. Used by the sync path to converge the local mirror on
+    /// the server's `completed_epoch_days` set without first wiping the
+    /// whole item (which would briefly empty the table and flip the row
+    /// from "done today" → "open" → "done today" in the partitioned UI).
+    @Query(
+        "DELETE FROM checklist_completions " +
+            "WHERE itemId = :itemId AND epochDay NOT IN (:keepDays)"
+    )
+    suspend fun deleteForItemExcept(itemId: String, keepDays: List<Long>)
+
     @Query("SELECT epochDay FROM checklist_completions WHERE itemId = :itemId")
     suspend fun getEpochDaysForItem(itemId: String): List<Long>
 

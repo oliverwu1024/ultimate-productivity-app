@@ -101,6 +101,7 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
         db.checklistDao(),
         db.checklistCompletionDao(),
         api,
+        database = db,
     )
 
     private val usageTracker = PhoneUsageTracker(application)

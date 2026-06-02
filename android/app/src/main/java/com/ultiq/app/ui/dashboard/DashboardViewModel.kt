@@ -208,6 +208,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         db.checklistCompletionDao(),
         api,
         syncStateStore = syncStateStore,
+        database = db,
     )
     private val alarmRepo = com.ultiq.app.data.repository.AlarmRepository(application, db.alarmDao(), api)
     private val syncManager = SyncManager(sleepRepo, sessionRepo, calendarRepo, alarmRepo, checklistRepo)
