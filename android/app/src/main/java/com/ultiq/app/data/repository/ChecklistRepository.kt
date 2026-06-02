@@ -18,6 +18,10 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.UUID
 
+// §v2.16.3 — Mirrors SleepRepository.BATCH_CHUNK_SIZE. Keeps each
+// bulk-create request under the AWS WAF 8KB body inspection limit.
+private const val BATCH_CHUNK_SIZE = 25
+
 class ChecklistRepository(
     private val dao: ChecklistDao,
     private val completionDao: ChecklistCompletionDao,
@@ -223,10 +227,18 @@ class ChecklistRepository(
     suspend fun bulkCreate(items: List<CreateChecklistItemDto>): Result<List<ChecklistEntity>> {
         if (items.isEmpty()) return Result.success(emptyList())
         return try {
-            val server = apiService.bulkCreateChecklistItems(items)
-            val entities = server.map { it.toEntity() }
+            // §v2.16.3 — Chunk to stay under the WAF 8KB body limit, same
+            // pattern as the sleep-audio and phone-pickups batches.
+            // Checklist items can be ~200-300B each with notes; bulk import
+            // of 30+ items could otherwise exceed the limit.
+            val allServer = mutableListOf<ChecklistItemDto>()
+            for (chunk in items.chunked(BATCH_CHUNK_SIZE)) {
+                val server = apiService.bulkCreateChecklistItems(chunk)
+                allServer.addAll(server)
+            }
+            val entities = allServer.map { it.toEntity() }
             dao.insertAll(entities)
-            for (dto in server) persistCompletionsFromServer(dto)
+            for (dto in allServer) persistCompletionsFromServer(dto)
             Result.success(entities)
         } catch (e: Exception) {
             Result.failure(e)

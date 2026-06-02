@@ -11,6 +11,7 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.ultiq.app.data.local.AppDatabase
 import com.ultiq.app.data.remote.SyncEventClient
+import com.ultiq.app.data.repository.SleepAudioUploadWorker
 import com.ultiq.app.data.repository.SyncWorker
 import com.ultiq.app.util.AlarmScheduler
 import com.ultiq.app.util.NotificationHelper
@@ -51,9 +52,26 @@ class UltiqApp : Application() {
             object : DefaultLifecycleObserver {
                 override fun onStart(owner: LifecycleOwner) {
                     UpdateChecker.checkOnce(this@UltiqApp)
+                    // §v2.16.3 — Kick the audio-upload worker on foreground.
+                    // After many failures yesterday, WorkManager backoff can
+                    // push the next retry many minutes out. If the user has
+                    // any audio events still pending upload, force a fresh
+                    // pass instead of waiting for the scheduled retry — the
+                    // worker is a no-op when there's nothing to do.
+                    pulseAudioUploadWorker()
                 }
             }
         )
+    }
+
+    private fun pulseAudioUploadWorker() {
+        appScope.launch {
+            val dao = AppDatabase.getInstance(this@UltiqApp).sleepAudioEventDao()
+            val pending = try { dao.countUnsynced() } catch (_: Throwable) { 0 }
+            if (pending > 0) {
+                SleepAudioUploadWorker.enqueue(this@UltiqApp, replace = true)
+            }
+        }
     }
 
     private fun scheduleSyncWork() {
