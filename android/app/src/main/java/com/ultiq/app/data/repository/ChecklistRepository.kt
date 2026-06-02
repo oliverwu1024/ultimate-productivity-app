@@ -75,6 +75,13 @@ class ChecklistRepository(
         )
         return try {
             val server = apiService.createChecklistItem(createDto)
+            // §v2.16.9 — Note BEFORE the dao.insert so the SSE
+            // ChecklistCreated echo that's already in flight gets
+            // suppressed when it arrives (race: server broadcasts SSE
+            // ~immediately after returning the response, so the SSE may
+            // arrive before this line on a slow main thread; but noting
+            // it before the dao.insert closes the window we control).
+            ChecklistEchoSuppressor.noteLocalChange(server.id)
             // Preserve the schedule fields the server may not echo back yet —
             // backend deploy can lag the client.
             val entity = server.toEntity().copy(
@@ -116,6 +123,9 @@ class ChecklistRepository(
     }
 
     suspend fun update(item: ChecklistEntity): Result<ChecklistEntity> {
+        // §v2.16.9 — note before any write so the SSE echo for this same
+        // change is suppressed when it arrives ~50-300 ms later.
+        ChecklistEchoSuppressor.noteLocalChange(item.id)
         val now = System.currentTimeMillis()
         val updated = item.copy(updatedAt = now, isSynced = false)
         return try {
@@ -153,6 +163,7 @@ class ChecklistRepository(
     /// redundant emit through and re-layout the LazyColumn ~150 ms after
     /// the legit first move). Next `sync()` reconciles any drift.
     suspend fun markRecurringCompletedOn(id: String, epochDay: Long): Result<Unit> {
+        ChecklistEchoSuppressor.noteLocalChange(id)
         val now = System.currentTimeMillis()
         completionDao.insert(ChecklistCompletionEntity(id, epochDay, now))
         return try {
@@ -170,6 +181,7 @@ class ChecklistRepository(
     /// §v2.16.8 — Same no-snapshot-apply rationale as
     /// [markRecurringCompletedOn].
     suspend fun markRecurringIncompleteOn(id: String, epochDay: Long): Result<Unit> {
+        ChecklistEchoSuppressor.noteLocalChange(id)
         completionDao.delete(id, epochDay)
         return try {
             apiService.uncompleteChecklistItemOn(id, epochDay)
@@ -180,6 +192,7 @@ class ChecklistRepository(
     }
 
     suspend fun markCompleted(id: String): Result<Unit> {
+        ChecklistEchoSuppressor.noteLocalChange(id)
         val now = System.currentTimeMillis()
         dao.markCompletedLocally(id, completedAt = now, updatedAt = now)
         return try {
@@ -199,6 +212,7 @@ class ChecklistRepository(
     }
 
     suspend fun markIncomplete(id: String): Result<Unit> {
+        ChecklistEchoSuppressor.noteLocalChange(id)
         val now = System.currentTimeMillis()
         dao.markIncompleteLocally(id, updatedAt = now)
         return try {
@@ -215,6 +229,7 @@ class ChecklistRepository(
     }
 
     suspend fun delete(id: String): Result<Unit> {
+        ChecklistEchoSuppressor.noteLocalChange(id)
         val existing = dao.getById(id)
         Log.d(tag, "delete id=$id existsLocally=${existing != null} isSynced=${existing?.isSynced}")
 
@@ -262,6 +277,8 @@ class ChecklistRepository(
                 allServer.addAll(server)
             }
             val entities = allServer.map { it.toEntity() }
+            // §v2.16.9 — Suppress SSE echoes for every newly-created id.
+            for (e in entities) ChecklistEchoSuppressor.noteLocalChange(e.id)
             dao.insertAll(entities)
             for (dto in allServer) persistCompletionsFromServer(dto)
             Result.success(entities)

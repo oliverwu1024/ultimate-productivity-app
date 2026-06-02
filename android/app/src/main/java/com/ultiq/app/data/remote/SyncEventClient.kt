@@ -14,6 +14,7 @@ import com.ultiq.app.data.remote.dto.SyncEvent
 import com.ultiq.app.data.remote.dto.completionEntities
 import com.ultiq.app.data.remote.dto.parseSyncEvent
 import com.ultiq.app.data.remote.dto.toEntity
+import com.ultiq.app.data.repository.ChecklistEchoSuppressor
 import java.time.Instant
 import com.ultiq.app.util.AlarmScheduler
 import com.ultiq.app.util.TokenManager
@@ -201,16 +202,28 @@ class SyncEventClient(
                     alarmScheduler?.cancelEventReminder(event.id)
                 }
                 is SyncEvent.ChecklistCreated -> {
-                    checklistDao.insert(event.item.toEntity())
-                    applyChecklistCompletions(event.item)
+                    if (ChecklistEchoSuppressor.shouldSuppress(event.item.id)) {
+                        Log.i(TAG, "Suppressed ChecklistCreated echo for ${event.item.id}")
+                    } else {
+                        checklistDao.insert(event.item.toEntity())
+                        applyChecklistCompletions(event.item)
+                    }
                 }
                 is SyncEvent.ChecklistUpdated -> {
-                    checklistDao.insert(event.item.toEntity())
-                    applyChecklistCompletions(event.item)
+                    if (ChecklistEchoSuppressor.shouldSuppress(event.item.id)) {
+                        Log.i(TAG, "Suppressed ChecklistUpdated echo for ${event.item.id}")
+                    } else {
+                        checklistDao.insert(event.item.toEntity())
+                        applyChecklistCompletions(event.item)
+                    }
                 }
                 is SyncEvent.ChecklistDeleted -> {
-                    checklistCompletionDao?.deleteAllForItem(event.id)
-                    checklistDao.deleteById(event.id)
+                    if (ChecklistEchoSuppressor.shouldSuppress(event.id)) {
+                        Log.i(TAG, "Suppressed ChecklistDeleted echo for ${event.id}")
+                    } else {
+                        checklistCompletionDao?.deleteAllForItem(event.id)
+                        checklistDao.deleteById(event.id)
+                    }
                 }
                 is SyncEvent.SleepCreated -> sleepDao.insert(event.record.toEntity())
                 is SyncEvent.SleepUpdated -> sleepDao.insert(event.record.toEntity())
