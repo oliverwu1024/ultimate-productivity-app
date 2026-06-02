@@ -172,10 +172,22 @@ fun ChecklistScreen(
                         // §delete-consistency — swipe row to delete with
                         // confirm dialog. Replaces the previous trash-icon
                         // + screen-level dialog plumbing.
+                        //
+                        // §v2.16.10 — Modifier.animateItem() smooths the
+                        // exit + placement transition when the row moves
+                        // to the Completed bucket on tap. Without it
+                        // LazyColumn snaps remaining items to their new
+                        // positions in a single frame, which read as a
+                        // flicker when the screen had only one or two
+                        // items (the whole open section structure swaps
+                        // in one frame). All DB-layer flicker causes were
+                        // already removed in v2.16.5-v2.16.9; this is the
+                        // perceptual layer.
                         com.ultiq.app.ui.common.SwipeToDeleteBox(
                             confirmTitle = "Delete this item?",
                             confirmBody = "'${item.title}' will be removed.",
                             onDelete = { viewModel.deleteItem(item) },
+                            modifier = Modifier.animateItem(),
                         ) {
                             ChecklistRow(
                                 item = item,

@@ -1,6 +1,6 @@
 {
-  "versionCode": 103,
-  "versionName": "2.16.9",
-  "url": "https://ultiqapp.com/ultiq.2.16.9.apk",
-  "releaseNotes": "Truly fixes the mark-complete flicker. The server was echoing every tap back to the same device via SSE; suppressing those self-echoes for 5s after a local action means one Room write per tap instead of two."
+  "versionCode": 104,
+  "versionName": "2.16.10",
+  "url": "https://ultiqapp.com/ultiq.2.16.10.apk",
+  "releaseNotes": "Smooths the mark-complete transition with proper Compose item animations. SSE echo suppression confirmed working; the residual jump was the LazyColumn snapping items instantly with no animation."
 }
