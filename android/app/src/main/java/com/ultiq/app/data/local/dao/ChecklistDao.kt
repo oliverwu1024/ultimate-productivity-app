@@ -24,8 +24,22 @@ interface ChecklistDao {
      *     would otherwise have been carried.
      *  3. Recurring (recurrenceDaysMask != 0): bit for [dayOfWeekBit] set,
      *     and dueDate already reached (acts as a "start date"). The completed
-     *     flag is ignored here — per-day done state lives in lastCompletedEpochDay
+     *     flag is ignored here — per-day done state lives in checklist_completions
      *     and the ViewModel partitions open vs done.
+     *
+     * §v2.16.12 — Ordering is `priority DESC, createdAt ASC` only. The
+     * previous `completed ASC` prefix was the underlying cause of the
+     * "sometimes bounce" on recurring mark-complete: a sync running after
+     * the user's tap pulled the server's row with `completed = 1` (the
+     * server flips it on a tick), the row's SQL position shifted from
+     * the "completed=0 group" into the "completed=1 group", and after
+     * partition the row landed at a different position within the done
+     * bucket. The ViewModel's `sameVisibleShape` comparator saw the
+     * position change as a meaningful diff and let a second UI emit
+     * through ~50-300 ms after the legitimate first one, causing the
+     * LazyColumn to re-layout twice. Sorting by priority + createdAt only
+     * means the row's position is stable across `completed` flips, so
+     * the position-shift race disappears.
      */
     @Query(
         "SELECT * FROM checklist_items WHERE " +
@@ -35,7 +49,7 @@ interface ChecklistDao {
             "    AND (completed = 0 OR dueDateEpochDay = :epochDay)) " +
             "OR (recurrenceDaysMask != 0 AND (recurrenceDaysMask & :dayOfWeekBit) != 0 " +
             "    AND dueDateEpochDay <= :epochDay) " +
-            "ORDER BY completed ASC, priority DESC, createdAt ASC"
+            "ORDER BY priority DESC, createdAt ASC"
     )
     fun getByDate(epochDay: Long, dayOfWeekBit: Int): Flow<List<ChecklistEntity>>
 
