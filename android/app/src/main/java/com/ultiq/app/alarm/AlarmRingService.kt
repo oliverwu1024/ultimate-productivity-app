@@ -17,6 +17,7 @@ import android.os.Vibrator
 import android.os.VibratorManager
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import com.ultiq.app.R
 import com.ultiq.app.data.local.AppDatabase
 import com.ultiq.app.data.local.entity.AlarmEntity
@@ -220,7 +221,11 @@ class AlarmRingService : Service() {
         )
 
         return NotificationCompat.Builder(this, NotificationHelper.CHANNEL_ALARM)
-            .setSmallIcon(R.mipmap.ic_launcher)
+            // §branding — monochrome notification icon; the launcher mipmap
+            // rendered as a white circle in the status bar because Android
+            // collapses the smallIcon to its alpha channel.
+            .setSmallIcon(R.drawable.ic_notification)
+            .setColor(ContextCompat.getColor(this, R.color.ultiq_indigo))
             .setContentTitle("Alarm")
             .setContentText("Tap to dismiss")
             .setPriority(NotificationCompat.PRIORITY_MAX)

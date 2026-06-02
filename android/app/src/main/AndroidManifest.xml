@@ -41,6 +41,20 @@
         android:networkSecurityConfig="@xml/network_security_config"
         android:supportsRtl="true"
         android:theme="@style/Theme.Ultiq">
+
+        <!-- §branding — FCM defaults. Any system-rendered FCM notification
+             (i.e. when the payload carries a `notification` block and the
+             app is backgrounded) uses these icons / accent color. Without
+             them Firebase falls back to the launcher mipmap and the user
+             sees the same white-circle silhouette we fixed in the in-app
+             notification builders. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_notification" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/ultiq_indigo" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
