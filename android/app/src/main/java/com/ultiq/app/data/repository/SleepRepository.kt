@@ -474,13 +474,21 @@ class SleepRepository(
     ): Result<List<PhonePickupDto>> {
         if (events.isEmpty()) return Result.success(emptyList())
         return try {
-            val resp = apiService.batchCreatePhonePickups(
-                BatchCreatePhonePickupsDto(
-                    sleep_record_id = sleepRecordId,
-                    events = events.map { it.toBatchItemDto() },
-                ),
-            )
-            Result.success(resp)
+            // §v2.16.3 — Chunk to stay under the WAF 8KB body limit, same
+            // pattern as batchCreateSleepAudioEvents. Heavy phone-use
+            // nights (30-50+ pickups) would otherwise pack ~150-200B per
+            // pickup into a single request and exceed the limit.
+            val collected = mutableListOf<PhonePickupDto>()
+            for (chunk in events.chunked(BATCH_CHUNK_SIZE)) {
+                val resp = apiService.batchCreatePhonePickups(
+                    BatchCreatePhonePickupsDto(
+                        sleep_record_id = sleepRecordId,
+                        events = chunk.map { it.toBatchItemDto() },
+                    ),
+                )
+                collected.addAll(resp)
+            }
+            Result.success(collected)
         } catch (e: Exception) {
             Result.failure(e)
         }
