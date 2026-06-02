@@ -1,6 +1,6 @@
 {
-  "versionCode": 94,
-  "versionName": "2.16.0",
-  "url": "https://ultiqapp.com/ultiq.2.16.0.apk",
-  "releaseNotes": "Recurring calendar events now respect per-occurrence actions. Marking one Tuesday done no longer marks every Tuesday done. Deleting a recurring event prompts whether you want to remove just this occurrence, this and all following, or the entire series. The same three-way prompt covers edits."
+  "versionCode": 95,
+  "versionName": "2.16.1",
+  "url": "https://ultiqapp.com/ultiq.2.16.1.apk",
+  "releaseNotes": "Fixed: the 'sounds waiting to upload' banner could get stuck forever if a sleep record was missing on the backend. The app now self-heals within ~30 seconds by re-creating the record and re-linking events automatically. Also: backend now keeps an audit trail for sleep-record deletions so we can investigate root cause if it ever recurs."
 }
