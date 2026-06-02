@@ -103,6 +103,17 @@ async fn owns_sleep_record(
     .fetch_optional(pool)
     .await?;
     if owns.is_none() {
+        // §v2.16.3-debug — Log what the client tried to upload to so we
+        // can cross-reference with /sleep create traces. The pair
+        // (user_id, sleep_record_id) tells us if the client is using a
+        // UUID that was never actually returned by /sleep, or if it's a
+        // legitimate stale-state case.
+        tracing::warn!(
+            target: "sleep-audit",
+            user_id = %user_id,
+            sleep_record_id = %sleep_record_id,
+            "owns_sleep_record returned 403 — record not found for user"
+        );
         return Err(AppError::new(
             StatusCode::FORBIDDEN,
             "Invalid sleep_record_id",
