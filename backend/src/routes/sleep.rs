@@ -92,6 +92,19 @@ async fn create(
         .events
         .publish(user_id, SyncEvent::SleepCreated(record.clone()));
 
+    // §v2.16.3-debug — Trace the inserted record's id so we can correlate
+    // against Android's "batch upload 403 for X" log lines. The id Android
+    // attempts to batch-upload to should match the id logged here. If they
+    // diverge, the bug is in Android's parsing of this response. To be
+    // removed after the stuck-upload investigation closes.
+    tracing::info!(
+        target: "sleep-create-trace",
+        user_id = %user_id,
+        sleep_record_id = %record.id,
+        actual_bedtime = %record.actual_bedtime,
+        "sleep_record created"
+    );
+
     Ok((StatusCode::CREATED, Json(record)))
 }
 
