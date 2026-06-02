@@ -1,6 +1,6 @@
 {
-  "versionCode": 106,
-  "versionName": "2.16.12",
-  "url": "https://ultiqapp.com/ultiq.2.16.12.apk",
-  "releaseNotes": "Removes the underlying data race behind the recurring-item mark-complete bounce by dropping the redundant 'completed ASC' from the checklist SQL ordering. Item positions now depend only on priority + creation order, so a background sync can't shift a row's position and trick the UI into a second relayout."
+  "versionCode": 107,
+  "versionName": "2.16.13",
+  "url": "https://ultiqapp.com/ultiq.2.16.13.apk",
+  "releaseNotes": "Fixes the alarm toggle and Set Alarm silently doing nothing while online. AlarmRepository now writes locally and schedules with AlarmManager before hitting the backend (matching how every other write in the app works), so the Switch flips instantly and the phone rings even if a server response is slow or rejects the payload. Server rejection bodies are now logged at AlarmRepository:W so the actual cause can be diagnosed from logcat."
 }
