@@ -24,6 +24,11 @@ pub fn router() -> Router<AppState> {
         .route("/admin/test-push", post(admin_test_push))
         .route("/admin/users/:id/revoke-tokens", post(admin_revoke_tokens))
         .route("/admin/users/:id/disable-2fa", post(admin_disable_2fa))
+        // §v2.16.2 — One-off diagnostic for the stuck sleep-audio upload bug.
+        // Returns the queries we'd otherwise run via psql, given that the
+        // production RDS is private-VPC. To be removed once the root cause
+        // is identified.
+        .route("/admin/diagnostics/sleep-mismatch", get(admin_sleep_mismatch))
 }
 
 pub struct AdminUser {
@@ -603,4 +608,145 @@ async fn admin_users(
         .collect();
 
     Ok(Json(users))
+}
+
+// §v2.16.2 — Stuck sleep-audio upload diagnostic.
+// Production RDS is private-VPC so direct psql isn't possible; this is the
+// admin-only equivalent for investigating the 403-loop bug where the worker's
+// self-heal creates new sleep_records that immediately can't be found by
+// owns_sleep_record. Returns:
+//   - The target user's row (id, email)
+//   - Last 20 sleep_records for that user (id, user_id, bedtime date, created_at)
+//   - Lookup of the 5 logged-403 UUIDs (any user, to see if they exist at all)
+//   - Count of sleep_records created in the last hour (worker churn check)
+#[derive(Debug, serde::Deserialize)]
+pub struct SleepMismatchQuery {
+    pub user_email: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct SleepMismatchReport {
+    pub target_user: Option<TargetUser>,
+    pub recent_sleep_records: Vec<SleepRecordRow>,
+    pub logged_403_uuids: Vec<SleepRecordRow>,
+    pub records_created_last_hour: i64,
+    pub total_records_for_user: i64,
+}
+
+#[derive(Debug, Serialize)]
+pub struct TargetUser {
+    pub id: Uuid,
+    pub email: String,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct SleepRecordRow {
+    pub id: Uuid,
+    pub user_id: Uuid,
+    pub bedtime_date: NaiveDate,
+    pub quality_rating: i16,
+    pub created_at: DateTime<Utc>,
+}
+
+async fn admin_sleep_mismatch(
+    State(state): State<AppState>,
+    admin: AdminUser,
+    axum::extract::Query(q): axum::extract::Query<SleepMismatchQuery>,
+) -> Result<Json<SleepMismatchReport>, AppError> {
+    record_admin_action(
+        &state.pool,
+        admin.id,
+        "diagnostics.sleep_mismatch",
+        None,
+        Some(serde_json::json!({ "user_email": q.user_email })),
+        admin.ip.as_deref(),
+    )
+    .await;
+
+    let target_user: Option<(Uuid, String, DateTime<Utc>)> = sqlx::query_as(
+        "SELECT id, email, created_at FROM users WHERE email = $1",
+    )
+    .bind(&q.user_email)
+    .fetch_optional(&state.pool)
+    .await?;
+
+    let target = target_user.map(|(id, email, created_at)| TargetUser { id, email, created_at });
+
+    let recent: Vec<(Uuid, Uuid, DateTime<Utc>, i16, DateTime<Utc>)> = if let Some(t) = &target {
+        sqlx::query_as(
+            "SELECT id, user_id, actual_bedtime, quality_rating, created_at
+             FROM sleep_records WHERE user_id = $1
+             ORDER BY created_at DESC LIMIT 20",
+        )
+        .bind(t.id)
+        .fetch_all(&state.pool)
+        .await?
+    } else {
+        Vec::new()
+    };
+
+    let recent_rows = recent
+        .into_iter()
+        .map(|(id, user_id, actual_bedtime, quality_rating, created_at)| SleepRecordRow {
+            id,
+            user_id,
+            bedtime_date: actual_bedtime.date_naive(),
+            quality_rating,
+            created_at,
+        })
+        .collect();
+
+    let logged_403_ids: Vec<Uuid> = vec![
+        "635fb35b-bc14-44fa-b62f-570ead351620",
+        "d739db8e-ca8a-4ce0-a46a-be967c0990d2",
+        "492dc23b-3848-4c17-919f-05136299bc3e",
+        "207384b6-1f6a-4642-be1d-ec54854747ca",
+        "1747fc71-5161-41ac-b40b-92d121928ea4",
+    ]
+    .into_iter()
+    .filter_map(|s| s.parse().ok())
+    .collect();
+
+    let logged: Vec<(Uuid, Uuid, DateTime<Utc>, i16, DateTime<Utc>)> = sqlx::query_as(
+        "SELECT id, user_id, actual_bedtime, quality_rating, created_at
+         FROM sleep_records WHERE id = ANY($1)",
+    )
+    .bind(&logged_403_ids)
+    .fetch_all(&state.pool)
+    .await?;
+
+    let logged_rows = logged
+        .into_iter()
+        .map(|(id, user_id, actual_bedtime, quality_rating, created_at)| SleepRecordRow {
+            id,
+            user_id,
+            bedtime_date: actual_bedtime.date_naive(),
+            quality_rating,
+            created_at,
+        })
+        .collect();
+
+    let records_created_last_hour: (i64,) = sqlx::query_as(
+        "SELECT COUNT(*) FROM sleep_records WHERE created_at > NOW() - INTERVAL '1 hour'",
+    )
+    .fetch_one(&state.pool)
+    .await?;
+
+    let total_for_user: (i64,) = if let Some(t) = &target {
+        sqlx::query_as("SELECT COUNT(*) FROM sleep_records WHERE user_id = $1")
+            .bind(t.id)
+            .fetch_one(&state.pool)
+            .await?
+    } else {
+        (0,)
+    };
+
+    Ok(Json(SleepMismatchReport {
+        target_user: target,
+        recent_sleep_records: recent_rows,
+        logged_403_uuids: logged_rows,
+        records_created_last_hour: records_created_last_hour.0,
+        total_records_for_user: total_for_user.0,
+    }))
 }
