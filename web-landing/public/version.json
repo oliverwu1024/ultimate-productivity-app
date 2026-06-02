@@ -1,6 +1,6 @@
 {
-  "versionCode": 98,
-  "versionName": "2.16.4",
-  "url": "https://ultiqapp.com/ultiq.2.16.4.apk",
-  "releaseNotes": "Sleep audio clips now stick around for 30 days instead of 7 (more time to revisit a noisy night). Setup screens and consent dialog updated to match."
+  "versionCode": 99,
+  "versionName": "2.16.5",
+  "url": "https://ultiqapp.com/ultiq.2.16.5.apk",
+  "releaseNotes": "Fixes a Checklist flicker — the Completed section no longer briefly hops items in and out when you open the tab with completed tasks."
 }
