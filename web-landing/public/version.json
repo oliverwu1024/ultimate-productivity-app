@@ -1,6 +1,6 @@
 {
-  "versionCode": 100,
-  "versionName": "2.16.6",
-  "url": "https://ultiqapp.com/ultiq.2.16.6.apk",
-  "releaseNotes": "Fixes a Checklist flicker that also happened when marking items complete, and replaces the white-circle notification icon with a proper branded mark."
+  "versionCode": 101,
+  "versionName": "2.16.7",
+  "url": "https://ultiqapp.com/ultiq.2.16.7.apk",
+  "releaseNotes": "Fixes the residual flicker when marking recurring checklist items complete. Larger favicon + proper ICO so the tab icon shows up in Google search and older browsers."
 }

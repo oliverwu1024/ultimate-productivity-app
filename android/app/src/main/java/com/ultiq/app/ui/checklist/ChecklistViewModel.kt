@@ -463,10 +463,25 @@ class ChecklistViewModel(application: Application) : AndroidViewModel(applicatio
 /// §flicker-fix — Field-by-field equality on the fields that affect what
 /// `ChecklistRow` and its surrounding section header render. Deliberately
 /// excludes `completedAt`, `updatedAt`, `isSynced`, `createdAt`,
-/// `completedAtMs` (on completions), and `userId` — none of those are
-/// surfaced in the UI, but they fluctuate during the local-write → server-
-/// snapshot round trip in the toggle flow and would otherwise force a
-/// redundant recomposition that reads as a visible flicker.
+/// `completedAtMs` (on completions), `lastCompletedEpochDay`, and `userId`
+/// — none of those are surfaced in the UI, but they fluctuate during the
+/// local-write → server-snapshot round trip in the toggle flow and would
+/// otherwise force a redundant recomposition that reads as a visible
+/// flicker.
+///
+/// §v2.16.7 — Also excludes `completed`. The partition output already
+/// captures "is this row in the open bucket or the done bucket" by which
+/// list the row sits in. For non-recurring rows the field equals
+/// `bucket == done`, so checking it is redundant — bucket movement is
+/// already detected by list-shape changes. For recurring rows the field
+/// is irrelevant (the per-day partition uses `checklist_completions`, not
+/// the row's `completed` flag), but the backend was flipping it 0 → 1
+/// after a tick anyway, which made the post-API server snapshot's row
+/// REPLACE arrive with a different `completed` value and forced this
+/// comparator to emit a redundant pair. That redundant emit re-rendered
+/// the LazyColumn and the user saw the open list re-layout a second time
+/// (~150 ms after the legitimate first emit), reading as a flicker on
+/// every recurring-item tap.
 private fun sameVisibleShape(
     a: List<com.ultiq.app.data.local.entity.ChecklistEntity>,
     b: List<com.ultiq.app.data.local.entity.ChecklistEntity>,
@@ -480,7 +495,6 @@ private fun sameVisibleShape(
         if (x.description != y.description) return false
         if (x.priority != y.priority) return false
         if (x.estimatedMinutes != y.estimatedMinutes) return false
-        if (x.completed != y.completed) return false
         if (x.dueDateEpochDay != y.dueDateEpochDay) return false
         if (x.recurrenceDaysMask != y.recurrenceDaysMask) return false
         if (x.showUntilDue != y.showUntilDue) return false
