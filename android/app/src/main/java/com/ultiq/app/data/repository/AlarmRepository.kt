@@ -23,10 +23,15 @@ import java.util.UUID
  *
  * §H1/M4: client-generated UUIDs survive the sync round-trip (server upserts
  * on the client id), so child rows in `alarm_events` keep their FK reference.
- * §M3: server-side rejections (HTTP 4xx) are surfaced as errors instead of
- * being silently retried as if they were network failures.
  * §M5: deletes write a local tombstone so a server-side row that we already
  * told the server to delete doesn't get pulled back on the next sync.
+ *
+ * Writes are optimistic local-first (Room + AlarmManager before network),
+ * matching ChecklistRepository / SleepRepository. A server 4xx no longer
+ * silently aborts the toggle — see v2.16.13 (alarm toggle/save did nothing
+ * when the server rejected the payload because the local row never updated).
+ * The HTTP body is logged on rejection so the actual cause can be greppped
+ * out of logcat; `sync()` retries unsynced rows on the next cycle.
  */
 class AlarmRepository(
     private val context: Context,
@@ -45,61 +50,74 @@ class AlarmRepository(
             id = template.id.ifBlank { UUID.randomUUID().toString() },
             createdAt = if (template.createdAt == 0L) now else template.createdAt,
             updatedAt = now,
+            isSynced = false,
         )
+
+        // Optimistic local write — Room + AlarmManager are the source of truth
+        // for whether the phone rings. The Switch in the list and the alarm
+        // appearing after Save both depend on this row existing locally, and
+        // both must happen even if the server is unreachable or rejects the
+        // payload. Server reconciliation happens below; if it fails we keep
+        // the row as unsynced and sync() retries on the next cycle.
+        alarmDao.insertAlarm(withId)
+        scheduler.schedule(withId)
+
         return try {
             val server = apiService.createAlarm(withId.toCreateDto())
             val entity = server.toEntity()
             alarmDao.insertAlarm(entity)
-            scheduler.schedule(entity)
             Result.success(entity)
         } catch (e: HttpException) {
-            // §M3: the server rejected this payload (validation). Don't keep
-            // a stale row locally that will fail on every future sync.
-            Log.w(TAG, "Server rejected create: HTTP ${e.code()}")
-            Result.failure(e)
+            Log.w(TAG, "Server rejected create ${withId.id}: HTTP ${e.code()} body=${errorBody(e)}")
+            Result.success(withId)
         } catch (e: IOException) {
-            saveAlarmOffline(withId.copy(isSynced = false))
+            Log.d(TAG, "Offline create ${withId.id}; will retry via sync()")
+            Result.success(withId)
         } catch (e: Exception) {
-            // Unknown failure (e.g. JSON parse). Treat as offline — better to
-            // store locally and retry than to drop the user's input.
-            Log.w(TAG, "Unexpected error on create, saving offline: ${e.message}")
-            saveAlarmOffline(withId.copy(isSynced = false))
+            Log.w(TAG, "Unexpected error on create ${withId.id}: ${e.message}")
+            Result.success(withId)
         }
     }
 
     suspend fun updateAlarm(updated: AlarmEntity): Result<AlarmEntity> {
         val now = System.currentTimeMillis()
         val isRinging = AlarmRingService.currentAlarmId.value == updated.id
-        val withTimestamp = updated.copy(updatedAt = now)
+        val existing = alarmDao.getAlarmById(updated.id)
+        val withTimestamp = updated.copy(
+            updatedAt = now,
+            createdAt = existing?.createdAt ?: updated.createdAt,
+            isSynced = false,
+        )
+
+        // Optimistic local write — see createAlarm for rationale. Critically,
+        // the Switch's `checked` binding only flips when the StateFlow emits
+        // a new value, which only happens when Room is written. Pre-network
+        // writes here mean a toggle takes effect the instant the user taps,
+        // and AlarmManager is rescheduled even if the server later rejects.
+        alarmDao.insertAlarm(withTimestamp)
+        if (!isRinging) scheduler.schedule(withTimestamp)
+
         return try {
             val server = apiService.updateAlarm(updated.id, withTimestamp.toCreateDto())
             val entity = server.toEntity()
             alarmDao.insertAlarm(entity)
-            if (!isRinging) scheduler.schedule(entity)
             Result.success(entity)
         } catch (e: HttpException) {
-            Log.w(TAG, "Server rejected update: HTTP ${e.code()}")
-            Result.failure(e)
+            Log.w(TAG, "Server rejected update ${updated.id}: HTTP ${e.code()} body=${errorBody(e)}")
+            Result.success(withTimestamp)
         } catch (e: IOException) {
-            saveAlarmOffline(withTimestamp.copy(isSynced = false), isRinging)
+            Log.d(TAG, "Offline update ${updated.id}; will retry via sync()")
+            Result.success(withTimestamp)
         } catch (e: Exception) {
-            Log.w(TAG, "Unexpected error on update, saving offline: ${e.message}")
-            saveAlarmOffline(withTimestamp.copy(isSynced = false), isRinging)
+            Log.w(TAG, "Unexpected error on update ${updated.id}: ${e.message}")
+            Result.success(withTimestamp)
         }
     }
 
-    private suspend fun saveAlarmOffline(
-        entity: AlarmEntity,
-        skipReschedule: Boolean = false,
-    ): Result<AlarmEntity> = try {
-        val existing = alarmDao.getAlarmById(entity.id)
-        val final = entity.copy(createdAt = existing?.createdAt ?: entity.createdAt)
-        alarmDao.insertAlarm(final)
-        if (!skipReschedule) scheduler.schedule(final)
-        Result.success(final)
-    } catch (localErr: Exception) {
-        Result.failure(localErr)
-    }
+    private fun errorBody(e: HttpException): String =
+        runCatching { e.response()?.errorBody()?.string().orEmpty() }
+            .getOrDefault("<unreadable>")
+            .take(500)
 
     suspend fun setEnabled(id: String, enabled: Boolean): Result<AlarmEntity> {
         val current = alarmDao.getAlarmById(id)
