@@ -1,6 +1,8 @@
 package com.ultiq.app.data.repository
 
 import android.util.Log
+import androidx.room.withTransaction
+import com.ultiq.app.data.local.AppDatabase
 import com.ultiq.app.data.local.dao.ChecklistCompletionDao
 import com.ultiq.app.data.local.dao.ChecklistDao
 import com.ultiq.app.data.local.entity.ChecklistCompletionEntity
@@ -27,6 +29,10 @@ class ChecklistRepository(
     private val completionDao: ChecklistCompletionDao,
     private val apiService: ApiService,
     private val syncStateStore: SyncStateStore? = null,
+    /// Optional so existing test fakes and any non-sync callers keep
+    /// working without a real Room db. When null we fall back to running
+    /// the writes outside of a transaction — same as before this change.
+    private val database: AppDatabase? = null,
 ) {
     private val tag = "ChecklistRepo"
     private val isoDate: DateTimeFormatter = DateTimeFormatter.ISO_LOCAL_DATE
@@ -256,9 +262,18 @@ class ChecklistRepository(
                     } catch (_: Exception) {
                         apiService.createChecklistItem(item.toCreateDto())
                     }
-                    dao.deleteById(item.id)
-                    dao.insert(server.toEntity())
-                    persistCompletionsFromServer(server)
+                    // §flicker-fix — keep delete + insert + completions
+                    // persistence inside a single Room transaction so the
+                    // InvalidationTracker fires once at commit instead of
+                    // three times mid-flight. Without this the row briefly
+                    // disappears between deleteById and insert, which
+                    // shows up in the UI as the Completed bucket flashing
+                    // for every unsynced item the user has.
+                    txWriteEach {
+                        dao.deleteById(item.id)
+                        dao.insert(server.toEntity())
+                        persistCompletionsFromServer(server)
+                    }
                 } catch (_: Exception) {
                     // skip, retry on next sync
                 }
@@ -272,74 +287,115 @@ class ChecklistRepository(
             Log.d(tag, "sync — server returned ${serverItems.size} item(s); full ids=${serverItems.map { it.id }}")
             val serverIds = serverItems.map { it.id }.toSet()
 
-            val localSyncedIds = dao.getSyncedIds()
-            Log.d(tag, "sync — localSyncedIds=$localSyncedIds")
-
             // §v2.15.10 — Two-empty-response guard. Don't mirror a
             // server "you have nothing" response if local still has
             // rows, until we've seen it confirmed by a second sync.
             // See SleepRepository.shouldReconcile for the rationale.
-            val shouldReconcile = shouldReconcile(
-                serverEmpty = serverItems.isEmpty(),
-                localHasRows = localSyncedIds.isNotEmpty(),
-                entityKey = SyncStateStore.ENTITY_CHECKLIST,
-            )
-            var reconcileDeletes = 0
-            if (shouldReconcile) {
-                for (id in localSyncedIds) {
-                    if (id !in serverIds) {
-                        completionDao.deleteAllForItem(id)
-                        dao.deleteById(id)
-                        reconcileDeletes++
-                        Log.d(tag, "sync — orphan local row deleted: id=$id")
+            // §flicker-fix — every DB statement below runs inside one
+            // Room transaction so the reconcile-deletes + bulk insert +
+            // per-item completions persistence collapse into a single
+            // InvalidationTracker fire. Pre-fix this loop emitted ~2N
+            // times for N items with completions, which the partition
+            // combine flow turned into N visible "Completed" flickers
+            // on every checklist screen open.
+            val reconcileDeletes = txWriteBulk {
+                val localSyncedIds = dao.getSyncedIds()
+                Log.d(tag, "sync — localSyncedIds=$localSyncedIds")
+
+                val shouldReconcile = shouldReconcile(
+                    serverEmpty = serverItems.isEmpty(),
+                    localHasRows = localSyncedIds.isNotEmpty(),
+                    entityKey = SyncStateStore.ENTITY_CHECKLIST,
+                )
+                var deletes = 0
+                if (shouldReconcile) {
+                    for (id in localSyncedIds) {
+                        if (id !in serverIds) {
+                            completionDao.deleteAllForItem(id)
+                            dao.deleteById(id)
+                            deletes++
+                            Log.d(tag, "sync — orphan local row deleted: id=$id")
+                        }
+                    }
+                } else {
+                    Log.w(tag, "sync — defer reconcile (server empty, local has ${localSyncedIds.size} rows)")
+                }
+
+                // §UX: backend may not have the schedule columns yet — fall back
+                // to the local row's recurrence fields when the server returns
+                // null / 0 to avoid clobbering a user-set repeat on every sync.
+                val merged = serverItems.map { dto ->
+                    val incoming = dto.toEntity()
+                    val local = dao.getById(dto.id)
+                    if (local == null) {
+                        incoming
+                    } else {
+                        incoming.copy(
+                            recurrenceDaysMask = dto.recurrence_days_mask
+                                ?: local.recurrenceDaysMask,
+                            showUntilDue = dto.show_until_due ?: local.showUntilDue,
+                            lastCompletedEpochDay = dto.last_completed_epoch_day
+                                ?: local.lastCompletedEpochDay,
+                        )
                     }
                 }
-            } else {
-                Log.w(tag, "sync — defer reconcile (server empty, local has ${localSyncedIds.size} rows)")
+                dao.insertAll(merged)
+                for (dto in serverItems) persistCompletionsFromServer(dto)
+                deletes
             }
             Log.d(tag, "sync — reconcile deleted $reconcileDeletes orphan local row(s)")
-
-            // §UX: backend may not have the schedule columns yet — fall back
-            // to the local row's recurrence fields when the server returns
-            // null / 0 to avoid clobbering a user-set repeat on every sync.
-            val merged = serverItems.map { dto ->
-                val incoming = dto.toEntity()
-                val local = dao.getById(dto.id)
-                if (local == null) {
-                    incoming
-                } else {
-                    incoming.copy(
-                        recurrenceDaysMask = dto.recurrence_days_mask
-                            ?: local.recurrenceDaysMask,
-                        showUntilDue = dto.show_until_due ?: local.showUntilDue,
-                        lastCompletedEpochDay = dto.last_completed_epoch_day
-                            ?: local.lastCompletedEpochDay,
-                    )
-                }
-            }
-            dao.insertAll(merged)
-            for (dto in serverItems) persistCompletionsFromServer(dto)
             Log.d(tag, "sync — inserted ${serverItems.size} item(s) from server")
         } catch (e: Exception) {
             Log.w(tag, "sync — failed (offline or API error)", e)
         }
     }
 
+    /// Run a per-item write batch inside a single Room transaction if a
+    /// database handle is available, otherwise run the writes directly.
+    /// Direct-run fallback keeps test fakes and any caller that didn't
+    /// inject [database] working without behavioural change.
+    private suspend inline fun txWriteEach(crossinline block: suspend () -> Unit) {
+        val db = database
+        if (db != null) db.withTransaction { block() } else block()
+    }
+
+    /// Same as [txWriteEach] but returns the block's result. Used by the
+    /// pull-side bulk write so the orphan-delete count can be logged
+    /// without leaking transaction scope.
+    private suspend inline fun <T> txWriteBulk(crossinline block: suspend () -> T): T {
+        val db = database
+        return if (db != null) db.withTransaction { block() } else block()
+    }
+
     /// §024 — Reconcile the local `checklist_completions` mirror with
-    /// the server's `completed_epoch_days` array. Strategy: wipe the
-    /// item's local completions and re-insert from the server. Safe
-    /// because the server is source-of-truth for synced rows.
+    /// the server's `completed_epoch_days` array.
+    ///
+    /// §flicker-fix — Diff-based: delete only the days the server no
+    /// longer reports, then upsert the rest. The previous "wipe + re-
+    /// insert" pattern briefly emptied the table between the two
+    /// statements, which made `observeCompletions()` emit a midpoint
+    /// state. The ViewModel partition treated the missing stamps as
+    /// "not done today" and the row jumped from Completed → Open →
+    /// Completed on every sync of a recurring done-today row. The diff
+    /// approach leaves matching rows untouched (0 deletes, no INSERT
+    /// trigger fires when REPLACE has nothing to change for the kept
+    /// PKs in practice — Room still invalidates, but the partition
+    /// output is identical, so MutableStateFlow dedupes downstream).
     ///
     /// Pre-024 backend payloads omit `completed_epoch_days` entirely;
     /// in that case we leave the local mirror alone so an older server
     /// can't accidentally erase the user's local ticks.
     private suspend fun persistCompletionsFromServer(dto: ChecklistItemDto) {
         val days = dto.completed_epoch_days ?: return
-        completionDao.deleteAllForItem(dto.id)
-        if (days.isEmpty()) return
+        if (days.isEmpty()) {
+            // Server says no completions for this item — drop everything.
+            completionDao.deleteAllForItem(dto.id)
+            return
+        }
         val updatedAt = runCatching {
             java.time.Instant.parse(dto.updated_at).toEpochMilli()
         }.getOrDefault(System.currentTimeMillis())
+        completionDao.deleteForItemExcept(dto.id, days)
         completionDao.insertAll(dto.completionEntities(updatedAt))
     }
 

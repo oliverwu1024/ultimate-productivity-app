@@ -41,6 +41,7 @@ class SyncWorker(
                 db.checklistCompletionDao(),
                 api,
                 syncStateStore = syncStateStore,
+                database = db,
             ),
         )
 

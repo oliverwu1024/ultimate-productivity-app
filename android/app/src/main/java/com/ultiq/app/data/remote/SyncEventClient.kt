@@ -243,16 +243,26 @@ class SyncEventClient(
     }
 
     /// §024 — Mirror the server's `completed_epoch_days` snapshot into
-    /// the local table. Wipe + reinsert because the server is source of
-    /// truth for synced rows. No-op on pre-024 payloads (field absent),
-    /// so an older server can't accidentally erase local ticks.
+    /// the local table. No-op on pre-024 payloads (field absent), so an
+    /// older server can't accidentally erase local ticks.
+    ///
+    /// §flicker-fix — Diff-based: delete only the days no longer on the
+    /// server, then upsert the rest. The previous wipe-and-reinsert
+    /// caused the same Completed-bucket flicker the open-screen sync
+    /// path had — see ChecklistRepository.persistCompletionsFromServer
+    /// for the full rationale. Every SSE event for a recurring done-
+    /// today row used to flip the row out of and back into the
+    /// Completed section.
     private suspend fun applyChecklistCompletions(dto: ChecklistItemDto) {
         val dao = checklistCompletionDao ?: return
         val days = dto.completed_epoch_days ?: return
-        dao.deleteAllForItem(dto.id)
-        if (days.isEmpty()) return
+        if (days.isEmpty()) {
+            dao.deleteAllForItem(dto.id)
+            return
+        }
         val ts = runCatching { Instant.parse(dto.updated_at).toEpochMilli() }
             .getOrDefault(System.currentTimeMillis())
+        dao.deleteForItemExcept(dto.id, days)
         dao.insertAll(dto.completionEntities(ts))
     }
 
