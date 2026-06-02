@@ -11,6 +11,7 @@ import android.net.Uri
 import android.provider.Settings
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import com.ultiq.app.MainActivity
 import com.ultiq.app.R
 
@@ -198,7 +199,11 @@ object NotificationHelper {
             "but this device hasn't granted microphone access. Tap to grant — " +
             "audio is analysed on-device, never uploaded."
         val notification = NotificationCompat.Builder(context, CHANNEL_REMINDERS)
-            .setSmallIcon(R.mipmap.ic_launcher)
+            // §branding — monochrome silhouette; Android renders smallIcon
+            // via alpha only so passing the launcher mipmap used to surface
+            // as a solid white circle in the status bar.
+            .setSmallIcon(R.drawable.ic_notification)
+            .setColor(ContextCompat.getColor(context, R.color.ultiq_indigo))
             .setContentTitle("Snore tracking off — mic permission needed")
             .setContentText(body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))
@@ -254,7 +259,9 @@ object NotificationHelper {
         )
 
         val notification = NotificationCompat.Builder(context, channelId)
-            .setSmallIcon(R.mipmap.ic_launcher)
+            // §branding — see comment above for why monochrome.
+            .setSmallIcon(R.drawable.ic_notification)
+            .setColor(ContextCompat.getColor(context, R.color.ultiq_indigo))
             .setContentTitle(title)
             .setContentText(body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))

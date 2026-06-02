@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -24,6 +24,18 @@ export const metadata: Metadata = {
     siteName: "Ultiq",
     type: "website",
   },
+};
+
+// Next 15+ split: themeColor / colorScheme moved out of `metadata` into
+// the dedicated `viewport` export. Indigo here matches the brand value
+// in globals.css (--color-ultiq-indigo) and the Android status bar color
+// in res/values/themes.xml so the mobile browser chrome matches the rest
+// of the app.
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#FFF4E6" },
+    { media: "(prefers-color-scheme: dark)", color: "#2A1B6E" },
+  ],
 };
 
 export default function RootLayout({

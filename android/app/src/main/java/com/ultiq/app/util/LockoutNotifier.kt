@@ -8,6 +8,8 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
+import com.ultiq.app.R
 import com.ultiq.app.ui.lockout.LockoutActivity
 import com.ultiq.app.ui.lockout.LockoutMode
 
@@ -60,7 +62,11 @@ object LockoutNotifier {
         }
 
         val notification: Notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
+            // §branding — was the generic Android padlock; replaced with the
+            // monochrome Ultiq mark for consistency with the rest of the
+            // notification surfaces.
+            .setSmallIcon(R.drawable.ic_notification)
+            .setColor(ContextCompat.getColor(context, R.color.ultiq_indigo))
             .setContentTitle(title)
             .setContentText(body)
             .setPriority(NotificationCompat.PRIORITY_MAX)

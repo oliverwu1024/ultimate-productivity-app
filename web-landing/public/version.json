@@ -1,6 +1,6 @@
 {
-  "versionCode": 99,
-  "versionName": "2.16.5",
-  "url": "https://ultiqapp.com/ultiq.2.16.5.apk",
-  "releaseNotes": "Fixes a Checklist flicker — the Completed section no longer briefly hops items in and out when you open the tab with completed tasks."
+  "versionCode": 100,
+  "versionName": "2.16.6",
+  "url": "https://ultiqapp.com/ultiq.2.16.6.apk",
+  "releaseNotes": "Fixes a Checklist flicker that also happened when marking items complete, and replaces the white-circle notification icon with a proper branded mark."
 }

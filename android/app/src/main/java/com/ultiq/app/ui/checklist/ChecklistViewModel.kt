@@ -348,14 +348,22 @@ class ChecklistViewModel(application: Application) : AndroidViewModel(applicatio
                     }
                 }
             }
-                // §flicker-fix — drop identical (open, done) pairs that
-                // the upstream Room flows can re-emit mid-sync even when
-                // the partition outcome hasn't changed. Combined with
-                // the transaction-batched writes in ChecklistRepository
-                // this gives us "one StateFlow update per real change"
-                // semantics. Pair == checks structural equality of both
-                // lists, which is what we want here.
-                .distinctUntilChanged()
+                // §flicker-fix — Compare partition outputs by the fields
+                // the row actually renders, not by structural data-class
+                // equality. Default `distinctUntilChanged()` drills into
+                // ChecklistEntity.equals() which compares every field,
+                // including completedAt / updatedAt / isSynced. The mark-
+                // complete flow flips those between the local-optimistic
+                // write and the post-API server snapshot, so the default
+                // comparator lets the redundant second emission through
+                // and the UI flickers on every checkbox tap. Comparing
+                // visible fields only keeps "one StateFlow update per
+                // real change" semantics even when the server snapshot
+                // refreshes hidden metadata.
+                .distinctUntilChanged { old, new ->
+                    sameVisibleShape(old.first, new.first) &&
+                        sameVisibleShape(old.second, new.second)
+                }
                 .collectLatest { (open, done) ->
                     _uiState.value = _uiState.value.copy(
                         openItems = open,
@@ -450,4 +458,32 @@ class ChecklistViewModel(application: Application) : AndroidViewModel(applicatio
             yesterdayJob?.cancel()
         }
     }
+}
+
+/// §flicker-fix — Field-by-field equality on the fields that affect what
+/// `ChecklistRow` and its surrounding section header render. Deliberately
+/// excludes `completedAt`, `updatedAt`, `isSynced`, `createdAt`,
+/// `completedAtMs` (on completions), and `userId` — none of those are
+/// surfaced in the UI, but they fluctuate during the local-write → server-
+/// snapshot round trip in the toggle flow and would otherwise force a
+/// redundant recomposition that reads as a visible flicker.
+private fun sameVisibleShape(
+    a: List<com.ultiq.app.data.local.entity.ChecklistEntity>,
+    b: List<com.ultiq.app.data.local.entity.ChecklistEntity>,
+): Boolean {
+    if (a.size != b.size) return false
+    for (i in a.indices) {
+        val x = a[i]
+        val y = b[i]
+        if (x.id != y.id) return false
+        if (x.title != y.title) return false
+        if (x.description != y.description) return false
+        if (x.priority != y.priority) return false
+        if (x.estimatedMinutes != y.estimatedMinutes) return false
+        if (x.completed != y.completed) return false
+        if (x.dueDateEpochDay != y.dueDateEpochDay) return false
+        if (x.recurrenceDaysMask != y.recurrenceDaysMask) return false
+        if (x.showUntilDue != y.showUntilDue) return false
+    }
+    return true
 }

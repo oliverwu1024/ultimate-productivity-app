@@ -14,7 +14,9 @@ import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import com.ultiq.app.MainActivity
+import com.ultiq.app.R
 import com.ultiq.app.alarm.AlarmRingService
 import com.ultiq.app.audio.AudioInitStatus
 import com.ultiq.app.audio.PcmRingBuffer
@@ -590,7 +592,9 @@ class SleepTrackingService : Service() {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(title)
             .setContentText("Tap to open app")
-            .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
+            // §branding — see LockoutNotifier / NotificationHelper.
+            .setSmallIcon(R.drawable.ic_notification)
+            .setColor(ContextCompat.getColor(this, R.color.ultiq_indigo))
             .setOngoing(true)
             .setContentIntent(pendingIntent)
             .build()

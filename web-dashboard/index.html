@@ -4,6 +4,22 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Ultiq Dashboard</title>
+
+    <!-- §branding — favicons + theme-color. Pre-2026-06 the dashboard had
+         no head branding at all so the tab showed a default browser icon
+         even for signed-in users. icon.svg is the same mascot used by the
+         landing page; PNG fallbacks cover browsers that ignore SVG
+         favicons. Theme-color tints the mobile browser chrome to match
+         the brand indigo / cream split. -->
+    <link data-trunk rel="copy-file" href="icon.svg" />
+    <link data-trunk rel="copy-file" href="icon.png" />
+    <link data-trunk rel="copy-file" href="apple-icon.png" />
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/icon.png" type="image/png" sizes="192x192" />
+    <link rel="apple-touch-icon" href="/apple-icon.png" sizes="180x180" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#FFF4E6" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#2A1B6E" />
+
     <link data-trunk rel="copy-file" href="preinit.js" />
     <script src="/preinit.js"></script>
     <link data-trunk rel="rust" />

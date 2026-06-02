@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Brand accent. Mirrors the ultiq-indigo token in web-landing/app/globals.css. -->
+    <color name="ultiq_indigo">#2A1B6E</color>
+</resources>
