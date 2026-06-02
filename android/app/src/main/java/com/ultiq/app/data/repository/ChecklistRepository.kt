@@ -140,12 +140,23 @@ class ChecklistRepository(
     /// inserted first so the UI flips immediately even when offline;
     /// the server call is best-effort. If the network fails the next
     /// sync pull will reconcile via `completed_epoch_days`.
+    ///
+    /// §v2.16.8 — No post-API server snapshot apply. The local optimistic
+    /// write above already has the correct semantic state (completion
+    /// stamp in the per-day log). The server response only refines
+    /// timestamps + flips `row.completed` 0->1 on rows that nothing
+    /// renders for recurring items, but those writes triggered a second
+    /// Room invalidation that the partition-pair `distinctUntilChanged`
+    /// in ChecklistViewModel could not always filter (any visible-field
+    /// difference between the local and server snapshots — e.g. server-
+    /// side description trim, or future field additions — would slip a
+    /// redundant emit through and re-layout the LazyColumn ~150 ms after
+    /// the legit first move). Next `sync()` reconciles any drift.
     suspend fun markRecurringCompletedOn(id: String, epochDay: Long): Result<Unit> {
         val now = System.currentTimeMillis()
         completionDao.insert(ChecklistCompletionEntity(id, epochDay, now))
         return try {
-            val server = apiService.completeChecklistItemOn(id, epochDay)
-            applyServerSnapshot(server)
+            apiService.completeChecklistItemOn(id, epochDay)
             Result.success(Unit)
         } catch (_: Exception) {
             Result.success(Unit)
@@ -155,11 +166,13 @@ class ChecklistRepository(
     /// §024 — Untick a recurring row for a specific day. Symmetric with
     /// [markRecurringCompletedOn] — local row is deleted immediately,
     /// server call is best-effort.
+    ///
+    /// §v2.16.8 — Same no-snapshot-apply rationale as
+    /// [markRecurringCompletedOn].
     suspend fun markRecurringIncompleteOn(id: String, epochDay: Long): Result<Unit> {
         completionDao.delete(id, epochDay)
         return try {
-            val server = apiService.uncompleteChecklistItemOn(id, epochDay)
-            applyServerSnapshot(server)
+            apiService.uncompleteChecklistItemOn(id, epochDay)
             Result.success(Unit)
         } catch (_: Exception) {
             Result.success(Unit)
@@ -170,9 +183,15 @@ class ChecklistRepository(
         val now = System.currentTimeMillis()
         dao.markCompletedLocally(id, completedAt = now, updatedAt = now)
         return try {
-            val server = apiService.completeChecklistItem(id)
-            dao.insert(server.toEntity())
-            persistCompletionsFromServer(server)
+            apiService.completeChecklistItem(id)
+            // §v2.16.8 — Flip isSynced only; don't re-insert the row from
+            // the server response. See [markRecurringCompletedOn] for the
+            // full flicker rationale. The non-recurring local write
+            // already set `completed = 1` + timestamps; the server's
+            // response only refines those timestamps which nothing
+            // renders, so the redundant Room invalidation from a full
+            // REPLACE caused a second LazyColumn re-layout.
+            dao.markSynced(id)
             Result.success(Unit)
         } catch (_: Exception) {
             Result.success(Unit)
@@ -186,9 +205,9 @@ class ChecklistRepository(
             // §recurring-uncomplete-fix — same dedicated endpoint as the
             // recurring path so completed/completed_at are explicitly
             // cleared without ambiguity from the generic update body.
-            val server = apiService.uncompleteChecklistItem(id)
-            dao.insert(server.toEntity())
-            persistCompletionsFromServer(server)
+            apiService.uncompleteChecklistItem(id)
+            // §v2.16.8 — Same isSynced-only update as [markCompleted].
+            dao.markSynced(id)
             Result.success(Unit)
         } catch (_: Exception) {
             Result.success(Unit)
@@ -397,25 +416,6 @@ class ChecklistRepository(
         }.getOrDefault(System.currentTimeMillis())
         completionDao.deleteForItemExcept(dto.id, days)
         completionDao.insertAll(dto.completionEntities(updatedAt))
-    }
-
-    /// Single-item version of the post-API reconciliation used by toggle
-    /// flows: write the entity *and* refresh its completion mirror.
-    /// Schedule fields fall back to the local row when the server omits
-    /// them (older backend deploys), mirroring the sync() merge logic.
-    private suspend fun applyServerSnapshot(dto: ChecklistItemDto) {
-        val local = dao.getById(dto.id)
-        val entity = if (local != null) {
-            dto.toEntity().copy(
-                recurrenceDaysMask = dto.recurrence_days_mask
-                    ?: local.recurrenceDaysMask,
-                showUntilDue = dto.show_until_due ?: local.showUntilDue,
-            )
-        } else {
-            dto.toEntity()
-        }
-        dao.insert(entity)
-        persistCompletionsFromServer(dto)
     }
 
     /**
