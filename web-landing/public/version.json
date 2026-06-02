@@ -1,6 +1,6 @@
 {
-  "versionCode": 104,
-  "versionName": "2.16.10",
-  "url": "https://ultiqapp.com/ultiq.2.16.10.apk",
-  "releaseNotes": "Smooths the mark-complete transition with proper Compose item animations. SSE echo suppression confirmed working; the residual jump was the LazyColumn snapping items instantly with no animation."
+  "versionCode": 105,
+  "versionName": "2.16.11",
+  "url": "https://ultiqapp.com/ultiq.2.16.11.apk",
+  "releaseNotes": "Cleanup: removes the diagnostic logging added in v2.16.10 now that the mark-complete bounce is confirmed fixed."
 }

@@ -1,7 +1,6 @@
 package com.ultiq.app.ui.checklist
 
 import android.app.Application
-import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.ultiq.app.data.local.AppDatabase
@@ -366,13 +365,6 @@ class ChecklistViewModel(application: Application) : AndroidViewModel(applicatio
                         sameVisibleShape(old.second, new.second)
                 }
                 .collectLatest { (open, done) ->
-                    // §v2.16.10 — Diagnostic. One line per UI-visible
-                    // emit. If the user still sees flicker but only one
-                    // line appears per tap, the cause is purely render-
-                    // layer (animateItem now smooths it). If multiple
-                    // lines per tap, there's a rogue emit source we
-                    // haven't suppressed yet.
-                    Log.i("ChecklistVM", "uiEmit open=${open.size} done=${done.size}")
                     _uiState.value = _uiState.value.copy(
                         openItems = open,
                         completedItems = done,
@@ -409,11 +401,6 @@ class ChecklistViewModel(application: Application) : AndroidViewModel(applicatio
             val todayBit = 1 shl (todayDate.dayOfWeek.value % 7)
             repository.getCarryoverCandidates(yesterday, yesterdayBit, todayBit)
                 .collectLatest { items ->
-                    // §v2.16.10 — Diagnostic. Carryover Flow re-runs on
-                    // any items/completions table change; if this fires
-                    // during a tap, the yesterday-banner state could be
-                    // a rogue source of UI updates we missed.
-                    Log.i("ChecklistVM", "carryoverEmit size=${items.size}")
                     _uiState.value = _uiState.value.copy(yesterdayOpenItems = items)
                 }
         }
