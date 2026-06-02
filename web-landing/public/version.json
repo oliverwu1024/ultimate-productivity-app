@@ -1,6 +1,6 @@
 {
-  "versionCode": 101,
-  "versionName": "2.16.7",
-  "url": "https://ultiqapp.com/ultiq.2.16.7.apk",
-  "releaseNotes": "Fixes the residual flicker when marking recurring checklist items complete. Larger favicon + proper ICO so the tab icon shows up in Google search and older browsers."
+  "versionCode": 102,
+  "versionName": "2.16.8",
+  "url": "https://ultiqapp.com/ultiq.2.16.8.apk",
+  "releaseNotes": "Truly stops the mark-complete flicker by skipping the redundant post-API row refresh entirely. The local optimistic write already has the right semantic state."
 }
