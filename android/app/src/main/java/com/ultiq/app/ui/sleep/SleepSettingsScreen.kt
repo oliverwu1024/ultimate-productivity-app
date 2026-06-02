@@ -263,7 +263,7 @@ fun SleepSettingsScreen(
  * dialog the first time per device. The dialog spells out:
  *   - what gets recorded (only audio around the detection window)
  *   - where it lives (encrypted S3, accessible to the user only)
- *   - retention (auto-deleted after 7 days)
+ *   - retention (auto-deleted after 30 days)
  *   - reversibility (toggle off any time, individual delete in playback UI)
  *
  * This matches the project-wide "destructive / sensitive actions need a
@@ -283,7 +283,7 @@ private fun SleepAudioRecordingMasterToggle(
         icon = Icons.Default.FiberManualRecord,
         title = "Record events",
         description = "Stores ~10 s audio per detected event so you can play it back. " +
-            "Clips auto-delete after 7 days. Pro only.",
+            "Clips auto-delete after 30 days. Pro only.",
         checked = checked,
         onCheckedChange = { wantOn ->
             if (wantOn) {
@@ -308,7 +308,7 @@ private fun SleepAudioRecordingMasterToggle(
                     )
                     Text(
                         "Clips are stored on Ultiq's servers (encrypted) and auto-delete " +
-                            "after 7 days. Only you can play them back.",
+                            "after 30 days. Only you can play them back.",
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.padding(top = 12.dp),
                     )
