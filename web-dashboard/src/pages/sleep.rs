@@ -231,7 +231,7 @@ fn LastNightSoundsCard(
                             "Sleep sounds — " {label}
                         </h2>
                         <p class="text-xs text-ultiq-indigo/50">
-                            {if any_clips { "Clips auto-expire after 7 days" } else { "Detection only · audio not uploaded" }}
+                            {if any_clips { "Clips auto-expire after 30 days" } else { "Detection only · audio not uploaded" }}
                         </p>
                     </header>
 
@@ -805,6 +805,15 @@ fn DurationChart(
             }
             let tick_lines = ticks.iter().map(|&m| {
                 let y = y_for(m as f64);
+                // §v2.16.4 chart-fix — The bottom tick label ("0h") sits at
+                // the same y-coordinate as the bar bottoms; with font-size
+                // 10 and a +4 baseline offset, the top ~4 px of the glyph
+                // ended up inside the plot area and got painted over by
+                // any full-height bar. Push the bottom label fully below
+                // the axis line (+14 offset puts the glyph top a couple
+                // px below the bar bottom). Other ticks keep the original
+                // centred look since bars never reach them.
+                let label_y_offset = if m == 0 { 14.0 } else { 4.0 };
                 view! {
                     <g>
                         <line
@@ -812,7 +821,7 @@ fn DurationChart(
                             stroke="currentColor" stroke-opacity="0.06" stroke-width="1"
                         />
                         <text
-                            x=pad_l - 8.0 y=y + 4.0
+                            x=pad_l - 8.0 y=y + label_y_offset
                             text-anchor="end"
                             font-size="10"
                             fill="currentColor"

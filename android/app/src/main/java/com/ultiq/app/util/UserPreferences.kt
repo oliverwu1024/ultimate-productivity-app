@@ -65,7 +65,7 @@ data class UserSettings(
     /** §10.x — Pro-tier master toggle for storing audio clips of detected
      *  events. Off by default. When on, the SleepTrackingService keeps a
      *  rolling PCM buffer and uploads a ~10 s clip per allowed event to the
-     *  backend S3 bucket; clips auto-expire after 7 days. */
+     *  backend S3 bucket; clips auto-expire after 30 days. */
     val sleepAudioRecordingEnabled: Boolean,
     /** §10.x — Per-event-type filter for the recording master toggle. Each
      *  one is OR-gated with `sleepAudioRecordingEnabled`: a clip is captured

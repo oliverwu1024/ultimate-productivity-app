@@ -1,6 +1,6 @@
 {
-  "versionCode": 97,
-  "versionName": "2.16.3",
-  "url": "https://ultiqapp.com/ultiq.2.16.3.apk",
-  "releaseNotes": "Faster recovery after upload hiccups: the app now kicks the audio-upload worker the moment you reopen the app, instead of waiting for the scheduled retry. Also extends batch chunking to phone-pickup and checklist-bulk uploads so big nights and bulk imports stay fast."
+  "versionCode": 98,
+  "versionName": "2.16.4",
+  "url": "https://ultiqapp.com/ultiq.2.16.4.apk",
+  "releaseNotes": "Sleep audio clips now stick around for 30 days instead of 7 (more time to revisit a noisy night). Setup screens and consent dialog updated to match."
 }
