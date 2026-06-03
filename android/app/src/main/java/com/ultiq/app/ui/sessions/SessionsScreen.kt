@@ -37,6 +37,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -211,6 +212,13 @@ fun SessionsScreen(
                         checklistTitle = session.checklistItemId
                             ?.let { uiState.checklistTitleById[it] },
                         onDelete = { viewModel.deletePastSession(session.id) },
+                        // §v2.16.18 — Pickup timeline detail. The
+                        // expansion calls fetchRecordDetails(id) which
+                        // starts a Flow subscription, so the timeline
+                        // appears immediately from local Room and
+                        // refreshes when the network upload lands.
+                        details = uiState.recordDetails[session.id],
+                        onExpand = { viewModel.fetchRecordDetails(session.id) },
                         modifier = Modifier
                             .padding(horizontal = 16.dp)
                             .animateItem(),
@@ -611,6 +619,10 @@ private fun SessionItem(
     session: SessionEntity,
     checklistTitle: String?,
     onDelete: () -> Unit,
+    // §v2.16.18 — Optional so callers that don't care about pickup
+    // timeline (none today, but defensive) still compile.
+    details: SessionRecordDetails? = null,
+    onExpand: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     var pendingDelete by remember { mutableStateOf(false) }
@@ -662,7 +674,7 @@ private fun SessionItem(
         },
         enableDismissFromStartToEnd = false,
     ) {
-        SessionItemContent(session, checklistTitle)
+        SessionItemContent(session, checklistTitle, details, onExpand)
     }
 }
 
@@ -670,6 +682,8 @@ private fun SessionItem(
 private fun SessionItemContent(
     session: SessionEntity,
     checklistTitle: String?,
+    details: SessionRecordDetails?,
+    onExpand: () -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
     val zone = ZoneId.systemDefault()
@@ -678,6 +692,13 @@ private fun SessionItemContent(
     val h = session.durationMinutes / 60
     val m = session.durationMinutes % 60
     val durationStr = if (h > 0) "${h}h ${m}m" else "${m}m"
+
+    // §v2.16.18 — Fire the lazy-fetch + Flow subscription the first
+    // time the user expands the card. ViewModel short-circuits on
+    // already-loaded so taps after the first are free.
+    LaunchedEffect(expanded) {
+        if (expanded) onExpand()
+    }
 
     Card(
         shape = RoundedCornerShape(12.dp),
@@ -749,10 +770,77 @@ private fun SessionItemContent(
                             modifier = Modifier.padding(top = 4.dp),
                         )
                     }
+
+                    // §v2.16.18 — Per-pickup timeline, mirror of the
+                    // Sleep tab's pickup section. Rendered when (a) the
+                    // session reports any pickups AND (b) the Flow has
+                    // delivered the detail rows. Older sessions logged
+                    // before v2.16.18 have a phonePickups count but no
+                    // timeline data — they degrade gracefully to count-
+                    // only (the "Pickups" label is skipped entirely so
+                    // the card doesn't show an empty placeholder).
+                    val pickups = details?.pickups ?: emptyList()
+                    if (session.phonePickups > 0 && pickups.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant
+                                .copy(alpha = 0.5f),
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            "Phone pickups",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        val pickupTimeFormat =
+                            DateTimeFormatter.ofPattern("hh:mm a")
+                        pickups.forEachIndexed { index, pickup ->
+                            val pickupTime = Instant.ofEpochMilli(pickup.pickedUpAt)
+                                .atZone(zone)
+                                .format(pickupTimeFormat)
+                            val durationLabel = formatPickupDuration(pickup.durationSeconds)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 2.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        Icons.Default.PhoneAndroid,
+                                        null,
+                                        modifier = Modifier.size(12.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        "#${index + 1} at $pickupTime",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                    )
+                                }
+                                Text(
+                                    durationLabel,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
     }
+}
+
+private fun formatPickupDuration(durationSeconds: Int): String {
+    if (durationSeconds < 60) return "${durationSeconds}s"
+    val m = durationSeconds / 60
+    val s = durationSeconds % 60
+    return if (s == 0) "${m}m" else "${m}m ${s}s"
 }
 
 @Composable

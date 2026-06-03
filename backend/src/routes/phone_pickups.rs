@@ -108,19 +108,57 @@ async fn batch_create(
         ));
     }
 
-    // Sleep_record ownership check (same pattern as the single insert).
-    let owns: Option<(Uuid,)> = sqlx::query_as(
-        "SELECT id FROM sleep_records WHERE id = $1 AND user_id = $2",
-    )
-    .bind(input.sleep_record_id)
-    .bind(user_id)
-    .fetch_optional(&state.pool)
-    .await?;
-    if owns.is_none() {
-        return Err(AppError::new(
-            StatusCode::FORBIDDEN,
-            "Invalid sleep_record_id",
-        ));
+    // §v2.16.18 — Exactly one of sleep_record_id / session_id required.
+    // Pre-v2.16.18 clients only set sleep_record_id; focus-session
+    // clients (new in v2.16.18) only set session_id. Setting both is
+    // an explicit error rather than a silent precedence rule so a buggy
+    // client gets a 400 instead of silently double-attributing pickups.
+    match (input.sleep_record_id, input.session_id) {
+        (None, None) => {
+            return Err(AppError::new(
+                StatusCode::BAD_REQUEST,
+                "exactly one of sleep_record_id or session_id is required",
+            ));
+        }
+        (Some(_), Some(_)) => {
+            return Err(AppError::new(
+                StatusCode::BAD_REQUEST,
+                "sleep_record_id and session_id are mutually exclusive",
+            ));
+        }
+        _ => {}
+    }
+
+    // Ownership check against whichever parent was supplied.
+    if let Some(sleep_id) = input.sleep_record_id {
+        let owns: Option<(Uuid,)> = sqlx::query_as(
+            "SELECT id FROM sleep_records WHERE id = $1 AND user_id = $2",
+        )
+        .bind(sleep_id)
+        .bind(user_id)
+        .fetch_optional(&state.pool)
+        .await?;
+        if owns.is_none() {
+            return Err(AppError::new(
+                StatusCode::FORBIDDEN,
+                "Invalid sleep_record_id",
+            ));
+        }
+    }
+    if let Some(session_id) = input.session_id {
+        let owns: Option<(Uuid,)> = sqlx::query_as(
+            "SELECT id FROM productivity_sessions WHERE id = $1 AND user_id = $2",
+        )
+        .bind(session_id)
+        .bind(user_id)
+        .fetch_optional(&state.pool)
+        .await?;
+        if owns.is_none() {
+            return Err(AppError::new(
+                StatusCode::FORBIDDEN,
+                "Invalid session_id",
+            ));
+        }
     }
 
     for e in &input.events {
@@ -137,20 +175,25 @@ async fn batch_create(
         )?;
     }
 
-    // Single multi-row INSERT — one round-trip to RDS regardless of batch
-    // size. Same QueryBuilder pattern as the sleep_audio batch route.
+    // §v2.16.18 — Honour client-supplied `id` so retries collapse on
+    // ON CONFLICT (id) DO NOTHING. Same idempotency story as v2.16.15
+    // sleep_records. Fresh server UUID when the client omits it
+    // (pre-v2.16.18 callers). The conflict path silently drops the
+    // duplicate; clients re-fetching via GET will see the original row.
     let mut qb = sqlx::QueryBuilder::<sqlx::Postgres>::new(
         "INSERT INTO phone_pickups \
-         (user_id, sleep_record_id, picked_up_at, duration_seconds, app_category) ",
+         (id, user_id, sleep_record_id, session_id, picked_up_at, duration_seconds, app_category) ",
     );
     qb.push_values(input.events.iter(), |mut b, e| {
-        b.push_bind(user_id)
+        b.push_bind(e.id.unwrap_or_else(Uuid::new_v4))
+            .push_bind(user_id)
             .push_bind(input.sleep_record_id)
+            .push_bind(input.session_id)
             .push_bind(e.picked_up_at)
             .push_bind(e.duration_seconds)
             .push_bind(&e.app_category);
     });
-    qb.push(" RETURNING *");
+    qb.push(" ON CONFLICT (id) DO NOTHING RETURNING *");
 
     let rows = qb
         .build_query_as::<PhonePickup>()
