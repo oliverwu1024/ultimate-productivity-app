@@ -1,6 +1,6 @@
 {
-  "versionCode": 109,
-  "versionName": "2.16.15",
-  "url": "https://ultiqapp.com/ultiq.2.16.15.apk",
-  "releaseNotes": "Fixes the duplicate sleep records bug. Three changes shipping together: removed the 403 self-heal that was flipping already-synced sleep records back to unsynced (which then got re-POSTed and duplicated); added a process-wide lock around the unsynced-sleep-record sync path so concurrent sync attempts can't both POST the same row; and made POST /sleep-records idempotent — the client now sends a UUID on every save, so retries collapse server-side via ON CONFLICT DO NOTHING instead of spawning a new row each time. Also adds an admin diagnostics endpoint for cleaning up any leftover duplicate rows."
+  "versionCode": 110,
+  "versionName": "2.16.16",
+  "url": "https://ultiqapp.com/ultiq.2.16.16.apk",
+  "releaseNotes": "Fixes a follow-up paper-cut from the v2.16.15 duplicate-records fix: after toggling airplane mode back on, the expanded sleep record's ▶ clip play buttons now appear automatically instead of requiring you to scroll the row off-screen and back. The SleepViewModel now refreshes its in-memory expanded-record cache whenever the audio-upload worker reports progress."
 }
