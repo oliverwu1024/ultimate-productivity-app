@@ -23,22 +23,31 @@ pub struct CreatePhonePickup {
     pub app_category: Option<String>,
 }
 
-/// §10 — Inline pickup row inside a batch. Same shape as
-/// [CreatePhonePickup] minus the sleep_record_id / session_id, which are
-/// carried at the batch level (all events in one batch share a sleep_record).
+/// §10 — Inline pickup row inside a batch. The parent (sleep_record_id or
+/// session_id) is carried at the batch level.
+///
+/// §v2.16.18 — Optional `id` for client-supplied UUIDs. When present the
+/// backend's `ON CONFLICT (id) DO NOTHING` collapses retries of the same
+/// logical pickup onto one row — same idempotency pattern as v2.16.15
+/// sleep_records. Pre-v2.16.18 clients omit it; backend mints one.
 #[derive(Debug, Deserialize)]
 pub struct BatchPickupItem {
+    pub id: Option<Uuid>,
     pub picked_up_at: DateTime<Utc>,
     pub duration_seconds: i32,
     pub app_category: Option<String>,
 }
 
-/// §10 — Body for POST /phone-pickups/batch. The Android client buffers
-/// per-pickup events in memory during a sleep session and uploads the lot
-/// at End Sleep time. Server stores one row per event so the past-records
-/// expansion can render the full timeline later.
+/// §10 — Body for POST /phone-pickups/batch.
+///
+/// §v2.16.18 — `sleep_record_id` is now optional and `session_id` was
+/// added. Exactly one of the two must be set. Sleep sessions stay on
+/// `sleep_record_id`; focus sessions (the new path) use `session_id`.
+/// Both parent types live in the same `phone_pickups` table with
+/// mutually-exclusive FK columns, so the timeline UX is identical.
 #[derive(Debug, Deserialize)]
 pub struct BatchCreatePhonePickups {
-    pub sleep_record_id: Uuid,
+    pub sleep_record_id: Option<Uuid>,
+    pub session_id: Option<Uuid>,
     pub events: Vec<BatchPickupItem>,
 }

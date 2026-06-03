@@ -17,19 +17,31 @@ data class PhonePickupDto(
     val created_at: String,
 )
 
-/// §10 — One element inside a batch upload. The `sleep_record_id` is carried
-/// at the batch level (all events share the same record).
+/// §10 — One element inside a batch upload. The parent (sleep_record_id
+/// or session_id) is carried at the batch level.
+///
+/// §v2.16.18 — Optional `id` for client-supplied UUIDs. Backend's new
+/// `ON CONFLICT (id) DO NOTHING` collapses retries onto one row, same
+/// idempotency pattern as v2.16.15 sleep_records. Older callers that
+/// omit `id` keep working — backend mints one server-side.
 data class CreatePhonePickupBatchItemDto(
+    val id: String? = null,
     val picked_up_at: String,
     val duration_seconds: Int,
     val app_category: String? = null,
 )
 
 /// §10 — Body for POST /phone-pickups/batch. Android buffers per-pickup
-/// events in `SleepTrackingService.pickupEvents` during a session and
-/// uploads the lot when the user saves the sleep record.
+/// events in `SleepTrackingService.pickupEvents` (sleep) or queries
+/// PhoneUsageTracker at session-end (focus) and uploads the lot.
+///
+/// §v2.16.18 — `sleep_record_id` is now nullable and `session_id` is
+/// new. Exactly one of the two must be set; the backend rejects both
+/// or neither. Sleep flow keeps using `sleep_record_id`; focus flow
+/// uses `session_id`.
 data class BatchCreatePhonePickupsDto(
-    val sleep_record_id: String,
+    val sleep_record_id: String?,
+    val session_id: String?,
     val events: List<CreatePhonePickupBatchItemDto>,
 )
 

@@ -169,6 +169,14 @@ interface ApiService {
         @Query("sleep_id") sleepRecordId: String
     ): List<PhonePickupDto>
 
+    /// §v2.16.18 — Mirror of getPhonePickupsForSleep for focus sessions.
+    /// Backend GET /phone-pickups?session_id=X returns the per-pickup
+    /// timeline a SessionRow expansion can render.
+    @GET("phone-pickups")
+    suspend fun getPhonePickupsForSession(
+        @Query("session_id") sessionId: String
+    ): List<PhonePickupDto>
+
     @POST("sessions")
     suspend fun createSession(@Body request: CreateSessionDto): SessionDto
 

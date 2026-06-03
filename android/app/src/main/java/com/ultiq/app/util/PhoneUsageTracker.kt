@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Process
 import android.provider.Settings
+import com.ultiq.app.service.PickupEvent
 
 class PhoneUsageTracker(private val context: Context) {
 
@@ -55,6 +56,53 @@ class PhoneUsageTracker(private val context: Context) {
         }
 
         return count
+    }
+
+    /**
+     * §v2.16.18 — Per-event pickup detail for the focus pickup timeline
+     * (mirror of what `SleepTrackingService.pickupEvents` provides for
+     * sleep sessions). Each non-own, non-system MOVE_TO_FOREGROUND event
+     * is a pickup; its duration is the gap until the next foreground
+     * event of any kind (or `now` for the most-recent pickup if the
+     * session is still in progress at query time).
+     *
+     * Called from `SessionsViewModel.completeSession` with the session
+     * start as `sinceTime`, so we get every pickup that happened during
+     * the focus window in one shot — no need to long-poll inside a
+     * service.
+     */
+    fun getPickupEventsSince(sinceTime: Long): List<PickupEvent> {
+        if (!hasPermission()) return emptyList()
+
+        val now = System.currentTimeMillis()
+        val events = usageStatsManager.queryEvents(sinceTime, now)
+        val event = UsageEvents.Event()
+        val ownPackage = context.packageName
+
+        // Collect every foreground transition (including own + system)
+        // so we can compute "time until next foreground event" — the
+        // user leaving the distraction app ends that pickup, even if
+        // they return to Ultiq.
+        data class Fg(val time: Long, val isPickup: Boolean)
+        val all = mutableListOf<Fg>()
+        while (events.hasNextEvent()) {
+            events.getNextEvent(event)
+            @Suppress("DEPRECATION")
+            if (event.eventType == UsageEvents.Event.MOVE_TO_FOREGROUND) {
+                val pkg = event.packageName ?: continue
+                val isPickup = pkg != ownPackage && !isSystemComponent(pkg)
+                all.add(Fg(time = event.timeStamp, isPickup = isPickup))
+            }
+        }
+
+        val result = mutableListOf<PickupEvent>()
+        for ((i, e) in all.withIndex()) {
+            if (!e.isPickup) continue
+            val nextTime = if (i + 1 < all.size) all[i + 1].time else now
+            val durationSec = ((nextTime - e.time) / 1000).toInt().coerceAtLeast(0)
+            result.add(PickupEvent(pickedUpAt = e.time, durationSeconds = durationSec))
+        }
+        return result
     }
 
     /**

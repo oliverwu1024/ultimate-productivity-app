@@ -528,6 +528,7 @@ class SleepRepository(
                 val resp = apiService.batchCreatePhonePickups(
                     BatchCreatePhonePickupsDto(
                         sleep_record_id = sleepRecordId,
+                        session_id = null,
                         events = chunk.map { it.toBatchItemDto() },
                     ),
                 )

@@ -64,6 +64,25 @@ data class SessionsUiState(
     val debriefPrompt: SessionDebriefPrompt? = null,
     // Live UserPreferences snapshot, used by the FOCUS PREFERENCES section.
     val settings: UserSettings? = null,
+    // §v2.16.18 — Lazily-loaded per-session pickup timeline, keyed by
+    // session id. Populated on first expansion via fetchRecordDetails;
+    // a per-session Flow keeps the cache live for any post-save server
+    // refresh.
+    val recordDetails: Map<String, SessionRecordDetails> = emptyMap(),
+)
+
+/// §v2.16.18 — Expanded detail for a single past session on the Focus tab.
+/// Mirror of SleepRecordDetails — same shape so the Composable rendering
+/// is identical.
+data class SessionRecordDetails(
+    val loading: Boolean = false,
+    val loaded: Boolean = false,
+    val pickups: List<RecordPickupDetail> = emptyList(),
+)
+
+data class RecordPickupDetail(
+    val pickedUpAt: Long,
+    val durationSeconds: Int,
 )
 
 data class ChecklistCompletionPrompt(
@@ -96,7 +115,12 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
     private val achievementChecker = AchievementChecker(
         db.achievementDao(), db.sleepDao(), db.sessionDao(), userPreferences,
     )
-    private val repository = SessionRepository(sessionDao, api, achievementChecker)
+    private val repository = SessionRepository(
+        sessionDao,
+        api,
+        achievementChecker,
+        phonePickupDao = db.phonePickupDao(),
+    )
     private val checklistRepository = ChecklistRepository(
         db.checklistDao(),
         db.checklistCompletionDao(),
@@ -113,6 +137,12 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
     private var timerJob: Job? = null
     private var pickupPollJob: Job? = null
     private var currentSessionId: String? = null
+
+    // §v2.16.18 — Per-sessionId Flow subscriptions for the past-session
+    // pickup timeline. Started by fetchRecordDetails on first expansion,
+    // kept alive for the lifetime of the ViewModel so the post-save
+    // refresh emits an update too.
+    private val recordPickupJobs = mutableMapOf<String, Job>()
 
     // Wall-clock anchors. The timer derives display values from these on every tick,
     // so duration stays accurate even when Android throttles the coroutine in the
@@ -420,6 +450,54 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
         )
     }
 
+    /**
+     * §v2.16.18 — Lazy fetch + Flow subscribe for the past-session
+     * pickup timeline. Mirror of `SleepViewModel.fetchRecordDetails`
+     * (v2.16.17 form): subscribe to Room first so any later write
+     * triggers a recomposition, then kick a one-shot network refresh
+     * in parallel to populate the server canonical view.
+     *
+     * No-op if the session's details are already subscribed; the Flow
+     * keeps streaming for the ViewModel's lifetime so we don't need
+     * to re-subscribe on subsequent expansions.
+     */
+    fun fetchRecordDetails(sessionId: String) {
+        val existing = _uiState.value.recordDetails[sessionId]
+        if (existing?.loaded == true || existing?.loading == true) return
+
+        _uiState.value = _uiState.value.copy(
+            recordDetails = _uiState.value.recordDetails +
+                (sessionId to SessionRecordDetails(loading = true)),
+        )
+
+        recordPickupJobs[sessionId]?.cancel()
+        recordPickupJobs[sessionId] = viewModelScope.launch {
+            db.phonePickupDao().observeBySessionId(sessionId).collect { rows ->
+                val current = _uiState.value.recordDetails[sessionId]
+                    ?: SessionRecordDetails(loading = true)
+                _uiState.value = _uiState.value.copy(
+                    recordDetails = _uiState.value.recordDetails +
+                        (sessionId to current.copy(
+                            loading = false,
+                            loaded = true,
+                            pickups = rows.map { e ->
+                                RecordPickupDetail(
+                                    pickedUpAt = e.pickedUpAt,
+                                    durationSeconds = e.durationSeconds,
+                                )
+                            },
+                        )),
+                )
+            }
+        }
+
+        // One-shot network refresh in parallel. Mirrors backend canonical
+        // state into Room; the Flow above re-emits, UI updates.
+        viewModelScope.launch {
+            runCatching { repository.getPickupsForSession(sessionId) }
+        }
+    }
+
     fun completeSession() {
         timerJob?.cancel()
         pickupPollJob?.cancel()
@@ -438,9 +516,27 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
         val linkedItemTitle = state.openChecklistItems.firstOrNull { it.id == linkedItemId }?.title
 
         val completedSessionId = currentSessionId
+        // §v2.16.18 — Snapshot the session window before we null it out;
+        // savePickupEvents queries PhoneUsageTracker for the per-event
+        // detail across the same range that produced the count.
+        val pickupWindowStart = sessionStartMillis
         viewModelScope.launch {
             completedSessionId?.let { id ->
                 repository.completeSession(id, totalMinutes, state.phonePickups)
+                // §v2.16.18 — Save the per-pickup timeline so the past
+                // session card can render it. Best-effort: even if upload
+                // fails, the session row already carries the aggregate
+                // count. PhoneUsageTracker reads from UsageStatsManager
+                // which keeps history, so we can capture the whole
+                // window in one shot rather than long-polling.
+                if (pickupWindowStart > 0L) {
+                    runCatching {
+                        val events = usageTracker.getPickupEventsSince(pickupWindowStart)
+                        if (events.isNotEmpty()) {
+                            repository.savePickupEvents(id, userId, events)
+                        }
+                    }
+                }
             }
             currentSessionId = null
             sessionStartMillis = 0L

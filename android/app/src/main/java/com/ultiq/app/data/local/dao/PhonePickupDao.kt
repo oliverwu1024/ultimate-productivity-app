@@ -24,6 +24,19 @@ interface PhonePickupDao {
     @Query("SELECT * FROM phone_pickups WHERE sleepRecordId = :sleepRecordId ORDER BY pickedUpAt ASC")
     suspend fun getBySleepRecord(sleepRecordId: String): List<PhonePickupEntity>
 
+    /// §v2.16.18 — Mirror of observeBySleepRecord for focus sessions.
+    /// Same Room-Flow-as-source-of-truth pattern: SessionsViewModel
+    /// subscribes when the user expands a past session card, any write
+    /// to that session's pickups updates the timeline in place.
+    @Query("SELECT * FROM phone_pickups WHERE sessionId = :sessionId ORDER BY pickedUpAt ASC")
+    fun observeBySessionId(sessionId: String): Flow<List<PhonePickupEntity>>
+
+    @Query("SELECT * FROM phone_pickups WHERE sessionId = :sessionId ORDER BY pickedUpAt ASC")
+    suspend fun getBySessionId(sessionId: String): List<PhonePickupEntity>
+
+    @Query("DELETE FROM phone_pickups WHERE sessionId = :sessionId")
+    suspend fun deleteBySessionId(sessionId: String)
+
     @Query("SELECT * FROM phone_pickups WHERE isSynced = 0")
     suspend fun getUnsynced(): List<PhonePickupEntity>
 
