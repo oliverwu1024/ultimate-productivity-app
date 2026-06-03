@@ -182,7 +182,10 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
         // to upload. Banner appears whenever > 0, disappears whenever
         // WorkManager catches up.
         viewModelScope.launch {
+            var previousCount: Int? = null
             repository.observeUnsyncedAudioEventCount()?.collect { n ->
+                val previous = previousCount
+                previousCount = n
                 _uiState.value = _uiState.value.copy(
                     unsyncedAudioEventCount = n,
                     // Clear the louder "last upload failed" toast once
@@ -190,6 +193,17 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
                     // of UI urgency for the steady-state case.
                     lastUploadFailed = if (n == 0) false else _uiState.value.lastUploadFailed,
                 )
+                // §v2.16.16 — Worker just finished a batch (count went
+                // down). Refresh any expanded record's cached audio events
+                // so the play-button icons + clip durations appear without
+                // the user having to scroll the row off-screen and back on.
+                // Pre-v2.16.16: fetchRecordDetails short-circuited on
+                // `loaded=true`, so the post-airplane-mode upload landed in
+                // Room but the in-memory cache stayed stale until manual
+                // re-expansion.
+                if (previous != null && n < previous) {
+                    refreshLoadedRecordDetails()
+                }
             }
         }
         // §v2.15.4 — Listen for connectivity becoming available and force
@@ -651,6 +665,35 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
                         audioEvents = audioEvents,
                     )),
             )
+        }
+    }
+
+    /**
+     * §v2.16.16 — Re-pull audio events from Room for every currently-
+     * expanded record. Cheap (one query per expansion, Room reads from
+     * the local cache); triggered when the worker marks events synced,
+     * which is when `has_clip` + `clip_duration_ms` flip on the events
+     * the user is staring at. Pickups are not re-fetched — they don't
+     * change post-session-end, so re-hitting `/phone-pickups` would
+     * just burn rate-limit budget for no UI change.
+     */
+    private fun refreshLoadedRecordDetails() {
+        val loadedIds = _uiState.value.recordDetails
+            .filter { it.value.loaded }
+            .keys
+            .toList()
+        if (loadedIds.isEmpty()) return
+        viewModelScope.launch {
+            val dao = db.sleepAudioEventDao()
+            for (id in loadedIds) {
+                val fresh = runCatching { dao.getBySleepRecord(id) }
+                    .getOrDefault(emptyList())
+                val current = _uiState.value.recordDetails[id] ?: continue
+                _uiState.value = _uiState.value.copy(
+                    recordDetails = _uiState.value.recordDetails +
+                        (id to current.copy(audioEvents = fresh)),
+                )
+            }
         }
     }
 
