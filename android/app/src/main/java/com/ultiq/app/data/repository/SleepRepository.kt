@@ -4,8 +4,10 @@ import com.ultiq.app.audio.ClipUploadOutcome
 import com.ultiq.app.audio.SleepAudioClipCapture
 import com.ultiq.app.audio.SleepAudioClipUploader
 import com.ultiq.app.data.achievements.AchievementChecker
+import com.ultiq.app.data.local.dao.PhonePickupDao
 import com.ultiq.app.data.local.dao.SleepAudioEventDao
 import com.ultiq.app.data.local.dao.SleepDao
+import com.ultiq.app.data.local.entity.PhonePickupEntity
 import com.ultiq.app.data.local.entity.SleepAudioEventEntity
 import com.ultiq.app.data.local.entity.SleepRecordEntity
 import com.ultiq.app.data.local.entity.SleepTombstoneEntity
@@ -16,7 +18,9 @@ import com.ultiq.app.data.remote.dto.CreateSleepRecordDto
 import com.ultiq.app.data.remote.dto.PhonePickupDto
 import com.ultiq.app.data.remote.dto.toBatchItemDto
 import com.ultiq.app.data.remote.dto.toCreateDto
+import com.ultiq.app.data.remote.dto.toDto
 import com.ultiq.app.data.remote.dto.toEntity
+import com.ultiq.app.data.remote.dto.toLocalEntity
 import com.ultiq.app.service.PickupEvent
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -42,6 +46,12 @@ class SleepRepository(
     private val achievementChecker: AchievementChecker? = null,
     private val sleepAudioEventDao: SleepAudioEventDao? = null,
     private val syncStateStore: SyncStateStore? = null,
+    // §v2.16.17 — Optional so older call sites that built SleepRepository
+    // without a pickup DAO keep compiling. ViewModel + worker pass it in;
+    // sync() / syncUnsyncedSleepRecords don't depend on it. When null,
+    // savePickupEvents skips the local write and falls back to the prior
+    // backend-only behaviour (no regression for those call sites).
+    private val phonePickupDao: PhonePickupDao? = null,
 ) {
     // §10.x — Lazy uploader so existing call sites that construct
     // SleepRepository without an explicit uploader still work (sync worker
@@ -480,9 +490,34 @@ class SleepRepository(
      */
     suspend fun savePickupEvents(
         sleepRecordId: String,
+        userId: String,
         events: List<PickupEvent>,
     ): Result<List<PhonePickupDto>> {
         if (events.isEmpty()) return Result.success(emptyList())
+
+        // §v2.16.17 — Persist to Room FIRST with isSynced=false, so the
+        // expanded-record timeline renders from local state even when the
+        // backend upload fails (e.g. user ended sleep in airplane mode).
+        // Each row carries a client-generated UUID; the future-idempotent
+        // backend path can collapse retries the same way sleep_records v2.16.15
+        // does. Skipped silently when phonePickupDao isn't wired (older
+        // SleepRepository constructors used by sync paths).
+        val now = System.currentTimeMillis()
+        val localRows = events.map { e ->
+            PhonePickupEntity(
+                id = java.util.UUID.randomUUID().toString(),
+                userId = userId,
+                sleepRecordId = sleepRecordId,
+                sessionId = null,
+                pickedUpAt = e.pickedUpAt,
+                durationSeconds = e.durationSeconds,
+                appCategory = null,
+                createdAt = now,
+                isSynced = false,
+            )
+        }
+        runCatching { phonePickupDao?.insertAll(localRows) }
+
         return try {
             // §v2.16.3 — Chunk to stay under the WAF 8KB body limit, same
             // pattern as batchCreateSleepAudioEvents. Heavy phone-use
@@ -498,8 +533,21 @@ class SleepRepository(
                 )
                 collected.addAll(resp)
             }
+            // §v2.16.17 — Backend confirmed; replace the local stand-ins
+            // with server canonical rows so subsequent pulls (or device
+            // sync) match server ids. Same wipe-and-reinsert pattern as
+            // fetchAudioEventsForRecord.
+            runCatching {
+                val dao = phonePickupDao
+                if (dao != null) {
+                    dao.deleteBySleepRecord(sleepRecordId)
+                    dao.insertAll(collected.map { it.toLocalEntity(synced = true) })
+                }
+            }
             Result.success(collected)
         } catch (e: Exception) {
+            // Upload failed; local rows already on disk with isSynced=false.
+            // Sync pass picks them up later (worker hook in fetchPickupsForRecord).
             Result.failure(e)
         }
     }
@@ -507,14 +555,33 @@ class SleepRepository(
     /**
      * §10 — Fetch persisted pickup detail for a specific sleep_record so the
      * Sleep tab record-expansion can render the full per-pickup timeline.
-     * On network failure returns empty list (the card falls back to count
-     * + total minutes, which is already in the local SleepRecordEntity).
+     *
+     * §v2.16.17 — Local-first read. The ViewModel now subscribes to the Room
+     * Flow for live updates, so this helper only runs as a background
+     * refresh: it pulls the server view, replaces the per-record Room
+     * slice on success, returns the list to the caller. On network failure
+     * Room stays as-is (the local-only rows from savePickupEvents still
+     * render). Used by `fetchPickupsForRecord` (refresh path) and by
+     * callers that need a synchronous list right now.
      */
     suspend fun getPickupsForSleep(sleepRecordId: String): List<PhonePickupDto> {
+        val dao = phonePickupDao
         return try {
-            apiService.getPhonePickupsForSleep(sleepRecordId)
+            val server = apiService.getPhonePickupsForSleep(sleepRecordId)
+            // Mirror to Room so the Flow re-emits with server canonical ids.
+            runCatching {
+                if (dao != null) {
+                    dao.deleteBySleepRecord(sleepRecordId)
+                    dao.insertAll(server.map { it.toLocalEntity(synced = true) })
+                }
+            }
+            server
         } catch (_: Exception) {
-            emptyList()
+            // Offline / 5xx / rate-limited — fall back to whatever Room
+            // already has so the expanded card stays populated.
+            val local = runCatching { dao?.getBySleepRecord(sleepRecordId) }
+                .getOrNull() ?: emptyList()
+            local.map { it.toDto() }
         }
     }
 
