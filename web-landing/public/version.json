@@ -1,6 +1,6 @@
 {
-  "versionCode": 107,
-  "versionName": "2.16.13",
-  "url": "https://ultiqapp.com/ultiq.2.16.13.apk",
-  "releaseNotes": "Fixes the alarm toggle and Set Alarm silently doing nothing while online. AlarmRepository now writes locally and schedules with AlarmManager before hitting the backend (matching how every other write in the app works), so the Switch flips instantly and the phone rings even if a server response is slow or rejects the payload. Server rejection bodies are now logged at AlarmRepository:W so the actual cause can be diagnosed from logcat."
+  "versionCode": 109,
+  "versionName": "2.16.15",
+  "url": "https://ultiqapp.com/ultiq.2.16.15.apk",
+  "releaseNotes": "Fixes the duplicate sleep records bug. Three changes shipping together: removed the 403 self-heal that was flipping already-synced sleep records back to unsynced (which then got re-POSTed and duplicated); added a process-wide lock around the unsynced-sleep-record sync path so concurrent sync attempts can't both POST the same row; and made POST /sleep-records idempotent — the client now sends a UUID on every save, so retries collapse server-side via ON CONFLICT DO NOTHING instead of spawning a new row each time. Also adds an admin diagnostics endpoint for cleaning up any leftover duplicate rows."
 }
