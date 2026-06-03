@@ -238,6 +238,9 @@ fun AddSleepDialog(
                         else -> {
                             val zone = ZoneId.systemDefault()
                             val dto = CreateSleepRecordDto(
+                                // §v2.16.15 — Client-side UUID for the
+                                // backend's idempotent upsert path.
+                                id = java.util.UUID.randomUUID().toString(),
                                 target_bedtime = String.format("%02d:%02d:00", targetBedtime.hour, targetBedtime.minute),
                                 target_wake_time = String.format("%02d:%02d:00", targetWakeTime.hour, targetWakeTime.minute),
                                 actual_bedtime = actualBed.atZone(zone).toInstant().toString(),

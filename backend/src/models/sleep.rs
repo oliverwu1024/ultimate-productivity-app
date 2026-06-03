@@ -22,6 +22,11 @@ pub struct SleepRecord {
 // Request: create/update
 #[derive(Debug, Deserialize)]
 pub struct CreateSleepRecord {
+    // §v2.16.15 — Optional client-supplied UUID for idempotent POST.
+    // Same UUID on retry collapses on `ON CONFLICT (id) DO NOTHING` →
+    // no duplicate. Omitted (null) by pre-v2.16.15 clients; server
+    // mints one as before.
+    pub id: Option<Uuid>,
     pub target_bedtime: NaiveTime,
     pub target_wake_time: NaiveTime,
     pub actual_bedtime: DateTime<Utc>,

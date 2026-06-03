@@ -5,6 +5,11 @@ import java.time.Instant
 import java.time.ZoneId
 
 data class CreateSleepRecordDto(
+    // §v2.16.15 — Client-supplied UUID for idempotent POST. Same id on
+    // retry collapses on the backend's ON CONFLICT (id) DO NOTHING →
+    // no duplicate sleep_record rows. Older backends (pre-v2.16.15)
+    // ignore the field (serde untagged → null is just dropped).
+    val id: String?,
     val target_bedtime: String,
     val target_wake_time: String,
     val actual_bedtime: String,
@@ -74,6 +79,13 @@ fun SleepRecordDto.toEntity(): SleepRecordEntity {
 
 fun SleepRecordEntity.toCreateDto(): CreateSleepRecordDto {
     return CreateSleepRecordDto(
+        // §v2.16.15 — Send the row's local id so the backend's
+        // idempotency upsert recognises retries of the same logical
+        // sleep record. Without this, syncUnsyncedSleepRecords would
+        // POST the same content with no id, server would mint a fresh
+        // UUID each time, and stale isSynced=false rows could still
+        // spawn duplicates the next time something flips them unsynced.
+        id = id,
         target_bedtime = "$targetBedtime:00",
         target_wake_time = "$targetWakeTime:00",
         actual_bedtime = Instant.ofEpochMilli(actualBedtime).toString(),
