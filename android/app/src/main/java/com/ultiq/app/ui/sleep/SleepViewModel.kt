@@ -665,6 +665,12 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
             val phoneMinutes = totalPhoneSeconds / 60
 
             val dto = CreateSleepRecordDto(
+                // §v2.16.15 — Client-side UUID for the backend's
+                // idempotent upsert path. If the POST is retried (network
+                // blip, worker pass, etc.), the same UUID makes the
+                // backend ON CONFLICT DO NOTHING return the existing
+                // row instead of inserting a duplicate.
+                id = java.util.UUID.randomUUID().toString(),
                 target_bedtime = formatTargetTime(state.sessionTargetBedtime),
                 target_wake_time = formatTargetTime(state.sessionTargetWakeTime),
                 actual_bedtime = bedtime.toString(),

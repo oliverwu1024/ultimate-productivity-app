@@ -64,7 +64,12 @@ class SleepRepository(
             Result.success(entity)
         } catch (e: Exception) {
             try {
-                val id = UUID.randomUUID().toString()
+                // §v2.16.15 — Fallback row reuses the DTO's id so any later
+                // retry POSTs (worker, syncAll) hit the backend's
+                // ON CONFLICT (id) DO NOTHING and collapse instead of
+                // spawning duplicates. Pre-v2.16.15 callers may still pass
+                // null; default to a fresh UUID for them.
+                val id = record.id ?: UUID.randomUUID().toString()
                 val now = System.currentTimeMillis()
                 val entity = SleepRecordEntity(
                     id = id,
