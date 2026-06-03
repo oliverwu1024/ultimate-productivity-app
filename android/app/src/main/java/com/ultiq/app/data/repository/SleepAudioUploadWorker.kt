@@ -121,24 +121,15 @@ class SleepAudioUploadWorker(
                 successfulRecordIds.add(sleepRecordId)
                 Log.i(TAG, "Uploaded ${batch.size} events for $sleepRecordId in $chunkCount chunk(s)")
             } catch (t: Throwable) {
-                // §v2.16.1 — Self-heal the "local-synced-but-backend-gone"
-                // state. owns_sleep_record returns 403 when the parent
-                // sleep_record is missing on the backend; without this
-                // recovery the worker retries forever and the banner
-                // stays stuck. Flipping the parent to isSynced=false lets
-                // the next pass's step 1 (syncUnsyncedSleepRecords)
-                // re-create the row server-side and cascade-relink the
-                // events to the new server-issued UUID.
+                // §v2.16.14 — Removed v2.16.1 403-self-heal markUnsynced.
+                // Spawned duplicate sleep_records: any 403 flipped the
+                // parent unsynced, then a racing syncUnsyncedSleepRecords
+                // POSTed it again, backend INSERTed a fresh row (no
+                // idempotency). v2.16.2 chunking removed the original
+                // WAF trigger; self-heal was net harm. Worker still
+                // retries the events upload on next pass.
                 if (t is HttpException && t.code() == 403) {
-                    try {
-                        sleepRecordDao.markUnsynced(sleepRecordId)
-                        Log.w(
-                            TAG,
-                            "batch upload 403 for $sleepRecordId — marked parent unsynced for re-create",
-                        )
-                    } catch (markErr: Throwable) {
-                        Log.w(TAG, "markUnsynced failed for $sleepRecordId", markErr)
-                    }
+                    Log.w(TAG, "batch upload 403 for $sleepRecordId — no markUnsynced (v2.16.14)")
                 } else {
                     Log.w(TAG, "batch upload failed for $sleepRecordId", t)
                 }
