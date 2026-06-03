@@ -29,6 +29,11 @@ pub fn router() -> Router<AppState> {
         // production RDS is private-VPC. To be removed once the root cause
         // is identified.
         .route("/admin/diagnostics/sleep-mismatch", get(admin_sleep_mismatch))
+        // §v2.16.16 — Cleanup for the duplicate sleep_records accumulated
+        // before v2.16.14/v2.16.15 fixed the duplicate-spawning paths.
+        // POST + body so we can pass dry_run cleanly; default is dry_run=true
+        // so an accidental call returns a kill list instead of executing.
+        .route("/admin/diagnostics/sleep-dedup", post(admin_sleep_dedup))
 }
 
 pub struct AdminUser {
@@ -748,5 +753,248 @@ async fn admin_sleep_mismatch(
         logged_403_uuids: logged_rows,
         records_created_last_hour: records_created_last_hour.0,
         total_records_for_user: total_for_user.0,
+    }))
+}
+
+// §v2.16.16 — Cleanup for duplicate sleep_records accumulated before the
+// v2.16.14 (self-heal removed + mutex) and v2.16.15 (POST idempotency)
+// fixes landed. Duplicates manifest as ≥2 rows for the same user with
+// identical (actual_bedtime, actual_wake_time) — the by-product of
+// non-idempotent retries from the now-removed self-heal loop.
+//
+// Strategy per duplicate group:
+//   1. Pick a winner — the row that holds the most data:
+//      most audio_events → most phone_pickups → earliest created_at.
+//      Earliest created_at wins ties because that's the original POST
+//      from the user; the duplicate is whatever the retry spawned.
+//   2. Relink audio_events + phone_pickups from losers to winner (so
+//      the user doesn't lose recorded snore/cough/pickup data that
+//      happened to land on the wrong UUID).
+//   3. DELETE losers; publish SleepDeleted SSE so live clients drop
+//      them too.
+//   4. tracing::info!(target: "sleep-audit", caller: "admin/sleep-dedup", …)
+//      per deleted row.
+//
+// `dry_run=true` (the default) returns the kill list without executing.
+
+#[derive(Debug, Deserialize)]
+pub struct SleepDedupRequest {
+    pub user_email: String,
+    #[serde(default = "default_dry_run")]
+    pub dry_run: bool,
+}
+
+fn default_dry_run() -> bool {
+    true
+}
+
+#[derive(Debug, Serialize)]
+pub struct SleepDedupRecordSnapshot {
+    pub id: Uuid,
+    pub created_at: DateTime<Utc>,
+    pub audio_events: i64,
+    pub phone_pickups: i64,
+}
+
+#[derive(Debug, Serialize)]
+pub struct SleepDedupGroup {
+    pub actual_bedtime: DateTime<Utc>,
+    pub actual_wake_time: DateTime<Utc>,
+    pub winner: SleepDedupRecordSnapshot,
+    pub losers: Vec<SleepDedupRecordSnapshot>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct SleepDedupTotals {
+    pub duplicate_groups: usize,
+    pub rows_to_delete: usize,
+    pub audio_events_to_relink: i64,
+    pub phone_pickups_to_relink: i64,
+}
+
+#[derive(Debug, Serialize)]
+pub struct SleepDedupReport {
+    pub dry_run: bool,
+    pub target_user: Option<TargetUser>,
+    pub groups: Vec<SleepDedupGroup>,
+    pub totals: SleepDedupTotals,
+}
+
+async fn admin_sleep_dedup(
+    State(state): State<AppState>,
+    admin: AdminUser,
+    Json(req): Json<SleepDedupRequest>,
+) -> Result<Json<SleepDedupReport>, AppError> {
+    record_admin_action(
+        &state.pool,
+        admin.id,
+        "diagnostics.sleep_dedup",
+        None,
+        Some(serde_json::json!({
+            "user_email": req.user_email,
+            "dry_run": req.dry_run,
+        })),
+        admin.ip.as_deref(),
+    )
+    .await;
+
+    let target_user: Option<(Uuid, String, DateTime<Utc>)> = sqlx::query_as(
+        "SELECT id, email, created_at FROM users WHERE email = $1",
+    )
+    .bind(&req.user_email)
+    .fetch_optional(&state.pool)
+    .await?;
+
+    let Some((target_id, target_email, target_created_at)) = target_user else {
+        return Ok(Json(SleepDedupReport {
+            dry_run: req.dry_run,
+            target_user: None,
+            groups: Vec::new(),
+            totals: SleepDedupTotals {
+                duplicate_groups: 0,
+                rows_to_delete: 0,
+                audio_events_to_relink: 0,
+                phone_pickups_to_relink: 0,
+            },
+        }));
+    };
+
+    // Step 1: find groups with ≥2 rows sharing (actual_bedtime, actual_wake_time).
+    let dup_groups: Vec<(DateTime<Utc>, DateTime<Utc>, Vec<Uuid>)> = sqlx::query_as(
+        "SELECT actual_bedtime, actual_wake_time, ARRAY_AGG(id ORDER BY created_at) AS ids
+         FROM sleep_records
+         WHERE user_id = $1
+         GROUP BY actual_bedtime, actual_wake_time
+         HAVING COUNT(*) > 1
+         ORDER BY actual_bedtime DESC",
+    )
+    .bind(target_id)
+    .fetch_all(&state.pool)
+    .await?;
+
+    // Step 2: fetch metadata per candidate row.
+    let mut groups: Vec<SleepDedupGroup> = Vec::with_capacity(dup_groups.len());
+    let mut audio_events_to_relink: i64 = 0;
+    let mut phone_pickups_to_relink: i64 = 0;
+    let mut rows_to_delete: usize = 0;
+
+    for (actual_bedtime, actual_wake_time, ids) in dup_groups {
+        let candidates: Vec<(Uuid, DateTime<Utc>, i64, i64)> = sqlx::query_as(
+            "SELECT
+                sr.id,
+                sr.created_at,
+                (SELECT COUNT(*) FROM sleep_audio_events WHERE sleep_record_id = sr.id) AS audio_events,
+                (SELECT COUNT(*) FROM phone_pickups WHERE sleep_record_id = sr.id) AS pickups
+             FROM sleep_records sr
+             WHERE sr.id = ANY($1)",
+        )
+        .bind(&ids)
+        .fetch_all(&state.pool)
+        .await?;
+
+        // Sort: most audio_events, then most pickups, then earliest created_at.
+        // The winner is index 0 after the sort.
+        let mut sorted: Vec<SleepDedupRecordSnapshot> = candidates
+            .into_iter()
+            .map(|(id, created_at, audio_events, phone_pickups)| SleepDedupRecordSnapshot {
+                id,
+                created_at,
+                audio_events,
+                phone_pickups,
+            })
+            .collect();
+        sorted.sort_by(|a, b| {
+            b.audio_events
+                .cmp(&a.audio_events)
+                .then(b.phone_pickups.cmp(&a.phone_pickups))
+                .then(a.created_at.cmp(&b.created_at))
+        });
+
+        let winner = sorted.remove(0);
+        for loser in &sorted {
+            audio_events_to_relink += loser.audio_events;
+            phone_pickups_to_relink += loser.phone_pickups;
+            rows_to_delete += 1;
+        }
+
+        groups.push(SleepDedupGroup {
+            actual_bedtime,
+            actual_wake_time,
+            winner,
+            losers: sorted,
+        });
+    }
+
+    let totals = SleepDedupTotals {
+        duplicate_groups: groups.len(),
+        rows_to_delete,
+        audio_events_to_relink,
+        phone_pickups_to_relink,
+    };
+
+    // Step 3: execute, if asked. dry_run is the default so a slip of the
+    // wrist returns a plan rather than wiping rows.
+    if !req.dry_run {
+        let mut tx = state.pool.begin().await?;
+
+        for group in &groups {
+            for loser in &group.losers {
+                sqlx::query(
+                    "UPDATE sleep_audio_events SET sleep_record_id = $1 WHERE sleep_record_id = $2",
+                )
+                .bind(group.winner.id)
+                .bind(loser.id)
+                .execute(&mut *tx)
+                .await?;
+
+                sqlx::query(
+                    "UPDATE phone_pickups SET sleep_record_id = $1 WHERE sleep_record_id = $2",
+                )
+                .bind(group.winner.id)
+                .bind(loser.id)
+                .execute(&mut *tx)
+                .await?;
+
+                let res = sqlx::query("DELETE FROM sleep_records WHERE id = $1 AND user_id = $2")
+                    .bind(loser.id)
+                    .bind(target_id)
+                    .execute(&mut *tx)
+                    .await?;
+
+                tracing::info!(
+                    target: "sleep-audit",
+                    user_id = %target_id,
+                    sleep_record_id = %loser.id,
+                    winner_id = %group.winner.id,
+                    rows_affected = res.rows_affected(),
+                    caller = "admin/sleep-dedup",
+                    "sleep_record deleted (dedup)"
+                );
+            }
+        }
+
+        tx.commit().await?;
+
+        // SSE fires AFTER commit so live clients only learn about deletes
+        // that actually landed in RDS.
+        for group in &groups {
+            for loser in &group.losers {
+                state.events.publish(
+                    target_id,
+                    crate::event_bus::SyncEvent::SleepDeleted { id: loser.id },
+                );
+            }
+        }
+    }
+
+    Ok(Json(SleepDedupReport {
+        dry_run: req.dry_run,
+        target_user: Some(TargetUser {
+            id: target_id,
+            email: target_email,
+            created_at: target_created_at,
+        }),
+        groups,
+        totals,
     }))
 }
