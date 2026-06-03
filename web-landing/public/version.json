@@ -1,6 +1,6 @@
 {
-  "versionCode": 110,
-  "versionName": "2.16.16",
-  "url": "https://ultiqapp.com/ultiq.2.16.16.apk",
-  "releaseNotes": "Fixes a follow-up paper-cut from the v2.16.15 duplicate-records fix: after toggling airplane mode back on, the expanded sleep record's ▶ clip play buttons now appear automatically instead of requiring you to scroll the row off-screen and back. The SleepViewModel now refreshes its in-memory expanded-record cache whenever the audio-upload worker reports progress."
+  "versionCode": 111,
+  "versionName": "2.16.17",
+  "url": "https://ultiqapp.com/ultiq.2.16.17.apk",
+  "releaseNotes": "Three fixes from the v2.16.16 stress test. Audio event play buttons now appear automatically after the sleep audio worker syncs (the v2.16.16 attempt fired at the wrong worker step; this version observes the per-record Room Flow so the UI updates whenever any worker step writes). Phone-pickup timestamps now show in past records even after an offline save — pickups are persisted to a new local table and the UI reads from Room first, with the backend acting as a refresh. Rotating the device on the Sleep tab no longer dumps you back to Dashboard — MainActivity now handles orientation + related config changes itself instead of letting Android destroy the Activity."
 }
