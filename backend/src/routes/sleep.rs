@@ -69,13 +69,31 @@ async fn create(
         "notes",
     )?;
 
-    let record = sqlx::query_as::<_, SleepRecord>(
+    // §v2.16.15 — Idempotent insert. Client may supply an `id`; we
+    // upsert on PK conflict (DO NOTHING) so retries of the same logical
+    // sleep record collapse onto one row instead of spawning duplicates.
+    // Pre-v2.16.15 clients omit `id` → server-side default fires.
+    //
+    // The duplicate-spam pattern this kills:
+    //   1. Network blip on End Sleep → createSleepRecord falls back to
+    //      a local row with random UUID, isSynced=false.
+    //   2. Worker / syncAll retries POST → backend INSERT created a
+    //      brand-new row each time (no UNIQUE, no ON CONFLICT).
+    //   3. Self-heal markUnsynced loop (now removed in v2.16.14) made
+    //      this fire repeatedly.
+    // Now the client sends the same UUID on every retry, the conflict
+    // path returns the existing row, and the catch chain is bounded.
+    let supplied_id = input.id.unwrap_or_else(Uuid::new_v4);
+
+    let inserted = sqlx::query_as::<_, SleepRecord>(
         "INSERT INTO sleep_records
-            (user_id, target_bedtime, target_wake_time, actual_bedtime, actual_wake_time,
+            (id, user_id, target_bedtime, target_wake_time, actual_bedtime, actual_wake_time,
              quality_rating, phone_pickups, total_phone_minutes, notes)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+         ON CONFLICT (id) DO NOTHING
          RETURNING *",
     )
+    .bind(supplied_id)
     .bind(user_id)
     .bind(input.target_bedtime)
     .bind(input.target_wake_time)
@@ -85,14 +103,45 @@ async fn create(
     .bind(input.phone_pickups)
     .bind(input.total_phone_minutes)
     .bind(&input.notes)
-    .fetch_one(&state.pool)
+    .fetch_optional(&state.pool)
     .await?;
 
-    state
-        .events
-        .publish(user_id, SyncEvent::SleepCreated(record.clone()));
+    let (status, record) = match inserted {
+        Some(row) => {
+            state
+                .events
+                .publish(user_id, SyncEvent::SleepCreated(row.clone()));
+            (StatusCode::CREATED, row)
+        }
+        None => {
+            // Conflict path — id already exists. Return the existing row
+            // if it belongs to this user; otherwise treat as a 409
+            // (different user owns this UUID — astronomically unlikely
+            // with v4 random UUIDs, but defence-in-depth).
+            let existing: Option<SleepRecord> = sqlx::query_as(
+                "SELECT * FROM sleep_records WHERE id = $1 AND user_id = $2",
+            )
+            .bind(supplied_id)
+            .bind(user_id)
+            .fetch_optional(&state.pool)
+            .await?;
+            let row = existing.ok_or_else(|| {
+                AppError::new(StatusCode::CONFLICT, "id already exists for another user")
+            })?;
+            tracing::info!(
+                target: "sleep-audit",
+                user_id = %user_id,
+                sleep_record_id = %supplied_id,
+                caller = "POST /sleep idempotent retry",
+                "duplicate POST collapsed onto existing row"
+            );
+            // No SleepCreated re-publish — the row already exists, all
+            // clients have seen it via the original create event.
+            (StatusCode::OK, row)
+        }
+    };
 
-    Ok((StatusCode::CREATED, Json(record)))
+    Ok((status, Json(record)))
 }
 
 async fn list(
