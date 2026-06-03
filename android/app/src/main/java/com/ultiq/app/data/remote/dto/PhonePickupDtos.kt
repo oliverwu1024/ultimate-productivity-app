@@ -1,5 +1,6 @@
 package com.ultiq.app.data.remote.dto
 
+import com.ultiq.app.data.local.entity.PhonePickupEntity
 import com.ultiq.app.service.PickupEvent
 import java.time.Instant
 
@@ -37,5 +38,40 @@ fun PickupEvent.toBatchItemDto(): CreatePhonePickupBatchItemDto {
         picked_up_at = Instant.ofEpochMilli(pickedUpAt).toString(),
         duration_seconds = durationSeconds,
         app_category = null,
+    )
+}
+
+/// §v2.16.17 — Server DTO → local Room row. `synced=true` for rows that
+/// came back from the backend (canonical), `false` for the offline
+/// stand-ins savePickupEvents writes before the upload attempt.
+fun PhonePickupDto.toLocalEntity(synced: Boolean): PhonePickupEntity {
+    return PhonePickupEntity(
+        id = id,
+        userId = user_id,
+        sleepRecordId = sleep_record_id,
+        sessionId = session_id,
+        pickedUpAt = Instant.parse(picked_up_at).toEpochMilli(),
+        durationSeconds = duration_seconds,
+        appCategory = app_category,
+        createdAt = Instant.parse(created_at).toEpochMilli(),
+        isSynced = synced,
+    )
+}
+
+/// §v2.16.17 — Local Room row → server DTO, used by the offline-fallback
+/// path in getPickupsForSleep so the ViewModel sees a uniform shape
+/// regardless of whether the data came from backend or Room. Local rows
+/// won't have a server-issued `createdAt` until they sync, so we round-
+/// trip `createdAt` through Instant for consistency.
+fun PhonePickupEntity.toDto(): PhonePickupDto {
+    return PhonePickupDto(
+        id = id,
+        user_id = userId,
+        sleep_record_id = sleepRecordId,
+        session_id = sessionId,
+        picked_up_at = Instant.ofEpochMilli(pickedUpAt).toString(),
+        duration_seconds = durationSeconds,
+        app_category = appCategory,
+        created_at = Instant.ofEpochMilli(createdAt).toString(),
     )
 }

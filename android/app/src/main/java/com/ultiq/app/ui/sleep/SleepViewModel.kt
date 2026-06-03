@@ -153,6 +153,7 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
         achievementChecker = achievementChecker,
         sleepAudioEventDao = db.sleepAudioEventDao(),
         syncStateStore = com.ultiq.app.data.repository.SyncStateStore(application),
+        phonePickupDao = db.phonePickupDao(),
     )
 
     private val _uiState = MutableStateFlow(SleepUiState())
@@ -181,11 +182,17 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
         // §10.x-fix (banner) — Reactive count of audio events still waiting
         // to upload. Banner appears whenever > 0, disappears whenever
         // WorkManager catches up.
+        //
+        // §v2.16.17 — Removed v2.16.16 `refreshLoadedRecordDetails` hook.
+        // That hook fired on count decrease (worker step 2 markSyncedBatch)
+        // but the has_clip flip lands at worker step 5
+        // (fetchAudioEventsForRecord deleteBySleepRecord+insertAll). So the
+        // hook always read stale Room state. fetchRecordDetails now
+        // subscribes to `observeBySleepRecord` per cached recordId — any
+        // Room write at step 2, step 5, or any future write path triggers
+        // recomposition.
         viewModelScope.launch {
-            var previousCount: Int? = null
             repository.observeUnsyncedAudioEventCount()?.collect { n ->
-                val previous = previousCount
-                previousCount = n
                 _uiState.value = _uiState.value.copy(
                     unsyncedAudioEventCount = n,
                     // Clear the louder "last upload failed" toast once
@@ -193,17 +200,6 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
                     // of UI urgency for the steady-state case.
                     lastUploadFailed = if (n == 0) false else _uiState.value.lastUploadFailed,
                 )
-                // §v2.16.16 — Worker just finished a batch (count went
-                // down). Refresh any expanded record's cached audio events
-                // so the play-button icons + clip durations appear without
-                // the user having to scroll the row off-screen and back on.
-                // Pre-v2.16.16: fetchRecordDetails short-circuited on
-                // `loaded=true`, so the post-airplane-mode upload landed in
-                // Room but the in-memory cache stayed stale until manual
-                // re-expansion.
-                if (previous != null && n < previous) {
-                    refreshLoadedRecordDetails()
-                }
             }
         }
         // §v2.15.4 — Listen for connectivity becoming available and force
@@ -614,12 +610,26 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
         )
     }
 
+    // §v2.16.17 — Per-recordId Flow subscriptions. Without these, expanding
+    // a record snapshotted Room exactly once and the cache stayed stale
+    // even after the audio-upload worker (step 5 fetchAudioEventsForRecord)
+    // or the pickup-save path (post-airplane refresh) updated the underlying
+    // tables. Now any Room write to this record's audio events or pickups
+    // triggers a recomposition with the new list. Cancelled when the
+    // ViewModel scope dies.
+    private val recordAudioEventJobs = mutableMapOf<String, Job>()
+    private val recordPickupJobs = mutableMapOf<String, Job>()
+
     /**
      * §10 — Lazily fetch pickup + snore/cough detail for a past sleep_record
-     * when the user taps to expand its card. Audio events come from Room
-     * (already cached locally by Phase 10 §10.5); pickups come from the
-     * backend over the wire. Subsequent expansions short-circuit on the
-     * cached `loaded=true` flag.
+     * when the user taps to expand its card.
+     *
+     * §v2.16.17 — Restructured around Room Flows so post-load updates land
+     * automatically. Both audio events AND pickups now subscribe per-record.
+     * Pickup live data starts with the v2.16.17 PhonePickupEntity table —
+     * older sessions saved before v2.16.17 have nothing in the local table
+     * so the network refresh below is what populates them. Once populated
+     * Room is the canonical local view and the Flow keeps the UI fresh.
      */
     fun fetchRecordDetails(recordId: String) {
         val existing = _uiState.value.recordDetails[recordId]
@@ -630,70 +640,62 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
                 (recordId to SleepRecordDetails(loading = true)),
         )
 
-        viewModelScope.launch {
-            // §10-backfill (v2.13.14) — Local Room is empty for older
-            // records on a fresh install (we never used to pull audio
-            // events back from the server). If the local query returns
-            // nothing, fall through to a per-record server fetch which
-            // also populates Room as a side-effect, so the same expansion
-            // is instant next time.
-            val localAudio = runCatching {
-                db.sleepAudioEventDao().getBySleepRecord(recordId)
-            }.getOrDefault(emptyList())
-            val audioEvents = if (localAudio.isNotEmpty()) {
-                localAudio
-            } else {
-                runCatching { repository.fetchAudioEventsForRecord(recordId) }
-                    .getOrDefault(emptyList())
-            }
-
-            val pickups = runCatching {
-                repository.getPickupsForSleep(recordId).map { dto ->
-                    RecordPickupDetail(
-                        pickedUpAt = Instant.parse(dto.picked_up_at).toEpochMilli(),
-                        durationSeconds = dto.duration_seconds,
-                    )
-                }.sortedBy { it.pickedUpAt }
-            }.getOrDefault(emptyList())
-
-            _uiState.value = _uiState.value.copy(
-                recordDetails = _uiState.value.recordDetails +
-                    (recordId to SleepRecordDetails(
-                        loading = false,
-                        loaded = true,
-                        pickups = pickups,
-                        audioEvents = audioEvents,
-                    )),
-            )
-        }
-    }
-
-    /**
-     * §v2.16.16 — Re-pull audio events from Room for every currently-
-     * expanded record. Cheap (one query per expansion, Room reads from
-     * the local cache); triggered when the worker marks events synced,
-     * which is when `has_clip` + `clip_duration_ms` flip on the events
-     * the user is staring at. Pickups are not re-fetched — they don't
-     * change post-session-end, so re-hitting `/phone-pickups` would
-     * just burn rate-limit budget for no UI change.
-     */
-    private fun refreshLoadedRecordDetails() {
-        val loadedIds = _uiState.value.recordDetails
-            .filter { it.value.loaded }
-            .keys
-            .toList()
-        if (loadedIds.isEmpty()) return
-        viewModelScope.launch {
-            val dao = db.sleepAudioEventDao()
-            for (id in loadedIds) {
-                val fresh = runCatching { dao.getBySleepRecord(id) }
-                    .getOrDefault(emptyList())
-                val current = _uiState.value.recordDetails[id] ?: continue
+        // §v2.16.17 — Subscribe to audio events for this record. First emission
+        // marks the entry as loaded; later emissions (worker writes, server
+        // pulls, manual deletes) update audioEvents in place.
+        recordAudioEventJobs[recordId]?.cancel()
+        recordAudioEventJobs[recordId] = viewModelScope.launch {
+            db.sleepAudioEventDao().observeBySleepRecord(recordId).collect { events ->
+                val current = _uiState.value.recordDetails[recordId]
+                    ?: SleepRecordDetails(loading = true)
                 _uiState.value = _uiState.value.copy(
                     recordDetails = _uiState.value.recordDetails +
-                        (id to current.copy(audioEvents = fresh)),
+                        (recordId to current.copy(
+                            audioEvents = events,
+                            loading = false,
+                            loaded = true,
+                        )),
                 )
             }
+        }
+
+        // §v2.16.17 — Subscribe to pickups for this record. Same shape as
+        // audio events — Room is the local source of truth, the network
+        // refresh below populates it from server canonical state.
+        recordPickupJobs[recordId]?.cancel()
+        recordPickupJobs[recordId] = viewModelScope.launch {
+            db.phonePickupDao().observeBySleepRecord(recordId).collect { rows ->
+                val current = _uiState.value.recordDetails[recordId]
+                    ?: SleepRecordDetails(loading = true)
+                _uiState.value = _uiState.value.copy(
+                    recordDetails = _uiState.value.recordDetails +
+                        (recordId to current.copy(
+                            pickups = rows.map { e ->
+                                RecordPickupDetail(
+                                    pickedUpAt = e.pickedUpAt,
+                                    durationSeconds = e.durationSeconds,
+                                )
+                            },
+                        )),
+                )
+            }
+        }
+
+        // §v2.16.17 — Kick off a one-shot network refresh in parallel.
+        // - Audio events: §10-backfill — pulls from server when local Room
+        //   is empty for older records (fresh install scenario).
+        // - Pickups: refresh from server so any rows that the offline
+        //   save couldn't upload get a server-issued id + app_category.
+        // Both writes land in Room → the Flow subscriptions above re-emit
+        // → UI updates without any extra plumbing.
+        viewModelScope.launch {
+            val localAudioCount = runCatching {
+                db.sleepAudioEventDao().getBySleepRecord(recordId).size
+            }.getOrDefault(0)
+            if (localAudioCount == 0) {
+                runCatching { repository.fetchAudioEventsForRecord(recordId) }
+            }
+            runCatching { repository.getPickupsForSleep(recordId) }
         }
     }
 
@@ -769,7 +771,7 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
                 // total_minutes summary.
                 if (state.endedPickupEvents.isNotEmpty()) {
                     runCatching {
-                        repository.savePickupEvents(record.id, state.endedPickupEvents)
+                        repository.savePickupEvents(record.id, userId, state.endedPickupEvents)
                     }
                 }
             }

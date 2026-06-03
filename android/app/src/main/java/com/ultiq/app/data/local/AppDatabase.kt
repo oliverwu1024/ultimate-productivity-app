@@ -11,6 +11,7 @@ import com.ultiq.app.data.local.dao.AlarmDao
 import com.ultiq.app.data.local.dao.CalendarEventDao
 import com.ultiq.app.data.local.dao.ChecklistCompletionDao
 import com.ultiq.app.data.local.dao.ChecklistDao
+import com.ultiq.app.data.local.dao.PhonePickupDao
 import com.ultiq.app.data.local.dao.SessionDao
 import com.ultiq.app.data.local.dao.SleepAudioEventDao
 import com.ultiq.app.data.local.dao.SleepDao
@@ -21,6 +22,7 @@ import com.ultiq.app.data.local.entity.AlarmTombstoneEntity
 import com.ultiq.app.data.local.entity.CalendarEventEntity
 import com.ultiq.app.data.local.entity.ChecklistCompletionEntity
 import com.ultiq.app.data.local.entity.ChecklistEntity
+import com.ultiq.app.data.local.entity.PhonePickupEntity
 import com.ultiq.app.data.local.entity.SessionEntity
 import com.ultiq.app.data.local.entity.SleepAudioEventEntity
 import com.ultiq.app.data.local.entity.SleepRecordEntity
@@ -41,8 +43,9 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
         AlarmTombstoneEntity::class,
         SleepAudioEventEntity::class,
         SleepTombstoneEntity::class,
+        PhonePickupEntity::class,
     ],
-    version = 16,
+    version = 17,
     exportSchema = false
 )
 @androidx.room.TypeConverters(com.ultiq.app.data.local.converters.IntListConverter::class)
@@ -55,6 +58,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun checklistCompletionDao(): ChecklistCompletionDao
     abstract fun alarmDao(): AlarmDao
     abstract fun sleepAudioEventDao(): SleepAudioEventDao
+    abstract fun phonePickupDao(): PhonePickupDao
 
     companion object {
         @Volatile
@@ -363,6 +367,40 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        // §v2.16.17 — Local `phone_pickups` table so per-pickup timestamps
+        // for a past sleep record render even when the user saved offline.
+        // Before this, pickup detail was backend-only — an offline save
+        // uploaded best-effort then the SleepViewModel cached an empty
+        // list from the failed backend GET, and `loaded=true` blocked
+        // re-fetch. Now Room is the local source of truth; backend GET
+        // becomes a refresh that drops into the same table.
+        private val MIGRATION_16_17 = object : Migration(16, 17) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """CREATE TABLE IF NOT EXISTS `phone_pickups` (
+                        `id` TEXT NOT NULL,
+                        `userId` TEXT NOT NULL,
+                        `sleepRecordId` TEXT,
+                        `sessionId` TEXT,
+                        `pickedUpAt` INTEGER NOT NULL,
+                        `durationSeconds` INTEGER NOT NULL,
+                        `appCategory` TEXT,
+                        `createdAt` INTEGER NOT NULL,
+                        `isSynced` INTEGER NOT NULL DEFAULT 0,
+                        PRIMARY KEY(`id`)
+                    )"""
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_phone_pickups_sleepRecordId` " +
+                        "ON `phone_pickups` (`sleepRecordId`)"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_phone_pickups_isSynced` " +
+                        "ON `phone_pickups` (`isSynced`)"
+                )
+            }
+        }
+
         private val MIGRATION_6_7 = object : Migration(6, 7) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(
@@ -458,6 +496,7 @@ abstract class AppDatabase : RoomDatabase() {
                     MIGRATION_13_14,
                     MIGRATION_14_15,
                     MIGRATION_15_16,
+                    MIGRATION_16_17,
                 )
                 // Legacy DB has been dropped if it existed; if Room can't
                 // open the file (corrupt / version mismatch from a prior
