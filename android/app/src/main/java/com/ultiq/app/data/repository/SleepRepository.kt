@@ -21,6 +21,8 @@ import com.ultiq.app.service.PickupEvent
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import retrofit2.HttpException
 import java.io.File
 import java.io.IOException
@@ -257,19 +259,22 @@ class SleepRepository(
                 } catch (_: Exception) { /* non-fatal — worker re-marks next pass */ }
             }
         } catch (e: Throwable) {
-            // §v2.16.1 — Self-heal 403 (parent sleep_record gone from
-            // backend even though local row is marked synced). Flip the
-            // parent to isSynced=false so syncUnsyncedSleepRecords
-            // re-creates it on the next pass; the WorkManager retry
-            // will then succeed.
+            // §v2.16.14 — Removed v2.16.1 403-self-heal markUnsynced.
+            // It was the direct duplicate-spawner: any 403 (WAF chunk
+            // overshoot, rate limit, transient backend) flipped the
+            // already-synced parent to isSynced=false, then a racing
+            // syncUnsyncedSleepRecords POSTed it again. Backend has no
+            // idempotency, so a fresh row was created each time. v2.16.2
+            // removed the original WAF trigger by chunking at 25; the
+            // self-heal has been doing more harm than good ever since.
+            // Worker retries the events upload regardless; parent stays
+            // synced.
             if (e is HttpException && e.code() == 403) {
-                try {
-                    sleepDao.markUnsynced(sleepRecordId)
-                } catch (_: Throwable) { /* non-fatal — worker will retry */ }
+                android.util.Log.w(
+                    "SleepRepository",
+                    "saveAudioEvents 403 for $sleepRecordId — no markUnsynced (v2.16.14)",
+                )
             }
-            // Events upload exhausted retries. Rows stay isSynced=false.
-            // Caller schedules WorkManager which will keep trying after
-            // the app is closed.
             return Result.failure(e)
         }
 
@@ -550,11 +555,25 @@ class SleepRepository(
      * permanently orphaned — the WorkManager event-upload pass would loop
      * on a 404 forever.
      */
-    suspend fun syncUnsyncedSleepRecords() {
+    // §v2.16.14 — Process-wide mutex around syncUnsyncedSleepRecords.
+    // Multiple SleepRepository instances exist (one in SyncManager via
+    // UltiqApp.wireRealtimeSync, one freshly built inside every
+    // SleepAudioUploadWorker.doWork pass, plus per-ViewModel ones),
+    // so a per-instance lock wouldn't help. The companion-object
+    // Mutex is shared across every caller in the process.
+    //
+    // The race we're killing: SSE onConnected fires syncAll() (which
+    // calls this) at the same moment the worker fires this directly,
+    // both see the same isSynced=false row, both POST, backend has no
+    // idempotency check on /sleep-records → 2 server rows. With the
+    // lock, the second caller waits, then sees the unsynced list is
+    // empty (first caller already replaced the row with the synced
+    // server response) and no-ops.
+    suspend fun syncUnsyncedSleepRecords() = syncUnsyncedMutex.withLock {
         val unsynced = try {
             sleepDao.getUnsyncedRecords()
         } catch (_: Exception) {
-            return
+            return@withLock
         }
         for (record in unsynced) {
             try {
@@ -576,6 +595,10 @@ class SleepRepository(
                 // skip, will retry next sync
             }
         }
+    }
+
+    companion object {
+        private val syncUnsyncedMutex = Mutex()
     }
 
     suspend fun sync() {
