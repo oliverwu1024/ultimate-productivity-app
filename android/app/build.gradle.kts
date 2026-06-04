@@ -158,5 +158,5 @@ dependencies {
     // snore + cough detection during sleep sessions. Audio never leaves the
     // phone; only labels + timestamps + confidences are persisted. Model file
     // `yamnet.tflite` must live at `app/src/main/assets/yamnet.tflite`.
-    implementation("com.google.mediapipe:tasks-audio:0.10.21")
+    implementation("com.google.mediapipe:tasks-audio:0.20230731")
 }
