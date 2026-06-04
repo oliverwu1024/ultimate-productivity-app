@@ -135,7 +135,7 @@ dependencies {
     implementation("com.patrykandpatrick.vico:compose-m3:2.0.0-beta.3")
 
     // CameraX — used by Phase 8 §8.9 photo dismiss mission.
-    val cameraX = "1.4.0"
+    val cameraX = "1.6.1"
     implementation("androidx.camera:camera-core:$cameraX")
     implementation("androidx.camera:camera-camera2:$cameraX")
     implementation("androidx.camera:camera-lifecycle:$cameraX")
