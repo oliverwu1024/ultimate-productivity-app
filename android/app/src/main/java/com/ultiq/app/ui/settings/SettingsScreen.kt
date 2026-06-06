@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Insights
+import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PhonelinkLock
@@ -406,6 +407,46 @@ fun SettingsScreen(
                     description = "What we collect, how we use it",
                     onClick = onNavigateToTerms,
                 )
+            }
+            item {
+                // §2026-06-06 — Permanent quiet advisory so users hitting
+                // an offline-degraded surface (clip playback, AI insight,
+                // sync) know it's by design, not a bug. Pairs with the
+                // one-shot dashboard hint card.
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    ),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.Top,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Icon(
+                            Icons.Default.Wifi,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 2.dp),
+                        )
+                        Column {
+                            Text(
+                                "Working offline",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Medium,
+                            )
+                            Text(
+                                "Day-to-day tracking — sleep, focus, checklist, alarms — works " +
+                                    "without a connection. A few features need internet: " +
+                                    "cross-device sync, AI insights, weekly summaries, and audio " +
+                                    "clip playback.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 4.dp),
+                            )
+                        }
+                    }
+                }
             }
             item {
                 LinkRow(

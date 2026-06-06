@@ -39,6 +39,10 @@ data class UserSettings(
     val sleepTargetMinutes: Int,
     /** Has the user dismissed the "Ultiq is also on the web" hint on the dashboard? */
     val webDashboardHintSeen: Boolean,
+    /** Has the user dismissed the "connect to internet for the full experience"
+     *  one-shot hint on the dashboard? Added 2026-06-06 to set expectations
+     *  for users who hit offline-degraded surfaces (clip playback, AI, sync). */
+    val internetHintSeen: Boolean,
     /** Per-tab "settings have moved here, configure them below" hints — one-shot. */
     val sleepPrefsHintSeen: Boolean,
     val focusPrefsHintSeen: Boolean,
@@ -99,6 +103,7 @@ class UserPreferences(private val context: Context) {
         val SLEEP_EXPLAINER_SEEN = booleanPreferencesKey("sleep_explainer_seen")
         val SLEEP_TARGET_MINUTES = intPreferencesKey("sleep_target_minutes")
         val WEB_DASHBOARD_HINT_SEEN = booleanPreferencesKey("web_dashboard_hint_seen")
+        val INTERNET_HINT_SEEN = booleanPreferencesKey("internet_hint_seen")
         val LAST_CARRYOVER_DISMISSED_DAY = longPreferencesKey("last_carryover_dismissed_day")
         val SLEEP_PREFS_HINT_SEEN = booleanPreferencesKey("sleep_prefs_hint_seen")
         val FOCUS_PREFS_HINT_SEEN = booleanPreferencesKey("focus_prefs_hint_seen")
@@ -129,6 +134,7 @@ class UserPreferences(private val context: Context) {
         sleepExplainerSeen = false,
         sleepTargetMinutes = 480,
         webDashboardHintSeen = false,
+        internetHintSeen = false,
         lastCarryOverDismissedEpochDay = 0L,
         sleepPrefsHintSeen = false,
         focusPrefsHintSeen = false,
@@ -167,6 +173,7 @@ class UserPreferences(private val context: Context) {
             sleepExplainerSeen = prefs[Keys.SLEEP_EXPLAINER_SEEN] ?: defaults.sleepExplainerSeen,
             sleepTargetMinutes = prefs[Keys.SLEEP_TARGET_MINUTES] ?: defaults.sleepTargetMinutes,
             webDashboardHintSeen = prefs[Keys.WEB_DASHBOARD_HINT_SEEN] ?: defaults.webDashboardHintSeen,
+            internetHintSeen = prefs[Keys.INTERNET_HINT_SEEN] ?: defaults.internetHintSeen,
             lastCarryOverDismissedEpochDay = prefs[Keys.LAST_CARRYOVER_DISMISSED_DAY] ?: defaults.lastCarryOverDismissedEpochDay,
             sleepPrefsHintSeen = prefs[Keys.SLEEP_PREFS_HINT_SEEN] ?: defaults.sleepPrefsHintSeen,
             focusPrefsHintSeen = prefs[Keys.FOCUS_PREFS_HINT_SEEN] ?: defaults.focusPrefsHintSeen,
@@ -243,6 +250,10 @@ class UserPreferences(private val context: Context) {
 
     suspend fun setWebDashboardHintSeen(seen: Boolean) {
         context.userDataStore.edit { it[Keys.WEB_DASHBOARD_HINT_SEEN] = seen }
+    }
+
+    suspend fun setInternetHintSeen(seen: Boolean) {
+        context.userDataStore.edit { it[Keys.INTERNET_HINT_SEEN] = seen }
     }
 
     suspend fun setLastCarryOverDismissedEpochDay(epochDay: Long) {
