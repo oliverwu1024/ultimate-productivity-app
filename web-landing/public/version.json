@@ -1,6 +1,6 @@
 {
-  "versionCode": 113,
-  "versionName": "2.17.0",
-  "url": "https://ultiqapp.com/ultiq.2.17.0.apk",
-  "releaseNotes": "Big batch of UX polish + reliability. You stay signed in when offline or when the backend hiccups — no more retyping your password after a WiFi blip. Focus session debriefs now show on each session record with their auto-classified tag (deep work / admin / learning / etc.). Sleep records lead with your own notes when written. Extended focus quick-picks all the way up to 240 min for marathon sessions. Math dismiss-mission picker contrast bumped — the selected count is unmistakable in both light and dark themes. Shake dismiss-mission count swapped from a +/- stepper to a single-drag slider. Clearer messaging when an offline feature can't reach the server. Plus the AI now factors sleep-talk episodes, focus-session phone pickups, and your debrief tags into weekly summaries and Coach answers — and a new Coach tool lets it pull per-session detail on demand."
+  "versionCode": 114,
+  "versionName": "2.17.1",
+  "url": "https://ultiqapp.com/ultiq.2.17.1.apk",
+  "releaseNotes": "Quick fix on top of v2.17.0: morning notification \"you have N calendar events today\" no longer counts recurring events that occur on an earlier day of the same week. The receiver was passing the raw query result through, instead of expanding each recurring event's rule against today — so a weekly Tuesday event was being counted on Wed/Thu/Fri mornings too. Same fix applied to the boot-time reminder rescheduler so per-occurrence reminders for recurring events register correctly after a reboot."
 }
