@@ -23,6 +23,8 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import retrofit2.HttpException
+import java.io.IOException
 
 data class AuthUiState(
     val isLoading: Boolean = false,
@@ -69,32 +71,57 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     fun checkAuth() {
         viewModelScope.launch {
             val token = tokenManager.getToken().firstOrNull()
-            if (token != null) {
-                try {
-                    val me = api.getMe()
-                    // Backfill cached email for users logged in before email persistence landed
-                    if (tokenManager.getEmail().firstOrNull().isNullOrBlank()) {
-                        tokenManager.saveEmail(me.email)
-                    }
-                    tokenManager.saveEmailVerified(me.email_verified)
-                    _uiState.value = _uiState.value.copy(
-                        isLoggedIn = true,
-                        isCheckingAuth = false,
-                    )
-                    // §9.8 — Existing session: re-sync the FCM token so users
-                    // who installed Ultiq before this feature shipped get
-                    // registered the first time they relaunch.
-                    fcmTokenSyncer.syncIfLoggedIn()
-                } catch (_: Exception) {
+            if (token == null) {
+                _uiState.value = _uiState.value.copy(
+                    isLoggedIn = false,
+                    isCheckingAuth = false,
+                )
+                return@launch
+            }
+            // Local-first: a stored JWT is treated as a valid session until
+            // the server explicitly says otherwise (401). Network failures
+            // and transient backend errors (5xx, 429) MUST NOT log the user
+            // out — that would force a re-login every time WiFi blips, the
+            // backend is rolling, or the rate-limit bucket is drained.
+            // Burned 2026-06-06 by the previous broad `catch (_: Exception)`
+            // path: today's rate-limit drain silently cleared sessions and
+            // bounced users back to the login screen with no recovery path
+            // short of retyping the password.
+            try {
+                val me = api.getMe()
+                // Backfill cached email for users logged in before email persistence landed
+                if (tokenManager.getEmail().firstOrNull().isNullOrBlank()) {
+                    tokenManager.saveEmail(me.email)
+                }
+                tokenManager.saveEmailVerified(me.email_verified)
+                _uiState.value = _uiState.value.copy(
+                    isLoggedIn = true,
+                    isCheckingAuth = false,
+                )
+                // §9.8 — Existing session: re-sync the FCM token so users
+                // who installed Ultiq before this feature shipped get
+                // registered the first time they relaunch.
+                fcmTokenSyncer.syncIfLoggedIn()
+            } catch (e: HttpException) {
+                if (e.code() == 401) {
+                    // Server says the token is actually invalid → log out.
                     tokenManager.clearToken()
                     _uiState.value = _uiState.value.copy(
                         isLoggedIn = false,
                         isCheckingAuth = false,
                     )
+                } else {
+                    // 5xx / 429 / any other HTTP error — assume the session
+                    // is still valid; /auth/me will retry next foreground.
+                    _uiState.value = _uiState.value.copy(
+                        isLoggedIn = true,
+                        isCheckingAuth = false,
+                    )
                 }
-            } else {
+            } catch (_: IOException) {
+                // No network / DNS / TLS handshake failure — same assumption.
                 _uiState.value = _uiState.value.copy(
-                    isLoggedIn = false,
+                    isLoggedIn = true,
                     isCheckingAuth = false,
                 )
             }
