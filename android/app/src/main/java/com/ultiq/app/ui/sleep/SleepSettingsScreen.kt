@@ -313,6 +313,12 @@ private fun SleepAudioRecordingMasterToggle(
                         modifier = Modifier.padding(top = 12.dp),
                     )
                     Text(
+                        "Playback requires an internet connection — clips stream from " +
+                            "Ultiq's servers and aren't stored on this phone.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(top = 12.dp),
+                    )
+                    Text(
                         "You can turn this off any time, or delete individual clips from " +
                             "the playback list.",
                         style = MaterialTheme.typography.bodyMedium,

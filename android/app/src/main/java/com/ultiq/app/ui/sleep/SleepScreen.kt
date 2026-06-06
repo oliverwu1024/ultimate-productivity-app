@@ -1283,7 +1283,17 @@ private fun EventPlaybackRow(
                 val url = try { onFetchUrl() } catch (_: Throwable) { null }
                 loadingUrl = false
                 if (url == null) {
-                    loadError = "Couldn't load clip"
+                    // The clip URL fetch + the playback itself both require
+                    // network — clips stream from S3 via a presigned URL and
+                    // aren't stored locally (see SleepAudioClipCapture.SUBDIR
+                    // deletion on upload). Detect the offline case explicitly
+                    // so the user gets a useful message instead of the
+                    // catch-all "Couldn't load clip".
+                    loadError = if (isOnline(context)) {
+                        "Couldn't load clip"
+                    } else {
+                        "No connection — connect to play this clip"
+                    }
                     return@launch
                 }
                 try {
@@ -1298,12 +1308,22 @@ private fun EventPlaybackRow(
                     player.setOnPreparedListener { it.start() }
                     player.setOnCompletionListener { onCompleted() }
                     player.setOnErrorListener { _, _, _ ->
-                        loadError = "Playback failed"
+                        // MediaPlayer streams from S3, so a mid-playback
+                        // connectivity loss surfaces here too.
+                        loadError = if (isOnline(context)) {
+                            "Playback failed"
+                        } else {
+                            "No connection — connect to play this clip"
+                        }
                         true
                     }
                     player.prepareAsync()
                 } catch (e: Throwable) {
-                    loadError = "Playback failed"
+                    loadError = if (isOnline(context)) {
+                        "Playback failed"
+                    } else {
+                        "No connection — connect to play this clip"
+                    }
                 }
             }
             onDispose {
@@ -1543,4 +1563,15 @@ private fun SoundCountTile(label: String, count: Int, modifier: Modifier = Modif
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
+}
+
+/** Returns true if the device currently has any usable network. Used by
+ *  the clip playback row to swap the generic "Couldn't load" message
+ *  for a concrete "No connection" hint when the failure is offline-
+ *  related — clip URLs and the audio bytes themselves both come from
+ *  the network, since clips aren't cached on device. */
+private fun isOnline(context: android.content.Context): Boolean {
+    val cm = context.getSystemService(android.content.Context.CONNECTIVITY_SERVICE)
+        as? android.net.ConnectivityManager ?: return true
+    return cm.activeNetwork != null
 }
