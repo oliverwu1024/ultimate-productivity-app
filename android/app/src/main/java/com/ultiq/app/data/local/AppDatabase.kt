@@ -45,7 +45,7 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
         SleepTombstoneEntity::class,
         PhonePickupEntity::class,
     ],
-    version = 17,
+    version = 18,
     exportSchema = false
 )
 @androidx.room.TypeConverters(com.ultiq.app.data.local.converters.IntListConverter::class)
@@ -401,6 +401,21 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        // §9.7 / 2026-06-06 — productivity_sessions gets `debrief` and
+        // `debriefTag` columns so the per-session record UI can show what
+        // the user wrote after the session. Backend already returns these
+        // fields; they were being silently dropped client-side.
+        private val MIGRATION_17_18 = object : Migration(17, 18) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE `productivity_sessions` ADD COLUMN `debrief` TEXT"
+                )
+                db.execSQL(
+                    "ALTER TABLE `productivity_sessions` ADD COLUMN `debriefTag` TEXT"
+                )
+            }
+        }
+
         private val MIGRATION_6_7 = object : Migration(6, 7) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(
@@ -497,6 +512,7 @@ abstract class AppDatabase : RoomDatabase() {
                     MIGRATION_14_15,
                     MIGRATION_15_16,
                     MIGRATION_16_17,
+                    MIGRATION_17_18,
                 )
                 // Legacy DB has been dropped if it existed; if Room can't
                 // open the file (corrupt / version mismatch from a prior

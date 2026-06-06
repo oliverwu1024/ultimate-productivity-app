@@ -720,6 +720,44 @@ private fun SessionItemContent(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
+                    // §9.7 / 2026-06-06 — Surface the user's post-session
+                    // debrief ("what did you work on?") right under the
+                    // tag so the list itself is glanceable without
+                    // expanding. Nullable: skipped debriefs render
+                    // nothing. Tag chip sits inline as a small label
+                    // ("deep_work", "admin", etc.) when Haiku classified.
+                    if (!session.debrief.isNullOrBlank()) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(top = 2.dp),
+                        ) {
+                            Text(
+                                session.debrief!!,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f, fill = false),
+                            )
+                            if (!session.debriefTag.isNullOrBlank()) {
+                                Spacer(modifier = Modifier.size(6.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .background(
+                                            color = MaterialTheme.colorScheme.secondaryContainer,
+                                            shape = RoundedCornerShape(50),
+                                        )
+                                        .padding(horizontal = 6.dp, vertical = 1.dp),
+                                ) {
+                                    Text(
+                                        session.debriefTag!!.replace('_', ' '),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    )
+                                }
+                            }
+                        }
+                    }
                     Text(
                         "$durationStr  ·  $dateStr",
                         style = MaterialTheme.typography.bodySmall,

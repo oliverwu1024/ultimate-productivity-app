@@ -19,4 +19,11 @@ data class SessionEntity(
     val updatedAt: Long,
     val checklistItemId: String? = null,
     val isSynced: Boolean = false,
+    // §9.7 / 2026-06-06 — User-written "what did you work on?" line
+    // (≤ 240 chars, validated server-side) + Haiku-assigned tag. Backend
+    // has had these columns since migration 017; the Android side just
+    // wasn't reading them. NULL until the user submits the post-session
+    // dialog (skippable).
+    val debrief: String? = null,
+    val debriefTag: String? = null,
 )
