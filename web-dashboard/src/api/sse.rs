@@ -51,13 +51,21 @@ pub struct IdPayload {
 #[derive(Clone, Copy)]
 pub struct SseStream {
     pub last_event: RwSignal<Option<SyncEvent>>,
+    // Trailing-edge debounced mirror of `last_event`. Coalesces a burst of
+    // SSE events (e.g. catch-up sync after the Android app was offline,
+    // which can fire 50+ events in <1 s) into a single downstream refresh
+    // so page-level Effects don't fan a burst into N×(page fetches) and
+    // drain the per-IP rate limit. Page code should prefer this over
+    // `last_event` for any handler that triggers a network refetch.
+    pub last_event_debounced: RwSignal<Option<SyncEvent>>,
     pub connected: RwSignal<bool>,
 }
 
 pub fn provide_sse() {
     let last_event = RwSignal::new(None::<SyncEvent>);
+    let last_event_debounced = RwSignal::new(None::<SyncEvent>);
     let connected = RwSignal::new(false);
-    provide_context(SseStream { last_event, connected });
+    provide_context(SseStream { last_event, last_event_debounced, connected });
 }
 
 pub fn use_sse() -> SseStream {
@@ -74,7 +82,13 @@ struct SseConnection {
 
 thread_local! {
     static CURRENT: std::cell::RefCell<Option<SseConnection>> = const { std::cell::RefCell::new(None) };
+    // Pending trailing-edge timer for `last_event_debounced`. Dropping the
+    // old `Timeout` cancels it, so replacing the cell on every fresh event
+    // resets the countdown — classic debounce.
+    static DEBOUNCE: std::cell::RefCell<Option<gloo_timers::callback::Timeout>> = const { std::cell::RefCell::new(None) };
 }
+
+const DEBOUNCE_MS: u32 = 500;
 
 #[derive(Deserialize)]
 struct TicketResponse {
@@ -128,10 +142,19 @@ fn open_event_source(stream: SseStream, ticket: String) {
     source.set_onopen(Some(on_open.as_ref().unchecked_ref()));
 
     let last_event_signal = stream.last_event;
+    let last_event_debounced_signal = stream.last_event_debounced;
     let on_message = Closure::<dyn FnMut(_)>::new(move |ev: MessageEvent| {
         let Some(data) = ev.data().as_string() else { return };
         match serde_json::from_str::<SyncEvent>(&data) {
-            Ok(event) => last_event_signal.set(Some(event)),
+            Ok(event) => {
+                last_event_signal.set(Some(event.clone()));
+                let timer = gloo_timers::callback::Timeout::new(DEBOUNCE_MS, move || {
+                    last_event_debounced_signal.set(Some(event));
+                });
+                DEBOUNCE.with(|cell| {
+                    *cell.borrow_mut() = Some(timer);
+                });
+            }
             Err(_e) => {
                 // ignore — keep-alive ticks, lagged markers, etc.
             }

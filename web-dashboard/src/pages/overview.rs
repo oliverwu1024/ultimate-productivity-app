@@ -10,7 +10,7 @@ use crate::api::checklist::{list_for_range, ChecklistItem};
 use crate::api::client::ApiError;
 use crate::api::sessions::{fetch_stats as fetch_session_stats, list_sessions, ProductivitySession, SessionStats};
 use crate::api::sleep::{list_records, SleepRecord};
-use crate::api::sse::use_sse;
+use crate::api::sse::{use_sse, SyncEvent};
 use crate::components::layout::AppShell;
 
 const ONBOARDING_KEY: &str = "ultiq_onboarding_dismissed";
@@ -118,8 +118,27 @@ pub fn OverviewPage() -> impl IntoView {
 
     let sse = use_sse();
     Effect::new(move |_| {
-        if let Some(_ev) = sse.last_event.get() {
-            refresh();
+        if let Some(ev) = sse.last_event_debounced.get() {
+            // Overview shows Calendar / Checklist / Sleep / Session data.
+            // SleepAudioClipsChanged fires once per clip attached and is
+            // consumed only by the Sleep page, so explicitly skip it here
+            // — a snore-heavy night would otherwise re-run all five
+            // refresh fetches per clip with no visible change.
+            match ev {
+                SyncEvent::CalendarCreated(_)
+                | SyncEvent::CalendarUpdated(_)
+                | SyncEvent::CalendarDeleted(_)
+                | SyncEvent::ChecklistCreated(_)
+                | SyncEvent::ChecklistUpdated(_)
+                | SyncEvent::ChecklistDeleted(_)
+                | SyncEvent::SleepCreated(_)
+                | SyncEvent::SleepUpdated(_)
+                | SyncEvent::SleepDeleted(_)
+                | SyncEvent::SessionCreated(_)
+                | SyncEvent::SessionUpdated(_)
+                | SyncEvent::SessionDeleted(_) => refresh(),
+                SyncEvent::SleepAudioClipsChanged(_) => {}
+            }
         }
     });
 

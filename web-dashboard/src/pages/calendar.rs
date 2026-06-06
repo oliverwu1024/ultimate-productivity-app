@@ -162,7 +162,7 @@ pub fn CalendarPage() -> impl IntoView {
     // Realtime: refresh the month when a calendar event arrives over SSE.
     let sse = use_sse();
     Effect::new(move |_| {
-        if let Some(ev) = sse.last_event.get() {
+        if let Some(ev) = sse.last_event_debounced.get() {
             match ev {
                 SyncEvent::CalendarCreated(_)
                 | SyncEvent::CalendarUpdated(_)
