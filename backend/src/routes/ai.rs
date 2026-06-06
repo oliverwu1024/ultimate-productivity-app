@@ -201,17 +201,32 @@ struct WeekSummary {
     focus_sessions_completed: i64,
     focus_minutes_total: i64,
     avg_focus_session_minutes: i64,
+    // 2026-06-06 — Pickup behaviour during FOCUS sessions (distinct from
+    // sleep-window pickups above). Surfaces "you completed 6 hours of
+    // focus but picked up the phone 18 times for 24 min" patterns Sonnet
+    // can coach on.
+    focus_phone_pickups_total: i64,
+    focus_phone_pickup_minutes: i64,
     checklist_items_due: i64,
     checklist_items_completed: i64,
     checklist_completion_pct: i32,
     calendar_events_total: i64,
     calendar_hours_total: f64,
     // §10.8 — On-device-detected sleep audio. Per-night counts roll up so
-    // Sonnet can comment on snoring / coughing trends in the weekly summary.
+    // Sonnet can comment on snoring / coughing / sleep-talk trends in the
+    // weekly summary.
     snore_events_total: i64,
     nights_with_snoring: i64,
     cough_events_total: i64,
     nights_with_coughing: i64,
+    sleep_talk_events_total: i64,
+    nights_with_sleep_talk: i64,
+    // §9.7 — Focus debrief tag breakdown across the week's completed
+    // sessions ("deep_work", "admin", "learning", etc. — set by Haiku
+    // post-session). Vec of (tag, count); empty when no debriefs were
+    // submitted. Rendered as percentages so Sonnet can comment on how
+    // the user actually spent their focus time.
+    focus_debrief_breakdown: Vec<(String, i64)>,
 }
 
 async fn aggregate_week(pool: &PgPool, user_id: Uuid) -> Result<WeekSummary, AppError> {
@@ -244,18 +259,53 @@ async fn aggregate_week(pool: &PgPool, user_id: Uuid) -> Result<WeekSummary, App
         .fetch_one(pool)
         .await?;
 
-    // Focus sessions aggregate.
-    let focus: (Option<i64>, Option<i64>, Option<f64>) = sqlx::query_as(
+    // Focus sessions aggregate. phone_pickups is the per-session denormalized
+    // counter (productivity_sessions column); pickup minutes come from
+    // joining phone_pickups so we get real durations instead of just counts.
+    let focus: (Option<i64>, Option<i64>, Option<f64>, Option<i64>) = sqlx::query_as(
         "SELECT
             COUNT(*) FILTER (WHERE completed)::BIGINT,
             COALESCE(SUM(duration_minutes) FILTER (WHERE completed), 0)::BIGINT,
-            AVG(duration_minutes) FILTER (WHERE completed)::DOUBLE PRECISION
+            AVG(duration_minutes) FILTER (WHERE completed)::DOUBLE PRECISION,
+            COALESCE(SUM(phone_pickups) FILTER (WHERE completed), 0)::BIGINT
          FROM productivity_sessions
          WHERE user_id = $1 AND started_at >= $2",
     )
     .bind(user_id)
     .bind(seven_days_ago)
     .fetch_one(pool)
+    .await?;
+
+    // Focus pickup duration — sum across all pickup rows whose parent
+    // session falls inside this user's week. Joined via session_id; only
+    // counts sessions that completed so the user's "I just ended a
+    // session" jitter doesn't double-count.
+    let focus_pickup_seconds: (Option<i64>,) = sqlx::query_as(
+        "SELECT COALESCE(SUM(pp.duration_seconds), 0)::BIGINT
+           FROM phone_pickups pp
+           JOIN productivity_sessions ps ON ps.id = pp.session_id
+          WHERE pp.user_id = $1
+            AND ps.completed = TRUE
+            AND ps.started_at >= $2",
+    )
+    .bind(user_id)
+    .bind(seven_days_ago)
+    .fetch_one(pool)
+    .await?;
+
+    // §9.7 — Debrief tag breakdown across the week's completed sessions.
+    // NULL debrief_tag rows (user skipped the prompt) get bucketed under
+    // "untagged" so percentages stay grounded in the total session count.
+    let debrief_rows: Vec<(String, i64)> = sqlx::query_as(
+        "SELECT COALESCE(debrief_tag, 'untagged')::TEXT, COUNT(*)::BIGINT
+           FROM productivity_sessions
+          WHERE user_id = $1 AND completed = TRUE AND started_at >= $2
+          GROUP BY 1
+          ORDER BY 2 DESC, 1 ASC",
+    )
+    .bind(user_id)
+    .bind(seven_days_ago)
+    .fetch_all(pool)
     .await?;
 
     // Checklist aggregate.
@@ -284,18 +334,26 @@ async fn aggregate_week(pool: &PgPool, user_id: Uuid) -> Result<WeekSummary, App
     .fetch_one(pool)
     .await?;
 
-    // §10.8 — Sleep audio aggregate (snore + cough episodes detected on-device
-    // by YAMNet during the past 7 nights). Both per-event totals AND the
-    // distinct-nights-affected count, so Sonnet can say "snored on 5 of 7
-    // nights" instead of just "47 snoring episodes". `sleep_record_id` is
-    // a stable per-night id from the on-device session, so DISTINCT
-    // already counts sleep_days correctly without needing the shift here.
-    let audio: (Option<i64>, Option<i64>, Option<i64>, Option<i64>) = sqlx::query_as(
+    // §10.8 — Sleep audio aggregate (snore + cough + sleep_talk episodes
+    // detected on-device by YAMNet during the past 7 nights). Both
+    // per-event totals AND the distinct-nights-affected count, so Sonnet
+    // can say "snored on 5 of 7 nights" instead of just "47 snoring
+    // episodes". `sleep_record_id` is a stable per-night id from the
+    // on-device session, so DISTINCT already counts sleep_days correctly
+    // without needing the shift here. Sleep-talk added 2026-06-06 to
+    // close a gap where the data was captured but never reached the AI.
+    let audio: (
+        Option<i64>, Option<i64>,
+        Option<i64>, Option<i64>,
+        Option<i64>, Option<i64>,
+    ) = sqlx::query_as(
         "SELECT
             COUNT(*) FILTER (WHERE event_type = 'snore')::BIGINT,
             COUNT(DISTINCT sleep_record_id) FILTER (WHERE event_type = 'snore')::BIGINT,
             COUNT(*) FILTER (WHERE event_type = 'cough')::BIGINT,
-            COUNT(DISTINCT sleep_record_id) FILTER (WHERE event_type = 'cough')::BIGINT
+            COUNT(DISTINCT sleep_record_id) FILTER (WHERE event_type = 'cough')::BIGINT,
+            COUNT(*) FILTER (WHERE event_type = 'sleep_talk')::BIGINT,
+            COUNT(DISTINCT sleep_record_id) FILTER (WHERE event_type = 'sleep_talk')::BIGINT
          FROM sleep_audio_events
          WHERE user_id = $1 AND started_at >= $2",
     )
@@ -312,6 +370,7 @@ async fn aggregate_week(pool: &PgPool, user_id: Uuid) -> Result<WeekSummary, App
         0
     };
 
+    let focus_pickup_total_seconds = focus_pickup_seconds.0.unwrap_or(0);
     Ok(WeekSummary {
         days_with_sleep_logged: sleep.0.unwrap_or(0),
         avg_sleep_minutes: sleep.1.unwrap_or(0.0).round() as i64,
@@ -321,6 +380,8 @@ async fn aggregate_week(pool: &PgPool, user_id: Uuid) -> Result<WeekSummary, App
         focus_sessions_completed: focus.0.unwrap_or(0),
         focus_minutes_total: focus.1.unwrap_or(0),
         avg_focus_session_minutes: focus.2.unwrap_or(0.0).round() as i64,
+        focus_phone_pickups_total: focus.3.unwrap_or(0),
+        focus_phone_pickup_minutes: (focus_pickup_total_seconds + 30) / 60,
         checklist_items_due: cl_due,
         checklist_items_completed: cl_done,
         checklist_completion_pct: completion_pct,
@@ -330,6 +391,9 @@ async fn aggregate_week(pool: &PgPool, user_id: Uuid) -> Result<WeekSummary, App
         nights_with_snoring: audio.1.unwrap_or(0),
         cough_events_total: audio.2.unwrap_or(0),
         nights_with_coughing: audio.3.unwrap_or(0),
+        sleep_talk_events_total: audio.4.unwrap_or(0),
+        nights_with_sleep_talk: audio.5.unwrap_or(0),
+        focus_debrief_breakdown: debrief_rows,
     })
 }
 
@@ -344,21 +408,67 @@ fn render_data_card(s: &WeekSummary) -> String {
     // §10.8 — Only emit the audio rows when at least one event was captured.
     // Users with audio tracking off have all-zero values, and a zero row
     // gives Sonnet nothing to comment on (and risks invented commentary).
-    let audio_section = if s.snore_events_total > 0 || s.cough_events_total > 0 {
+    // Same rule for sleep_talk — Pro-tier opt-in, often zero.
+    let audio_section = {
+        let mut parts: Vec<String> = Vec::new();
+        if s.snore_events_total > 0 {
+            parts.push(format!(
+                "| Snoring episodes (week total) | {} |\n| Nights with snoring | {} of {} logged |",
+                s.snore_events_total, s.nights_with_snoring, s.days_with_sleep_logged,
+            ));
+        }
+        if s.cough_events_total > 0 {
+            parts.push(format!(
+                "| Coughing episodes (week total) | {} |\n| Nights with coughing | {} of {} logged |",
+                s.cough_events_total, s.nights_with_coughing, s.days_with_sleep_logged,
+            ));
+        }
+        if s.sleep_talk_events_total > 0 {
+            parts.push(format!(
+                "| Sleep-talk episodes (week total) | {} |\n| Nights with sleep-talk | {} of {} logged |",
+                s.sleep_talk_events_total, s.nights_with_sleep_talk, s.days_with_sleep_logged,
+            ));
+        }
+        if parts.is_empty() {
+            String::new()
+        } else {
+            format!("{}\n", parts.join("\n"))
+        }
+    };
+    // Focus pickup rows — only render when there were completed sessions
+    // AND at least one pickup; otherwise we'd say "0 pickups across 0
+    // sessions" which Sonnet sometimes turns into ungrounded coaching.
+    let focus_pickup_section = if s.focus_sessions_completed > 0 && s.focus_phone_pickups_total > 0 {
         format!(
-            "| Snoring episodes (week total) | {} |\n\
-             | Nights with snoring | {} of {} logged |\n\
-             | Coughing episodes (week total) | {} |\n\
-             | Nights with coughing | {} of {} logged |\n",
-            s.snore_events_total,
-            s.nights_with_snoring,
-            s.days_with_sleep_logged,
-            s.cough_events_total,
-            s.nights_with_coughing,
-            s.days_with_sleep_logged,
+            "| Phone pickups during focus | {} times totalling {} min |\n",
+            s.focus_phone_pickups_total, s.focus_phone_pickup_minutes,
         )
     } else {
         String::new()
+    };
+    // §9.7 — Debrief tag breakdown. Skip "untagged" if it's the only
+    // bucket (means the user never filled a debrief — nothing to say).
+    let debrief_section = {
+        let total: i64 = s.focus_debrief_breakdown.iter().map(|(_, c)| *c).sum();
+        let tagged_count: i64 = s
+            .focus_debrief_breakdown
+            .iter()
+            .filter(|(t, _)| t != "untagged")
+            .map(|(_, c)| *c)
+            .sum();
+        if total == 0 || tagged_count == 0 {
+            String::new()
+        } else {
+            let lines: Vec<String> = s
+                .focus_debrief_breakdown
+                .iter()
+                .map(|(tag, c)| {
+                    let pct = ((*c as f64 / total as f64) * 100.0).round() as i64;
+                    format!("| Focus tag — {} | {} of {} ({}%) |", tag, c, total, pct)
+                })
+                .collect();
+            format!("{}\n", lines.join("\n"))
+        }
     };
     format!(
         r#"### User's last 7 days
@@ -373,7 +483,7 @@ fn render_data_card(s: &WeekSummary) -> String {
 | Focus sessions completed | {} |
 | Focus minutes total | {} |
 | Avg focus session length | {} min |
-| Checklist items due | {} |
+{}{}| Checklist items due | {} |
 | Checklist items completed | {} |
 | Checklist completion | {}% |
 | Calendar events | {} |
@@ -388,6 +498,8 @@ fn render_data_card(s: &WeekSummary) -> String {
         s.focus_sessions_completed,
         s.focus_minutes_total,
         s.avg_focus_session_minutes,
+        focus_pickup_section,
+        debrief_section,
         s.checklist_items_due,
         s.checklist_items_completed,
         s.checklist_completion_pct,
@@ -816,6 +928,13 @@ struct SleepRatingRequest {
     pickup_minutes: i32,
     snore_count: i32,
     cough_count: i32,
+    // Pro-tier sleep-talk detection (YAMNet Speech class). Optional in
+    // the request so older clients that don't yet send the field still
+    // get a valid rating; missing → treated as 0. Added 2026-06-06 to
+    // close the gap where this was captured client-side but never
+    // reached the model.
+    #[serde(default)]
+    sleep_talk_count: i32,
 }
 
 #[derive(Debug, Serialize)]
@@ -841,6 +960,7 @@ async fn sleep_rating(
         || input.pickup_minutes < 0
         || input.snore_count < 0
         || input.cough_count < 0
+        || input.sleep_talk_count < 0
     {
         return Err(AppError::new(
             StatusCode::BAD_REQUEST,
@@ -879,14 +999,17 @@ async fn call_sleep_rating_haiku(
     let system = SystemContentBlock::Text(
         "You rate a single night's sleep on a 1-5 integer scale based on the \
 provided stats: total duration vs target, phone pickups during the session, \
-and on-device-detected snoring + coughing episode counts.\n\
+and on-device-detected snoring + coughing + sleep-talk episode counts.\n\
 \n\
 Rating heuristic (informative, not strict):\n\
-- 5 = sleep met or exceeded target, ≤ 1 brief pickup, minimal snoring / coughing\n\
-- 4 = within 30 min of target, ≤ 3 pickups, some snoring / coughing acceptable\n\
-- 3 = noticeable shortfall OR several pickups OR clear snoring\n\
-- 2 = significant shortfall (~1-2 h short) OR frequent pickups OR lots of snoring\n\
-- 1 = severe shortfall AND/OR many pickups AND/OR extensive snoring / coughing\n\
+- 5 = sleep met or exceeded target, ≤ 1 brief pickup, minimal audio events\n\
+- 4 = within 30 min of target, ≤ 3 pickups, some snoring / coughing / sleep-talk acceptable\n\
+- 3 = noticeable shortfall OR several pickups OR clear snoring / talking\n\
+- 2 = significant shortfall (~1-2 h short) OR frequent pickups OR lots of audio events\n\
+- 1 = severe shortfall AND/OR many pickups AND/OR extensive audio activity\n\
+\n\
+Sleep-talk note: occasional episodes are normal; only flag in the reasoning \
+if combined with other indicators of disturbed sleep.\n\
 \n\
 Reply with EXACTLY ONE LINE in this format:\n\
 RATING|REASONING\n\
@@ -908,8 +1031,13 @@ Output ONLY that line. No greeting, no JSON, no quotes, no extra explanation."
         "Slept: {actual_h}h {actual_m}m (target {target_h}h {target_m}m)\n\
 Phone pickups: {} times totalling {} minutes\n\
 Snoring episodes: {}\n\
-Coughing episodes: {}",
-        input.pickup_count, input.pickup_minutes, input.snore_count, input.cough_count,
+Coughing episodes: {}\n\
+Sleep-talk episodes: {}",
+        input.pickup_count,
+        input.pickup_minutes,
+        input.snore_count,
+        input.cough_count,
+        input.sleep_talk_count,
     );
 
     let user_msg = Message::builder()
@@ -2740,6 +2868,13 @@ const TOOL_CREATE_ALARM: &str = "create_alarm";
 /// "how did I sleep last week", the model should use these tools instead.
 const TOOL_GET_SLEEP_PERIOD: &str = "get_sleep_period";
 const TOOL_GET_FOCUS_PERIOD: &str = "get_focus_period";
+// §9.7 / 2026-06-06 — Per-session detail tool so the model can see what
+// the user actually wrote in the debrief ("polished slides", "ran lab
+// stats") and the per-session pickup count without us bloating the
+// inline context card with it. Use it when the user asks "what did I
+// focus on last week" / "show me my recent sessions" / "how distracted
+// was I yesterday".
+const TOOL_GET_FOCUS_SESSION_DETAIL: &str = "get_focus_session_detail";
 // TOOL_CALENDAR and TOOL_CHECKLIST are defined for parse_event above and
 // reused here verbatim — the schema is identical; the only difference is
 // the handler (propose vs. auto-commit).
@@ -2778,8 +2913,9 @@ Read tools (look at the user's actual data):
 - get_today_summary — refreshes the snapshot at the top of this turn. Use only when you've just completed a write and want to confirm the new state. Otherwise, the snapshot at the top of the user message is already fresh.
 - get_sleep_history(days) — last N nights with bedtime, wake, duration, quality (1..5), and phone pickups. This is a ROLLING N-day window — NOT the same as "last week" or "this month". For named calendar periods, use get_sleep_period.
 - get_sleep_period(period) — calendar-period sleep stats + records. Period ∈ {this_week, last_week, this_month, last_month}. ALWAYS use this when the user names a calendar period ("how did I sleep last week", "this month's sleep", etc.). Returns count + averages + the actual nights; if zero records, returns a friendly note (not an error).
-- get_focus_history(days) — rolling N-day focus history.
+- get_focus_history(days) — rolling N-day focus history. Per-day rollup only — counts + total minutes.
 - get_focus_period(period) — calendar-period focus stats. Same rule as get_sleep_period: USE THIS when the user names a calendar period.
+- get_focus_session_detail(limit) — per-session detail for the N most recent completed sessions: duration, phone pickups during the session, what the user said they worked on (debrief), and the auto-classified debrief tag. USE THIS when the user asks "what did I work on", "how distracted was that session", or wants commentary on specific sessions — get_focus_history only gives per-day totals.
 - get_calendar_events(start_date, end_date) — events in a date range. Range capped at 90 days.
 - get_checklist(date) — checklist items due on a specific day. Each item includes its id so you can complete it.
 
@@ -3197,6 +3333,22 @@ fn build_chat_tool_config() -> Result<ToolConfiguration, AppError> {
             "Propose a wake-up alarm for the user to confirm. This does NOT create the alarm — the user will see a Create/Cancel card and decide. Use when the user wants to set an alarm (\"set a 6:30am alarm tomorrow with math\", \"wake me at 7 weekdays\"). Speak as a draft pending user confirmation. Mission kinds: \"none\" | \"math\" | \"shake\" | \"photo\" — pick the user's preferred one if they mention it, default to \"math\" otherwise.",
             alarm_tool_schema(),
         )?,
+        build_one(
+            TOOL_GET_FOCUS_SESSION_DETAIL,
+            "Fetch detailed per-session info for the user's most-recent completed focus sessions: started_at, duration_minutes, phone_pickups (count of times they picked up the phone DURING the session), debrief text (what they said they worked on, may be null if they skipped), and debrief_tag (auto-classified: deep_work / admin / learning / creative / communication / untagged). Use this when the user asks what they worked on, how distracted they were, or wants commentary on a specific session pattern. Cheaper than calling get_focus_history for the same info — that one only returns per-day rollups.",
+            json!({
+                "type": "object",
+                "properties": {
+                    "limit": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 20,
+                        "description": "How many recent completed sessions to return. Cap is 20."
+                    }
+                },
+                "required": ["limit"]
+            }),
+        )?,
     ];
 
     let mut builder = ToolConfiguration::builder();
@@ -3230,12 +3382,25 @@ async fn build_context_card(
     let this_monday = today_local - chrono::Duration::days(days_since_monday);
     let week_start_utc = this_monday.and_hms_opt(0, 0, 0).unwrap().and_utc();
 
-    // Sleep — last 3 nights.
-    let sleep_rows: Vec<(DateTime<Utc>, DateTime<Utc>, i16, i32)> = sqlx::query_as(
-        "SELECT actual_bedtime, actual_wake_time, quality_rating, phone_pickups
-           FROM sleep_records
-          WHERE user_id = $1
-          ORDER BY actual_bedtime DESC
+    // Sleep — last 3 nights with on-device audio event counts joined in.
+    // LEFT JOIN keeps nights with audio tracking off (or no events) showing
+    // up as zero counts rather than vanishing. Aggregated per sleep_record
+    // so the resulting row count stays at 3.
+    let sleep_rows: Vec<(DateTime<Utc>, DateTime<Utc>, i16, i32, i64, i64, i64)> = sqlx::query_as(
+        "SELECT
+             sr.actual_bedtime,
+             sr.actual_wake_time,
+             sr.quality_rating,
+             sr.phone_pickups,
+             COALESCE(SUM(CASE WHEN sae.event_type = 'snore' THEN 1 ELSE 0 END), 0)::BIGINT,
+             COALESCE(SUM(CASE WHEN sae.event_type = 'cough' THEN 1 ELSE 0 END), 0)::BIGINT,
+             COALESCE(SUM(CASE WHEN sae.event_type = 'sleep_talk' THEN 1 ELSE 0 END), 0)::BIGINT
+           FROM sleep_records sr
+           LEFT JOIN sleep_audio_events sae
+             ON sae.sleep_record_id = sr.id AND sae.user_id = sr.user_id
+          WHERE sr.user_id = $1
+          GROUP BY sr.id, sr.actual_bedtime, sr.actual_wake_time, sr.quality_rating, sr.phone_pickups
+          ORDER BY sr.actual_bedtime DESC
           LIMIT 3",
     )
     .bind(user_id)
@@ -3296,18 +3461,30 @@ async fn build_context_card(
     if sleep_rows.is_empty() {
         out.push_str("(no sleep records yet)\n");
     } else {
-        for (bedtime, wake, quality, pickups) in &sleep_rows {
+        for (bedtime, wake, quality, pickups, snore, cough, sleep_talk) in &sleep_rows {
             let minutes = wake.signed_duration_since(*bedtime).num_minutes().max(0);
             let h = minutes / 60;
             let m = minutes % 60;
+            // Build audio suffix only when at least one event type fired —
+            // a flat ", 0/0/0 audio events" line on a non-tracking night
+            // is just noise.
+            let audio_suffix = if *snore + *cough + *sleep_talk > 0 {
+                format!(
+                    ", audio snore/cough/sleep-talk {}/{}/{}",
+                    snore, cough, sleep_talk
+                )
+            } else {
+                String::new()
+            };
             out.push_str(&format!(
-                "- {} → {} ({}h{:02}, quality {}, {} pickups)\n",
+                "- {} → {} ({}h{:02}, quality {}, {} pickups{})\n",
                 bedtime.format("%Y-%m-%d %H:%M"),
                 wake.format("%H:%M"),
                 h,
                 m,
                 quality,
-                pickups
+                pickups,
+                audio_suffix,
             ));
         }
     }
@@ -3397,6 +3574,9 @@ async fn run_chat_tool(
         }
         TOOL_GET_FOCUS_PERIOD => {
             handle_get_focus_period(state, user_id, &tool_use_id, &tool_name, &input).await
+        }
+        TOOL_GET_FOCUS_SESSION_DETAIL => {
+            handle_get_focus_session_detail(state, user_id, &tool_use_id, &tool_name, &input).await
         }
         TOOL_LOG_SLEEP_RECORD => {
             handle_log_sleep_record(state, user_id, &tool_use_id, &tool_name, &input).await
@@ -3556,6 +3736,76 @@ async fn handle_get_focus_history(
     };
     Ok(ToolRunOutcome {
         payload_for_model: json!({ "days": days, "by_day": serializable }).to_string(),
+        bedrock_status: ToolResultStatus::Success,
+        surface: ToolInvocationSurface {
+            id: tool_use_id.to_string(),
+            name: tool_name.to_string(),
+            status: "ok".to_string(),
+            summary,
+            committed: false,
+            committed_resource: None,
+            proposed_event: None,
+            proposed_alarm: None,
+        },
+    })
+}
+
+/// §9.7 / 2026-06-06 — Returns per-session detail (debrief, debrief_tag,
+/// pickup count) for the user's N most recent completed focus sessions.
+/// Sibling to `get_focus_history` which only rolls up per-day; this one
+/// is for "what did I work on" / "how distracted was that session"
+/// follow-ups.
+async fn handle_get_focus_session_detail(
+    state: &AppState,
+    user_id: Uuid,
+    tool_use_id: &str,
+    tool_name: &str,
+    input: &serde_json::Value,
+) -> Result<ToolRunOutcome, String> {
+    let limit = input
+        .get("limit")
+        .and_then(|v| v.as_i64())
+        .ok_or_else(|| "missing limit".to_string())?;
+    let limit = limit.clamp(1, 20);
+    let rows: Vec<(
+        Uuid,
+        DateTime<Utc>,
+        i32,
+        i32,
+        Option<String>,
+        Option<String>,
+    )> = sqlx::query_as(
+        "SELECT id, started_at, duration_minutes, phone_pickups, debrief, debrief_tag
+           FROM productivity_sessions
+          WHERE user_id = $1 AND completed = TRUE
+          ORDER BY started_at DESC
+          LIMIT $2",
+    )
+    .bind(user_id)
+    .bind(limit)
+    .fetch_all(&state.pool)
+    .await
+    .map_err(|e| format!("db error: {}", e))?;
+    let serializable: Vec<_> = rows
+        .iter()
+        .map(|(id, started_at, duration, pickups, debrief, tag)| {
+            json!({
+                "id": id,
+                "started_at": started_at.to_rfc3339(),
+                "duration_minutes": duration,
+                "phone_pickups": pickups,
+                "debrief": debrief,
+                "debrief_tag": tag,
+            })
+        })
+        .collect();
+    let summary = if rows.is_empty() {
+        "No completed focus sessions yet".to_string()
+    } else {
+        format!("Pulled {} recent focus session(s)", rows.len())
+    };
+    Ok(ToolRunOutcome {
+        payload_for_model: json!({ "limit": limit, "sessions": serializable }).to_string(),
         bedrock_status: ToolResultStatus::Success,
         surface: ToolInvocationSurface {
             id: tool_use_id.to_string(),

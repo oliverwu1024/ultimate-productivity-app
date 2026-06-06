@@ -569,6 +569,7 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
         val pickupMinutes = pickupSeconds / 60
         val snoreCount = state.endedAudioEvents.count { it.eventType == "snore" }
         val coughCount = state.endedAudioEvents.count { it.eventType == "cough" }
+        val sleepTalkCount = state.endedAudioEvents.count { it.eventType == "sleep_talk" }
 
         _uiState.value = _uiState.value.copy(aiRatingLoading = true, aiRatingError = null)
         viewModelScope.launch {
@@ -581,6 +582,7 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
                         pickup_minutes = pickupMinutes,
                         snore_count = snoreCount,
                         cough_count = coughCount,
+                        sleep_talk_count = sleepTalkCount,
                     )
                 )
             }.fold(
