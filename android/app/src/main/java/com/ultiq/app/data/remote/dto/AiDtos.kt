@@ -92,6 +92,10 @@ data class SleepRatingRequestDto(
     val pickup_minutes: Int,
     val snore_count: Int,
     val cough_count: Int,
+    // Pro-tier sleep-talk count — added 2026-06-06 so Haiku factors it
+    // into the rating. Older backends ignore the field; newer ones
+    // include it in the prompt only when > 0.
+    val sleep_talk_count: Int = 0,
 )
 
 /// §10 — Response: integer rating 1-5 plus a one-line justification. The
