@@ -282,14 +282,33 @@ fun AlarmEditScreen(
                     }
                 }
                 item {
-                    Stepper(
-                        label = "Shakes required",
-                        value = cfg.shakesRequired,
-                        range = 10..100,
-                    ) { newCount ->
-                        viewModel.updateEditingDraft { d ->
-                            d.copy(
-                                missionConfigJson = MissionConfig.buildShake(cfg.intensity, newCount),
+                    // §2026-06-06 — Shake count was a +/- stepper that took up to
+                    // ~90 taps to drag across the 10..100 range. Replaced with a
+                    // Slider mirroring the max-volume control below — single drag
+                    // covers the whole range. 10-shake increments (steps=8 → 10
+                    // distinct values: 10, 20, …, 100) match the granularity the
+                    // user actually cares about and snap-back nicely.
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        ),
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text("Shakes required: ${cfg.shakesRequired}")
+                            Slider(
+                                value = cfg.shakesRequired.toFloat(),
+                                onValueChange = { v ->
+                                    viewModel.updateEditingDraft { d ->
+                                        d.copy(
+                                            missionConfigJson = MissionConfig.buildShake(
+                                                cfg.intensity,
+                                                v.toInt(),
+                                            ),
+                                        )
+                                    }
+                                },
+                                valueRange = 10f..100f,
+                                steps = 8,
                             )
                         }
                     }
@@ -628,11 +647,32 @@ private fun MathCountPicker(current: Int, onChange: (Int) -> Unit) {
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth(),
             ) {
+                // §2026-06-06 — Default FilterChip styling sits on the
+                // surfaceVariant card and is hard to read in both themes
+                // (low-contrast collision). Selected state now goes
+                // filled-primary with bold label + a 2dp primary border —
+                // unmistakable regardless of theme.
                 MissionConfig.MATH_COUNT_OPTIONS.forEach { n ->
+                    val isSelected = current == n
                     FilterChip(
-                        selected = current == n,
+                        selected = isSelected,
                         onClick = { onChange(n) },
-                        label = { Text("$n") },
+                        label = {
+                            Text(
+                                "$n",
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                            )
+                        },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primary,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                        ),
+                        border = FilterChipDefaults.filterChipBorder(
+                            enabled = true,
+                            selected = isSelected,
+                            selectedBorderColor = MaterialTheme.colorScheme.primary,
+                            selectedBorderWidth = 2.dp,
+                        ),
                         modifier = Modifier.weight(1f),
                     )
                 }

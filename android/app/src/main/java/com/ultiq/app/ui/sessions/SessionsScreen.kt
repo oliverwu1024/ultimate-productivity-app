@@ -416,7 +416,7 @@ private fun IdleControls(uiState: SessionsUiState, viewModel: SessionsViewModel)
         onDecrease = { viewModel.updateWorkDuration(uiState.workDuration - 5) },
         onIncrease = { viewModel.updateWorkDuration(uiState.workDuration + 5) },
         onSetValue = { viewModel.updateWorkDuration(it) },
-        quickPicks = listOf(15, 25, 45, 60, 90),
+        quickPicks = listOf(15, 25, 30, 45, 60, 90, 120, 150, 180, 210, 240),
     )
 
     Button(

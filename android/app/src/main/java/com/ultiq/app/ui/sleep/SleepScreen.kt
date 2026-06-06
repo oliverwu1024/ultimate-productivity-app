@@ -1005,13 +1005,17 @@ private fun SleepRecordItem(
                         } else {
                             "${record.targetBedtime} - ${record.targetWakeTime}"
                         }
+                        // §2026-06-06 — Notes (when present) leads the
+                        // expanded section. It's the only user-written field
+                        // here, so users glancing at a past record see their
+                        // own words first, then the derived stats.
+                        if (!record.notes.isNullOrBlank()) {
+                            DetailRow("Notes", record.notes)
+                        }
                         DetailRow("Target", targetStr)
                         DetailRow("Actual", "${bedInstant.format(timeFormat)} - ${wakeInstant.format(timeFormat)}")
                         if (record.totalPhoneMinutes != null) {
                             DetailRow("Phone Time", "${record.totalPhoneMinutes} min")
-                        }
-                        if (!record.notes.isNullOrBlank()) {
-                            DetailRow("Notes", record.notes)
                         }
                         if (!record.isSynced) {
                             Text("Not synced", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 4.dp))

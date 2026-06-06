@@ -85,6 +85,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Wifi
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ultiq.app.data.local.entity.CalendarEventEntity
 import com.ultiq.app.ui.calendar.categoryColor
@@ -119,12 +120,21 @@ fun DashboardScreen(
     val context = LocalContext.current
     val userPrefs = remember { UserPreferences(context) }
     var showWebHint by remember { mutableStateOf(false) }
+    var showInternetHint by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
-        userPrefs.settings.collectLatest { showWebHint = !it.webDashboardHintSeen }
+        userPrefs.settings.collectLatest {
+            showWebHint = !it.webDashboardHintSeen
+            showInternetHint = !it.internetHintSeen
+        }
     }
     val dismissWebHint = {
         showWebHint = false
         CoroutineScope(Dispatchers.IO).launch { userPrefs.setWebDashboardHintSeen(true) }
+        Unit
+    }
+    val dismissInternetHint = {
+        showInternetHint = false
+        CoroutineScope(Dispatchers.IO).launch { userPrefs.setInternetHintSeen(true) }
         Unit
     }
 
@@ -226,6 +236,12 @@ fun DashboardScreen(
                         },
                         onDismiss = { dismissWebHint() },
                     )
+                }
+            }
+
+            if (showInternetHint) {
+                item {
+                    InternetHint(onDismiss = { dismissInternetHint() })
                 }
             }
 
@@ -409,6 +425,57 @@ private fun WebDashboardHint(
                     Icons.Default.Close,
                     contentDescription = "Dismiss",
                     tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                )
+            }
+        }
+    }
+}
+
+/// §2026-06-06 — One-shot dismissable hint card that surfaces the
+/// "Ultiq works offline for daily use but a few things need a
+/// connection" expectation. Uses the surfaceVariant slot (neutral)
+/// rather than the brighter tertiaryContainer of [WebDashboardHint]
+/// — this is an FYI, not a call to action. Same dismissable-card
+/// shape so the two read as a pair when both are visible on first
+/// open.
+@Composable
+private fun InternetHint(onDismiss: () -> Unit) {
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+        ),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.Top,
+        ) {
+            Icon(
+                Icons.Default.Wifi,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(22.dp).padding(top = 2.dp),
+            )
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    "Heads-up",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                )
+                Text(
+                    "Day-to-day tracking works offline, but a connection is needed for " +
+                        "cross-device sync, AI insights, weekly summaries, and audio clip " +
+                        "playback.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            IconButton(onClick = onDismiss) {
+                Icon(
+                    Icons.Default.Close,
+                    contentDescription = "Dismiss",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
