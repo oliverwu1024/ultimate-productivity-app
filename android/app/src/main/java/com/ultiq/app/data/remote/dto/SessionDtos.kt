@@ -30,7 +30,12 @@ data class SessionDto(
     val completed: Boolean,
     val checklist_item_id: String? = null,
     val created_at: String,
-    val updated_at: String
+    val updated_at: String,
+    // §9.7 / 2026-06-06 — Server already serialises these from
+    // ProductivitySession; previously ignored client-side. Default = null
+    // because skipping the debrief dialog is supported.
+    val debrief: String? = null,
+    val debrief_tag: String? = null,
 )
 
 data class SessionStatsDto(
@@ -84,7 +89,9 @@ fun SessionDto.toEntity(): SessionEntity {
         createdAt = Instant.parse(created_at).toEpochMilli(),
         updatedAt = Instant.parse(updated_at).toEpochMilli(),
         checklistItemId = checklist_item_id,
-        isSynced = true
+        isSynced = true,
+        debrief = debrief,
+        debriefTag = debrief_tag,
     )
 }
 
