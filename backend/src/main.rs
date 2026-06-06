@@ -17,7 +17,10 @@ mod tz;
 
 use std::sync::Arc;
 
-use axum::http::{header, HeaderName, HeaderValue, Method};
+use axum::extract::Request;
+use axum::http::{header, HeaderName, HeaderValue, Method, StatusCode};
+use axum::middleware::{from_fn, Next};
+use axum::response::Response;
 use config::{AppState, Config};
 use email::EmailClient;
 use event_bus::EventBus;
@@ -101,11 +104,16 @@ async fn main() {
         .allow_headers([header::AUTHORIZATION, header::CONTENT_TYPE, header::ACCEPT]);
 
     // Per-IP rate limit. Two tiers:
-    //   - Global 200 rps / burst 500: effectively no limit for a single
-    //     interactive user (rapid tab-hopping in the dashboard fans out
-    //     into many parallel fetches per second). Still bounded enough
-    //     that a runaway client or abuse-from-one-IP can't fully DoS the
-    //     backend or burn through downstream quotas.
+    //   - Global 500 rps / burst 8000: effectively no limit for an
+    //     interactive user. The burst was widened from 2000 to 8000
+    //     after PR #187 / 2026-06-06 because legitimate catch-up
+    //     sync after the Android app comes back online from an
+    //     extended offline period (Pro-tier night = batch events +
+    //     per-event clip-bytes uploads + dashboard SSE-driven
+    //     refetches) was repeatedly tripping the 2000 ceiling,
+    //     leaving the bucket in deep deficit for minutes. The bucket
+    //     state is in-memory per ECS task, so deficit accumulates
+    //     across days until the task restarts.
     //   - Auth endpoints stay strict at 1 rps / burst 5 — that's where
     //     real abuse surfaces are (brute-force, account flood, draining
     //     Resend's email quota via `forgot-password`).
@@ -122,7 +130,7 @@ async fn main() {
     let global_governor = Arc::new(
         GovernorConfigBuilder::default()
             .per_second(500)
-            .burst_size(2000)
+            .burst_size(8000)
             .key_extractor(SmartIpKeyExtractor)
             .use_headers()
             .finish()
@@ -209,6 +217,12 @@ async fn main() {
         .merge(ai_routes)
         .merge(admin_routes)
         .merge(health_routes)
+        // Log every 429 with route + X-Forwarded-For + retry-after so
+        // we never again have to guess what drained the limiter. Lives
+        // outside every governor layer so it sees the rejection
+        // response. Lives inside cors so we don't double-handle the
+        // preflight (which is rejected upstream anyway for OPTIONS).
+        .layer(from_fn(log_rate_limit_429))
         // 1 MiB hard cap on request bodies — well above the largest legitimate
         // bulk_create payload but cheap to enforce.
         .layer(RequestBodyLimitLayer::new(1024 * 1024))
@@ -247,4 +261,43 @@ async fn main() {
     )
     .await
     .expect("Server error");
+}
+
+/// Logs every 429 leaving the app with enough context to identify the
+/// source. tower_governor itself emits no log on rejection, which left
+/// the 2026-06-06 rate-limit drain debugging blind for hours. The
+/// `target = "rate-limit"` tag is so CloudWatch Logs Insights can pull
+/// just these entries with `filter @logStream =~ /backend/ and @message
+/// =~ /rate-limit/`.
+async fn log_rate_limit_429(req: Request, next: Next) -> Response {
+    let method = req.method().clone();
+    let path = req.uri().path().to_owned();
+    let xff = req
+        .headers()
+        .get("x-forwarded-for")
+        .and_then(|v| v.to_str().ok())
+        .map(str::to_owned);
+    let response = next.run(req).await;
+    if response.status() == StatusCode::TOO_MANY_REQUESTS {
+        let after = response
+            .headers()
+            .get("x-ratelimit-after")
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("?");
+        let remaining = response
+            .headers()
+            .get("x-ratelimit-remaining")
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("?");
+        tracing::warn!(
+            target: "rate-limit",
+            method = %method,
+            path = %path,
+            xff = xff.as_deref().unwrap_or("?"),
+            retry_after_s = after,
+            remaining = remaining,
+            "request rate-limited (429)"
+        );
+    }
+    response
 }
