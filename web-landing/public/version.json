@@ -1,6 +1,6 @@
 {
-  "versionCode": 112,
-  "versionName": "2.16.18",
-  "url": "https://ultiqapp.com/ultiq.2.16.18.apk",
-  "releaseNotes": "Focus sessions now show a per-pickup timeline. After a session ends, expanding the past-session card shows each phone pickup with its timestamp and duration (matching the Sleep tab). Built on the same local-first, reactive, idempotent foundation from v2.16.14 — v2.16.17 so the duplicate / staleness / offline-loss bug classes can't recur. Backend POST /phone-pickups/batch is now idempotent via client UUIDs and ON CONFLICT DO NOTHING. Older focus sessions logged before v2.16.18 still show just the pickup count, since per-pickup detail wasn't recorded at the time — going forward every session has the timeline."
+  "versionCode": 113,
+  "versionName": "2.17.0",
+  "url": "https://ultiqapp.com/ultiq.2.17.0.apk",
+  "releaseNotes": "Big batch of UX polish + reliability. You stay signed in when offline or when the backend hiccups — no more retyping your password after a WiFi blip. Focus session debriefs now show on each session record with their auto-classified tag (deep work / admin / learning / etc.). Sleep records lead with your own notes when written. Extended focus quick-picks all the way up to 240 min for marathon sessions. Math dismiss-mission picker contrast bumped — the selected count is unmistakable in both light and dark themes. Shake dismiss-mission count swapped from a +/- stepper to a single-drag slider. Clearer messaging when an offline feature can't reach the server. Plus the AI now factors sleep-talk episodes, focus-session phone pickups, and your debrief tags into weekly summaries and Coach answers — and a new Coach tool lets it pull per-session detail on demand."
 }
