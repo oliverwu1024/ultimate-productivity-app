@@ -1,6 +1,6 @@
 {
-  "versionCode": 114,
-  "versionName": "2.17.1",
-  "url": "https://ultiqapp.com/ultiq.2.17.1.apk",
-  "releaseNotes": "Quick fix on top of v2.17.0: morning notification \"you have N calendar events today\" no longer counts recurring events that occur on an earlier day of the same week. The receiver was passing the raw query result through, instead of expanding each recurring event's rule against today — so a weekly Tuesday event was being counted on Wed/Thu/Fri mornings too. Same fix applied to the boot-time reminder rescheduler so per-occurrence reminders for recurring events register correctly after a reboot."
+  "versionCode": 115,
+  "versionName": "2.17.2",
+  "url": "https://ultiqapp.com/ultiq.2.17.2.apk",
+  "releaseNotes": "Two bug fixes: (1) Dashboard 'Today's plan' and 'Coming up' cards now refresh automatically when the device clock crosses midnight while the app is in the background — previously you had to force-close the app to see the new day. (2) Recurring calendar events (especially daily) became invisible on Android once a sync ran, because the backend's expanded /calendar response collided on the master row's primary key inside Room. Backend now accepts expand=false from Android's sync, so client-side expansion (already the single source of truth for every Android read path) takes over cleanly."
 }
