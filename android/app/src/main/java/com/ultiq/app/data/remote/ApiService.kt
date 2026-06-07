@@ -210,7 +210,16 @@ interface ApiService {
         @Query("start") start: String?,
         @Query("end") end: String?,
         @Query("category") category: String?,
-        @Query("priority") priority: String?
+        @Query("priority") priority: String?,
+        /// §v2.17.2-sync-collision — Pass "false" from sync paths so the
+        /// backend returns raw master rows. Without it, recurring events
+        /// (especially DAILY in a ±year window) returned hundreds of
+        /// expanded rows all sharing the master id, collapsed by Room's
+        /// REPLACE strategy to the furthest-future instance — making the
+        /// event invisible in every Room-backed read. Older builds + the
+        /// web dashboard omit it; the backend defaults expansion on so
+        /// their behaviour is unchanged.
+        @Query("expand") expand: String? = null,
     ): List<CalendarEventDto>
 
     @GET("calendar/{id}")

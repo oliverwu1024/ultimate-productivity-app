@@ -403,11 +403,22 @@ class CalendarRepository(
             val today = LocalDate.now(LOCAL_ZONE)
             val syncRangeStart = today.minusDays(30).toString()  // YYYY-MM-DD, matches backend NaiveDate
             val syncRangeEnd = today.plusDays(365).toString()
+            // §v2.17.2-sync-collision — `expand=false` tells the backend to
+            // skip per-occurrence expansion of recurring events. Before this,
+            // a DAILY series over the ±year window came back as ~395 rows
+            // all sharing the master `id`; `insertAll` (REPLACE on conflict)
+            // collapsed them into the furthest-future instance only, and
+            // the `startTime <= rangeEnd` predicate in the local DAO then
+            // returned nothing for any current view. Client-side expansion
+            // (`expandRecurrence` below) is the single source of truth for
+            // every read path on Android, so receiving the master alone is
+            // what we want.
             val serverEvents = apiService.getCalendarEvents(
                 start = syncRangeStart,
                 end = syncRangeEnd,
                 category = null,
                 priority = null,
+                expand = "false",
             )
             val serverIds = serverEvents.map { it.id }.toSet()
 

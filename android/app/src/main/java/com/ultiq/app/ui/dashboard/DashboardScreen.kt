@@ -151,11 +151,16 @@ fun DashboardScreen(
     // Re-check overlay + strict-lock permission state whenever the dashboard
     // comes back into the foreground, so the lock&overlay hint disappears
     // immediately after the user grants permission in system settings.
+    // §v2.17.2-day-rollover — Same hook also re-binds the date-bound
+    // observers ("Today's plan", "Coming up", weekly highlights) so a user
+    // who left the app warm overnight sees today's data instead of
+    // yesterday's the moment they return. No-op when same-day.
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
         val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
             if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
                 viewModel.refreshLockOverlayState()
+                viewModel.refreshDateBoundData()
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)

@@ -21,6 +21,7 @@ import com.ultiq.app.util.AlarmScheduler
 import com.ultiq.app.util.Comparisons
 import com.ultiq.app.util.TokenManager
 import com.ultiq.app.util.UserPreferences
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.firstOrNull
@@ -217,6 +218,18 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     private val _uiState = MutableStateFlow(DashboardUiState())
     val uiState: StateFlow<DashboardUiState> = _uiState
 
+    /// §v2.17.2-day-rollover — Tracks the local date the date-bound
+    /// observers were last bound to. `refreshDateBoundData()` (called from
+    /// the Dashboard screen's ON_RESUME hook) compares this against
+    /// `LocalDate.now()` and re-launches the affected observers when the
+    /// device clock has ticked past midnight while the app was warm. Without
+    /// it, `observeTodayChecklist` baked the date into its launched
+    /// coroutine at init and the "Today's plan" + "Coming up" cards stayed
+    /// stuck on yesterday until the user force-killed the process.
+    private var observedDate: LocalDate = LocalDate.now()
+    private var observeTodayChecklistJob: Job? = null
+    private var observeCalendarUpdatesJob: Job? = null
+
     init {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
@@ -270,14 +283,32 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     /// update / delete on relevant rows; `loadWeeklyHighlights` recomputes
     /// the Mon–Sun bucket inside.
     private fun observeCalendarUpdates() {
-        viewModelScope.launch {
-            val today = LocalDate.now()
+        observeCalendarUpdatesJob?.cancel()
+        observeCalendarUpdatesJob = viewModelScope.launch {
+            val today = observedDate
             calendarRepo
                 .getEventsForRange(today.minusDays(14), today.plusDays(14))
                 .collect {
                     loadWeeklyHighlights()
                     loadUpcomingEvents()
                 }
+        }
+    }
+
+    /// §v2.17.2-day-rollover — Re-bind every date-bound observer + reload
+    /// the date-bound cards if the device's local date has changed since
+    /// the last bind. Called from `DashboardScreen`'s ON_RESUME hook so a
+    /// user who left the app open overnight sees today's plan the next
+    /// morning instead of yesterday's. Idempotent / cheap on the no-op
+    /// path: same-day resumes return immediately without touching Room.
+    fun refreshDateBoundData() {
+        val today = LocalDate.now()
+        if (today == observedDate) return
+        observedDate = today
+        observeTodayChecklist()
+        observeCalendarUpdates()
+        viewModelScope.launch {
+            loadAll()
         }
     }
 
@@ -374,8 +405,9 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     private fun observeTodayChecklist() {
-        viewModelScope.launch {
-            val today = LocalDate.now()
+        observeTodayChecklistJob?.cancel()
+        observeTodayChecklistJob = viewModelScope.launch {
+            val today = observedDate
             val todayEpochDay = today.toEpochDay()
             // Sun=0..Sat=6 — match the bitmask packing used by the dialog.
             val dayBit = 1 shl (today.dayOfWeek.value % 7)

@@ -24,6 +24,16 @@ struct CalendarQuery {
     end: Option<NaiveDate>,
     category: Option<String>,
     priority: Option<String>,
+    /// §v2.17.2-sync-collision — When false, the list endpoint returns the
+    /// raw master rows instead of expanding recurring events into one row
+    /// per occurrence. Android passes `expand=false` from
+    /// `CalendarRepository.sync()` because Room keys on the master `id`
+    /// and `OnConflictStrategy.REPLACE` collapsed the ~395 daily-expansion
+    /// rows down to whichever one was inserted last (the furthest-future
+    /// instance), making DAILY events invisible in every local-DB read
+    /// path. Web keeps the default (expansion on) so its rendering stays
+    /// unchanged.
+    expand: Option<bool>,
 }
 
 /// §029 — When the URL carries `?occurrence_date=YYYY-MM-DD`, the PUT /
@@ -181,10 +191,16 @@ async fn list(
         .await
         .unwrap_or_else(|_| "UTC".to_string());
 
-    // Expand recurring events into virtual instances; keep one-time events as-is
+    // Expand recurring events into virtual instances; keep one-time events as-is.
+    // §v2.17.2-sync-collision — Android opts out via `?expand=false` so its
+    // local sync receives one row per master `id` instead of a collision
+    // storm against Room's REPLACE conflict strategy. Default stays on so
+    // the web dashboard (which renders the expanded list directly) is
+    // untouched.
+    let expand = params.expand.unwrap_or(true);
     let mut result = Vec::new();
     for event in filtered {
-        if event.is_recurring {
+        if event.is_recurring && expand {
             result.extend(expand_recurrence(event, start, end, &tz_str));
         } else {
             result.push(event.clone());
