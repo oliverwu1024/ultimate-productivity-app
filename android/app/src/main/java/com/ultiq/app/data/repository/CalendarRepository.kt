@@ -7,15 +7,13 @@ import com.ultiq.app.data.remote.dto.CreateCalendarEventDto
 import com.ultiq.app.data.remote.dto.toCreateDto
 import com.ultiq.app.data.remote.dto.toEntity
 import com.ultiq.app.util.AlarmScheduler
+import com.ultiq.app.util.CalendarRecurrence
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
-import java.time.LocalTime
 import java.time.YearMonth
 import java.time.ZoneId
-import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.UUID
 
@@ -39,7 +37,7 @@ class CalendarRepository(
         val start = ym.atDay(1).atStartOfDay(LOCAL_ZONE).toInstant().toEpochMilli()
         val end = ym.atEndOfMonth().atTime(23, 59, 59).atZone(LOCAL_ZONE).toInstant().toEpochMilli()
         return calendarEventDao.getEventsForRange(start, end).map { events ->
-            expandAll(events, start, end)
+            CalendarRecurrence.expandWindow(events, start, end)
         }
     }
 
@@ -47,7 +45,7 @@ class CalendarRepository(
         val start = startDate.atStartOfDay(LOCAL_ZONE).toInstant().toEpochMilli()
         val end = endDate.atTime(23, 59, 59).atZone(LOCAL_ZONE).toInstant().toEpochMilli()
         return calendarEventDao.getEventsForRange(start, end).map { events ->
-            expandAll(events, start, end)
+            CalendarRecurrence.expandWindow(events, start, end)
         }
     }
 
@@ -55,7 +53,7 @@ class CalendarRepository(
         val start = date.atStartOfDay(LOCAL_ZONE).toInstant().toEpochMilli()
         val end = date.atTime(23, 59, 59).atZone(LOCAL_ZONE).toInstant().toEpochMilli()
         return calendarEventDao.getEventsForRange(start, end).map { events ->
-            expandAll(events, start, end)
+            CalendarRecurrence.expandWindow(events, start, end)
         }
     }
 
@@ -410,9 +408,9 @@ class CalendarRepository(
             // collapsed them into the furthest-future instance only, and
             // the `startTime <= rangeEnd` predicate in the local DAO then
             // returned nothing for any current view. Client-side expansion
-            // (`expandRecurrence` below) is the single source of truth for
-            // every read path on Android, so receiving the master alone is
-            // what we want.
+            // (CalendarRecurrence.expandWindow) is the single source of
+            // truth for every read path on Android, so receiving the
+            // master alone is what we want.
             val serverEvents = apiService.getCalendarEvents(
                 start = syncRangeStart,
                 end = syncRangeEnd,
@@ -459,143 +457,9 @@ class CalendarRepository(
         }
     }
 
-    // ── Client-side recurrence expansion (mirrors backend logic) ───────
-
-    private fun expandAll(
-        events: List<CalendarEventEntity>,
-        rangeStart: Long,
-        rangeEnd: Long
-    ): List<CalendarEventEntity> {
-        val result = mutableListOf<CalendarEventEntity>()
-        for (event in events) {
-            if (event.isRecurring) {
-                result.addAll(expandRecurrence(event, rangeStart, rangeEnd))
-            } else {
-                result.add(event)
-            }
-        }
-        return result.sortedBy { it.startTime }
-    }
-
-    private fun expandRecurrence(
-        event: CalendarEventEntity,
-        rangeStart: Long,
-        rangeEnd: Long
-    ): List<CalendarEventEntity> {
-        val ruleRaw = event.recurrenceRule ?: return emptyList()
-        val (base, until) = parseRule(ruleRaw)
-        val duration = event.endTime - event.startTime
-        val eventTime = Instant.ofEpochMilli(event.startTime).atZone(LOCAL_ZONE).toLocalTime()
-        val eventStartDate = Instant.ofEpochMilli(event.startTime).atZone(LOCAL_ZONE).toLocalDate()
-        val rangeStartDate = Instant.ofEpochMilli(rangeStart).atZone(LOCAL_ZONE).toLocalDate()
-        val rangeEndDateRaw = Instant.ofEpochMilli(rangeEnd).atZone(LOCAL_ZONE).toLocalDate()
-        // v2.16.0 — Apply UNTIL cap to the effective end.
-        val rangeEndDate = if (until != null && until.isBefore(rangeEndDateRaw)) until else rangeEndDateRaw
-        if (rangeEndDate.isBefore(rangeStartDate)) return emptyList()
-
-        // v2.16.0 — Per-occurrence overrides. Decoded once for the whole
-        // pass so each generated date is a cheap O(1) set lookup.
-        val excluded = parseDateSet(event.excludedDates)
-        val done = parseDateSet(event.doneDates)
-
-        val instances = mutableListOf<CalendarEventEntity>()
-
-        when {
-            base == "DAILY" -> {
-                var cur = maxOf(eventStartDate, rangeStartDate)
-                while (!cur.isAfter(rangeEndDate)) {
-                    addIfVisible(instances, event, cur, eventTime, duration, excluded, done)
-                    cur = cur.plusDays(1)
-                }
-            }
-            base.startsWith("WEEKLY:") -> {
-                val targetDays = base.removePrefix("WEEKLY:")
-                    .split(",")
-                    .mapNotNull { parseWeekday(it.trim()) }
-                if (targetDays.isEmpty()) return emptyList()
-
-                var cur = maxOf(eventStartDate, rangeStartDate)
-                while (!cur.isAfter(rangeEndDate)) {
-                    if (cur.dayOfWeek in targetDays) {
-                        addIfVisible(instances, event, cur, eventTime, duration, excluded, done)
-                    }
-                    cur = cur.plusDays(1)
-                }
-            }
-            base.startsWith("MONTHLY:") -> {
-                val targetDay = base.removePrefix("MONTHLY:").trim().toIntOrNull()
-                    ?: return emptyList()
-                val first = maxOf(eventStartDate, rangeStartDate)
-                var ym = YearMonth.of(first.year, first.month)
-                val limit = YearMonth.of(rangeEndDate.year, rangeEndDate.month).plusMonths(1)
-
-                while (ym.isBefore(limit)) {
-                    if (targetDay <= ym.lengthOfMonth()) {
-                        val date = ym.atDay(targetDay)
-                        if (!date.isBefore(eventStartDate) && !date.isBefore(rangeStartDate) && !date.isAfter(rangeEndDate)) {
-                            addIfVisible(instances, event, date, eventTime, duration, excluded, done)
-                        }
-                    }
-                    ym = ym.plusMonths(1)
-                }
-            }
-        }
-
-        return instances
-    }
-
-    private fun addIfVisible(
-        instances: MutableList<CalendarEventEntity>,
-        master: CalendarEventEntity,
-        date: LocalDate,
-        time: LocalTime,
-        duration: Long,
-        excluded: Set<LocalDate>,
-        done: Set<LocalDate>,
-    ) {
-        if (date in excluded) return
-        val instance = makeInstance(master, date, time, duration)
-        instances += if (date in done) instance.copy(isDone = true) else instance
-    }
-
-    private fun makeInstance(
-        event: CalendarEventEntity,
-        date: LocalDate,
-        time: LocalTime,
-        duration: Long
-    ): CalendarEventEntity {
-        val start = date.atTime(time).atZone(LOCAL_ZONE).toInstant().toEpochMilli()
-        return event.copy(startTime = start, endTime = start + duration)
-    }
-
-    /** v2.16.0 — Split a rule into its base + optional UNTIL cap.
-     *  "WEEKLY:MON,WED:UNTIL=2026-06-15" → ("WEEKLY:MON,WED", 2026-06-15). */
-    private fun parseRule(rule: String): Pair<String, LocalDate?> {
-        val idx = rule.indexOf(":UNTIL=")
-        if (idx < 0) return rule to null
-        val base = rule.substring(0, idx)
-        val suffix = rule.substring(idx + ":UNTIL=".length).trim()
-        val until = runCatching { LocalDate.parse(suffix) }.getOrNull()
-        return base to until
-    }
-
-    private fun parseDateSet(raw: String?): Set<LocalDate> {
-        if (raw.isNullOrBlank()) return emptySet()
-        return raw.split(",")
-            .mapNotNull { runCatching { LocalDate.parse(it.trim()) }.getOrNull() }
-            .toSet()
-    }
-
-    private fun parseWeekday(s: String): DayOfWeek? = when (s.uppercase()) {
-        "MON" -> DayOfWeek.MONDAY
-        "TUE" -> DayOfWeek.TUESDAY
-        "WED" -> DayOfWeek.WEDNESDAY
-        "THU" -> DayOfWeek.THURSDAY
-        "FRI" -> DayOfWeek.FRIDAY
-        "SAT" -> DayOfWeek.SATURDAY
-        "SUN" -> DayOfWeek.SUNDAY
-        else -> null
-    }
+    // Client-side recurrence expansion lives in util/CalendarRecurrence.kt
+    // — see getEventsForMonth/Range/Day above and AlarmScheduler for the
+    // two read sites (UI flows + per-occurrence reminder scheduling).
 
     private fun defaultColor(category: String): String =
         com.ultiq.app.ui.theme.CategoryColors.hexForCategory(category)
