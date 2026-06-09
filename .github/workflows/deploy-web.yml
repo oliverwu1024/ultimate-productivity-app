@@ -30,7 +30,7 @@ jobs:
       # Pin actions to commit SHAs to defend against tag-hijack supply-chain
       # attacks against this workflow's deploy IAM role. dtolnay/rust-toolchain
       # has no versioned tags — pin to a branch-tip SHA and bump on review.
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
       - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
         with:
@@ -64,7 +64,7 @@ jobs:
         run: trunk build --release
 
       - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@acca2b1b2070338fb9fd1ca27ecee81d687e58e5 # v6.1.2
+        uses: aws-actions/configure-aws-credentials@e7f100cf4c008499ea8adda475de1042d6975c7b # v6.2.0
         with:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-deploy
           aws-region: ${{ env.AWS_REGION }}
