@@ -1,6 +1,6 @@
 {
-  "versionCode": 115,
-  "versionName": "2.17.2",
-  "url": "https://ultiqapp.com/ultiq.2.17.2.apk",
-  "releaseNotes": "Two bug fixes: (1) Dashboard 'Today's plan' and 'Coming up' cards now refresh automatically when the device clock crosses midnight while the app is in the background — previously you had to force-close the app to see the new day. (2) Recurring calendar events (especially daily) became invisible on Android once a sync ran, because the backend's expanded /calendar response collided on the master row's primary key inside Room. Backend now accepts expand=false from Android's sync, so client-side expansion (already the single source of truth for every Android read path) takes over cleanly."
+  "versionCode": 116,
+  "versionName": "2.17.3",
+  "url": "https://ultiqapp.com/ultiq.2.17.3.apk",
+  "releaseNotes": "One bug fix: recurring calendar events (daily / weekly / monthly) now reliably send their per-event reminder notifications on every occurrence. The 15-min-before alerts were silently dropping for recurring series because every occurrence shared a single AlarmManager slot under the hood and kept overwriting each other — the morning summary still counted them, but the individual reminders never fired. Each occurrence now gets its own scheduled alarm."
 }
