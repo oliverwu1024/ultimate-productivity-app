@@ -35,6 +35,20 @@ class AlarmScheduler(private val context: Context) {
         private const val REQ_FOCUS = 11_002
         private const val REQ_MORNING_SUMMARY = 11_003
         private const val REQ_EVENT_BASE = 12_000
+
+        /// §2026-06-09 — Forward horizon for recurring-event expansion when
+        /// scheduling. Past this, alarms must be re-armed by BootReceiver,
+        /// the periodic SyncWorker, or an incoming SSE update. 30 days
+        /// mirrors the previous filter inside rescheduleAllEventReminders.
+        private const val EVENT_SCHEDULE_WINDOW_DAYS = 30L
+
+        /// §2026-06-09 — Cancel walks a wider window than schedule writes,
+        /// to also reach slots an earlier-version install or a longer-horizon
+        /// reminder offset may have registered. Cancelling a slot that was
+        /// never set is a no-op (FLAG_NO_CREATE), so over-cancelling is cheap.
+        private const val CANCEL_WINDOW_PAST_DAYS = 1L
+        private const val CANCEL_WINDOW_FUTURE_DAYS = 35L
+        private const val MILLIS_PER_DAY = 86_400_000L
     }
 
     private val alarmManager: AlarmManager =
@@ -73,12 +87,36 @@ class AlarmScheduler(private val context: Context) {
         scheduleExact(REQ_MORNING_SUMMARY, intent, triggerMillis)
     }
 
+    /// §2026-06-09 — Recurrence-aware: a recurring master row is expanded
+    /// into per-occurrence instances over the next 30 days and each
+    /// occurrence gets its own alarm. Pre-fix this method scheduled
+    /// against `master.startTime` only — i.e., the first ever occurrence,
+    /// which for an active series is in the past — so the inner past-time
+    /// guard silently dropped the alarm and no reminder ever fired for a
+    /// recurring event after its first day. One-shot events flow through
+    /// unchanged.
     fun scheduleEventReminder(event: CalendarEventEntity) {
+        if (event.isRecurring && !event.recurrenceRule.isNullOrBlank()) {
+            val now = System.currentTimeMillis()
+            val windowEnd = now + EVENT_SCHEDULE_WINDOW_DAYS * MILLIS_PER_DAY
+            for (occ in CalendarRecurrence.expandWindow(listOf(event), now, windowEnd)) {
+                scheduleOccurrenceReminder(occ)
+            }
+        } else {
+            scheduleOccurrenceReminder(event)
+        }
+    }
+
+    /// Single-occurrence scheduling. Caller is responsible for picking
+    /// the right occurrence (one-shot rows pass themselves; recurring
+    /// rows go through scheduleEventReminder, which expands first).
+    private fun scheduleOccurrenceReminder(event: CalendarEventEntity) {
         // v2.13.1 — Multi-reminder per event. NULL = client default (single
         // 15-min reminder, the pre-2.13 behaviour). Empty list = opt-out.
         // Non-empty list = one alarm per offset. Each offset gets its own
-        // request code derived from (eventId, minutes) so cancellation
-        // hits exactly the right alarm.
+        // request code derived from (eventId, minutes, occurrenceDate) so
+        // cancellation hits exactly the right alarm and per-occurrence
+        // alarms of a recurring series don't overwrite each other.
         val offsets = event.reminderMinutes ?: listOf(EVENT_LEAD_MINUTES)
         for (minutes in offsets) {
             if (minutes <= 0) continue
@@ -91,28 +129,50 @@ class AlarmScheduler(private val context: Context) {
                 putExtra(EXTRA_EVENT_START, event.startTime)
                 putExtra(EXTRA_REMINDER_MINUTES, minutes)
             }
-            scheduleExact(eventRequestCode(event.id, minutes), intent, triggerMillis)
+            scheduleExact(eventRequestCode(event.id, minutes, event.startTime), intent, triggerMillis)
         }
     }
 
     fun cancelEventReminder(eventId: String) {
-        // v2.13.1 — Cancel every alarm scheduled for this event across all
-        // known offset values. We don't have the original list at cancel
-        // time (caller usually just knows the id), so we walk the picker's
-        // option set; cancelling a request-code that was never registered
-        // is a no-op.
-        for (minutes in KNOWN_REMINDER_OFFSETS) {
-            cancel(eventRequestCode(eventId, minutes), EventReminderReceiver::class.java, eventId)
+        // §2026-06-09 — Walks every (date × offset) slot scheduleEventReminder
+        // could have registered, because the request code now varies by
+        // occurrence date. Cancelling a slot that was never registered is
+        // a no-op (PendingIntent.FLAG_NO_CREATE returns null), so the
+        // wider window is just defensive — covers the schedule horizon
+        // plus a small buffer for legacy pre-fix slots and timezone
+        // drift around midnight.
+        val todayEpochDay = System.currentTimeMillis() / MILLIS_PER_DAY
+        val firstDay = todayEpochDay - CANCEL_WINDOW_PAST_DAYS
+        val lastDay = todayEpochDay + CANCEL_WINDOW_FUTURE_DAYS
+        var day = firstDay
+        while (day <= lastDay) {
+            val occurrenceMillis = day * MILLIS_PER_DAY
+            for (minutes in KNOWN_REMINDER_OFFSETS) {
+                cancel(
+                    eventRequestCode(eventId, minutes, occurrenceMillis),
+                    EventReminderReceiver::class.java,
+                    eventId,
+                )
+            }
+            day++
         }
         NotificationHelper.cancelEventReminder(context, eventId)
     }
 
-    fun rescheduleAllEventReminders(events: List<CalendarEventEntity>) {
+    /// §2026-06-09 — Input is master rows from Room; expansion happens
+    /// internally so callers don't need to know about recurring vs.
+    /// one-shot. Pre-fix this took an already-expanded list (only
+    /// BootReceiver bothered to expand), and even then the request-code
+    /// scheme collapsed every expanded occurrence onto a single
+    /// PendingIntent slot — so a "weekly Monday" event ended up with
+    /// at most one armed alarm (the furthest-future occurrence in the
+    /// window), and every nearer Monday silently lost its alarm.
+    fun rescheduleAllEventReminders(masters: List<CalendarEventEntity>) {
         val now = System.currentTimeMillis()
-        val cutoff = now + 30L * 86_400_000L // schedule events in next 30 days only
-        events.asSequence()
-            .filter { it.startTime in now..cutoff }
-            .forEach { scheduleEventReminder(it) }
+        val cutoff = now + EVENT_SCHEDULE_WINDOW_DAYS * MILLIS_PER_DAY
+        for (occ in CalendarRecurrence.expandWindow(masters, now, cutoff)) {
+            scheduleOccurrenceReminder(occ)
+        }
     }
 
     private fun scheduleExact(requestCode: Int, intent: Intent, triggerAtMillis: Long) {
@@ -148,16 +208,21 @@ class AlarmScheduler(private val context: Context) {
         }
     }
 
-    /// v2.13.1 — Request code is derived from (eventId, minutes) so each
-    /// reminder for the same event maps to a distinct PendingIntent slot,
-    /// allowing N independent alarms. Pre-2.13.1 callers used a code based
-    /// on eventId alone; existing scheduled alarms from that code keep
-    /// firing until their event passes (we never cancel them by old code,
-    /// but they'd just deliver a duplicate notification once which is
-    /// fine for the migration window).
-    private fun eventRequestCode(eventId: String, minutes: Int): Int {
-        val base = (eventId.hashCode() and 0x00ffffff)
-        return REQ_EVENT_BASE + base * 32 + (minutes.coerceIn(0, 31000) % 31)
+    /// §2026-06-09 — Request code now folds in the occurrence date so each
+    /// expanded instance of a recurring series maps to its own slot.
+    /// Before this, every occurrence shared the same (eventId, minutes)
+    /// code, so the scheduling loop kept overwriting earlier instances
+    /// onto a single PendingIntent — only the furthest-future occurrence
+    /// in the window ever fired. Legacy alarms scheduled by pre-fix
+    /// builds remain at the old code path; they fire once for some
+    /// historical future date then disappear (one stray notification
+    /// during the upgrade window, same migration pattern as v2.13.1).
+    private fun eventRequestCode(eventId: String, minutes: Int, occurrenceMillis: Long): Int {
+        val epochDay = (occurrenceMillis / MILLIS_PER_DAY).toInt()
+        var h = eventId.hashCode()
+        h = h * 31 + minutes
+        h = h * 31 + epochDay
+        return REQ_EVENT_BASE + ((h and 0x7fffffff) % (Int.MAX_VALUE - REQ_EVENT_BASE - 1))
     }
 
     private fun nextOccurrenceMillis(time: LocalTime): Long {
