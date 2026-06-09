@@ -132,7 +132,7 @@ dependencies {
     implementation("androidx.work:work-runtime-ktx:2.9.1")
 
     // Vico charting
-    implementation("com.patrykandpatrick.vico:compose-m3:2.0.0-beta.3")
+    implementation("com.patrykandpatrick.vico:compose-m3:3.2.2")
 
     // CameraX — used by Phase 8 §8.9 photo dismiss mission.
     val cameraX = "1.6.1"
