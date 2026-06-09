@@ -146,7 +146,7 @@ dependencies {
     // the messaging library (we don't use Auth, Firestore, Crashlytics, etc).
     // BoM 34.x merged the `-ktx` Kotlin extensions into the main artefact,
     // so we depend on `firebase-messaging` (no -ktx suffix).
-    implementation(platform("com.google.firebase:firebase-bom:34.13.0"))
+    implementation(platform("com.google.firebase:firebase-bom:34.14.0"))
     implementation("com.google.firebase:firebase-messaging")
 
     // Lets us `.await()` Firebase's Task<T> results inside suspend functions
