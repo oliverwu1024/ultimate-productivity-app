@@ -1,6 +1,6 @@
 {
-  "versionCode": 116,
-  "versionName": "2.17.3",
-  "url": "https://ultiqapp.com/ultiq.2.17.3.apk",
-  "releaseNotes": "One bug fix: recurring calendar events (daily / weekly / monthly) now reliably send their per-event reminder notifications on every occurrence. The 15-min-before alerts were silently dropping for recurring series because every occurrence shared a single AlarmManager slot under the hood and kept overwriting each other — the morning summary still counted them, but the individual reminders never fired. Each occurrence now gets its own scheduled alarm."
+  "versionCode": 117,
+  "versionName": "2.17.4",
+  "url": "https://ultiqapp.com/ultiq.2.17.4.apk",
+  "releaseNotes": "Maintenance release: routine third-party library updates (Firebase, AndroidX Activity, CameraX). No user-facing changes."
 }
