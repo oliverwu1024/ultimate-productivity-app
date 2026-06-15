@@ -77,5 +77,5 @@ object WarmCopy {
     fun sessionsEmpty(): Pair<String, String> =
         "Ready to focus?" to "Tag a task, pick durations, and start your first focus block."
 
-    fun upcomingEventsEmpty(): String = "No calendar events planned today"
+    fun upcomingEventsEmpty(): String = "Nothing on your calendar today"
 }

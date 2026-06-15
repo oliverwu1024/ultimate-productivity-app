@@ -27,6 +27,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
+import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.temporal.TemporalAdjusters
@@ -128,7 +129,7 @@ data class AnomalyAlertState(
     val generatedAt: String,
 )
 
-/// One row in the Dashboard "Coming up" section. Calendar events sort by
+/// One row in the Dashboard "Today's calendar" section. Calendar events sort by
 /// `startTime`; checklist items have no clock time so we surface them
 /// alongside calendar events for the same day with a dedicated icon.
 sealed interface UpcomingItem {
@@ -224,7 +225,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     /// `LocalDate.now()` and re-launches the affected observers when the
     /// device clock has ticked past midnight while the app was warm. Without
     /// it, `observeTodayChecklist` baked the date into its launched
-    /// coroutine at init and the "Today's plan" + "Coming up" cards stayed
+    /// coroutine at init and the "Today's plan" + "Today's calendar" cards stayed
     /// stuck on yesterday until the user force-killed the process.
     private var observedDate: LocalDate = LocalDate.now()
     private var observeTodayChecklistJob: Job? = null
@@ -605,19 +606,40 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     private suspend fun loadUpcomingEvents() {
-        // §audit-2 — Coming up = TODAY's calendar events only. Checklist
-        // items live in the existing "Today's plan" card above; mixing
-        // them in here was wrong (and the previous window let tomorrow's
-        // tasks leak in). Empty state says "no calendar events planned
-        // today" via the WarmCopy helper.
+        // §today-calendar — The "Today's calendar" card shows TODAY's
+        // calendar events and keeps them until the user ticks them done,
+        // rather than dropping them the moment their start time passes.
+        // (Checklist items live in the separate "Today's plan" card above.)
+        // Recurring occurrences already carry their per-occurrence done
+        // state from CalendarRecurrence.expandWindow, so a plain !isDone
+        // filter is correct for one-shot and recurring events alike.
+        // Unticking an event (here or in the Calendar tab) brings it back
+        // via the observeCalendarUpdates reload.
         val today = LocalDate.now()
         val events = calendarRepo.getEventsForRange(today, today).firstOrNull() ?: emptyList()
-        val now = System.currentTimeMillis()
-        val visibleEvents = events.filter { it.startTime >= now }
+        val visibleEvents = events.filter { !it.isDone }
         _uiState.value = _uiState.value.copy(
             upcomingEvents = visibleEvents,
             upcomingItems = visibleEvents.map(UpcomingItem::Calendar),
         )
+    }
+
+    /// §today-calendar — Tick an event done straight from the dashboard
+    /// "Today's calendar" card. Mirrors the Calendar tab: per-occurrence for
+    /// recurring events (occurrenceDate = the instance's local date),
+    /// master-row flip for one-shot events. The card only lists not-done
+    /// events, so the observeCalendarUpdates reload animates the row out as
+    /// soon as this lands; unticking happens from the Calendar tab.
+    fun setEventDone(event: CalendarEventEntity, isDone: Boolean) {
+        viewModelScope.launch {
+            val userId = tokenManager.getUserId().firstOrNull() ?: ""
+            val occurrenceDate = if (event.isRecurring) {
+                Instant.ofEpochMilli(event.startTime)
+                    .atZone(ZoneId.systemDefault())
+                    .toLocalDate()
+            } else null
+            calendarRepo.setEventDone(event.id, userId, isDone, occurrenceDate)
+        }
     }
 
     private suspend fun loadWeeklyHighlights() {
