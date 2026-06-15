@@ -689,9 +689,12 @@ private fun EventItem(
     onSetDone: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // Past = the slot has actually finished. Mark-done only makes sense for
-    // those — future events stay clean / no checkbox.
-    val isPast = event.endTime < System.currentTimeMillis()
+    // §today-calendar — Mark-done is available for any event on today or a
+    // past day (was: only after the event had fully ended). This lets the
+    // user tick today's events the moment they show up — in progress or even
+    // still upcoming — matching the dashboard "Today's calendar" card.
+    // Future-day events stay clean / no checkbox.
+    val canMarkDone = !viewDate.isAfter(LocalDate.now())
     val isDone = event.isDone
     Card(
         modifier = modifier
@@ -749,7 +752,7 @@ private fun EventItem(
                     PriorityIndicator(event.priority)
                 }
             }
-            if (isPast) {
+            if (canMarkDone) {
                 Checkbox(
                     checked = isDone,
                     onCheckedChange = onSetDone,

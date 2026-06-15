@@ -36,6 +36,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
@@ -152,7 +153,7 @@ fun DashboardScreen(
     // comes back into the foreground, so the lock&overlay hint disappears
     // immediately after the user grants permission in system settings.
     // §v2.17.2-day-rollover — Same hook also re-binds the date-bound
-    // observers ("Today's plan", "Coming up", weekly highlights) so a user
+    // observers ("Today's plan", "Today's calendar", weekly highlights) so a user
     // who left the app warm overnight sees today's data instead of
     // yesterday's the moment they return. No-op when same-day.
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
@@ -281,7 +282,7 @@ fun DashboardScreen(
 
             item {
                 Text(
-                    "Coming up",
+                    "Today's calendar",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -308,6 +309,7 @@ fun DashboardScreen(
                     is UpcomingItem.Calendar -> UpcomingEventItem(
                         event = item.event,
                         onClick = onNavigateToCalendar,
+                        onSetDone = { done -> viewModel.setEventDone(item.event, done) },
                         modifier = Modifier.animateItem(),
                     )
                     is UpcomingItem.Checklist -> UpcomingChecklistItem(
@@ -894,7 +896,7 @@ private fun UpcomingChecklistItem(
 }
 
 @Composable
-private fun UpcomingEventItem(event: CalendarEventEntity, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun UpcomingEventItem(event: CalendarEventEntity, onClick: () -> Unit, onSetDone: (Boolean) -> Unit, modifier: Modifier = Modifier) {
     val zone = ZoneId.systemDefault()
     val fmt = DateTimeFormatter.ofPattern("EEE h:mm a")
     val timeStr = Instant.ofEpochMilli(event.startTime).atZone(zone).format(fmt)
@@ -928,6 +930,10 @@ private fun UpcomingEventItem(event: CalendarEventEntity, onClick: () -> Unit, m
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+            Checkbox(
+                checked = event.isDone,
+                onCheckedChange = onSetDone,
+            )
         }
     }
 }

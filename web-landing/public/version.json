@@ -1,6 +1,6 @@
 {
-  "versionCode": 117,
-  "versionName": "2.17.4",
-  "url": "https://ultiqapp.com/ultiq.2.17.4.apk",
-  "releaseNotes": "Maintenance release: routine third-party library updates (Firebase, AndroidX Activity, CameraX). No user-facing changes."
+  "versionCode": 118,
+  "versionName": "2.17.5",
+  "url": "https://ultiqapp.com/ultiq.2.17.5.apk",
+  "releaseNotes": "Your dashboard's 'Coming up' card is now 'Today's calendar': today's events stay until you check them off — and come back if you un-check — with a tick box right on the card. You can also mark today's events done from the Calendar tab as soon as they start."
 }
