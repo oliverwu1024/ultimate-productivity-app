@@ -1,6 +1,6 @@
 {
-  "versionCode": 120,
-  "versionName": "2.17.7",
-  "url": "https://ultiqapp.com/ultiq.2.17.7.apk",
-  "releaseNotes": "Coach upgrade: ask a vague time-range question like \"how's my past month\" and the Coach now offers quick tappable options (this month so far / all of last month / last 30 days) instead of guessing. Plus a fix for a brief duplicate-bubble flicker when sending a chat message."
+  "versionCode": 121,
+  "versionName": "2.17.8",
+  "url": "https://ultiqapp.com/ultiq.2.17.8.apk",
+  "releaseNotes": "Fixes a Coach bug where picking a time-range option (or asking about a period like \"how's my past month\") could show a \"server error\" — those answers take a little longer to load and the app was giving up too soon. Also smooths out a chat-bubble animation glitch."
 }
