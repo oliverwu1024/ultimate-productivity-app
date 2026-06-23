@@ -23,8 +23,8 @@ android {
         applicationId = "com.ultiq.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 119
-        versionName = "2.17.6"
+        versionCode = 120
+        versionName = "2.17.7"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
