@@ -34,8 +34,17 @@ sealed interface ChatTurn {
     /// Stable key for LazyColumn diffing — survives state mutations.
     val key: String
 
-    data class UserText(val message: ChatMessageDto) : ChatTurn {
-        override val key: String get() = "u:${message.id}"
+    data class UserText(
+        val message: ChatMessageDto,
+        /// Stable LazyColumn key across the optimistic→server-id swap. Defaults
+        /// to the message id (history-loaded turns); the optimistic insert keeps
+        /// its local id here so swapping in the server copy doesn't change the
+        /// key. A changed key makes LazyColumn treat it as remove + add and
+        /// replay the item enter/exit animation, flashing a ghost user bubble
+        /// behind the assistant reply.
+        val clientKey: String = message.id,
+    ) : ChatTurn {
+        override val key: String get() = "u:$clientKey"
     }
 
     data class AssistantText(val message: ChatMessageDto) : ChatTurn {
@@ -226,7 +235,10 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     // assistant reply in order.
                     val withReplacedUser = _uiState.value.turns.map { turn ->
                         if (turn is ChatTurn.UserText && turn.message.id == optimisticId) {
-                            ChatTurn.UserText(resp.user_message)
+                            // Keep the optimistic clientKey so the LazyColumn key
+                            // is unchanged — the body updates in place instead of
+                            // re-animating (which flashed a ghost bubble).
+                            ChatTurn.UserText(resp.user_message, clientKey = turn.clientKey)
                         } else turn
                     }
                     val appendTurns = buildList {
