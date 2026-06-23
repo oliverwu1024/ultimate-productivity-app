@@ -77,6 +77,16 @@ sealed interface ChatTurn {
     ) : ChatTurn {
         override val key: String get() = "pa:${invocation.id}"
     }
+
+    /// §clarify — tappable option chips the Coach offered to disambiguate a
+    /// vague request (e.g. "past month"). Tapping a chip sends that label as
+    /// the next user message. Keyed off the assistant turn it follows.
+    data class ClarificationChips(
+        val anchorId: String,
+        val options: List<String>,
+    ) : ChatTurn {
+        override val key: String get() = "opts:$anchorId"
+    }
 }
 
 enum class ProposalState { Pending, Creating, Created, Cancelled }
@@ -253,6 +263,15 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                             }
                         }
                         add(ChatTurn.AssistantText(resp.assistant_message))
+                        val opts = resp.clarification_options
+                        if (!opts.isNullOrEmpty()) {
+                            add(
+                                ChatTurn.ClarificationChips(
+                                    anchorId = resp.assistant_message.id,
+                                    options = opts,
+                                )
+                            )
+                        }
                     }
                     _uiState.value = _uiState.value.copy(
                         turns = withReplacedUser + appendTurns,
