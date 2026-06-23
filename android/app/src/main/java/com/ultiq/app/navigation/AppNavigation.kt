@@ -146,17 +146,25 @@ fun AppNavigation(
             if (showBottomBar) {
                 NavigationBar {
                     bottomNavItems.forEach { item ->
+                        val selected = currentDestination?.hierarchy
+                            ?.any { it.route == item.screen.route } == true
                         NavigationBarItem(
                             icon = { Icon(item.icon, contentDescription = item.label) },
                             label = { Text(item.label) },
-                            selected = currentDestination?.hierarchy?.any { it.route == item.screen.route } == true,
+                            selected = selected,
                             onClick = {
+                                val reselecting = selected
                                 navController.navigate(item.screen.route) {
                                     popUpTo(navController.graph.findStartDestination().id) {
                                         saveState = true
                                     }
                                     launchSingleTop = true
                                     restoreState = true
+                                }
+                                // Re-tapping the active Sleep tab resets its sub-tab.
+                                if (reselecting && item.screen.route == Screen.Sleep.route) {
+                                    navController.getBackStackEntry(Screen.Sleep.route)
+                                        .savedStateHandle["reset_subtab"] = true
                                 }
                             }
                         )
@@ -279,7 +287,13 @@ fun AppNavigation(
                     onNavigateToSleep = { navigateToTab(navController, Screen.Sleep) },
                     onNavigateToSessions = { navigateToTab(navController, Screen.Sessions) },
                     onNavigateToCalendar = { navigateToTab(navController, Screen.Calendar) },
-                    onNavigateToChecklist = { navigateToTab(navController, Screen.Checklist) },
+                    onNavigateToChecklist = {
+                        navigateToTab(navController, Screen.Checklist)
+                        // "Today's plan" always opens today, even if the
+                        // checklist was last left on another date.
+                        navController.getBackStackEntry(Screen.Checklist.route)
+                            .savedStateHandle["jump_to_today"] = true
+                    },
                     onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
                     onNavigateToReports = { navController.navigate(Screen.Reports.route) },
                     onNavigateToChat = { navController.navigate(Screen.Chat.route) },
@@ -289,19 +303,29 @@ fun AppNavigation(
             composable(Screen.Chat.route) {
                 ChatScreen(onBack = { navController.popBackStack() })
             }
-            composable(Screen.Checklist.route) {
+            composable(Screen.Checklist.route) { entry ->
+                val jumpToToday by entry.savedStateHandle
+                    .getStateFlow("jump_to_today", false)
+                    .collectAsState()
                 ChecklistScreen(
                     onNavigateToWeeklyPlanner = { navController.navigate(Screen.WeeklyPlanner.route) },
+                    jumpToToday = jumpToToday,
+                    onJumpToTodayHandled = { entry.savedStateHandle["jump_to_today"] = false },
                 )
             }
             composable(Screen.WeeklyPlanner.route) {
                 WeeklyPlannerScreen(onDone = { navController.popBackStack() })
             }
-            composable(Screen.Sleep.route) {
+            composable(Screen.Sleep.route) { entry ->
+                val resetSubTab by entry.savedStateHandle
+                    .getStateFlow("reset_subtab", false)
+                    .collectAsState()
                 SleepScreen(
                     onCreateAlarm = { navController.navigate(Screen.AlarmNew.route) },
                     onEditAlarm = { id -> navController.navigate(Screen.AlarmEdit.route(id)) },
                     onOpenSleepSettings = { navController.navigate(Screen.SleepSettings.route) },
+                    resetSubTab = resetSubTab,
+                    onResetSubTabHandled = { entry.savedStateHandle["reset_subtab"] = false },
                 )
             }
             composable(Screen.Sessions.route) {

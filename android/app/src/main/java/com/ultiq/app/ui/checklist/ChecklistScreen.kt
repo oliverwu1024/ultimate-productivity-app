@@ -87,6 +87,8 @@ private val dateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("EEE,
 @Composable
 fun ChecklistScreen(
     onNavigateToWeeklyPlanner: () -> Unit = {},
+    jumpToToday: Boolean = false,
+    onJumpToTodayHandled: () -> Unit = {},
     viewModel: ChecklistViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -99,6 +101,16 @@ fun ChecklistScreen(
                 snackbarHostState.showSnackbar(msg)
                 viewModel.clearError()
             }
+        }
+    }
+
+    // Arriving via the dashboard "Today's plan" card forces today, even if the
+    // checklist was last left on another date (one-shot savedStateHandle flag
+    // set in AppNavigation).
+    LaunchedEffect(jumpToToday) {
+        if (jumpToToday) {
+            viewModel.jumpToToday()
+            onJumpToTodayHandled()
         }
     }
 
