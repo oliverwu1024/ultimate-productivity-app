@@ -35,6 +35,13 @@ enum ChatTurn {
         invocation: ToolInvocation,
         state: ProposalState,
     },
+    /// §clarify — tappable option chips the Coach offered to disambiguate a
+    /// vague request (e.g. "past month"). Tapping a chip sends that label as
+    /// the next user message. `anchor` is the assistant message id it follows.
+    ClarificationChips {
+        anchor: String,
+        options: Vec<String>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -52,6 +59,7 @@ impl ChatTurn {
             ChatTurn::AssistantText(m) => format!("a:{}", m.id),
             ChatTurn::ToolStatus(t) => format!("t:{}", t.id),
             ChatTurn::CalendarProposal { invocation, .. } => format!("p:{}", invocation.id),
+            ChatTurn::ClarificationChips { anchor, .. } => format!("opts:{}", anchor),
         }
     }
 }
@@ -113,14 +121,13 @@ pub fn ChatPage() -> impl IntoView {
         }
     });
 
-    let on_submit = move |ev: SubmitEvent| {
-        ev.prevent_default();
-        if sending.get_untracked() {
-            return;
-        }
-        let text = input.get_untracked();
-        let trimmed = text.trim();
-        if trimmed.is_empty() {
+    // §clarify — factored so both the composer form and the clarification
+    // chips drive the same send. Takes the raw text, trims, optimistically
+    // shows the user bubble, then folds the response (tool turns, assistant
+    // reply, any clarification chips) back into `turns`.
+    let send_message = move |payload: String| {
+        let trimmed = payload.trim().to_string();
+        if trimmed.is_empty() || sending.get_untracked() {
             return;
         }
 
@@ -128,13 +135,11 @@ pub fn ChatPage() -> impl IntoView {
         // "thinking…" state immediately. Without this the bubble doesn't
         // appear until after the server round-trip lands, which makes the
         // first turn of a fresh chat feel hung.
-        let payload = trimmed.to_string();
-        input.set(String::new());
         let optimistic_id = format!("local-{}", web_sys::js_sys::Math::random());
         let optimistic = ChatMessage {
             id: optimistic_id.clone(),
             role: "user".to_string(),
-            content: payload.clone(),
+            content: trimmed.clone(),
             created_at: chrono::Utc::now(),
         };
         turns.update(|t| t.push(ChatTurn::UserText(optimistic)));
@@ -143,7 +148,7 @@ pub fn ChatPage() -> impl IntoView {
 
         let now_local = chrono::Local::now().to_rfc3339();
         wasm_bindgen_futures::spawn_local(async move {
-            match send_chat_message(payload, Some(now_local)).await {
+            match send_chat_message(trimmed, Some(now_local)).await {
                 Ok(resp) => {
                     let mut first_committed: Option<UndoBanner> = None;
                     turns.update(|t| {
@@ -174,7 +179,19 @@ pub fn ChatPage() -> impl IntoView {
                                 t.push(ChatTurn::ToolStatus(inv));
                             }
                         }
+                        // §clarify — chips ride after the assistant's question,
+                        // keyed off its message id. Grab the id before the move.
+                        let assistant_id = resp.assistant_message.id.clone();
+                        let clarify_opts = resp.clarification_options;
                         t.push(ChatTurn::AssistantText(resp.assistant_message));
+                        if let Some(opts) = clarify_opts {
+                            if !opts.is_empty() {
+                                t.push(ChatTurn::ClarificationChips {
+                                    anchor: assistant_id,
+                                    options: opts,
+                                });
+                            }
+                        }
                     });
                     if first_committed.is_some() {
                         undo_banner.set(first_committed);
@@ -191,6 +208,19 @@ pub fn ChatPage() -> impl IntoView {
             }
             sending.set(false);
         });
+    };
+
+    let on_submit = move |ev: SubmitEvent| {
+        ev.prevent_default();
+        if sending.get_untracked() {
+            return;
+        }
+        let text = input.get_untracked();
+        if text.trim().is_empty() {
+            return;
+        }
+        input.set(String::new());
+        send_message(text);
     };
 
     let do_reset = move || {
@@ -349,6 +379,7 @@ pub fn ChatPage() -> impl IntoView {
                         } else {
                             let confirm_h = confirm_proposal.clone();
                             let cancel_h = cancel_proposal.clone();
+                            let send_h = send_message;
                             view! {
                                 <div class="max-w-2xl mx-auto space-y-3">
                                     {move || {
@@ -363,6 +394,9 @@ pub fn ChatPage() -> impl IntoView {
                                                     let cf = confirm_h.clone();
                                                     let cc = cancel_h.clone();
                                                     render_proposal_card(invocation, state, k, cf, cc)
+                                                }
+                                                ChatTurn::ClarificationChips { options, .. } => {
+                                                    render_clarification_chips(options, k, send_h)
                                                 }
                                             }
                                         }).collect_view()
@@ -560,6 +594,37 @@ fn render_segment(seg: MdSegment) -> AnyView {
         MdSegment::Italic(t) => view! { <em>{t}</em> }.into_any(),
         MdSegment::Code(t) => view! { <code>{t}</code> }.into_any(),
     }
+}
+
+/// §clarify — tappable option chips the Coach offers to disambiguate a vague
+/// request (e.g. "past month"). Each taps through the same send path as the
+/// composer, so the chosen label arrives as the user's next message.
+fn render_clarification_chips<F>(options: Vec<String>, key: String, on_pick: F) -> AnyView
+where
+    F: Fn(String) + Clone + 'static,
+{
+    view! {
+        <div class="flex coach-turn-in" data-key=key>
+            <div class="mr-auto max-w-[80%] flex flex-wrap gap-2">
+                {options
+                    .into_iter()
+                    .map(|label| {
+                        let pick = on_pick.clone();
+                        let value = label.clone();
+                        view! {
+                            <button
+                                class="px-3 py-1.5 border border-ultiq-indigo/30 text-ultiq-indigo rounded-full text-sm hover:bg-ultiq-indigo/5 cursor-pointer"
+                                on:click=move |_| pick(value.clone())
+                            >
+                                {label}
+                            </button>
+                        }
+                    })
+                    .collect_view()}
+            </div>
+        </div>
+    }
+    .into_any()
 }
 
 fn render_tool_pill(inv: ToolInvocation, key: String) -> AnyView {
