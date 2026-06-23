@@ -1,6 +1,6 @@
 {
-  "versionCode": 118,
-  "versionName": "2.17.5",
-  "url": "https://ultiqapp.com/ultiq.2.17.5.apk",
-  "releaseNotes": "Your dashboard's 'Coming up' card is now 'Today's calendar': today's events stay until you check them off — and come back if you un-check — with a tick box right on the card. You can also mark today's events done from the Calendar tab as soon as they start."
+  "versionCode": 119,
+  "versionName": "2.17.6",
+  "url": "https://ultiqapp.com/ultiq.2.17.6.apk",
+  "releaseNotes": "Two navigation fixes: tapping 'Today's plan' on your dashboard now always opens today's checklist — even if you'd left it on another day. And tapping Sleep in the bottom bar now takes you straight back to the Sleep view when you're on the Alarms tab."
 }

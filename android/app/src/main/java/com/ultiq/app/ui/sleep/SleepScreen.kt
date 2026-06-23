@@ -114,6 +114,8 @@ fun SleepScreen(
     onCreateAlarm: () -> Unit = {},
     onEditAlarm: (String) -> Unit = {},
     onOpenSleepSettings: () -> Unit = {},
+    resetSubTab: Boolean = false,
+    onResetSubTabHandled: () -> Unit = {},
     viewModel: SleepViewModel = viewModel(),
     alarmsViewModel: AlarmsViewModel = viewModel(),
 ) {
@@ -124,6 +126,16 @@ fun SleepScreen(
     // rememberSaveable so popping back from AlarmEditScreen returns to the
     // sub-tab the user came from (was resetting to Sleep tab — bug from v2.4).
     var subTab by rememberSaveable { mutableIntStateOf(0) } // 0 = Sleep, 1 = Alarms
+
+    // Re-tapping the Sleep item in the bottom nav (while already on this
+    // screen) snaps back to the Sleep sub-tab. One-shot flag set in
+    // AppNavigation on bottom-nav reselection.
+    LaunchedEffect(resetSubTab) {
+        if (resetSubTab) {
+            subTab = 0
+            onResetSubTabHandled()
+        }
+    }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
