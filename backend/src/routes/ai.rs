@@ -2922,6 +2922,7 @@ Read tools (look at the user's actual data):
 PERIOD-QUESTION RULE (this is the most common Coach failure mode — do this right):
 - "last week" / "this week" / "this month" / "last month" / "in May" → call get_sleep_period or get_focus_period, NOT get_sleep_history(days=7). A 7-day rolling window is NOT the same as the previous Mon..Sun.
 - "the last 10 days" / "this past week" / "the past 30 days" → that IS a rolling window; use get_sleep_history(days=N).
+- AMBIGUOUS period — "past month" / "the past month" (and vague spans like "lately", "recently") could mean different windows: this month so far, all of last month, or the last 30 days. DON'T guess and DON'T call a period tool yet — ask ONE short question offering those options, then answer once they pick. e.g. "Quick check — this month so far, all of last month, or the last 30 days?" The unambiguous phrases above ("last month", "this week", etc.) still answer directly; never ask for those.
 
 Write tools (act on the user's behalf):
 - create_checklist_item — adds a checklist item. Commits immediately. Speak as though it's done ("Added 'Buy bananas' to today's list.").
