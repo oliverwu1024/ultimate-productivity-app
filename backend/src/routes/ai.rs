@@ -3571,10 +3571,10 @@ async fn run_chat_tool(
             handle_propose_calendar_event(&tool_use_id, &tool_name, &input).await
         }
         TOOL_GET_SLEEP_PERIOD => {
-            handle_get_sleep_period(state, user_id, &tool_use_id, &tool_name, &input).await
+            handle_get_sleep_period(state, user_id, &tool_use_id, &tool_name, &input, now_local).await
         }
         TOOL_GET_FOCUS_PERIOD => {
-            handle_get_focus_period(state, user_id, &tool_use_id, &tool_name, &input).await
+            handle_get_focus_period(state, user_id, &tool_use_id, &tool_name, &input, now_local).await
         }
         TOOL_GET_FOCUS_SESSION_DETAIL => {
             handle_get_focus_session_detail(state, user_id, &tool_use_id, &tool_name, &input).await
@@ -4412,15 +4412,17 @@ async fn handle_get_sleep_period(
     tool_use_id: &str,
     tool_name: &str,
     input: &serde_json::Value,
+    now_local: &str,
 ) -> Result<ToolRunOutcome, String> {
     let period = input
         .get("period")
         .and_then(|v| v.as_str())
         .ok_or_else(|| "missing period".to_string())?;
-    // §audit-2 — read `now_local` from the model's per-turn arg if it sent
-    // one (it doesn't currently, but fine). Fall back to UTC date.
-    let now_local = Utc::now().to_rfc3339();
-    let (start, end, label) = calendar_period_bounds(period, &now_local)?;
+    // §audit-2 / tz-fix — bucket calendar periods in the user's timezone by
+    // using the request's `now_local` (client local time with offset, threaded
+    // from chat_send) instead of UTC. Matches the context card + per-user
+    // timezone rule; chat_send already falls back to UTC if the client omits it.
+    let (start, end, label) = calendar_period_bounds(period, now_local)?;
     let rows: Vec<(Uuid, chrono::DateTime<Utc>, chrono::DateTime<Utc>, i16, i32)> = sqlx::query_as(
         "SELECT id, actual_bedtime, actual_wake_time, quality_rating, phone_pickups
            FROM sleep_records
@@ -4508,13 +4510,13 @@ async fn handle_get_focus_period(
     tool_use_id: &str,
     tool_name: &str,
     input: &serde_json::Value,
+    now_local: &str,
 ) -> Result<ToolRunOutcome, String> {
     let period = input
         .get("period")
         .and_then(|v| v.as_str())
         .ok_or_else(|| "missing period".to_string())?;
-    let now_local = Utc::now().to_rfc3339();
-    let (start, end, label) = calendar_period_bounds(period, &now_local)?;
+    let (start, end, label) = calendar_period_bounds(period, now_local)?;
     let rows: Vec<(chrono::NaiveDate, i64, i64)> = sqlx::query_as(
         "SELECT (started_at AT TIME ZONE 'UTC')::DATE AS day,
                 COUNT(*) FILTER (WHERE completed)::BIGINT AS completed_count,
