@@ -69,7 +69,22 @@ impl AiClient {
     /// picks up the task-role automatically; locally it walks the standard
     /// credential chain (env, profile, IMDS).
     pub async fn new() -> Self {
-        let config = aws_config::load_from_env().await;
+        // §bedrock-retry — Bedrock intermittently returns a transient
+        // ServiceUnavailableException ("Bedrock is unable to process your
+        // request") under capacity pressure (HTTP 503). The SDK default retry
+        // is standard mode / 3 attempts over a ~3s window, which let some
+        // blips through (e.g. an anomaly scan 502'd). Widen to 5 attempts with
+        // backoff so chat + background calls ride out short outages. The
+        // standard classifier retries 5xx (incl. 503) and throttling; backoff
+        // + full jitter are handled by the SDK.
+        let retry_config = aws_config::retry::RetryConfig::standard()
+            .with_max_attempts(5)
+            .with_initial_backoff(std::time::Duration::from_millis(300))
+            .with_max_backoff(std::time::Duration::from_secs(5));
+        let config = aws_config::from_env()
+            .retry_config(retry_config)
+            .load()
+            .await;
         let bedrock = bedrock::Client::new(&config);
         // Legacy single AI_DAILY_REQUEST_CAP still applies to Pro for
         // backward compatibility with existing task-def env vars.
