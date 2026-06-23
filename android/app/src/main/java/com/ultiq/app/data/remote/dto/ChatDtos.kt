@@ -27,6 +27,10 @@ data class ChatSendResponseDto(
     val user_message: ChatMessageDto,
     val assistant_message: ChatMessageDto,
     val tool_invocations: List<ToolInvocationDto> = emptyList(),
+    /// §clarify — option labels the Coach offered to disambiguate a vague
+    /// request (e.g. "past month"). Null/absent on normal turns. Rendered as
+    /// tappable chips; a tap sends that label as the next user message.
+    val clarification_options: List<String>? = null,
 )
 
 /// §9.x — One tool call surfaced by the backend Coach loop. Read-tool

@@ -102,6 +102,11 @@ pub struct ChatSendResponse {
     /// keeps old backend responses (no field) deserializable.
     #[serde(default)]
     pub tool_invocations: Vec<ToolInvocation>,
+    /// §clarify — option labels the Coach offered to disambiguate a vague
+    /// request (e.g. "past month"). None on normal turns. Rendered as tappable
+    /// chips; a tap sends that label as the next user message.
+    #[serde(default)]
+    pub clarification_options: Option<Vec<String>>,
 }
 
 /// Mirrors backend `ToolInvocationSurface`. The same value drives the

@@ -199,6 +199,11 @@ fun ChatScreen(
                                             onCreate = { viewModel.confirmAlarmProposal(t.invocation.id) },
                                             onCancel = { viewModel.cancelAlarmProposal(t.invocation.id) },
                                         )
+                                        is ChatTurn.ClarificationChips -> ClarificationChipsRow(
+                                            options = t.options,
+                                            enabled = !state.isSending,
+                                            onTap = { viewModel.send(it) },
+                                        )
                                     }
                                 }
                             }
@@ -255,6 +260,32 @@ private fun LazyItemScope.AnimatedTurn(content: @Composable () -> Unit) {
             fadeOutSpec = tween(durationMillis = 120),
         ),
     ) { content() }
+}
+
+/// §clarify — tappable option chips the Coach offers to disambiguate a vague
+/// request (e.g. "past month"). Each taps through the normal send path, so the
+/// chosen label arrives as the user's next message. Left-aligned to sit under
+/// the assistant's question.
+@Composable
+private fun ClarificationChipsRow(
+    options: List<String>,
+    enabled: Boolean,
+    onTap: (String) -> Unit,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        options.forEach { label ->
+            OutlinedButton(
+                onClick = { onTap(label) },
+                enabled = enabled,
+                shape = RoundedCornerShape(20.dp),
+            ) {
+                Text(label)
+            }
+        }
+    }
 }
 
 @Composable

@@ -2376,6 +2376,11 @@ struct ChatSendResponse {
     /// inline confirm cards for proposed calendar events.
     #[serde(default)]
     tool_invocations: Vec<ToolInvocationSurface>,
+    /// §clarify — when the model asked the user to disambiguate (e.g. "past
+    /// month"), these are the option labels for tappable chips. None on normal
+    /// turns. Tapping a chip sends that label as the next user message.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    clarification_options: Option<Vec<String>>,
 }
 
 /// What the chat handler bubbles up to the client for each tool the model
@@ -2513,6 +2518,7 @@ async fn chat_send(
 
     let assistant_text: String;
     let tool_invocations: Vec<ToolInvocationSurface>;
+    let clarification_options: Option<Vec<String>>;
     let total_input: i64;
     let total_output: i64;
     if tools_enabled {
@@ -2520,6 +2526,7 @@ async fn chat_send(
             call_chat_model_with_tools(&state, user_id, &history, content, &now_local).await?;
         assistant_text = outcome.text;
         tool_invocations = outcome.invocations;
+        clarification_options = outcome.clarification_options;
         total_input = outcome.total_input_tokens;
         total_output = outcome.total_output_tokens;
         // `record_usage` was already called per-iteration inside the loop;
@@ -2528,6 +2535,7 @@ async fn chat_send(
         let (text, usage) = call_chat_model(&state.ai, &history, content).await?;
         assistant_text = text;
         tool_invocations = Vec::new();
+        clarification_options = None;
         total_input = usage.input;
         total_output = usage.output;
         state
@@ -2576,6 +2584,7 @@ async fn chat_send(
         user_message: user_msg,
         assistant_message: assistant_msg,
         tool_invocations,
+        clarification_options,
     }))
 }
 
@@ -2875,6 +2884,11 @@ const TOOL_GET_FOCUS_PERIOD: &str = "get_focus_period";
 // focus on last week" / "show me my recent sessions" / "how distracted
 // was I yesterday".
 const TOOL_GET_FOCUS_SESSION_DETAIL: &str = "get_focus_session_detail";
+/// §clarify — terminal tool: when the user's request is genuinely ambiguous
+/// (e.g. "past month"), the model writes its question AND calls this with the
+/// option labels. The loop surfaces them as tappable chips and ends the turn,
+/// so the user's tap drives the next message — the model must not guess.
+const TOOL_ASK_CLARIFICATION: &str = "ask_clarification";
 // TOOL_CALENDAR and TOOL_CHECKLIST are defined for parse_event above and
 // reused here verbatim — the schema is identical; the only difference is
 // the handler (propose vs. auto-commit).
@@ -2882,6 +2896,7 @@ const TOOL_GET_FOCUS_SESSION_DETAIL: &str = "get_focus_session_detail";
 struct ChatToolLoopOutcome {
     text: String,
     invocations: Vec<ToolInvocationSurface>,
+    clarification_options: Option<Vec<String>>,
     total_input_tokens: i64,
     total_output_tokens: i64,
 }
@@ -2922,7 +2937,7 @@ Read tools (look at the user's actual data):
 PERIOD-QUESTION RULE (this is the most common Coach failure mode — do this right):
 - "last week" / "this week" / "this month" / "last month" / "in May" → call get_sleep_period or get_focus_period, NOT get_sleep_history(days=7). A 7-day rolling window is NOT the same as the previous Mon..Sun.
 - "the last 10 days" / "this past week" / "the past 30 days" → that IS a rolling window; use get_sleep_history(days=N).
-- AMBIGUOUS period — "past month" / "the past month" (and vague spans like "lately", "recently") could mean different windows: this month so far, all of last month, or the last 30 days. DON'T guess and DON'T call a period tool yet — ask ONE short question offering those options, then answer once they pick. e.g. "Quick check — this month so far, all of last month, or the last 30 days?" The unambiguous phrases above ("last month", "this week", etc.) still answer directly; never ask for those.
+- ASK, don't guess — but ONLY for genuinely vague spans: "past month" / "the past month" / "this past month" / "lately" / "recently" / "how have I been". For one of those, write ONE short question (e.g. "Quick check — which do you mean?") AND call ask_clarification(["This month so far", "All of last month", "Last 30 days"]); their tap becomes the next message. NEVER call ask_clarification for an exact calendar period: "last month", "this month", "last week", "this week", "in May" are unambiguous — answer them directly with get_sleep_period / get_focus_period. ("how is my last month" → just answer last_month; do not ask.)
 
 Write tools (act on the user's behalf):
 - create_checklist_item — adds a checklist item. Commits immediately. Speak as though it's done ("Added 'Buy bananas' to today's list.").
@@ -3040,6 +3055,7 @@ async fn call_chat_model_with_tools(
     let mut total_input: i64 = 0;
     let mut total_output: i64 = 0;
     let mut final_text: Option<String> = None;
+    let mut clarification_options: Option<Vec<String>> = None;
 
     for iteration in 0..MAX_TOOL_ITERATIONS {
         let mut converse = state
@@ -3125,6 +3141,41 @@ async fn call_chat_model_with_tools(
             break;
         }
 
+        // §clarify — `ask_clarification` is terminal. The model has asked the
+        // user to pick between concrete options and must NOT proceed to guess.
+        // Capture its question text + option labels, then end the turn; the
+        // user's tap arrives as the next message and drives the real answer.
+        if let Some(tu) = tool_uses
+            .iter()
+            .find(|tu| tu.name() == TOOL_ASK_CLARIFICATION)
+        {
+            let opts: Vec<String> = document_to_json(tu.input())
+                .get("options")
+                .and_then(|v| v.as_array())
+                .map(|a| {
+                    a.iter()
+                        .filter_map(|x| x.as_str().map(|s| s.trim().to_string()))
+                        .filter(|s| !s.is_empty())
+                        .collect()
+                })
+                .unwrap_or_default();
+            let text = message
+                .content()
+                .iter()
+                .find_map(|c| c.as_text().ok())
+                .cloned()
+                .unwrap_or_default();
+            final_text = Some(if text.trim().is_empty() {
+                "Which one do you mean?".to_string()
+            } else {
+                text.trim().to_string()
+            });
+            if opts.len() >= 2 {
+                clarification_options = Some(opts.into_iter().take(4).collect());
+            }
+            break;
+        }
+
         // Append the model's tool-using turn verbatim — Bedrock requires
         // it for tool_result chaining on the next call.
         messages.push(message);
@@ -3175,6 +3226,7 @@ async fn call_chat_model_with_tools(
     Ok(ChatToolLoopOutcome {
         text,
         invocations,
+        clarification_options,
         total_input_tokens: total_input,
         total_output_tokens: total_output,
     })
@@ -3348,6 +3400,23 @@ fn build_chat_tool_config() -> Result<ToolConfiguration, AppError> {
                     }
                 },
                 "required": ["limit"]
+            }),
+        )?,
+        build_one(
+            TOOL_ASK_CLARIFICATION,
+            "Ask the user to choose between 2–4 concrete options when their request is genuinely ambiguous — e.g. \"past month\" could mean this month so far, all of last month, or the last 30 days. Write your one-line question as your normal text reply AND call this tool with the option labels; the user gets tappable buttons and their tap becomes the next message. Use ONLY when you truly cannot tell which they mean — never for clear requests. Do NOT call any other (data) tool in the same turn; wait for their pick.",
+            json!({
+                "type": "object",
+                "properties": {
+                    "options": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "minItems": 2,
+                        "maxItems": 4,
+                        "description": "Short tappable labels, e.g. [\"This month so far\", \"All of last month\", \"Last 30 days\"]. Each becomes a button; tapping sends that exact text as the user's next message."
+                    }
+                },
+                "required": ["options"]
             }),
         )?,
     ];
