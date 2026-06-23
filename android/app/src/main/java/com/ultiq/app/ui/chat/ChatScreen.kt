@@ -252,12 +252,18 @@ fun ChatScreen(
 private fun LazyItemScope.AnimatedTurn(content: @Composable () -> Unit) {
     Box(
         modifier = Modifier.animateItem(
-            fadeInSpec = tween(durationMillis = 240),
+            fadeInSpec = tween(durationMillis = 200),
+            // No-bounce, snappier placement: a bouncy overshoot let an item
+            // briefly overlap its neighbour while the list reflowed (new
+            // assistant / tool / chip turns pushing things down) — which is
+            // what made any residual "ghost bubble" linger behind the reply.
+            // The stable clientKey already removes the optimistic→server
+            // re-key; this removes the overlap window too.
             placementSpec = spring(
-                stiffness = Spring.StiffnessMediumLow,
-                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessMedium,
+                dampingRatio = Spring.DampingRatioNoBouncy,
             ),
-            fadeOutSpec = tween(durationMillis = 120),
+            fadeOutSpec = tween(durationMillis = 80),
         ),
     ) { content() }
 }
