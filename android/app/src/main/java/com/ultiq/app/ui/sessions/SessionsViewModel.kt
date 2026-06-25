@@ -15,6 +15,7 @@ import com.ultiq.app.data.repository.SessionRepository
 import com.ultiq.app.data.achievements.AchievementChecker
 import com.ultiq.app.service.FocusTrackingService
 import com.ultiq.app.service.SleepTrackingService
+import com.ultiq.app.ui.sleep.TimeRange
 import com.ultiq.app.util.PhoneUsageTracker
 import com.ultiq.app.util.TokenManager
 import com.ultiq.app.util.UserPreferences
@@ -53,6 +54,10 @@ data class SessionsUiState(
     val phonePickups: Int = 0,
     val todayStats: TodayStats? = null,
     val recentSessions: List<SessionEntity> = emptyList(),
+    /// §focus-period — Week/Month toggle for the recent-sessions list,
+    /// mirroring the Sleep tab. The list is grouped into This/Last week or
+    /// This/Last month sections in the screen.
+    val selectedTimeRange: TimeRange = TimeRange.WEEK,
     /** Resolved checklist titles for sessions that linked a task — keyed by checklistItemId. */
     val checklistTitleById: Map<String, String> = emptyMap(),
     val hasUsagePermission: Boolean = false,
@@ -308,6 +313,14 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
 
     fun openUsageSettings() {
         usageTracker.openPermissionSettings()
+    }
+
+    /// §focus-period — Switch the recent-sessions window between Week and
+    /// Month. Pure UI state: the list is grouped client-side in the screen
+    /// (we already hold every completed session in memory for the stats +
+    /// streak), so unlike SleepViewModel there's no re-query to fire.
+    fun setTimeRange(range: TimeRange) {
+        _uiState.value = _uiState.value.copy(selectedTimeRange = range)
     }
 
     private fun loadSessionsAndStats() {

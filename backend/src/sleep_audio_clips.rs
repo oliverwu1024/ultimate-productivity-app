@@ -10,8 +10,8 @@
 //! 3. Phone POSTs the object key + duration back to attach the clip to the
 //!    sleep_audio_events row.
 //! 4. Playback (Android list, web dashboard) asks for a presigned GET URL.
-//! 5. S3 lifecycle rule auto-deletes objects after 7 days, matching the
-//!    user-facing retention promise.
+//! 5. S3 lifecycle rule auto-deletes objects after 30 days (the bucket's
+//!    `expire-after-30-days` rule on the `u/` prefix).
 //!
 //! Security:
 //! - Pro-tier check on every route (currently uses is_admin as the stand-in;

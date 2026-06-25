@@ -192,7 +192,7 @@ fun SleepSettingsScreen(
                 SwitchCard(
                     icon = Icons.Default.RecordVoiceOver,
                     title = "Detect sleep-talk",
-                    description = "Adds YAMNet's Speech class — off by default. " +
+                    description = "Also listens for speech — off by default. " +
                         "Higher false-positive rate than snore/cough; consider " +
                         "leaving off if you sleep with the TV on.",
                     checked = settings.sleepTalkDetectionEnabled,
@@ -252,7 +252,11 @@ fun SleepSettingsScreen(
                     )
                 }
             }
-            item { AudioInitStatusCard() }
+            // §debug-card — Hidden from the user-facing Sleep Preferences
+            // page. It's a developer diagnostic that can surface raw init
+            // status like "Loading YAMNet model…". Kept in code (just not
+            // rendered) so it's a one-line re-enable when debugging audio.
+            // item { AudioInitStatusCard() }
         }
     }
 }
@@ -343,6 +347,7 @@ private fun SleepAudioRecordingMasterToggle(
  *  attempt. Surfaces the same information that adb logcat would, but
  *  on the phone itself so users can read it without a USB cable. Updates
  *  live as the next sleep session goes through the init path. */
+@Suppress("unused") // §debug-card — call site commented out above; kept for re-enable.
 @Composable
 private fun AudioInitStatusCard() {
     val status by AudioInitStatus.current.collectAsState()
