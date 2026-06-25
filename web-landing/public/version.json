@@ -1,6 +1,6 @@
 {
-  "versionCode": 121,
-  "versionName": "2.17.8",
-  "url": "https://ultiqapp.com/ultiq.2.17.8.apk",
-  "releaseNotes": "Fixes a Coach bug where picking a time-range option (or asking about a period like \"how's my past month\") could show a \"server error\" — those answers take a little longer to load and the app was giving up too soon. Also smooths out a chat-bubble animation glitch."
+  "versionCode": 122,
+  "versionName": "2.17.9",
+  "url": "https://ultiqapp.com/ultiq.2.17.9.apk",
+  "releaseNotes": "Your focus session history now groups by Week and Month — switch between This week / Last week and This month / Last month, just like the Sleep tab. Also tidies up some wording on the Sleep Preferences screen."
 }

@@ -1,6 +1,7 @@
 package com.ultiq.app.ui.sessions
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -56,6 +57,8 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -83,13 +86,15 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ultiq.app.data.local.entity.SessionEntity
 import com.ultiq.app.ui.common.MascotEmptyState
 import com.ultiq.app.ui.copy.WarmCopy
+import com.ultiq.app.ui.sleep.TimeRange
 import com.ultiq.app.ui.theme.AnimatedAppear
 import androidx.compose.material.icons.filled.SelfImprovement
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun SessionsScreen(
     onOpenFocusSettings: () -> Unit = {},
@@ -196,33 +201,84 @@ fun SessionsScreen(
                     MascotEmptyState(title = title, body = body)
                 }
             } else if (uiState.recentSessions.isNotEmpty()) {
-                item(key = "recent-header") {
-                    Text(
-                        "Recent sessions",
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
-                    )
+                // §focus-period — Week/Month toggle mirroring the Sleep tab.
+                // Sticks to the top while the timer + controls scroll away.
+                stickyHeader(key = "session-tabs") {
+                    val selectedTab = if (uiState.selectedTimeRange == TimeRange.WEEK) 0 else 1
+                    TabRow(
+                        selectedTabIndex = selectedTab,
+                        modifier = Modifier.background(MaterialTheme.colorScheme.background),
+                    ) {
+                        Tab(
+                            selected = selectedTab == 0,
+                            onClick = { viewModel.setTimeRange(TimeRange.WEEK) },
+                            text = { Text("Week") },
+                        )
+                        Tab(
+                            selected = selectedTab == 1,
+                            onClick = { viewModel.setTimeRange(TimeRange.MONTH) },
+                            text = { Text("Month") },
+                        )
+                    }
                 }
-                items(uiState.recentSessions, key = { it.id }) { session ->
-                    SessionItem(
-                        session = session,
-                        checklistTitle = session.checklistItemId
-                            ?.let { uiState.checklistTitleById[it] },
-                        onDelete = { viewModel.deletePastSession(session.id) },
-                        // §v2.16.18 — Pickup timeline detail. The
-                        // expansion calls fetchRecordDetails(id) which
-                        // starts a Flow subscription, so the timeline
-                        // appears immediately from local Room and
-                        // refreshes when the network upload lands.
-                        details = uiState.recordDetails[session.id],
-                        onExpand = { viewModel.fetchRecordDetails(session.id) },
-                        modifier = Modifier
-                            .padding(horizontal = 16.dp)
-                            .animateItem(),
-                    )
+
+                // §focus-period — group completed sessions into calendar
+                // buckets ("This week / Last week" or "This month / Last
+                // month") for the selected range. Sessions outside the window
+                // are dropped from view — switch range to see older ones,
+                // same as the Sleep tab.
+                val sections = groupSessionsByPeriod(
+                    uiState.recentSessions,
+                    uiState.selectedTimeRange,
+                )
+                if (sections.isEmpty()) {
+                    item(key = "empty-range") {
+                        val periodLabel = if (uiState.selectedTimeRange == TimeRange.WEEK) {
+                            "this week or last week"
+                        } else {
+                            "this month or last month"
+                        }
+                        Text(
+                            "No focus sessions $periodLabel.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 24.dp, vertical = 24.dp),
+                        )
+                    }
+                } else {
+                    sections.forEach { (header, sessions) ->
+                        item(key = "sec-$header") {
+                            Text(
+                                header,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(start = 20.dp, top = 16.dp, bottom = 4.dp),
+                            )
+                        }
+                        items(sessions, key = { it.id }) { session ->
+                            SessionItem(
+                                session = session,
+                                checklistTitle = session.checklistItemId
+                                    ?.let { uiState.checklistTitleById[it] },
+                                onDelete = { viewModel.deletePastSession(session.id) },
+                                // §v2.16.18 — Pickup timeline detail. The
+                                // expansion calls fetchRecordDetails(id) which
+                                // starts a Flow subscription, so the timeline
+                                // appears immediately from local Room and
+                                // refreshes when the network upload lands.
+                                details = uiState.recordDetails[session.id],
+                                onExpand = { viewModel.fetchRecordDetails(session.id) },
+                                modifier = Modifier
+                                    .padding(horizontal = 16.dp)
+                                    .animateItem(),
+                            )
+                        }
+                    }
                 }
                 item(key = "bottom-spacer") {
                     Spacer(modifier = Modifier.height(16.dp))
@@ -260,6 +316,49 @@ fun SessionsScreen(
 
     // v2.13.3 — Removed AchievementCelebration dialog. Achievements still
     // record silently; the user reviews them in Settings → Achievements.
+}
+
+/// §focus-period — Partition completed focus sessions into two named
+/// calendar buckets for the recent-sessions list, mirroring the Sleep tab's
+/// groupRecordsByPeriod:
+///   - Week  → "This week" (Mon..today) + "Last week" (prev Mon..Sun)
+///   - Month → "This month" (1st..today) + "Last month" (full prev month)
+/// Sessions outside the selected window are omitted; empty buckets are
+/// dropped so a brand-new account never sees an empty "Last week" header.
+/// Bucketing is by the session's start date in the device's local zone.
+private fun groupSessionsByPeriod(
+    sessions: List<SessionEntity>,
+    range: TimeRange,
+): List<Pair<String, List<SessionEntity>>> {
+    val zone = ZoneId.systemDefault()
+    val today = LocalDate.now(zone)
+    fun dayOf(s: SessionEntity): LocalDate =
+        Instant.ofEpochMilli(s.startedAt).atZone(zone).toLocalDate()
+
+    return when (range) {
+        TimeRange.WEEK -> {
+            val mondayOfThisWeek = today.minusDays(today.dayOfWeek.value.toLong() - 1)
+            val mondayOfLastWeek = mondayOfThisWeek.minusWeeks(1)
+            val sundayOfLastWeek = mondayOfThisWeek.minusDays(1)
+            val thisWeek = sessions.filter { val d = dayOf(it); !d.isBefore(mondayOfThisWeek) && !d.isAfter(today) }
+            val lastWeek = sessions.filter { val d = dayOf(it); !d.isBefore(mondayOfLastWeek) && !d.isAfter(sundayOfLastWeek) }
+            listOfNotNull(
+                "This week".takeIf { thisWeek.isNotEmpty() }?.let { it to thisWeek },
+                "Last week".takeIf { lastWeek.isNotEmpty() }?.let { it to lastWeek },
+            )
+        }
+        TimeRange.MONTH -> {
+            val firstOfThisMonth = today.withDayOfMonth(1)
+            val firstOfLastMonth = firstOfThisMonth.minusMonths(1)
+            val lastOfLastMonth = firstOfThisMonth.minusDays(1)
+            val thisMonth = sessions.filter { val d = dayOf(it); !d.isBefore(firstOfThisMonth) && !d.isAfter(today) }
+            val lastMonth = sessions.filter { val d = dayOf(it); !d.isBefore(firstOfLastMonth) && !d.isAfter(lastOfLastMonth) }
+            listOfNotNull(
+                "This month".takeIf { thisMonth.isNotEmpty() }?.let { it to thisMonth },
+                "Last month".takeIf { lastMonth.isNotEmpty() }?.let { it to lastMonth },
+            )
+        }
+    }
 }
 
 @Composable

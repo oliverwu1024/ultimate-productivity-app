@@ -428,7 +428,7 @@ async fn clip_bytes(
 /// Delete a single clip (keeps the detection event row). S3 deletion is
 /// best-effort: if it fails we still NULL the columns so the row no longer
 /// points at an unreachable object, and the lifecycle rule will clean up
-/// the orphan within 7 days. Idempotent — a second call on an already-NULL
+/// the orphan within 30 days. Idempotent — a second call on an already-NULL
 /// row 204s rather than 404s.
 async fn delete_clip(
     State(state): State<AppState>,
