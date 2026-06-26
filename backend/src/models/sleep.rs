@@ -15,6 +15,10 @@ pub struct SleepRecord {
     pub phone_pickups: i32,
     pub total_phone_minutes: Option<i32>,
     pub notes: Option<String>,
+    /// §tz-anchor — IANA timezone the record was logged in. Display/AI render
+    /// its wall-clock using this, not the user's current tz, so a past sleep
+    /// keeps its original time after the user travels. NULL → current tz.
+    pub recorded_tz: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

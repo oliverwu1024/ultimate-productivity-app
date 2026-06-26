@@ -243,7 +243,7 @@ async fn aggregate_week(pool: &PgPool, user_id: Uuid) -> Result<WeekSummary, App
     let sleep: (Option<i64>, Option<f64>, Option<f64>, Option<i64>, Option<i64>) =
         sqlx::query_as(
             "SELECT
-                COUNT(DISTINCT DATE((actual_bedtime - INTERVAL '6 hours') AT TIME ZONE $3))::BIGINT,
+                COUNT(DISTINCT DATE((actual_bedtime - INTERVAL '6 hours') AT TIME ZONE COALESCE(recorded_tz, $3)))::BIGINT,
                 AVG(EXTRACT(EPOCH FROM (actual_wake_time - actual_bedtime))/60.0)::DOUBLE PRECISION,
                 AVG(quality_rating)::DOUBLE PRECISION,
                 COUNT(*) FILTER (
@@ -2076,7 +2076,7 @@ async fn aggregate_daily(pool: &PgPool, user_id: Uuid) -> Result<Vec<DailyMetric
     let sleep: Vec<(chrono::NaiveDate, Option<f64>, Option<f64>, Option<i64>)> =
         sqlx::query_as(
             "SELECT
-                DATE((actual_bedtime - INTERVAL '6 hours') AT TIME ZONE $4) AS day,
+                DATE((actual_bedtime - INTERVAL '6 hours') AT TIME ZONE COALESCE(recorded_tz, $4)) AS day,
                 AVG(EXTRACT(EPOCH FROM (actual_wake_time - actual_bedtime))/60.0)::DOUBLE PRECISION,
                 AVG(quality_rating)::DOUBLE PRECISION,
                 COALESCE(SUM(phone_pickups), 0)::BIGINT
@@ -2094,7 +2094,7 @@ async fn aggregate_daily(pool: &PgPool, user_id: Uuid) -> Result<Vec<DailyMetric
     // Per-day focus minutes (grouped by user-local started_at date).
     let focus: Vec<(chrono::NaiveDate, Option<i64>)> = sqlx::query_as(
         "SELECT
-            DATE(started_at AT TIME ZONE $3) AS day,
+            DATE(started_at AT TIME ZONE COALESCE(recorded_tz, $3)) AS day,
             COALESCE(SUM(duration_minutes) FILTER (WHERE completed), 0)::BIGINT
          FROM productivity_sessions
          WHERE user_id = $1 AND started_at >= $2::DATE
@@ -3468,6 +3468,18 @@ fn coach_local(dt: &DateTime<Utc>, tz: &chrono_tz::Tz) -> DateTime<chrono_tz::Tz
     dt.with_timezone(tz)
 }
 
+/// §tz-anchor — the tz a sleep/session row should render in: its own
+/// `recorded_tz` (the zone it was logged in) if present, else the request-level
+/// fallback (the user's current tz). Keeps a past record's wall-clock stable
+/// after the user moves zones.
+#[inline]
+fn anchor_tz(recorded: &Option<String>, fallback: chrono_tz::Tz) -> chrono_tz::Tz {
+    recorded
+        .as_deref()
+        .map(crate::tz::parse_tz)
+        .unwrap_or(fallback)
+}
+
 async fn build_context_card(
     pool: &PgPool,
     user_id: Uuid,
@@ -3494,7 +3506,7 @@ async fn build_context_card(
     // LEFT JOIN keeps nights with audio tracking off (or no events) showing
     // up as zero counts rather than vanishing. Aggregated per sleep_record
     // so the resulting row count stays at 3.
-    let sleep_rows: Vec<(DateTime<Utc>, DateTime<Utc>, i16, i32, i64, i64, i64)> = sqlx::query_as(
+    let sleep_rows: Vec<(DateTime<Utc>, DateTime<Utc>, i16, i32, i64, i64, i64, Option<String>)> = sqlx::query_as(
         "SELECT
              sr.actual_bedtime,
              sr.actual_wake_time,
@@ -3502,12 +3514,13 @@ async fn build_context_card(
              sr.phone_pickups,
              COALESCE(SUM(CASE WHEN sae.event_type = 'snore' THEN 1 ELSE 0 END), 0)::BIGINT,
              COALESCE(SUM(CASE WHEN sae.event_type = 'cough' THEN 1 ELSE 0 END), 0)::BIGINT,
-             COALESCE(SUM(CASE WHEN sae.event_type = 'sleep_talk' THEN 1 ELSE 0 END), 0)::BIGINT
+             COALESCE(SUM(CASE WHEN sae.event_type = 'sleep_talk' THEN 1 ELSE 0 END), 0)::BIGINT,
+             sr.recorded_tz
            FROM sleep_records sr
            LEFT JOIN sleep_audio_events sae
              ON sae.sleep_record_id = sr.id AND sae.user_id = sr.user_id
           WHERE sr.user_id = $1
-          GROUP BY sr.id, sr.actual_bedtime, sr.actual_wake_time, sr.quality_rating, sr.phone_pickups
+          GROUP BY sr.id, sr.actual_bedtime, sr.actual_wake_time, sr.quality_rating, sr.phone_pickups, sr.recorded_tz
           ORDER BY sr.actual_bedtime DESC
           LIMIT 3",
     )
@@ -3569,7 +3582,8 @@ async fn build_context_card(
     if sleep_rows.is_empty() {
         out.push_str("(no sleep records yet)\n");
     } else {
-        for (bedtime, wake, quality, pickups, snore, cough, sleep_talk) in &sleep_rows {
+        for (bedtime, wake, quality, pickups, snore, cough, sleep_talk, rtz) in &sleep_rows {
+            let z = anchor_tz(rtz, tz);
             let minutes = wake.signed_duration_since(*bedtime).num_minutes().max(0);
             let h = minutes / 60;
             let m = minutes % 60;
@@ -3586,8 +3600,8 @@ async fn build_context_card(
             };
             out.push_str(&format!(
                 "- {} → {} ({}h{:02}, quality {}, {} pickups{})\n",
-                coach_local(bedtime, &tz).format("%Y-%m-%d %H:%M"),
-                coach_local(wake, &tz).format("%H:%M"),
+                coach_local(bedtime, &z).format("%Y-%m-%d %H:%M"),
+                coach_local(wake, &z).format("%H:%M"),
                 h,
                 m,
                 quality,
@@ -3761,17 +3775,18 @@ async fn handle_get_sleep_history(
             .await
             .map_err(|e| format!("db error: {}", e.message))?,
     );
-    let rows: Vec<(Uuid, DateTime<Utc>, DateTime<Utc>, i16, i32, i64, i64, i64)> = sqlx::query_as(
+    let rows: Vec<(Uuid, DateTime<Utc>, DateTime<Utc>, i16, i32, i64, i64, i64, Option<String>)> = sqlx::query_as(
         "SELECT
              sr.id, sr.actual_bedtime, sr.actual_wake_time, sr.quality_rating, sr.phone_pickups,
              COALESCE(SUM(CASE WHEN sae.event_type = 'snore'      THEN 1 ELSE 0 END), 0)::BIGINT,
              COALESCE(SUM(CASE WHEN sae.event_type = 'cough'      THEN 1 ELSE 0 END), 0)::BIGINT,
-             COALESCE(SUM(CASE WHEN sae.event_type = 'sleep_talk' THEN 1 ELSE 0 END), 0)::BIGINT
+             COALESCE(SUM(CASE WHEN sae.event_type = 'sleep_talk' THEN 1 ELSE 0 END), 0)::BIGINT,
+             sr.recorded_tz
            FROM sleep_records sr
            LEFT JOIN sleep_audio_events sae
              ON sae.sleep_record_id = sr.id AND sae.user_id = sr.user_id
           WHERE sr.user_id = $1 AND sr.actual_bedtime >= $2
-          GROUP BY sr.id, sr.actual_bedtime, sr.actual_wake_time, sr.quality_rating, sr.phone_pickups
+          GROUP BY sr.id, sr.actual_bedtime, sr.actual_wake_time, sr.quality_rating, sr.phone_pickups, sr.recorded_tz
           ORDER BY sr.actual_bedtime DESC",
     )
     .bind(user_id)
@@ -3781,12 +3796,13 @@ async fn handle_get_sleep_history(
     .map_err(|e| format!("db error: {}", e))?;
     let serializable: Vec<_> = rows
         .iter()
-        .map(|(id, bed, wake, q, p, snore, cough, sleep_talk)| {
+        .map(|(id, bed, wake, q, p, snore, cough, sleep_talk, rtz)| {
+            let z = anchor_tz(rtz, tz);
             let mins = wake.signed_duration_since(*bed).num_minutes().max(0);
             json!({
                 "id": id,
-                "bedtime": coach_local(bed, &tz).to_rfc3339(),
-                "wake_time": coach_local(wake, &tz).to_rfc3339(),
+                "bedtime": coach_local(bed, &z).to_rfc3339(),
+                "wake_time": coach_local(wake, &z).to_rfc3339(),
                 "duration_minutes": mins,
                 "quality": q,
                 "phone_pickups": p,
@@ -3875,11 +3891,24 @@ async fn handle_get_sleep_audio_events(
     }
     let total_for_filter: i64 = total_rows.iter().map(|(_, c)| *c).sum();
 
-    let tz = crate::tz::parse_tz(
-        &crate::tz::fetch_user_tz(&state.pool, user_id)
+    // §tz-anchor — render event times in the NIGHT's recording tz (the parent
+    // sleep_record's recorded_tz), falling back to the user's current tz.
+    let night_tz: Option<String> = sqlx::query_scalar::<_, Option<String>>(
+        "SELECT recorded_tz FROM sleep_records WHERE id = $1 AND user_id = $2",
+    )
+    .bind(record_id)
+    .bind(user_id)
+    .fetch_optional(&state.pool)
+    .await
+    .map_err(|e| format!("db error: {}", e))?
+    .flatten();
+    let tz_str = match night_tz {
+        Some(t) => t,
+        None => crate::tz::fetch_user_tz(&state.pool, user_id)
             .await
             .map_err(|e| format!("db error: {}", e.message))?,
-    );
+    };
+    let tz = crate::tz::parse_tz(&tz_str);
     let event_rows: Vec<(String, DateTime<Utc>, DateTime<Utc>, f32)> = sqlx::query_as(
         "SELECT event_type, started_at, ended_at, peak_confidence
            FROM sleep_audio_events
@@ -4045,8 +4074,9 @@ async fn handle_get_focus_session_detail(
         i32,
         Option<String>,
         Option<String>,
+        Option<String>,
     )> = sqlx::query_as(
-        "SELECT id, started_at, duration_minutes, phone_pickups, debrief, debrief_tag
+        "SELECT id, started_at, duration_minutes, phone_pickups, debrief, debrief_tag, recorded_tz
            FROM productivity_sessions
           WHERE user_id = $1 AND completed = TRUE
           ORDER BY started_at DESC
@@ -4059,10 +4089,11 @@ async fn handle_get_focus_session_detail(
     .map_err(|e| format!("db error: {}", e))?;
     let serializable: Vec<_> = rows
         .iter()
-        .map(|(id, started_at, duration, pickups, debrief, tag)| {
+        .map(|(id, started_at, duration, pickups, debrief, tag, rtz)| {
+            let z = anchor_tz(rtz, tz);
             json!({
                 "id": id,
-                "started_at": coach_local(started_at, &tz).to_rfc3339(),
+                "started_at": coach_local(started_at, &z).to_rfc3339(),
                 "duration_minutes": duration,
                 "phone_pickups": pickups,
                 "debrief": debrief,
@@ -4478,12 +4509,17 @@ async fn handle_log_sleep_record(
     .map_err(|e| format!("db error reading prefs: {}", e))?;
     let (target_bedtime, target_wake_time) = extract_sleep_targets(prefs.as_ref());
 
+    // §tz-anchor — stamp the recording tz (current tz at log time) so the
+    // logged night keeps its wall-clock after a move; reused for the title below.
+    let recorded_tz = crate::tz::fetch_user_tz(&state.pool, user_id)
+        .await
+        .map_err(|e| format!("db error: {}", e.message))?;
     let record: crate::models::sleep::SleepRecord = sqlx::query_as(
         "INSERT INTO sleep_records
             (user_id, target_bedtime, target_wake_time,
              actual_bedtime, actual_wake_time, quality_rating,
-             phone_pickups, total_phone_minutes, notes)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, NULL, $8)
+             phone_pickups, total_phone_minutes, notes, recorded_tz)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, NULL, $8, $9)
          RETURNING *",
     )
     .bind(user_id)
@@ -4494,6 +4530,7 @@ async fn handle_log_sleep_record(
     .bind(quality_rating)
     .bind(phone_pickups)
     .bind(notes.as_deref())
+    .bind(&recorded_tz)
     .fetch_one(&state.pool)
     .await
     .map_err(|e| format!("db error: {}", e))?;
@@ -4502,11 +4539,7 @@ async fn handle_log_sleep_record(
         .events
         .publish(user_id, crate::event_bus::SyncEvent::SleepCreated(record.clone()));
 
-    let tz = crate::tz::parse_tz(
-        &crate::tz::fetch_user_tz(&state.pool, user_id)
-            .await
-            .map_err(|e| format!("db error: {}", e.message))?,
-    );
+    let tz = crate::tz::parse_tz(&recorded_tz);
     let minutes = actual_wake_time.signed_duration_since(actual_bedtime).num_minutes().max(0);
     let h = minutes / 60;
     let m = minutes % 60;
@@ -4715,17 +4748,18 @@ async fn handle_get_sleep_period(
             .await
             .map_err(|e| format!("db error: {}", e.message))?,
     );
-    let rows: Vec<(Uuid, chrono::DateTime<Utc>, chrono::DateTime<Utc>, i16, i32, i64, i64, i64)> = sqlx::query_as(
+    let rows: Vec<(Uuid, chrono::DateTime<Utc>, chrono::DateTime<Utc>, i16, i32, i64, i64, i64, Option<String>)> = sqlx::query_as(
         "SELECT
              sr.id, sr.actual_bedtime, sr.actual_wake_time, sr.quality_rating, sr.phone_pickups,
              COALESCE(SUM(CASE WHEN sae.event_type = 'snore'      THEN 1 ELSE 0 END), 0)::BIGINT,
              COALESCE(SUM(CASE WHEN sae.event_type = 'cough'      THEN 1 ELSE 0 END), 0)::BIGINT,
-             COALESCE(SUM(CASE WHEN sae.event_type = 'sleep_talk' THEN 1 ELSE 0 END), 0)::BIGINT
+             COALESCE(SUM(CASE WHEN sae.event_type = 'sleep_talk' THEN 1 ELSE 0 END), 0)::BIGINT,
+             sr.recorded_tz
            FROM sleep_records sr
            LEFT JOIN sleep_audio_events sae
              ON sae.sleep_record_id = sr.id AND sae.user_id = sr.user_id
           WHERE sr.user_id = $1 AND sr.actual_bedtime >= $2 AND sr.actual_bedtime <= $3
-          GROUP BY sr.id, sr.actual_bedtime, sr.actual_wake_time, sr.quality_rating, sr.phone_pickups
+          GROUP BY sr.id, sr.actual_bedtime, sr.actual_wake_time, sr.quality_rating, sr.phone_pickups, sr.recorded_tz
           ORDER BY sr.actual_bedtime DESC",
     )
     .bind(user_id)
@@ -4737,27 +4771,28 @@ async fn handle_get_sleep_period(
     let count = rows.len();
     let total_minutes: i64 = rows
         .iter()
-        .map(|(_, b, w, _, _, _, _, _)| w.signed_duration_since(*b).num_minutes().max(0))
+        .map(|(_, b, w, _, _, _, _, _, _)| w.signed_duration_since(*b).num_minutes().max(0))
         .sum();
     let avg_minutes: i64 = if count > 0 { total_minutes / count as i64 } else { 0 };
     let avg_quality: f64 = if count > 0 {
-        rows.iter().map(|(_, _, _, q, _, _, _, _)| *q as f64).sum::<f64>() / count as f64
+        rows.iter().map(|(_, _, _, q, _, _, _, _, _)| *q as f64).sum::<f64>() / count as f64
     } else {
         0.0
     };
     // Period-level audio totals so the model can answer "how much did I snore
     // last month" without paging the per-night rows.
-    let snore_total: i64 = rows.iter().map(|(_, _, _, _, _, s, _, _)| *s).sum();
-    let cough_total: i64 = rows.iter().map(|(_, _, _, _, _, _, c, _)| *c).sum();
-    let sleep_talk_total: i64 = rows.iter().map(|(_, _, _, _, _, _, _, t)| *t).sum();
+    let snore_total: i64 = rows.iter().map(|(_, _, _, _, _, s, _, _, _)| *s).sum();
+    let cough_total: i64 = rows.iter().map(|(_, _, _, _, _, _, c, _, _)| *c).sum();
+    let sleep_talk_total: i64 = rows.iter().map(|(_, _, _, _, _, _, _, t, _)| *t).sum();
     let serializable: Vec<_> = rows
         .iter()
-        .map(|(id, bed, wake, q, p, snore, cough, sleep_talk)| {
+        .map(|(id, bed, wake, q, p, snore, cough, sleep_talk, rtz)| {
+            let z = anchor_tz(rtz, tz);
             let mins = wake.signed_duration_since(*bed).num_minutes().max(0);
             json!({
                 "id": id,
-                "bedtime": coach_local(bed, &tz).to_rfc3339(),
-                "wake_time": coach_local(wake, &tz).to_rfc3339(),
+                "bedtime": coach_local(bed, &z).to_rfc3339(),
+                "wake_time": coach_local(wake, &z).to_rfc3339(),
                 "duration_minutes": mins,
                 "quality": q,
                 "phone_pickups": p,
