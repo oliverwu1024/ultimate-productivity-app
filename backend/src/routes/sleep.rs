@@ -85,11 +85,15 @@ async fn create(
     // path returns the existing row, and the catch chain is bounded.
     let supplied_id = input.id.unwrap_or_else(Uuid::new_v4);
 
+    // §tz-anchor — stamp the record with the user's tz at logging time, so
+    // its wall-clock survives a later move. At creation the user's current
+    // tz IS the recording tz.
+    let recorded_tz = crate::tz::fetch_user_tz(&state.pool, user_id).await?;
     let inserted = sqlx::query_as::<_, SleepRecord>(
         "INSERT INTO sleep_records
             (id, user_id, target_bedtime, target_wake_time, actual_bedtime, actual_wake_time,
-             quality_rating, phone_pickups, total_phone_minutes, notes)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+             quality_rating, phone_pickups, total_phone_minutes, notes, recorded_tz)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
          ON CONFLICT (id) DO NOTHING
          RETURNING *",
     )
@@ -103,6 +107,7 @@ async fn create(
     .bind(input.phone_pickups)
     .bind(input.total_phone_minutes)
     .bind(&input.notes)
+    .bind(&recorded_tz)
     .fetch_optional(&state.pool)
     .await?;
 
@@ -422,7 +427,7 @@ async fn stats(
         // record belongs to (e.g. a Tue 02:00 bedtime shows as "Monday"
         // because that's the night it covers). Previously formatted the
         // raw UTC date, which was both timezone-wrong and bucket-wrong.
-        let day = crate::tz::sleep_day_for(r.actual_bedtime, &tz_str)
+        let day = crate::tz::sleep_day_for(r.actual_bedtime, r.recorded_tz.as_deref().unwrap_or(&tz_str))
             .format("%Y-%m-%d")
             .to_string();
         match &best {

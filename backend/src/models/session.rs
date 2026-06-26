@@ -20,6 +20,9 @@ pub struct ProductivitySession {
     pub debrief: Option<String>,
     /// §9.7 Haiku-assigned tag — `deep_work` | `meetings` | `admin` | `other`.
     pub debrief_tag: Option<String>,
+    /// §tz-anchor — IANA timezone the session was started in. Renders its
+    /// wall-clock independent of the user's current tz. NULL → current tz.
+    pub recorded_tz: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

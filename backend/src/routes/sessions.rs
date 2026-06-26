@@ -70,10 +70,12 @@ async fn create(
         ));
     }
 
+    // §tz-anchor — stamp the session's recording tz (current tz at start).
+    let recorded_tz = crate::tz::fetch_user_tz(&state.pool, user_id).await?;
     let session = sqlx::query_as::<_, ProductivitySession>(
         "INSERT INTO productivity_sessions
-            (user_id, tag, duration_minutes, work_duration, break_duration, started_at, checklist_item_id)
-         VALUES ($1, $2, 0, $3, $4, NOW(), $5)
+            (user_id, tag, duration_minutes, work_duration, break_duration, started_at, checklist_item_id, recorded_tz)
+         VALUES ($1, $2, 0, $3, $4, NOW(), $5, $6)
          RETURNING *",
     )
     .bind(user_id)
@@ -81,6 +83,7 @@ async fn create(
     .bind(input.work_duration)
     .bind(input.break_duration)
     .bind(input.checklist_item_id)
+    .bind(&recorded_tz)
     .fetch_one(&state.pool)
     .await?;
 
@@ -342,7 +345,7 @@ async fn stats(
     // streak. `started_at` is TIMESTAMPTZ stored as UTC; AT TIME ZONE
     // shifts it into the user's local clock before ::date truncation.
     let dates: Vec<NaiveDate> = sqlx::query_scalar(
-        "SELECT DISTINCT (started_at AT TIME ZONE $2)::date
+        "SELECT DISTINCT (started_at AT TIME ZONE COALESCE(recorded_tz, $2))::date
          FROM productivity_sessions
          WHERE user_id = $1 AND completed = true
          ORDER BY 1 DESC",
