@@ -543,6 +543,7 @@ HARD RULES (these are absolute, not preferences):
 5. Keep the whole response under 300 words.
 6. Do not invent app features that weren't named in the data card. The app tracks: sleep records, focus sessions, phone pickups, checklist items, calendar events. Don't reference "meditation streaks" or "mood logs."
 7. If a metric is 0 or missing, do not pretend it's data. Acknowledge the gap if it's relevant ("you logged no sleep this week, so quality patterns are hard to read").
+8. "Focus tag — untagged" means the user completed those focus sessions but skipped the optional debrief. They are still real, completed focus time — credit them fully. Treat the tagged percentages (e.g. deep_work) as a floor, not a ceiling: the user may simply not have labelled every deep session. Never imply untagged sessions were unfocused, wasted, or less valuable.
 
 TONE:
 - Direct. Warm but not gushing. Imagine a smart older friend who happens to have your data and respects your time.
@@ -2877,6 +2878,10 @@ const TOOL_CREATE_ALARM: &str = "create_alarm";
 /// "how did I sleep last week", the model should use these tools instead.
 const TOOL_GET_SLEEP_PERIOD: &str = "get_sleep_period";
 const TOOL_GET_FOCUS_PERIOD: &str = "get_focus_period";
+// §audio-times — per-event snore/cough/sleep-talk timestamps for ONE night.
+// The history/period tools carry the COUNTS ("how much"); this carries the
+// TIMES ("when did I cough"), keyed by the sleep_record_id those tools return.
+const TOOL_GET_SLEEP_AUDIO_EVENTS: &str = "get_sleep_audio_events";
 // §9.7 / 2026-06-06 — Per-session detail tool so the model can see what
 // the user actually wrote in the debrief ("polished slides", "ran lab
 // stats") and the per-session pickup count without us bloating the
@@ -2926,11 +2931,12 @@ YOU HAVE TOOLS. USE THEM.
 
 Read tools (look at the user's actual data):
 - get_today_summary — refreshes the snapshot at the top of this turn. Use only when you've just completed a write and want to confirm the new state. Otherwise, the snapshot at the top of the user message is already fresh.
-- get_sleep_history(days) — last N nights with bedtime, wake, duration, quality (1..5), and phone pickups. This is a ROLLING N-day window — NOT the same as "last week" or "this month". For named calendar periods, use get_sleep_period.
-- get_sleep_period(period) — calendar-period sleep stats + records. Period ∈ {this_week, last_week, this_month, last_month}. ALWAYS use this when the user names a calendar period ("how did I sleep last week", "this month's sleep", etc.). Returns count + averages + the actual nights; if zero records, returns a friendly note (not an error).
+- get_sleep_history(days) — last N nights with bedtime, wake, duration, quality (1..5), phone pickups, AND the on-device snore/cough/sleep-talk episode counts per night. This is a ROLLING N-day window — NOT the same as "last week" or "this month". For named calendar periods, use get_sleep_period.
+- get_sleep_period(period) — calendar-period sleep stats + records, including total snore/cough/sleep-talk episodes for the period. Period ∈ {this_week, last_week, this_month, last_month}. ALWAYS use this when the user names a calendar period ("how did I sleep last week", "this month's sleep", etc.). Returns count + averages + the actual nights; if zero records, returns a friendly note (not an error).
+- get_sleep_audio_events(sleep_record_id, event_type?) — per-event TIMES for one night's snore/cough/sleep-talk (started_at/ended_at + confidence). Use for "what times did I cough last night" / "when did I snore". Pass the sleep_record_id (the `id` from get_sleep_history, get_sleep_period, or the snapshot's sleep rows), optionally an event_type to filter. Counts ("how MUCH did I snore over a week/month") come from get_sleep_history / get_sleep_period — use this one for WHEN within a single night.
 - get_focus_history(days) — rolling N-day focus history. Per-day rollup only — counts + total minutes.
 - get_focus_period(period) — calendar-period focus stats. Same rule as get_sleep_period: USE THIS when the user names a calendar period.
-- get_focus_session_detail(limit) — per-session detail for the N most recent completed sessions: duration, phone pickups during the session, what the user said they worked on (debrief), and the auto-classified debrief tag. USE THIS when the user asks "what did I work on", "how distracted was that session", or wants commentary on specific sessions — get_focus_history only gives per-day totals.
+- get_focus_session_detail(limit) — per-session detail for the N most recent completed sessions: duration, phone pickups during the session, what the user said they worked on (debrief), and the auto-classified debrief tag. USE THIS when the user asks "what did I work on", "how distracted was that session", or wants commentary on specific sessions — get_focus_history only gives per-day totals. A null/"untagged" debrief_tag just means the user completed that session but skipped the optional debrief — it's still genuine, completed focus time. Count it fully; never dismiss or under-credit untagged sessions, and don't treat a low deep_work share as proof the rest wasn't focused work.
 - get_calendar_events(start_date, end_date) — events in a date range. Range capped at 90 days.
 - get_checklist(date) — checklist items due on a specific day. Each item includes its id so you can complete it.
 
@@ -3259,15 +3265,15 @@ fn build_chat_tool_config() -> Result<ToolConfiguration, AppError> {
         )?,
         build_one(
             TOOL_GET_SLEEP_HISTORY,
-            "Fetch the user's sleep records for the last N nights (1..=60 — use 60 for a roughly-two-month view). Each row has bedtime, wake time, duration in minutes, quality rating (1..5), and phone pickups during the sleep window.",
+            "Fetch the user's sleep records for the last N nights (1..=90 — use 90 for a roughly-three-month view). Each row has bedtime, wake time, duration in minutes, quality rating (1..5), phone pickups, AND the on-device snore / cough / sleep-talk episode COUNTS for that night.",
             json!({
                 "type": "object",
                 "properties": {
                     "days": {
                         "type": "integer",
                         "minimum": 1,
-                        "maximum": 60,
-                        "description": "How many days of sleep history to fetch. Cap is 60 — use a higher value for trend questions, smaller for recent recall."
+                        "maximum": 90,
+                        "description": "How many days of sleep history to fetch. Cap is 90 — use a higher value for trend questions, smaller for recent recall."
                     }
                 },
                 "required": ["days"]
@@ -3275,15 +3281,15 @@ fn build_chat_tool_config() -> Result<ToolConfiguration, AppError> {
         )?,
         build_one(
             TOOL_GET_FOCUS_HISTORY,
-            "Fetch the user's focus-session activity for the last N days (1..=60). Returns per-day completed-session count and total focused minutes.",
+            "Fetch the user's focus-session activity for the last N days (1..=90). Returns per-day completed-session count and total focused minutes.",
             json!({
                 "type": "object",
                 "properties": {
                     "days": {
                         "type": "integer",
                         "minimum": 1,
-                        "maximum": 60,
-                        "description": "How many days of focus history to fetch. Cap is 60."
+                        "maximum": 90,
+                        "description": "How many days of focus history to fetch. Cap is 90."
                     }
                 },
                 "required": ["days"]
@@ -3350,7 +3356,7 @@ fn build_chat_tool_config() -> Result<ToolConfiguration, AppError> {
         )?,
         build_one(
             TOOL_GET_SLEEP_PERIOD,
-            "Fetch sleep records for a NAMED calendar period (this_week / last_week / this_month / last_month). Use this when the user asks \"how did I sleep last week\" or \"this month\" — `get_sleep_history(days)` returns a rolling N-day window and is NOT the same as \"last week\" (which means previous Mon..Sun). Returns the records in that period plus aggregate stats; if the period had zero records, returns counts of 0 and a friendly note (NOT an error).",
+            "Fetch sleep records for a NAMED calendar period (this_week / last_week / this_month / last_month). Use this when the user asks \"how did I sleep last week\" or \"this month\" — `get_sleep_history(days)` returns a rolling N-day window and is NOT the same as \"last week\" (which means previous Mon..Sun). Returns the records in that period plus aggregate stats, including total snore/cough/sleep-talk episodes for the period; if the period had zero records, returns counts of 0 and a friendly note (NOT an error).",
             json!({
                 "type": "object",
                 "properties": {
@@ -3400,6 +3406,25 @@ fn build_chat_tool_config() -> Result<ToolConfiguration, AppError> {
                     }
                 },
                 "required": ["limit"]
+            }),
+        )?,
+        build_one(
+            TOOL_GET_SLEEP_AUDIO_EVENTS,
+            "Fetch the per-event TIMES of on-device snore / cough / sleep-talk detections for ONE night. Use for \"what times did I cough last night\", \"when did I snore\". Pass the sleep_record_id (the `id` field returned by get_sleep_history, get_sleep_period, or the snapshot's sleep rows) and optionally an event_type to filter. Returns exact per-type totals plus the events (started_at / ended_at / peak_confidence, oldest→newest), capped at 60 — on a very noisy night the totals stay exact while the event list is truncated. For \"how MUCH did I snore\" over a week/month, use get_sleep_history or get_sleep_period instead (those carry the counts); use THIS tool for WHEN within a single night.",
+            json!({
+                "type": "object",
+                "properties": {
+                    "sleep_record_id": {
+                        "type": "string",
+                        "description": "UUID of the night, from the `id` field of get_sleep_history / get_sleep_period / the snapshot's sleep rows."
+                    },
+                    "event_type": {
+                        "type": "string",
+                        "enum": ["snore", "cough", "sleep_talk"],
+                        "description": "Optional. Filter to one event type. Omit to return all three."
+                    }
+                },
+                "required": ["sleep_record_id"]
             }),
         )?,
         build_one(
@@ -3654,6 +3679,9 @@ async fn run_chat_tool(
         TOOL_CREATE_ALARM => {
             handle_propose_alarm(&tool_use_id, &tool_name, &input).await
         }
+        TOOL_GET_SLEEP_AUDIO_EVENTS => {
+            handle_get_sleep_audio_events(state, user_id, &tool_use_id, &tool_name, &input).await
+        }
         other => Err(format!("Unknown tool: {}", other)),
     };
 
@@ -3713,13 +3741,20 @@ async fn handle_get_sleep_history(
         .get("days")
         .and_then(|v| v.as_i64())
         .ok_or_else(|| "missing days".to_string())?;
-    let days = days.clamp(1, 60);
+    let days = days.clamp(1, 90);
     let since = Utc::now() - Duration::days(days);
-    let rows: Vec<(Uuid, DateTime<Utc>, DateTime<Utc>, i16, i32)> = sqlx::query_as(
-        "SELECT id, actual_bedtime, actual_wake_time, quality_rating, phone_pickups
-           FROM sleep_records
-          WHERE user_id = $1 AND actual_bedtime >= $2
-          ORDER BY actual_bedtime DESC",
+    let rows: Vec<(Uuid, DateTime<Utc>, DateTime<Utc>, i16, i32, i64, i64, i64)> = sqlx::query_as(
+        "SELECT
+             sr.id, sr.actual_bedtime, sr.actual_wake_time, sr.quality_rating, sr.phone_pickups,
+             COALESCE(SUM(CASE WHEN sae.event_type = 'snore'      THEN 1 ELSE 0 END), 0)::BIGINT,
+             COALESCE(SUM(CASE WHEN sae.event_type = 'cough'      THEN 1 ELSE 0 END), 0)::BIGINT,
+             COALESCE(SUM(CASE WHEN sae.event_type = 'sleep_talk' THEN 1 ELSE 0 END), 0)::BIGINT
+           FROM sleep_records sr
+           LEFT JOIN sleep_audio_events sae
+             ON sae.sleep_record_id = sr.id AND sae.user_id = sr.user_id
+          WHERE sr.user_id = $1 AND sr.actual_bedtime >= $2
+          GROUP BY sr.id, sr.actual_bedtime, sr.actual_wake_time, sr.quality_rating, sr.phone_pickups
+          ORDER BY sr.actual_bedtime DESC",
     )
     .bind(user_id)
     .bind(since)
@@ -3728,7 +3763,7 @@ async fn handle_get_sleep_history(
     .map_err(|e| format!("db error: {}", e))?;
     let serializable: Vec<_> = rows
         .iter()
-        .map(|(id, bed, wake, q, p)| {
+        .map(|(id, bed, wake, q, p, snore, cough, sleep_talk)| {
             let mins = wake.signed_duration_since(*bed).num_minutes().max(0);
             json!({
                 "id": id,
@@ -3737,6 +3772,9 @@ async fn handle_get_sleep_history(
                 "duration_minutes": mins,
                 "quality": q,
                 "phone_pickups": p,
+                "snore_events": snore,
+                "cough_events": cough,
+                "sleep_talk_events": sleep_talk,
             })
         })
         .collect();
@@ -3746,6 +3784,141 @@ async fn handle_get_sleep_history(
     } else {
         format!("Pulled {} nights", rows.len())
     };
+    Ok(ToolRunOutcome {
+        payload_for_model: payload,
+        bedrock_status: ToolResultStatus::Success,
+        surface: ToolInvocationSurface {
+            id: tool_use_id.to_string(),
+            name: tool_name.to_string(),
+            status: "ok".to_string(),
+            summary,
+            committed: false,
+            committed_resource: None,
+            proposed_event: None,
+            proposed_alarm: None,
+        },
+    })
+}
+
+/// §audio-times — Per-event snore/cough/sleep-talk timestamps for ONE night,
+/// keyed by sleep_record_id (the `id` from get_sleep_history / get_sleep_period
+/// / the context card). Optional event_type filter. Returns exact per-type
+/// totals plus the events ordered oldest→newest, capped so a snore-heavy night
+/// can't blow the token budget — the totals stay accurate even when the event
+/// list is truncated. Ownership is enforced by the `user_id = $2` filter, so a
+/// foreign sleep_record_id simply returns nothing rather than leaking data.
+async fn handle_get_sleep_audio_events(
+    state: &AppState,
+    user_id: Uuid,
+    tool_use_id: &str,
+    tool_name: &str,
+    input: &serde_json::Value,
+) -> Result<ToolRunOutcome, String> {
+    const AUDIO_EVENT_CAP: i64 = 60;
+    let record_id_s = input
+        .get("sleep_record_id")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| "missing sleep_record_id".to_string())?;
+    let record_id: Uuid = record_id_s
+        .parse()
+        .map_err(|_| format!("bad sleep_record_id: {}", record_id_s))?;
+    let event_type = input.get("event_type").and_then(|v| v.as_str());
+    if let Some(et) = event_type {
+        if !matches!(et, "snore" | "cough" | "sleep_talk") {
+            return Err(format!("invalid event_type: {}", et));
+        }
+    }
+
+    // Exact per-type totals (stay correct even when the event list is capped).
+    let total_rows: Vec<(String, i64)> = sqlx::query_as(
+        "SELECT event_type, COUNT(*)::BIGINT
+           FROM sleep_audio_events
+          WHERE sleep_record_id = $1 AND user_id = $2
+            AND ($3::TEXT IS NULL OR event_type = $3)
+          GROUP BY event_type",
+    )
+    .bind(record_id)
+    .bind(user_id)
+    .bind(event_type)
+    .fetch_all(&state.pool)
+    .await
+    .map_err(|e| format!("db error: {}", e))?;
+
+    let mut snore_total = 0i64;
+    let mut cough_total = 0i64;
+    let mut sleep_talk_total = 0i64;
+    for (t, c) in &total_rows {
+        match t.as_str() {
+            "snore" => snore_total = *c,
+            "cough" => cough_total = *c,
+            "sleep_talk" => sleep_talk_total = *c,
+            _ => {}
+        }
+    }
+    let total_for_filter: i64 = total_rows.iter().map(|(_, c)| *c).sum();
+
+    let event_rows: Vec<(String, DateTime<Utc>, DateTime<Utc>, f32)> = sqlx::query_as(
+        "SELECT event_type, started_at, ended_at, peak_confidence
+           FROM sleep_audio_events
+          WHERE sleep_record_id = $1 AND user_id = $2
+            AND ($3::TEXT IS NULL OR event_type = $3)
+          ORDER BY started_at ASC
+          LIMIT $4",
+    )
+    .bind(record_id)
+    .bind(user_id)
+    .bind(event_type)
+    .bind(AUDIO_EVENT_CAP)
+    .fetch_all(&state.pool)
+    .await
+    .map_err(|e| format!("db error: {}", e))?;
+
+    let events: Vec<_> = event_rows
+        .iter()
+        .map(|(t, started, ended, conf)| {
+            json!({
+                "type": t,
+                "started_at": started.to_rfc3339(),
+                "ended_at": ended.to_rfc3339(),
+                "peak_confidence": (*conf as f64 * 100.0).round() / 100.0,
+            })
+        })
+        .collect();
+
+    let returned = event_rows.len() as i64;
+    let truncated = total_for_filter > returned;
+    let note = if total_for_filter == 0 {
+        "No audio events recorded for that night (recording may have been off).".to_string()
+    } else if truncated {
+        format!(
+            "Showing the first {} of {} events (oldest→newest, UTC); the totals are exact.",
+            returned, total_for_filter,
+        )
+    } else {
+        format!("{} events (oldest→newest, UTC).", returned)
+    };
+
+    let payload = json!({
+        "sleep_record_id": record_id,
+        "event_type_filter": event_type,
+        "totals": {
+            "snore": snore_total,
+            "cough": cough_total,
+            "sleep_talk": sleep_talk_total,
+        },
+        "returned": returned,
+        "truncated": truncated,
+        "events": events,
+        "note": note,
+    })
+    .to_string();
+
+    let summary = if total_for_filter == 0 {
+        "No audio events for that night".to_string()
+    } else {
+        format!("Pulled {} audio event(s)", returned)
+    };
+
     Ok(ToolRunOutcome {
         payload_for_model: payload,
         bedrock_status: ToolResultStatus::Success,
@@ -3773,7 +3946,7 @@ async fn handle_get_focus_history(
         .get("days")
         .and_then(|v| v.as_i64())
         .ok_or_else(|| "missing days".to_string())?;
-    let days = days.clamp(1, 60);
+    let days = days.clamp(1, 90);
     let since = Utc::now() - Duration::days(days);
     let rows: Vec<(chrono::NaiveDate, i64, i64)> = sqlx::query_as(
         "SELECT (started_at AT TIME ZONE 'UTC')::DATE AS day,
@@ -4492,11 +4665,18 @@ async fn handle_get_sleep_period(
     // from chat_send) instead of UTC. Matches the context card + per-user
     // timezone rule; chat_send already falls back to UTC if the client omits it.
     let (start, end, label) = calendar_period_bounds(period, now_local)?;
-    let rows: Vec<(Uuid, chrono::DateTime<Utc>, chrono::DateTime<Utc>, i16, i32)> = sqlx::query_as(
-        "SELECT id, actual_bedtime, actual_wake_time, quality_rating, phone_pickups
-           FROM sleep_records
-          WHERE user_id = $1 AND actual_bedtime >= $2 AND actual_bedtime <= $3
-          ORDER BY actual_bedtime DESC",
+    let rows: Vec<(Uuid, chrono::DateTime<Utc>, chrono::DateTime<Utc>, i16, i32, i64, i64, i64)> = sqlx::query_as(
+        "SELECT
+             sr.id, sr.actual_bedtime, sr.actual_wake_time, sr.quality_rating, sr.phone_pickups,
+             COALESCE(SUM(CASE WHEN sae.event_type = 'snore'      THEN 1 ELSE 0 END), 0)::BIGINT,
+             COALESCE(SUM(CASE WHEN sae.event_type = 'cough'      THEN 1 ELSE 0 END), 0)::BIGINT,
+             COALESCE(SUM(CASE WHEN sae.event_type = 'sleep_talk' THEN 1 ELSE 0 END), 0)::BIGINT
+           FROM sleep_records sr
+           LEFT JOIN sleep_audio_events sae
+             ON sae.sleep_record_id = sr.id AND sae.user_id = sr.user_id
+          WHERE sr.user_id = $1 AND sr.actual_bedtime >= $2 AND sr.actual_bedtime <= $3
+          GROUP BY sr.id, sr.actual_bedtime, sr.actual_wake_time, sr.quality_rating, sr.phone_pickups
+          ORDER BY sr.actual_bedtime DESC",
     )
     .bind(user_id)
     .bind(start)
@@ -4507,17 +4687,22 @@ async fn handle_get_sleep_period(
     let count = rows.len();
     let total_minutes: i64 = rows
         .iter()
-        .map(|(_, b, w, _, _)| w.signed_duration_since(*b).num_minutes().max(0))
+        .map(|(_, b, w, _, _, _, _, _)| w.signed_duration_since(*b).num_minutes().max(0))
         .sum();
     let avg_minutes: i64 = if count > 0 { total_minutes / count as i64 } else { 0 };
     let avg_quality: f64 = if count > 0 {
-        rows.iter().map(|(_, _, _, q, _)| *q as f64).sum::<f64>() / count as f64
+        rows.iter().map(|(_, _, _, q, _, _, _, _)| *q as f64).sum::<f64>() / count as f64
     } else {
         0.0
     };
+    // Period-level audio totals so the model can answer "how much did I snore
+    // last month" without paging the per-night rows.
+    let snore_total: i64 = rows.iter().map(|(_, _, _, _, _, s, _, _)| *s).sum();
+    let cough_total: i64 = rows.iter().map(|(_, _, _, _, _, _, c, _)| *c).sum();
+    let sleep_talk_total: i64 = rows.iter().map(|(_, _, _, _, _, _, _, t)| *t).sum();
     let serializable: Vec<_> = rows
         .iter()
-        .map(|(id, bed, wake, q, p)| {
+        .map(|(id, bed, wake, q, p, snore, cough, sleep_talk)| {
             let mins = wake.signed_duration_since(*bed).num_minutes().max(0);
             json!({
                 "id": id,
@@ -4526,6 +4711,9 @@ async fn handle_get_sleep_period(
                 "duration_minutes": mins,
                 "quality": q,
                 "phone_pickups": p,
+                "snore_events": snore,
+                "cough_events": cough,
+                "sleep_talk_events": sleep_talk,
             })
         })
         .collect();
@@ -4549,6 +4737,9 @@ async fn handle_get_sleep_period(
         "count": count,
         "avg_duration_minutes": avg_minutes,
         "avg_quality": avg_quality,
+        "snore_events_total": snore_total,
+        "cough_events_total": cough_total,
+        "sleep_talk_events_total": sleep_talk_total,
         "records": serializable,
         "note": note,
     })
