@@ -58,6 +58,9 @@ pub struct CalendarEvent {
     pub is_recurring: bool,
     pub recurrence_rule: Option<String>,
     pub color: String,
+    /// §tz/calendar — IANA zone the event was created in. Recurrence expands at
+    /// this zone's wall-clock (DST-stable). NOT NULL, defaults 'UTC'.
+    pub event_tz: String,
     pub is_done: bool,
     /// Minutes-before-start_time offsets for each reminder notification.
     /// v2.13.1 widened this from a single Option<i32> to an array so a user
@@ -92,6 +95,11 @@ pub struct CreateCalendarEvent {
     pub is_recurring: bool,
     pub recurrence_rule: Option<String>,
     pub color: Option<String>,
+    /// §tz/calendar — IANA zone for recurrence anchoring. Optional: omitted by
+    /// older clients → create defaults to the user's stored tz, update preserves
+    /// the existing value (COALESCE). New clients send `ZoneId.systemDefault()`.
+    #[serde(default)]
+    pub event_tz: Option<String>,
     /// Optional on input so older clients (without the field) preserve the
     /// stored value on update. New clients always send it.
     pub is_done: Option<bool>,
