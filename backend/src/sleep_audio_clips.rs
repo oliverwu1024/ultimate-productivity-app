@@ -12,6 +12,10 @@
 //! 4. Playback (Android list, web dashboard) asks for a presigned GET URL.
 //! 5. S3 lifecycle rule auto-deletes objects after 30 days (the bucket's
 //!    `expire-after-30-days` rule on the `u/` prefix).
+//! 6. A daily `clip_janitor` (scheduler.rs) then NULLs the row's clip columns
+//!    once it's past that window, so the DB never points at a deleted object
+//!    (the UI hides the ▶ instead of showing a dead "clip expired" row). The
+//!    detection event itself — type, timestamps, confidence — is untouched.
 //!
 //! Security:
 //! - Pro-tier check on every route (currently uses is_admin as the stand-in;
