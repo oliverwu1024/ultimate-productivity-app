@@ -117,6 +117,9 @@ class UserPreferences(private val context: Context) {
         val SLEEP_AUDIO_RECORD_COUGH = booleanPreferencesKey("sleep_audio_record_cough")
         val SLEEP_AUDIO_RECORD_SLEEP_TALK = booleanPreferencesKey("sleep_audio_record_sleep_talk")
         val SLEEP_AUDIO_RECORDING_CONSENT_SEEN = booleanPreferencesKey("sleep_audio_recording_consent_seen")
+        // §tz Phase B — last device timezone we PATCHed to the server, so the
+        // foreground check only re-syncs when the device zone actually changed.
+        val LAST_SYNCED_TIMEZONE = stringPreferencesKey("last_synced_timezone")
     }
 
     private val defaults = UserSettings(
@@ -306,6 +309,16 @@ class UserPreferences(private val context: Context) {
 
     suspend fun setSleepAudioRecordingConsentSeen(seen: Boolean) {
         context.userDataStore.edit { it[Keys.SLEEP_AUDIO_RECORDING_CONSENT_SEEN] = seen }
+    }
+
+    /** §tz Phase B — the device timezone last synced to the server (null until
+     *  the first sync). Read/written directly (not via UserSettings) since it's
+     *  app-plumbing, not a user-facing setting. */
+    suspend fun getLastSyncedTimezone(): String? =
+        context.userDataStore.data.first()[Keys.LAST_SYNCED_TIMEZONE]
+
+    suspend fun setLastSyncedTimezone(tz: String) {
+        context.userDataStore.edit { it[Keys.LAST_SYNCED_TIMEZONE] = tz }
     }
 
     /** Wipe every preference back to defaults — used when deleting the account. */

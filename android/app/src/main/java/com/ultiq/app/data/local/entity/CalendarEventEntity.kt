@@ -38,6 +38,9 @@ data class CalendarEventEntity(
     /// non-recurring row for that date with the edited fields). Null
     /// on non-recurring rows.
     val excludedDates: String? = null,
+    /// §tz/calendar — IANA zone the event was created in. Recurrence expands at
+    /// this zone's wall-clock (DST-stable, Google-style). null → device tz fallback.
+    val eventTz: String? = null,
     val createdAt: Long,
     val updatedAt: Long,
     val isSynced: Boolean = false

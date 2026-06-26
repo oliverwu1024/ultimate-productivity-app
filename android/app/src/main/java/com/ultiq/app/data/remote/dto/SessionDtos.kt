@@ -36,6 +36,7 @@ data class SessionDto(
     // because skipping the debrief dialog is supported.
     val debrief: String? = null,
     val debrief_tag: String? = null,
+    val recorded_tz: String? = null,
 )
 
 data class SessionStatsDto(
@@ -92,6 +93,7 @@ fun SessionDto.toEntity(): SessionEntity {
         isSynced = true,
         debrief = debrief,
         debriefTag = debrief_tag,
+        recordedTz = recorded_tz,
     )
 }
 

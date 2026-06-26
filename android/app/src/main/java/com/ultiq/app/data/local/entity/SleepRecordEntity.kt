@@ -17,5 +17,9 @@ data class SleepRecordEntity(
     val notes: String?,
     val createdAt: Long,
     val updatedAt: Long,
-    val isSynced: Boolean = false
+    val isSynced: Boolean = false,
+    // §tz-anchor — IANA zone this sleep was logged in (backend `recorded_tz`).
+    // Past records render their clock times in THIS zone, not the device's
+    // current one, so an "11pm Sydney" sleep stays 11pm after a move. null → device tz.
+    val recordedTz: String? = null
 )

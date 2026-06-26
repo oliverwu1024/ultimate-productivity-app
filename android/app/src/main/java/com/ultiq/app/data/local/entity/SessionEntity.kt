@@ -26,4 +26,7 @@ data class SessionEntity(
     // dialog (skippable).
     val debrief: String? = null,
     val debriefTag: String? = null,
+    // §tz-anchor — IANA zone this session was started in. Past sessions render
+    // their clock times in this zone. null → device tz.
+    val recordedTz: String? = null,
 )

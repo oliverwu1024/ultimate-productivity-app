@@ -45,7 +45,7 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
         SleepTombstoneEntity::class,
         PhonePickupEntity::class,
     ],
-    version = 18,
+    version = 19,
     exportSchema = false
 )
 @androidx.room.TypeConverters(com.ultiq.app.data.local.converters.IntListConverter::class)
@@ -416,6 +416,18 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        // §tz Phase B — anchor columns: recordedTz on sleep/sessions (render past
+        // clock times in the zone they were logged in) + eventTz on calendar
+        // (recurrence expands at the event's zone wall-clock, DST-stable). All
+        // nullable TEXT → no NOT-NULL/default to reconcile with Room validation.
+        private val MIGRATION_18_19 = object : Migration(18, 19) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `sleep_records` ADD COLUMN `recordedTz` TEXT")
+                db.execSQL("ALTER TABLE `productivity_sessions` ADD COLUMN `recordedTz` TEXT")
+                db.execSQL("ALTER TABLE `calendar_events` ADD COLUMN `eventTz` TEXT")
+            }
+        }
+
         private val MIGRATION_6_7 = object : Migration(6, 7) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(
@@ -513,6 +525,7 @@ abstract class AppDatabase : RoomDatabase() {
                     MIGRATION_15_16,
                     MIGRATION_16_17,
                     MIGRATION_17_18,
+                    MIGRATION_18_19,
                 )
                 // Legacy DB has been dropped if it existed; if Room can't
                 // open the file (corrupt / version mismatch from a prior

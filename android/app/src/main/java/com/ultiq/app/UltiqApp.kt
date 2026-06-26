@@ -22,6 +22,7 @@ import com.ultiq.app.util.UpdateChecker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
 
@@ -59,9 +60,36 @@ class UltiqApp : Application() {
                     // pass instead of waiting for the scheduled retry — the
                     // worker is a no-op when there's nothing to do.
                     pulseAudioUploadWorker()
+                    // §tz Phase B — if the device timezone changed since last
+                    // sync (e.g. the user travelled), push it so the server's
+                    // AI/scheduler math stops running on a stale zone — no
+                    // logout/login needed.
+                    syncTimezoneIfChanged()
                 }
             }
         )
+    }
+
+    /**
+     * Re-sync `users.timezone` when the device zone changed since we last
+     * pushed it. Only fires when logged in; a no-op (no network) otherwise.
+     */
+    private fun syncTimezoneIfChanged() {
+        appScope.launch {
+            val tokenManager = TokenManager(this@UltiqApp)
+            val token = tokenManager.getToken().firstOrNull()
+            if (token.isNullOrBlank()) return@launch
+            val prefs = UserPreferences(this@UltiqApp)
+            val currentTz = java.time.ZoneId.systemDefault().id
+            if (currentTz == prefs.getLastSyncedTimezone()) return@launch
+            val api = com.ultiq.app.data.remote.RetrofitClient.create(tokenManager)
+            runCatching {
+                api.updateProfile(
+                    com.ultiq.app.data.remote.dto.UpdateProfileRequest(timezone = currentTz)
+                )
+                prefs.setLastSyncedTimezone(currentTz)
+            }
+        }
     }
 
     private fun pulseAudioUploadWorker() {

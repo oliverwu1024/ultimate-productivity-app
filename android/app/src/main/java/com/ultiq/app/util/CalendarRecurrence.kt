@@ -18,6 +18,12 @@ object CalendarRecurrence {
 
     private val LOCAL_ZONE: ZoneId get() = ZoneId.systemDefault()
 
+    /// §tz/calendar Phase B — expand in the EVENT's own zone (eventTz) so a
+    /// recurring "9am" stays 9am across DST and matches the backend. Falls back
+    /// to the device zone when eventTz is null (pre-migration rows) or invalid.
+    private fun zoneOf(event: CalendarEventEntity): ZoneId =
+        event.eventTz?.let { runCatching { ZoneId.of(it) }.getOrNull() } ?: LOCAL_ZONE
+
     /** Expand a list of master-row events into concrete instances inside
      *  the given range. Non-recurring events pass through unchanged.
      *  Result is sorted ascending by `startTime`. */
@@ -45,10 +51,11 @@ object CalendarRecurrence {
         val ruleRaw = event.recurrenceRule ?: return emptyList()
         val (base, until) = parseRule(ruleRaw)
         val duration = event.endTime - event.startTime
-        val eventTime = Instant.ofEpochMilli(event.startTime).atZone(LOCAL_ZONE).toLocalTime()
-        val eventStartDate = Instant.ofEpochMilli(event.startTime).atZone(LOCAL_ZONE).toLocalDate()
-        val rangeStartDate = Instant.ofEpochMilli(rangeStart).atZone(LOCAL_ZONE).toLocalDate()
-        val rangeEndDateRaw = Instant.ofEpochMilli(rangeEnd).atZone(LOCAL_ZONE).toLocalDate()
+        val zone = zoneOf(event)
+        val eventTime = Instant.ofEpochMilli(event.startTime).atZone(zone).toLocalTime()
+        val eventStartDate = Instant.ofEpochMilli(event.startTime).atZone(zone).toLocalDate()
+        val rangeStartDate = Instant.ofEpochMilli(rangeStart).atZone(zone).toLocalDate()
+        val rangeEndDateRaw = Instant.ofEpochMilli(rangeEnd).atZone(zone).toLocalDate()
         // v2.16.0 — UNTIL cap applied as the effective end.
         val rangeEndDate = if (until != null && until.isBefore(rangeEndDateRaw)) until else rangeEndDateRaw
         if (rangeEndDate.isBefore(rangeStartDate)) return emptyList()
@@ -122,7 +129,9 @@ object CalendarRecurrence {
         time: LocalTime,
         duration: Long,
     ): CalendarEventEntity {
-        val start = date.atTime(time).atZone(LOCAL_ZONE).toInstant().toEpochMilli()
+        // Rebuild the occurrence instant from its local date+time in the event's
+        // zone (DST-correct), matching the extraction in expandRecurrence.
+        val start = date.atTime(time).atZone(zoneOf(event)).toInstant().toEpochMilli()
         return event.copy(startTime = start, endTime = start + duration)
     }
 

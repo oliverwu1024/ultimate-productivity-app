@@ -628,6 +628,9 @@ fun AddEventDialog(
                                     recurrence_rule = rule,
                                     color = selectedColor,
                                     reminder_minutes = reminderMinutes,
+                                    // §tz/calendar — stamp the zone the user is creating
+                                    // in (device zone), so recurrence stays anchored to it.
+                                    event_tz = zone.id,
                                 )
                             )
                         }
