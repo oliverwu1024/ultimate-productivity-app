@@ -973,7 +973,11 @@ private fun SleepRecordItem(
             shape = RoundedCornerShape(12.dp)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                val zone = ZoneId.systemDefault()
+                // §tz-anchor — render this past night in the zone it was logged
+                // in (recordedTz), not the device's current zone, so an "11pm
+                // Sydney" sleep stays 11pm after a move. null/invalid → device tz.
+                val zone = record.recordedTz?.let { runCatching { ZoneId.of(it) }.getOrNull() }
+                    ?: ZoneId.systemDefault()
                 val bedInstant = Instant.ofEpochMilli(record.actualBedtime).atZone(zone)
                 val dateStr = bedInstant.format(DateTimeFormatter.ofPattern("EEE, MMM dd"))
                 val durationMins = ((record.actualWakeTime - record.actualBedtime) / 60_000).toInt()

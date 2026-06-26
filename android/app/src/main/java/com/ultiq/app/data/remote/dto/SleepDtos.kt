@@ -31,6 +31,7 @@ data class SleepRecordDto(
     val phone_pickups: Int,
     val total_phone_minutes: Int?,
     val notes: String?,
+    val recorded_tz: String? = null,
     val created_at: String,
     val updated_at: String
 )
@@ -73,7 +74,8 @@ fun SleepRecordDto.toEntity(): SleepRecordEntity {
         notes = notes,
         createdAt = Instant.parse(created_at).toEpochMilli(),
         updatedAt = Instant.parse(updated_at).toEpochMilli(),
-        isSynced = true
+        isSynced = true,
+        recordedTz = recorded_tz
     )
 }
 

@@ -785,7 +785,10 @@ private fun SessionItemContent(
     onExpand: () -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val zone = ZoneId.systemDefault()
+    // §tz-anchor — render this past session in the zone it was started in
+    // (recordedTz), not the device's current zone. null/invalid → device tz.
+    val zone = session.recordedTz?.let { runCatching { ZoneId.of(it) }.getOrNull() }
+        ?: ZoneId.systemDefault()
     val startInstant = Instant.ofEpochMilli(session.startedAt).atZone(zone)
     val dateStr = startInstant.format(DateTimeFormatter.ofPattern("EEE, MMM dd"))
     val h = session.durationMinutes / 60

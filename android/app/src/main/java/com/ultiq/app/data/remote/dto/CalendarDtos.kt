@@ -18,6 +18,9 @@ data class CreateCalendarEventDto(
     /// stored value on update (server COALESCEs) / use client default on
     /// new creates. v2.13.0 had this as Int?; widened for multi-reminder.
     val reminder_minutes: List<Int>? = null,
+    /// §tz/calendar — event's IANA zone; sent on create (device zone),
+    /// preserved on update. Null on older clients (server defaults to user tz).
+    val event_tz: String? = null,
 )
 
 data class CalendarEventDto(
@@ -43,6 +46,7 @@ data class CalendarEventDto(
     /// v2.16.0 — Comma-separated YYYY-MM-DD list of dates to skip when
     /// expanding the series ("Just this one" delete).
     val excluded_dates: String? = null,
+    val event_tz: String? = null,
     val created_at: String,
     val updated_at: String
 )
@@ -68,6 +72,7 @@ fun CalendarEventDto.toEntity(): CalendarEventEntity {
         // these via PUT/DELETE with ?occurrence_date=.
         doneDates = done_dates,
         excludedDates = excluded_dates,
+        eventTz = event_tz,
         createdAt = Instant.parse(created_at).toEpochMilli(),
         updatedAt = Instant.parse(updated_at).toEpochMilli(),
         isSynced = true
@@ -87,5 +92,6 @@ fun CalendarEventEntity.toCreateDto(): CreateCalendarEventDto {
         color = color,
         is_done = isDone,
         reminder_minutes = reminderMinutes,
+        event_tz = eventTz,
     )
 }
