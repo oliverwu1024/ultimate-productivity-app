@@ -182,3 +182,90 @@ async fn run_tick(state: &AppState, scan_hour_local: u32) -> Result<(), sqlx::Er
     );
     Ok(())
 }
+
+// §10.x — Clip-pointer janitor.
+//
+// Pro-tier audio clips live in S3 and auto-expire after 30 days via the
+// bucket's `expire-after-30-days` lifecycle rule (see sleep_audio_clips.rs).
+// The sleep_audio_events row, however, keeps `clip_s3_key` set — so once the
+// object is gone, the playback route presigns a key that 404s and the client
+// shows "clip expired" forever. This task NULLs the two clip columns once a
+// row is past the retention window so the source of truth matches S3 and the
+// UI simply hides the ▶.
+//
+// It only clears the dangling DB pointer — the bytes are already deleted by
+// the S3 lifecycle rule, so there's no S3 call (and no S3 credentials needed)
+// here. The UPDATE is idempotent and safe to run from more than one task, so
+// unlike the Bedrock-spending anomaly scan it isn't behind a single-firer
+// guard; set `CLIP_JANITOR_ENABLED=false` to disable it if ever needed.
+
+/// Age past which a clip pointer is cleaned: the 30-day S3 lifecycle window
+/// plus a 1-day buffer so we never NULL a clip whose object is still alive.
+/// Keep this >= the bucket's `expire-after-30-days` rule.
+const CLIP_JANITOR_AGE_DAYS: i32 = 31;
+
+/// How often the janitor sweeps. Daily is plenty — a pointer lingers at most
+/// ~24h past day 31 before it's cleaned, versus forever without this task.
+const CLIP_JANITOR_INTERVAL_SECS: u64 = 24 * 60 * 60;
+
+/// Spawn the clip-pointer janitor. Returns immediately; the loop runs in the
+/// background for the process lifetime. On by default (pure, cheap DB
+/// maintenance); opt out with `CLIP_JANITOR_ENABLED=false`.
+pub fn spawn_clip_janitor(state: AppState) {
+    let enabled = std::env::var("CLIP_JANITOR_ENABLED")
+        .map(|s| s != "false" && s != "0")
+        .unwrap_or(true);
+    if !enabled {
+        tracing::info!(
+            target: "clip-janitor",
+            "CLIP_JANITOR_ENABLED=false — clip janitor skipped",
+        );
+        return;
+    }
+
+    tracing::info!(
+        target: "clip-janitor",
+        age_days = CLIP_JANITOR_AGE_DAYS,
+        "clip-pointer janitor armed (daily)",
+    );
+
+    tokio::spawn(async move {
+        loop {
+            // Sweep on startup first so a fresh deploy clears any backlog
+            // promptly, then once a day thereafter.
+            match run_clip_janitor(&state).await {
+                Ok(n) if n > 0 => tracing::info!(
+                    target: "clip-janitor",
+                    cleaned = n,
+                    "nulled clip pointers for expired objects",
+                ),
+                Ok(_) => tracing::debug!(
+                    target: "clip-janitor",
+                    "no expired clip pointers to clean",
+                ),
+                Err(e) => tracing::error!(
+                    target: "clip-janitor",
+                    "clip janitor pass failed: {e:?}",
+                ),
+            }
+            sleep(StdDuration::from_secs(CLIP_JANITOR_INTERVAL_SECS)).await;
+        }
+    });
+}
+
+/// One janitor pass: NULL the clip columns on every row whose clip is past the
+/// retention window. Returns the number of rows cleaned. `created_at` is the
+/// row-insert time, which is within minutes of the S3 upload, so a row older
+/// than `CLIP_JANITOR_AGE_DAYS` is guaranteed past the 30-day S3 expiry.
+async fn run_clip_janitor(state: &AppState) -> Result<u64, sqlx::Error> {
+    let result = sqlx::query(
+        "UPDATE sleep_audio_events
+            SET clip_s3_key = NULL, clip_duration_ms = NULL
+          WHERE clip_s3_key IS NOT NULL
+            AND created_at < now() - make_interval(days => $1)",
+    )
+    .bind(CLIP_JANITOR_AGE_DAYS)
+    .execute(&state.pool)
+    .await?;
+    Ok(result.rows_affected())
+}

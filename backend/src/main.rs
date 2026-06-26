@@ -54,6 +54,15 @@ async fn main() {
         .execute(&pool)
         .await;
 
+    // Same recovery for migration 023: its header comment was corrected after
+    // it had already applied in prod (7-day → 30-day lifecycle, and the clip
+    // janitor now exists), so the stored checksum no longer matches the file.
+    // Drop the row so sqlx re-applies the migration — made idempotent via
+    // DROP CONSTRAINT IF EXISTS — with a fresh checksum. Harmless on a fresh DB.
+    let _ = sqlx::query("DELETE FROM _sqlx_migrations WHERE version = 23")
+        .execute(&pool)
+        .await;
+
     sqlx::migrate!("src/migrations").run(&pool).await.expect("Failed to run migrations");
 
     let email = EmailClient::new(config.resend_api_key.clone());
@@ -190,6 +199,11 @@ async fn main() {
     // §9.8 Phase C — daily anomaly scan. No-op unless
     // ANOMALY_SCHEDULER_ENABLED=true at task launch.
     scheduler::spawn(state.clone());
+
+    // §10.x — daily clip-pointer janitor. NULLs clip_s3_key/clip_duration_ms
+    // once the S3 object is past its 30-day lifecycle expiry so the DB never
+    // points at a deleted object. On by default; CLIP_JANITOR_ENABLED=false off.
+    scheduler::spawn_clip_janitor(state.clone());
 
     let auth_routes = routes::auth_routes()
         .layer(GovernorLayer { config: auth_governor });
