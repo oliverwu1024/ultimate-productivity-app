@@ -100,12 +100,19 @@ async fn create(
         .as_deref()
         .unwrap_or_else(|| default_color(&input.category));
 
+    // §tz/calendar — stamp the event's timezone (creator's IANA zone). Validate
+    // the client value; fall back to the user's stored tz when missing/invalid.
+    let event_tz = match input.event_tz.as_deref() {
+        Some(t) if t.parse::<chrono_tz::Tz>().is_ok() => t.to_string(),
+        _ => crate::tz::fetch_user_tz(&state.pool, user_id).await?,
+    };
+
     let event = sqlx::query_as::<_, CalendarEvent>(
         "INSERT INTO calendar_events
             (user_id, title, description, start_time, end_time, category, priority,
              is_recurring, recurrence_rule, color, is_done, reminder_minutes,
-             done_dates, excluded_dates)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NULL, NULL)
+             event_tz, done_dates, excluded_dates)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NULL, NULL)
          RETURNING *",
     )
     .bind(user_id)
@@ -120,6 +127,7 @@ async fn create(
     .bind(color)
     .bind(input.is_done.unwrap_or(false))
     .bind(input.reminder_minutes.as_deref())
+    .bind(&event_tz)
     .fetch_one(&state.pool)
     .await?;
 
@@ -183,15 +191,10 @@ async fn list(
         })
         .collect();
 
-    // §029 — Load user timezone so per-occurrence overrides (done_dates,
-    // excluded_dates) compare against the LOCAL date of each expanded
-    // instance, not its UTC date. Failing the tz lookup falls back to UTC
-    // — wrong is preferable to 500 here.
-    let tz_str = crate::tz::fetch_user_tz(&state.pool, user_id)
-        .await
-        .unwrap_or_else(|_| "UTC".to_string());
-
     // Expand recurring events into virtual instances; keep one-time events as-is.
+    // §tz/calendar (Phase B) — each event now expands in its OWN event_tz (the
+    // creator's zone), so recurrence + per-occurrence override (done/excluded)
+    // local-date matching are both DST-stable; no per-request user tz needed.
     // §v2.17.2-sync-collision — Android opts out via `?expand=false` so its
     // local sync receives one row per master `id` instead of a collision
     // storm against Room's REPLACE conflict strategy. Default stays on so
@@ -201,7 +204,7 @@ async fn list(
     let mut result = Vec::new();
     for event in filtered {
         if event.is_recurring && expand {
-            result.extend(expand_recurrence(event, start, end, &tz_str));
+            result.extend(expand_recurrence(event, start, end, &event.event_tz));
         } else {
             result.push(event.clone());
         }
@@ -284,6 +287,13 @@ async fn update(
         .as_deref()
         .unwrap_or_else(|| default_color(&input.category));
 
+    // §tz/calendar — preserve event_tz on update unless the client sends a valid
+    // new one (COALESCE), same contract as is_done / reminder_minutes below.
+    let event_tz_in = input
+        .event_tz
+        .as_deref()
+        .filter(|t| t.parse::<chrono_tz::Tz>().is_ok());
+
     // is_done and reminder_minutes are COALESCEd so older clients (which omit
     // the field) preserve the stored value rather than clobbering it back to
     // the default on every update.
@@ -293,8 +303,9 @@ async fn update(
              category = $5, priority = $6, is_recurring = $7, recurrence_rule = $8,
              color = $9, is_done = COALESCE($10, is_done),
              reminder_minutes = COALESCE($11, reminder_minutes),
+             event_tz = COALESCE($12, event_tz),
              updated_at = NOW()
-         WHERE id = $12 AND user_id = $13
+         WHERE id = $13 AND user_id = $14
          RETURNING *",
     )
     .bind(input.title.trim())
@@ -308,6 +319,7 @@ async fn update(
     .bind(color)
     .bind(input.is_done)
     .bind(input.reminder_minutes.as_deref())
+    .bind(event_tz_in)
     .bind(id)
     .bind(user_id)
     .fetch_optional(&state.pool)
@@ -507,7 +519,7 @@ fn expand_recurrence(
     event: &CalendarEvent,
     range_start: DateTime<Utc>,
     range_end: DateTime<Utc>,
-    tz_str: &str,
+    event_tz: &str,
 ) -> Vec<CalendarEvent> {
     let rule_raw = match &event.recurrence_rule {
         Some(r) => r.as_str(),
@@ -515,17 +527,24 @@ fn expand_recurrence(
     };
     let parsed = parse_rule(rule_raw);
 
+    use chrono::TimeZone;
+    let tz = crate::tz::parse_tz(event_tz);
     let duration = event.end_time - event.start_time;
-    let event_time = event.start_time.time();
-    let event_start_date = event.start_time.date_naive();
-    let range_start_date = range_start.date_naive();
+    // §tz/DST (Phase B) — anchor recurrence to the event's LOCAL wall-clock in
+    // its own timezone (event_tz), so "9am daily" stays 9am across a DST change
+    // instead of drifting ±1h with the fixed UTC instant. Time-of-day + dates
+    // are taken in event_tz; each occurrence is rebuilt local→UTC per date.
+    let local_start = event.start_time.with_timezone(&tz);
+    let event_time = local_start.time();
+    let event_start_date = local_start.date_naive();
+    let range_start_date = range_start.with_timezone(&tz).date_naive();
     // §029 — Cap the expansion window by the parsed UNTIL suffix. UNTIL
     // is inclusive (last valid occurrence date) — matches Google Calendar
     // behaviour where "remove this and following" leaves the picked
     // instance gone but everything strictly before remains.
     let effective_end_date = match parsed.until {
-        Some(u) => range_end.date_naive().min(u),
-        None => range_end.date_naive(),
+        Some(u) => range_end.with_timezone(&tz).date_naive().min(u),
+        None => range_end.with_timezone(&tz).date_naive(),
     };
     if effective_end_date < range_start_date {
         return vec![];
@@ -533,12 +552,21 @@ fn expand_recurrence(
 
     // §029 — Per-occurrence overrides. excluded_dates drops instances
     // entirely; done_dates flips is_done on the surviving copy. Both keys
-    // are LOCAL dates in the user's timezone — we convert each generated
-    // instance's UTC start back to local for the lookup.
+    // are LOCAL dates in event_tz — we convert each generated instance's UTC
+    // start back to local for the lookup.
     let excluded = parse_date_set(event.excluded_dates.as_deref());
     let done = parse_date_set(event.done_dates.as_deref());
-    let tz = crate::tz::parse_tz(tz_str);
     let local_date = |start: DateTime<Utc>| -> NaiveDate { start.with_timezone(&tz).date_naive() };
+    // Rebuild an occurrence's UTC instant from its local date + the event's
+    // local time-of-day in event_tz (DST-correct). A nonexistent local time
+    // (spring-forward gap) falls back to interpreting the naive time as UTC.
+    let to_utc = |date: NaiveDate| -> DateTime<Utc> {
+        let naive = date.and_time(event_time);
+        tz.from_local_datetime(&naive)
+            .earliest()
+            .map(|dt| dt.with_timezone(&Utc))
+            .unwrap_or_else(|| Utc.from_utc_datetime(&naive))
+    };
 
     let push_instance =
         |instances: &mut Vec<CalendarEvent>, start: DateTime<Utc>, duration: chrono::Duration| {
@@ -561,7 +589,7 @@ fn expand_recurrence(
         let first = event_start_date.max(range_start_date);
         let mut cur = first;
         while cur <= effective_end_date {
-            let start = cur.and_time(event_time).and_utc();
+            let start = to_utc(cur);
             push_instance(&mut instances, start, duration);
             cur += chrono::Duration::days(1);
         }
@@ -577,7 +605,7 @@ fn expand_recurrence(
         let mut cur = first;
         while cur <= effective_end_date {
             if target_days.contains(&cur.weekday()) {
-                let start = cur.and_time(event_time).and_utc();
+                let start = to_utc(cur);
                 push_instance(&mut instances, start, duration);
             }
             cur += chrono::Duration::days(1);
@@ -593,7 +621,7 @@ fn expand_recurrence(
                         break;
                     }
                     if date >= event_start_date && date >= range_start_date {
-                        let start = date.and_time(event_time).and_utc();
+                        let start = to_utc(date);
                         push_instance(&mut instances, start, duration);
                     }
                 }
