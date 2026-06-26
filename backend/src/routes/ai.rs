@@ -3458,6 +3458,16 @@ fn build_chat_tool_config() -> Result<ToolConfiguration, AppError> {
 
 /// Builds the "today + last 3 days" snapshot card. Rendered fresh per
 /// chat turn and never cached. Target size ~300 tokens.
+/// Coach timestamps must be the user's LOCAL wall clock. The model reads tool
+/// payloads + the context card verbatim and does NOT convert from UTC — given
+/// raw UTC "13:56" it told the user they sleep at "1:56pm" and invented a
+/// reversed-schedule narrative. Convert every instant the coach sees with the
+/// user's stored IANA timezone (DST-correct across historical rows) first.
+#[inline]
+fn coach_local(dt: &DateTime<Utc>, tz: &chrono_tz::Tz) -> DateTime<chrono_tz::Tz> {
+    dt.with_timezone(tz)
+}
+
 async fn build_context_card(
     pool: &PgPool,
     user_id: Uuid,
@@ -3467,6 +3477,9 @@ async fn build_context_card(
         Ok(dt) => (dt.date_naive(), dt.offset().to_string()),
         Err(_) => (Utc::now().date_naive(), "+00:00".to_string()),
     };
+    // §tz-fix — the clock times rendered below MUST be the user's local wall
+    // clock; the model reads them verbatim and won't convert from UTC.
+    let tz = crate::tz::parse_tz(&crate::tz::fetch_user_tz(pool, user_id).await?);
     // §wave2 — context card uses the SAME Monday-of-current-week boundary
     // as sleep/sessions stats. Keeps the snapshot in lockstep with what
     // the user sees on the Dashboard / Sleep tab; otherwise Coach can
@@ -3573,8 +3586,8 @@ async fn build_context_card(
             };
             out.push_str(&format!(
                 "- {} → {} ({}h{:02}, quality {}, {} pickups{})\n",
-                bedtime.format("%Y-%m-%d %H:%M"),
-                wake.format("%H:%M"),
+                coach_local(bedtime, &tz).format("%Y-%m-%d %H:%M"),
+                coach_local(wake, &tz).format("%H:%M"),
                 h,
                 m,
                 quality,
@@ -3614,8 +3627,8 @@ async fn build_context_card(
         for (title, start, end, category, priority) in &calendar_next {
             out.push_str(&format!(
                 "- {} → {} — {} ({}, {})\n",
-                start.format("%Y-%m-%d %H:%M"),
-                end.format("%H:%M"),
+                coach_local(start, &tz).format("%Y-%m-%d %H:%M"),
+                coach_local(end, &tz).format("%H:%M"),
                 title,
                 category,
                 priority
@@ -3743,6 +3756,11 @@ async fn handle_get_sleep_history(
         .ok_or_else(|| "missing days".to_string())?;
     let days = days.clamp(1, 90);
     let since = Utc::now() - Duration::days(days);
+    let tz = crate::tz::parse_tz(
+        &crate::tz::fetch_user_tz(&state.pool, user_id)
+            .await
+            .map_err(|e| format!("db error: {}", e.message))?,
+    );
     let rows: Vec<(Uuid, DateTime<Utc>, DateTime<Utc>, i16, i32, i64, i64, i64)> = sqlx::query_as(
         "SELECT
              sr.id, sr.actual_bedtime, sr.actual_wake_time, sr.quality_rating, sr.phone_pickups,
@@ -3767,8 +3785,8 @@ async fn handle_get_sleep_history(
             let mins = wake.signed_duration_since(*bed).num_minutes().max(0);
             json!({
                 "id": id,
-                "bedtime": bed.to_rfc3339(),
-                "wake_time": wake.to_rfc3339(),
+                "bedtime": coach_local(bed, &tz).to_rfc3339(),
+                "wake_time": coach_local(wake, &tz).to_rfc3339(),
                 "duration_minutes": mins,
                 "quality": q,
                 "phone_pickups": p,
@@ -3857,6 +3875,11 @@ async fn handle_get_sleep_audio_events(
     }
     let total_for_filter: i64 = total_rows.iter().map(|(_, c)| *c).sum();
 
+    let tz = crate::tz::parse_tz(
+        &crate::tz::fetch_user_tz(&state.pool, user_id)
+            .await
+            .map_err(|e| format!("db error: {}", e.message))?,
+    );
     let event_rows: Vec<(String, DateTime<Utc>, DateTime<Utc>, f32)> = sqlx::query_as(
         "SELECT event_type, started_at, ended_at, peak_confidence
            FROM sleep_audio_events
@@ -3878,8 +3901,8 @@ async fn handle_get_sleep_audio_events(
         .map(|(t, started, ended, conf)| {
             json!({
                 "type": t,
-                "started_at": started.to_rfc3339(),
-                "ended_at": ended.to_rfc3339(),
+                "started_at": coach_local(started, &tz).to_rfc3339(),
+                "ended_at": coach_local(ended, &tz).to_rfc3339(),
                 "peak_confidence": (*conf as f64 * 100.0).round() / 100.0,
             })
         })
@@ -4010,6 +4033,11 @@ async fn handle_get_focus_session_detail(
         .and_then(|v| v.as_i64())
         .ok_or_else(|| "missing limit".to_string())?;
     let limit = limit.clamp(1, 20);
+    let tz = crate::tz::parse_tz(
+        &crate::tz::fetch_user_tz(&state.pool, user_id)
+            .await
+            .map_err(|e| format!("db error: {}", e.message))?,
+    );
     let rows: Vec<(
         Uuid,
         DateTime<Utc>,
@@ -4034,7 +4062,7 @@ async fn handle_get_focus_session_detail(
         .map(|(id, started_at, duration, pickups, debrief, tag)| {
             json!({
                 "id": id,
-                "started_at": started_at.to_rfc3339(),
+                "started_at": coach_local(started_at, &tz).to_rfc3339(),
                 "duration_minutes": duration,
                 "phone_pickups": pickups,
                 "debrief": debrief,
@@ -4095,6 +4123,11 @@ async fn handle_get_calendar_events(
     }
     let start_utc = start_d.and_hms_opt(0, 0, 0).unwrap().and_utc();
     let end_utc = end_d.and_hms_opt(23, 59, 59).unwrap().and_utc();
+    let tz = crate::tz::parse_tz(
+        &crate::tz::fetch_user_tz(&state.pool, user_id)
+            .await
+            .map_err(|e| format!("db error: {}", e.message))?,
+    );
     let rows: Vec<(Uuid, String, DateTime<Utc>, DateTime<Utc>, String, String)> = sqlx::query_as(
         "SELECT id, title, start_time, end_time, category::TEXT, priority::TEXT
            FROM calendar_events
@@ -4115,8 +4148,8 @@ async fn handle_get_calendar_events(
             json!({
                 "id": id,
                 "title": title,
-                "start": start.to_rfc3339(),
-                "end": end.to_rfc3339(),
+                "start": coach_local(start, &tz).to_rfc3339(),
+                "end": coach_local(end, &tz).to_rfc3339(),
                 "category": category,
                 "priority": priority,
             })
@@ -4665,6 +4698,11 @@ async fn handle_get_sleep_period(
     // from chat_send) instead of UTC. Matches the context card + per-user
     // timezone rule; chat_send already falls back to UTC if the client omits it.
     let (start, end, label) = calendar_period_bounds(period, now_local)?;
+    let tz = crate::tz::parse_tz(
+        &crate::tz::fetch_user_tz(&state.pool, user_id)
+            .await
+            .map_err(|e| format!("db error: {}", e.message))?,
+    );
     let rows: Vec<(Uuid, chrono::DateTime<Utc>, chrono::DateTime<Utc>, i16, i32, i64, i64, i64)> = sqlx::query_as(
         "SELECT
              sr.id, sr.actual_bedtime, sr.actual_wake_time, sr.quality_rating, sr.phone_pickups,
@@ -4706,8 +4744,8 @@ async fn handle_get_sleep_period(
             let mins = wake.signed_duration_since(*bed).num_minutes().max(0);
             json!({
                 "id": id,
-                "bedtime": bed.to_rfc3339(),
-                "wake_time": wake.to_rfc3339(),
+                "bedtime": coach_local(bed, &tz).to_rfc3339(),
+                "wake_time": coach_local(wake, &tz).to_rfc3339(),
                 "duration_minutes": mins,
                 "quality": q,
                 "phone_pickups": p,
