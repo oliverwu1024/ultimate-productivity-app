@@ -3675,7 +3675,7 @@ async fn run_chat_tool(
             handle_complete_checklist_item(state, user_id, &tool_use_id, &tool_name, &input).await
         }
         TOOL_CALENDAR => {
-            handle_propose_calendar_event(&tool_use_id, &tool_name, &input).await
+            handle_propose_calendar_event(state, user_id, &tool_use_id, &tool_name, &input).await
         }
         TOOL_GET_SLEEP_PERIOD => {
             handle_get_sleep_period(state, user_id, &tool_use_id, &tool_name, &input, now_local).await
@@ -4370,6 +4370,8 @@ async fn handle_complete_checklist_item(
 }
 
 async fn handle_propose_calendar_event(
+    state: &AppState,
+    user_id: Uuid,
     tool_use_id: &str,
     tool_name: &str,
     input: &serde_json::Value,
@@ -4385,11 +4387,16 @@ async fn handle_propose_calendar_event(
     // Server NEVER writes here. The model is told this in the prompt, and
     // we reinforce it in the tool result so the model phrases the reply as
     // a draft pending user confirmation.
+    let tz = crate::tz::parse_tz(
+        &crate::tz::fetch_user_tz(&state.pool, user_id)
+            .await
+            .map_err(|e| format!("db error: {}", e.message))?,
+    );
     let summary = format!(
         "Proposed: {} {} → {}",
         fields.title,
-        fields.start_time.format("%Y-%m-%d %H:%M"),
-        fields.end_time.format("%H:%M"),
+        coach_local(&fields.start_time, &tz).format("%Y-%m-%d %H:%M"),
+        coach_local(&fields.end_time, &tz).format("%H:%M"),
     );
     let payload = json!({
         "status": "proposed",
@@ -4495,6 +4502,11 @@ async fn handle_log_sleep_record(
         .events
         .publish(user_id, crate::event_bus::SyncEvent::SleepCreated(record.clone()));
 
+    let tz = crate::tz::parse_tz(
+        &crate::tz::fetch_user_tz(&state.pool, user_id)
+            .await
+            .map_err(|e| format!("db error: {}", e.message))?,
+    );
     let minutes = actual_wake_time.signed_duration_since(actual_bedtime).num_minutes().max(0);
     let h = minutes / 60;
     let m = minutes % 60;
@@ -4519,8 +4531,8 @@ async fn handle_log_sleep_record(
                 id: record.id,
                 title: Some(format!(
                     "{} → {}",
-                    actual_bedtime.format("%H:%M"),
-                    actual_wake_time.format("%H:%M")
+                    coach_local(&actual_bedtime, &tz).format("%H:%M"),
+                    coach_local(&actual_wake_time, &tz).format("%H:%M")
                 )),
                 due_date: None,
             }),
