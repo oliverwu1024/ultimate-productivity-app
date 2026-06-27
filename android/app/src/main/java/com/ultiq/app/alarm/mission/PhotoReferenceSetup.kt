@@ -146,7 +146,7 @@ fun PhotoReferenceSetup(
                             // §H2: close the ImageProxy in finally so a
                             // failure during toBitmap() or save doesn't leak.
                             try {
-                                val bitmap = withContext(Dispatchers.IO) { image.toBitmap() }
+                                val bitmap = withContext(Dispatchers.IO) { image.toUprightBitmap() }
                                 val uri = withContext(Dispatchers.IO) {
                                     val u = saveReferencePhoto(context, alarmId, bitmap)
                                     bitmap.recycle()

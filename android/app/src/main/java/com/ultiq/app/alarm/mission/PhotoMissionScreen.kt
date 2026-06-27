@@ -337,7 +337,7 @@ fun PhotoMissionScreen(
                                             failures += 1
                                             return@launch
                                         }
-                                        val bitmap = withContext(Dispatchers.IO) { image.toBitmap() }
+                                        val bitmap = withContext(Dispatchers.IO) { image.toUprightBitmap() }
                                         val liveEmbedding = withContext(Dispatchers.IO) {
                                             PhotoEmbedder.embed(context, bitmap)
                                         }
