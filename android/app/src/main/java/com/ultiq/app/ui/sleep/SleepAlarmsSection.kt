@@ -199,7 +199,8 @@ private fun AlarmRow(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "%02d:%02d".format(alarm.triggerHour, alarm.triggerMinute),
+                        text = java.time.LocalTime.of(alarm.triggerHour, alarm.triggerMinute)
+                            .format(java.time.format.DateTimeFormatter.ofPattern("h:mm a")),
                         style = MaterialTheme.typography.displaySmall,
                         fontWeight = FontWeight.SemiBold,
                         color = if (alarm.enabled) MaterialTheme.colorScheme.onSurface
