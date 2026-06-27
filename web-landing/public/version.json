@@ -1,6 +1,6 @@
 {
-  "versionCode": 124,
-  "versionName": "2.19.0",
-  "url": "https://ultiqapp.com/ultiq.2.19.0.apk",
-  "releaseNotes": "Smarter photo alarms. The 'photograph a scene to dismiss' mission now uses on-device AI to recognise your reference scene even from a slightly different angle or in different lighting, so it's far less fussy about matching the exact shot. A faint guide of your reference photo now appears over the camera to help you line it up, with a live match score as you aim. Your photos never leave your phone."
+  "versionCode": 125,
+  "versionName": "2.19.1",
+  "url": "https://ultiqapp.com/ultiq.2.19.1.apk",
+  "releaseNotes": "Fixes. Alarm times now show consistently as AM/PM in the alarm list (they previously appeared in 24-hour time there), and reference photos taken in portrait for the photo dismiss mission now save and display upright instead of sideways."
 }
