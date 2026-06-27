@@ -406,12 +406,25 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
             combine(
                 SleepTrackingService.isRunning,
                 SleepTrackingService.sessionStartTime,
-                SleepTrackingService.pickupEvents
-            ) { running, startTime, events ->
-                _uiState.value = _uiState.value.copy(
+                SleepTrackingService.pickupEvents,
+                SleepTrackingService.sessionTargetBedtimeMin,
+                SleepTrackingService.sessionTargetWakeMin,
+            ) { running, startTime, events, bedMin, wakeMin ->
+                val cur = _uiState.value
+                _uiState.value = cur.copy(
                     isSessionActive = running,
                     sessionStartTime = startTime,
-                    pickupEvents = events
+                    pickupEvents = events,
+                    // §sleep-state-fix — Restore the target window from the
+                    // service (the durable source of truth) whenever a session
+                    // is live, so a ViewModel recreated mid-session — e.g. the
+                    // app reopened in the morning to End Sleep — uses the
+                    // ORIGINAL target instead of this ViewModel's
+                    // LocalTime.now()/+8h construction defaults.
+                    sessionTargetBedtime = if (running && bedMin >= 0)
+                        minuteOfDayToLocalTime(bedMin) else cur.sessionTargetBedtime,
+                    sessionTargetWakeTime = if (running && wakeMin >= 0)
+                        minuteOfDayToLocalTime(wakeMin) else cur.sessionTargetWakeTime,
                 )
             }.collect {}
         }
@@ -490,9 +503,12 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun confirmStartSleepSession(targetWakeTime: LocalTime) {
+        // §sleep-state-fix — Capture bedtime once so the same value reaches
+        // the UI, the start Intent, and the durable store.
+        val targetBedtime = LocalTime.now()
         _uiState.value = _uiState.value.copy(
             showSetTargetDialog = false,
-            sessionTargetBedtime = LocalTime.now(),
+            sessionTargetBedtime = targetBedtime,
             sessionTargetWakeTime = targetWakeTime,
         )
         val context = getApplication<Application>()
@@ -503,7 +519,14 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             repository.cleanupOrphanPendingEvents()
         }
-        val intent = Intent(context, SleepTrackingService::class.java)
+        // §sleep-state-fix — Hand the target window to the service so it can
+        // persist it durably and survive a process kill / ViewModel
+        // recreation. The service restores these into the flows that
+        // observeServiceState() reads.
+        val intent = Intent(context, SleepTrackingService::class.java).apply {
+            putExtra(SleepTrackingService.EXTRA_TARGET_BED_MIN, targetBedtime.toMinuteOfDay())
+            putExtra(SleepTrackingService.EXTRA_TARGET_WAKE_MIN, targetWakeTime.toMinuteOfDay())
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             context.startForegroundService(intent)
         } else {
@@ -536,6 +559,10 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
             aiRatingResult = null,
             aiRatingError = null,
         )
+        // §sleep-state-fix — Drop the durable snapshot BEFORE stopping the
+        // service so a START_STICKY restart race can't resurrect a session
+        // the user just ended.
+        SleepTrackingService.clearLiveSession(context)
         context.stopService(Intent(context, SleepTrackingService::class.java))
     }
 
@@ -999,4 +1026,11 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun formatTargetTime(time: LocalTime): String =
         "%02d:%02d:00".format(time.hour, time.minute)
+
+    // §sleep-state-fix — Compact minute-of-day encoding for the target window
+    // carried through the start Intent + LiveSleepSessionStore.
+    private fun LocalTime.toMinuteOfDay(): Int = hour * 60 + minute
+
+    private fun minuteOfDayToLocalTime(min: Int): LocalTime =
+        LocalTime.of((min / 60).coerceIn(0, 23), (min % 60).coerceIn(0, 59))
 }

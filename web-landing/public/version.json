@@ -1,6 +1,6 @@
 {
-  "versionCode": 125,
-  "versionName": "2.19.1",
-  "url": "https://ultiqapp.com/ultiq.2.19.1.apk",
-  "releaseNotes": "Fixes. Alarm times now show consistently as AM/PM in the alarm list (they previously appeared in 24-hour time there), and reference photos taken in portrait for the photo dismiss mission now save and display upright instead of sideways."
+  "versionCode": 126,
+  "versionName": "2.19.2",
+  "url": "https://ultiqapp.com/ultiq.2.19.2.apk",
+  "releaseNotes": "Reliability fixes. Sleep sessions now keep the correct target bedtime and wake-up time even when the app is closed or restarted overnight — previously a full night's session could show a wrong target window the next morning. Also fixes the alarm list showing 24-hour times instead of AM/PM, and corrects the orientation of portrait photos in the photo-dismiss alarm mission."
 }
