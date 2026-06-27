@@ -52,14 +52,15 @@ import java.io.File
 
 /**
  * Full-screen photo-reference setup overlay (§8.9). Requests CAMERA at runtime,
- * shows a CameraX preview, captures a JPEG on tap, computes the 64-bit pHash,
- * persists the photo to `Context.filesDir/alarm_refs/{alarmId}.jpg`, and calls
- * [onCaptured] with the saved URI + hash.
+ * shows a CameraX preview, captures a JPEG on tap, persists the photo to
+ * `Context.filesDir/alarm_refs/{alarmId}.jpg`, and calls [onCaptured] with the
+ * saved URI. The reference embedding is computed lazily at mission time from
+ * this JPEG (see [PhotoEmbedder]), so setup itself stays model-free.
  */
 @Composable
 fun PhotoReferenceSetup(
     alarmId: String,
-    onCaptured: (uri: String, phash: Long) -> Unit,
+    onCaptured: (uri: String) -> Unit,
     onCancel: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -146,14 +147,13 @@ fun PhotoReferenceSetup(
                             // failure during toBitmap() or save doesn't leak.
                             try {
                                 val bitmap = withContext(Dispatchers.IO) { image.toBitmap() }
-                                val (uri, hash) = withContext(Dispatchers.IO) {
+                                val uri = withContext(Dispatchers.IO) {
                                     val u = saveReferencePhoto(context, alarmId, bitmap)
-                                    val h = PerceptualHash.compute(bitmap)
                                     bitmap.recycle()
-                                    u to h
+                                    u
                                 }
                                 capturing = false
-                                onCaptured(uri, hash)
+                                onCaptured(uri)
                             } catch (e: Exception) {
                                 capturing = false
                                 error = e.message ?: "Couldn't save the photo"

@@ -14,11 +14,13 @@ object MissionConfig {
 
     /**
      * [referenceUri] is a `file://` URI of the reference photo stored under
-     * `Context.getFilesDir()/alarm_refs/{alarmId}.jpg`. [phash] is the 64-bit
-     * DCT perceptual hash computed at setup. A live capture matches when its
-     * pHash is within [tolerance] bits (Hamming distance ≤ tolerance).
+     * `Context.getFilesDir()/alarm_refs/{alarmId}.jpg`. A live capture matches
+     * when the cosine similarity between its MobileNet-V3 embedding and the
+     * reference photo's embedding is ≥ [threshold] (see [PhotoEmbedder]). The
+     * reference embedding is recomputed from the saved JPEG at mission time, so
+     * nothing but the URI + threshold needs to live in the config blob.
      */
-    data class Photo(val referenceUri: String?, val phash: Long, val tolerance: Int)
+    data class Photo(val referenceUri: String?, val threshold: Float)
 
     /** Safe parser — bad JSON degrades to medium / 3. */
     fun parseMath(json: String): Math {
@@ -51,29 +53,24 @@ object MissionConfig {
         put("shakes_required", shakesRequired.coerceIn(MIN_SHAKES, MAX_SHAKES))
     }.toString()
 
-    /** Safe parser — missing referenceUri returns Photo(null, 0L, default). */
+    /** Safe parser — missing referenceUri returns Photo(null, default threshold).
+     *  Legacy configs (pre-v2.18) carried `phash_hex` + `tolerance` instead of a
+     *  `threshold`; those keys are ignored and the saved reference JPEG is simply
+     *  re-embedded at mission time, so old photo alarms keep working. */
     fun parsePhoto(json: String): Photo {
         val obj = runCatching { JSONObject(json) }.getOrDefault(JSONObject())
         val uri = obj.optString("reference_uri").takeIf { it.isNotBlank() }
-        val phash = runCatching {
-            // pHash is sent as a hex string to dodge JSON's lack of a 64-bit
-            // unsigned integer type — `Long.parseUnsignedLong` keeps the high
-            // bit safe across the JSON round-trip.
-            java.lang.Long.parseUnsignedLong(obj.optString("phash_hex", "0"), 16)
-        }.getOrDefault(0L)
-        val tolerance = obj.optInt("tolerance", DEFAULT_PHOTO_TOLERANCE)
-            .coerceIn(MIN_PHOTO_TOLERANCE, MAX_PHOTO_TOLERANCE)
-        return Photo(uri, phash, tolerance)
+        val threshold = obj.optDouble("threshold", DEFAULT_PHOTO_THRESHOLD.toDouble())
+            .toFloat().coerceIn(MIN_PHOTO_THRESHOLD, MAX_PHOTO_THRESHOLD)
+        return Photo(uri, threshold)
     }
 
     fun buildPhoto(
         referenceUri: String?,
-        phash: Long,
-        tolerance: Int = DEFAULT_PHOTO_TOLERANCE,
+        threshold: Float = DEFAULT_PHOTO_THRESHOLD,
     ): String = JSONObject().apply {
         if (referenceUri != null) put("reference_uri", referenceUri)
-        put("phash_hex", java.lang.Long.toUnsignedString(phash, 16))
-        put("tolerance", tolerance.coerceIn(MIN_PHOTO_TOLERANCE, MAX_PHOTO_TOLERANCE))
+        put("threshold", threshold.coerceIn(MIN_PHOTO_THRESHOLD, MAX_PHOTO_THRESHOLD).toDouble())
     }.toString()
 
     private const val DEFAULT_MATH_COUNT = 3
@@ -89,7 +86,11 @@ object MissionConfig {
     private const val MIN_SHAKES = 10
     private const val MAX_SHAKES = 100
 
-    const val DEFAULT_PHOTO_TOLERANCE = 12
-    private const val MIN_PHOTO_TOLERANCE = 4
-    private const val MAX_PHOTO_TOLERANCE = 24
+    /** Cosine-similarity threshold for the photo mission. 0.60 is deliberately
+     *  lenient — the groggy user is not an adversary, and false *rejects* (can't
+     *  dismiss a legitimately-matched scene) are the failure mode we're fixing.
+     *  Tunable; the mission screen shows the live match % so it can be calibrated. */
+    const val DEFAULT_PHOTO_THRESHOLD = 0.60f
+    private const val MIN_PHOTO_THRESHOLD = 0.30f
+    private const val MAX_PHOTO_THRESHOLD = 0.95f
 }

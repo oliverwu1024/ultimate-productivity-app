@@ -54,14 +54,17 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.net.URI
+import kotlin.math.roundToInt
 
 private const val FALLBACK_AFTER_FAILURES = 5
 
 /**
- * Photo dismiss mission (§8.9). Compares the captured frame's pHash against
- * the reference's via Hamming distance; ≤ [PhotoConfigState.tolerance] →
- * onComplete. After 5 failed attempts, transparently falls back to a math
- * mission so the user isn't locked out of their morning.
+ * Photo dismiss mission (§8.9). Embeds the captured frame with MobileNet-V3 and
+ * compares it to the reference photo's embedding by cosine similarity; a score
+ * ≥ [MissionConfig.Photo.threshold] dismisses the alarm. A faint "ghost" of the
+ * reference photo is overlaid on the live preview so the user can re-frame the
+ * same scene. After 5 failed attempts (or with no camera / no usable reference)
+ * it transparently falls back to a math mission so the user is never locked out.
  */
 @Composable
 fun PhotoMissionScreen(
@@ -74,7 +77,7 @@ fun PhotoMissionScreen(
 
     var failures by remember { mutableIntStateOf(0) }
     var capturing by remember { mutableStateOf(false) }
-    var lastDistance by remember { mutableStateOf<Int?>(null) }
+    var lastSimilarity by remember { mutableStateOf<Float?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
 
     if (failures >= FALLBACK_AFTER_FAILURES) {
@@ -165,6 +168,45 @@ fun PhotoMissionScreen(
         }
     }
 
+    // §8.9 (v2.18+) — embed the reference photo once so each live capture only
+    // pays for a single embedding. Empty array = reference missing / unreadable.
+    val referenceEmbedding by produceState<FloatArray?>(
+        initialValue = null,
+        key1 = config.referenceUri,
+    ) {
+        val uri = config.referenceUri
+        value = if (uri == null) {
+            FloatArray(0)
+        } else {
+            withContext(Dispatchers.IO) {
+                try {
+                    val file = File(URI.create(uri))
+                    val bmp = BitmapFactory.decodeFile(
+                        file.absolutePath,
+                        BitmapFactory.Options().apply { inSampleSize = 2 },
+                    ) ?: return@withContext FloatArray(0)
+                    val emb = PhotoEmbedder.embed(context, bmp)
+                    bmp.recycle()
+                    emb
+                } catch (_: Exception) {
+                    FloatArray(0)
+                }
+            }
+        }
+    }
+
+    // A missing or unreadable reference can never be matched — fall back to math
+    // so the alarm can still be dismissed.
+    if (referenceEmbedding?.isEmpty() == true) {
+        MathMissionScreen(
+            difficulty = MathDifficulty.MEDIUM,
+            targetCount = 3,
+            onComplete = onComplete,
+        )
+        return
+    }
+    val referenceReady = referenceEmbedding?.isNotEmpty() == true
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -206,7 +248,7 @@ fun PhotoMissionScreen(
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text(
-                    "Point at the same place as your reference photo, then capture.",
+                    "Line the faint guide up with the real scene, then capture.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -231,6 +273,19 @@ fun PhotoMissionScreen(
                 factory = { previewView },
                 modifier = Modifier.fillMaxSize(),
             )
+            // §8.9 (v2.18+) — faint "ghost" of the reference photo overlaid on
+            // the live preview so the user can line the scene up with it; closer
+            // framing → higher similarity → fewer false rejects.
+            val ghost = referenceBitmap
+            if (ghost != null) {
+                Image(
+                    bitmap = ghost.asImageBitmap(),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    alpha = 0.35f,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
         }
 
         Column(
@@ -239,9 +294,10 @@ fun PhotoMissionScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            val matchText = when (val d = lastDistance) {
+            val matchText = when (val s = lastSimilarity) {
                 null -> ""
-                else -> "Last match: $d bits different (need ≤ ${config.tolerance})"
+                else -> "Last match: ${(s * 100).roundToInt()}% similar " +
+                    "(need ≥ ${(config.threshold * 100).roundToInt()}%)"
             }
             if (matchText.isNotEmpty()) {
                 Text(
@@ -273,15 +329,23 @@ fun PhotoMissionScreen(
                                     // fills up and silently blocks further
                                     // captures.
                                     try {
+                                        val ref = referenceEmbedding
+                                        if (ref == null || ref.isEmpty()) {
+                                            // Capture is gated on referenceReady,
+                                            // so this is just belt-and-braces.
+                                            capturing = false
+                                            failures += 1
+                                            return@launch
+                                        }
                                         val bitmap = withContext(Dispatchers.IO) { image.toBitmap() }
-                                        val liveHash = withContext(Dispatchers.IO) {
-                                            PerceptualHash.compute(bitmap)
+                                        val liveEmbedding = withContext(Dispatchers.IO) {
+                                            PhotoEmbedder.embed(context, bitmap)
                                         }
                                         bitmap.recycle()
-                                        val distance = PerceptualHash.hammingDistance(liveHash, config.phash)
-                                        lastDistance = distance
+                                        val similarity = PhotoEmbedder.cosineSimilarity(liveEmbedding, ref)
+                                        lastSimilarity = similarity
                                         capturing = false
-                                        if (distance <= config.tolerance) {
+                                        if (similarity >= config.threshold) {
                                             onComplete()
                                         } else {
                                             failures += 1
@@ -302,10 +366,16 @@ fun PhotoMissionScreen(
                         },
                     )
                 },
-                enabled = imageCapture != null && !capturing,
+                enabled = imageCapture != null && !capturing && referenceReady,
                 modifier = Modifier.fillMaxWidth().height(60.dp),
             ) {
-                Text(if (capturing) "Checking…" else "Capture")
+                Text(
+                    when {
+                        capturing -> "Checking…"
+                        !referenceReady -> "Preparing…"
+                        else -> "Capture"
+                    },
+                )
             }
         }
     }
