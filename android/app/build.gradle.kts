@@ -23,8 +23,8 @@ android {
         applicationId = "com.ultiq.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 123
-        versionName = "2.18.0"
+        versionCode = 124
+        versionName = "2.19.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -159,4 +159,12 @@ dependencies {
     // phone; only labels + timestamps + confidences are persisted. Model file
     // `yamnet.tflite` must live at `app/src/main/assets/yamnet.tflite`.
     implementation("com.google.mediapipe:tasks-audio:0.10.21")
+
+    // §8.9 (v2.18+) — MediaPipe Image Embedder with bundled MobileNet-V3-small
+    // for the photo dismiss mission. Replaces the old DCT pHash: produces a
+    // 1024-d feature vector per frame so two photos of the same scene match by
+    // cosine similarity even across moderate angle / lighting changes. Same
+    // version line as tasks-audio above; model `mobilenet_v3_small.tflite`
+    // (~4 MB) lives at `app/src/main/assets/`. Imagery never leaves the phone.
+    implementation("com.google.mediapipe:tasks-vision:0.10.21")
 }

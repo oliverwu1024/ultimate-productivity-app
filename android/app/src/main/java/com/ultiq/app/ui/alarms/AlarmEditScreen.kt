@@ -218,11 +218,7 @@ fun AlarmEditScreen(
                         val configJson = when (kind) {
                             "math" -> MissionConfig.buildMath(MathDifficulty.MEDIUM, 3)
                             "shake" -> MissionConfig.buildShake(ShakeIntensity.MEDIUM, 30)
-                            "photo" -> MissionConfig.buildPhoto(
-                                referenceUri = null,
-                                phash = 0L,
-                                tolerance = MissionConfig.DEFAULT_PHOTO_TOLERANCE,
-                            )
+                            "photo" -> MissionConfig.buildPhoto(referenceUri = null)
                             else -> d.missionConfigJson
                         }
                         d.copy(missionKind = kind, missionConfigJson = configJson)
@@ -388,14 +384,13 @@ fun AlarmEditScreen(
         ) {
             PhotoReferenceSetup(
                 alarmId = draft!!.id,
-                onCaptured = { uri, hash ->
+                onCaptured = { uri ->
                     viewModel.updateEditingDraft { d ->
                         val existing = MissionConfig.parsePhoto(d.missionConfigJson)
                         d.copy(
                             missionConfigJson = MissionConfig.buildPhoto(
                                 referenceUri = uri,
-                                phash = hash,
-                                tolerance = existing.tolerance,
+                                threshold = existing.threshold,
                             ),
                         )
                     }
