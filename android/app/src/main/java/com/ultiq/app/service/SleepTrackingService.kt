@@ -56,8 +56,24 @@ class SleepTrackingService : Service() {
         const val CHANNEL_ID = "sleep_tracking"
         const val NOTIFICATION_ID = 1001
 
+        // §sleep-state-fix — Start-intent extras carrying the user-confirmed
+        // target window (minute-of-day) into the service. Their presence also
+        // distinguishes a fresh, user-initiated start from a START_STICKY
+        // restart after a process kill (which hands us a null intent).
+        const val EXTRA_TARGET_BED_MIN = "extra_target_bed_min"
+        const val EXTRA_TARGET_WAKE_MIN = "extra_target_wake_min"
+
         val isRunning = MutableStateFlow(false)
         val sessionStartTime = MutableStateFlow(0L)
+        // §sleep-state-fix — The session's target window (minute-of-day,
+        // -1 = unset) kept alongside sessionStartTime so it survives
+        // ViewModel recreation AND a process kill (restored from
+        // LiveSleepSessionStore on a START_STICKY restart). Previously it
+        // lived only in SleepViewModel's UI state and reset to
+        // LocalTime.now()/+8h defaults whenever the ViewModel was recreated —
+        // e.g. closing the app overnight and reopening to End Sleep.
+        val sessionTargetBedtimeMin = MutableStateFlow(-1)
+        val sessionTargetWakeMin = MutableStateFlow(-1)
         val pickupEvents = MutableStateFlow<List<PickupEvent>>(emptyList())
         val sessionUnlockCount = MutableStateFlow(0)
 
@@ -100,6 +116,14 @@ class SleepTrackingService : Service() {
             } catch (e: Throwable) {
                 Log.w(TAG, "flushAudioNow shutdown failed (non-fatal)", e)
             }
+        }
+
+        /** §sleep-state-fix — Drop the durable live-session snapshot. Called
+         *  from the ViewModel when the user explicitly ends the session —
+         *  never from onDestroy, since a system kill must leave the snapshot
+         *  intact so the START_STICKY restart can resume it. */
+        fun clearLiveSession(context: Context) {
+            LiveSleepSessionStore(context).clear()
         }
 
         private var lastScreenOnTime: Long? = null
@@ -188,15 +212,54 @@ class SleepTrackingService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // §sleep-state-fix — Tell a fresh, user-initiated start (the ViewModel
+        // always attaches the target window as extras) apart from a
+        // START_STICKY restart after a process kill (null intent / no extras).
+        // A fresh start stamps a new session and persists it durably; a
+        // restart RESTORES the persisted session rather than re-stamping
+        // `now` — otherwise the actual bedtime jumps to the restart moment
+        // (the 0h0m records) and the target window is lost.
+        val store = LiveSleepSessionStore(applicationContext)
+        if (intent != null && intent.hasExtra(EXTRA_TARGET_BED_MIN)) {
+            val startMs = System.currentTimeMillis()
+            sessionStartTime.value = startMs
+            // §10.x-fix (4th piece) — Stamp a placeholder id for this session
+            // before any audio detection can fire. The aggregator's Room write
+            // uses this id; the ViewModel passes it back to the repository at
+            // session-end so the rows get relinked to the real sleep_record.id.
+            currentPendingSessionId.value = "pending-$startMs"
+            sessionTargetBedtimeMin.value = intent.getIntExtra(EXTRA_TARGET_BED_MIN, -1)
+            sessionTargetWakeMin.value = intent.getIntExtra(EXTRA_TARGET_WAKE_MIN, -1)
+            store.save(
+                LiveSleepSessionStore.Snapshot(
+                    startMs = startMs,
+                    targetBedtimeMin = sessionTargetBedtimeMin.value,
+                    targetWakeMin = sessionTargetWakeMin.value,
+                    pendingSessionId = currentPendingSessionId.value,
+                )
+            )
+        } else {
+            // START_STICKY restart: resume the persisted session. If nothing
+            // is persisted (e.g. the OS restarted us after the user had
+            // already ended), stand down instead of tracking a zombie session
+            // with a bogus `now` start time.
+            val saved = store.load()
+            if (saved == null) {
+                Log.w(TAG, "Service restarted with no persisted session — standing down")
+                stopSelf()
+                return START_NOT_STICKY
+            }
+            sessionStartTime.value = saved.startMs
+            currentPendingSessionId.value =
+                saved.pendingSessionId.ifEmpty { "pending-${saved.startMs}" }
+            sessionTargetBedtimeMin.value = saved.targetBedtimeMin
+            sessionTargetWakeMin.value = saved.targetWakeMin
+            Log.d(TAG, "Resumed sleep session from disk (start=${saved.startMs})")
+        }
+
         pickupEvents.value = emptyList()
         sessionUnlockCount.value = 0
-        sessionStartTime.value = System.currentTimeMillis()
         pendingAudioEvents.value = emptyList()
-        // §10.x-fix (4th piece) — Stamp a placeholder id for this session
-        // before any audio detection can fire. The aggregator's Room write
-        // uses this id; the ViewModel passes it back to the repository at
-        // session-end so the rows get relinked to the real sleep_record.id.
-        currentPendingSessionId.value = "pending-${sessionStartTime.value}"
         audioTrackingActive.value = false
         lastScreenOnTime = null
         isRunning.value = true
