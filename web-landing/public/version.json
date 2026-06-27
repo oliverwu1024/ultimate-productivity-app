@@ -1,6 +1,6 @@
 {
-  "versionCode": 123,
-  "versionName": "2.18.0",
-  "url": "https://ultiqapp.com/ultiq.2.18.0.apk",
-  "releaseNotes": "Travel-friendly time fixes. Your sleep history, focus sessions, and calendar now keep their original local times when you change timezones — an 11pm bedtime stays 11pm instead of shifting. Recurring calendar events no longer drift by an hour around daylight-saving changes, and the app updates your timezone automatically when you travel (no logging out and back in)."
+  "versionCode": 124,
+  "versionName": "2.19.0",
+  "url": "https://ultiqapp.com/ultiq.2.19.0.apk",
+  "releaseNotes": "Smarter photo alarms. The 'photograph a scene to dismiss' mission now uses on-device AI to recognise your reference scene even from a slightly different angle or in different lighting, so it's far less fussy about matching the exact shot. A faint guide of your reference photo now appears over the camera to help you line it up, with a live match score as you aim. Your photos never leave your phone."
 }
