@@ -1170,6 +1170,17 @@ private fun RecordDetailSection(
  * Auto-advance: when the active clip's MediaPlayer fires onCompletion, we
  * walk to the next event in the list with `hasClip = true` and switch.
  */
+private const val MAX_SANE_AUDIO_EVENT_MS = 24L * 60L * 60L * 1000L
+
+// §abnormal-seconds — guard a corrupt endedAt. A sentinel classifier
+// timestamp can produce a ~9.2e15 ms span that renders as ~9.2e12 "s"; treat
+// any span outside a sane window as 0 so one bad row can't print garbage
+// (also heals rows already written by pre-fix builds).
+private fun sleepEventDurationSec(startedAt: Long, endedAt: Long): Long {
+    val ms = endedAt - startedAt
+    return if (ms in 0..MAX_SANE_AUDIO_EVENT_MS) ms / 1000L else 0L
+}
+
 @Composable
 private fun SleepAudioEventGroup(
     title: String,
@@ -1180,7 +1191,7 @@ private fun SleepAudioEventGroup(
     zone: ZoneId,
     timeFormat: DateTimeFormatter,
 ) {
-    val totalSecs = events.sumOf { (it.endedAt - it.startedAt) / 1000L }
+    val totalSecs = events.sumOf { sleepEventDurationSec(it.startedAt, it.endedAt) }
     val anyClips = events.any { it.hasClip }
 
     Text(
@@ -1195,7 +1206,7 @@ private fun SleepAudioEventGroup(
 
     events.forEachIndexed { index, e ->
         val time = Instant.ofEpochMilli(e.startedAt).atZone(zone).format(timeFormat)
-        val durSec = ((e.endedAt - e.startedAt) / 1000L).coerceAtLeast(1L)
+        val durSec = sleepEventDurationSec(e.startedAt, e.endedAt).coerceAtLeast(1L)
         if (e.hasClip) {
             EventPlaybackRow(
                 event = e,
