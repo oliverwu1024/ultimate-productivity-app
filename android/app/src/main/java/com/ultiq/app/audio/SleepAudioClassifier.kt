@@ -286,7 +286,20 @@ class SleepAudioClassifier private constructor(
         val results = result.classificationResults()
         for (r in results) {
             val resultMs = r.timestampMs().orElse(0L)
-            val timestampMs = streamStartedAt + resultMs
+            // §abnormal-seconds — MediaPipe can hand back a sentinel timestamp
+            // at stream boundaries/flush (Timestamp::Max/PostStream/Done ≈
+            // Long.MAX µs → ~9.2e15 ms after timestampMs()'s µs→ms divide).
+            // orElse(0L) only guards the *absent* case, not a present-but-
+            // absurd value; unclamped, streamStartedAt + that pushes the
+            // event's endedAt to year ~294247, which renders as ~9.2e12
+            // "seconds" and can't sync (the backend's DateTime<Utc> rejects
+            // it). A live streaming classification can't precede the stream
+            // start or sit in the future, so fall back to wall-clock.
+            val rawTimestampMs = streamStartedAt + resultMs
+            val wallNow = System.currentTimeMillis()
+            val timestampMs =
+                if (rawTimestampMs in streamStartedAt..(wallNow + 2_000L)) rawTimestampMs
+                else wallNow
             val cats = r.classifications().firstOrNull()?.categories() ?: continue
             var snoreConf = 0f
             var coughConf = 0f

@@ -1,6 +1,6 @@
 {
-  "versionCode": 126,
-  "versionName": "2.19.2",
-  "url": "https://ultiqapp.com/ultiq.2.19.2.apk",
-  "releaseNotes": "Reliability fixes. Sleep sessions now keep the correct target bedtime and wake-up time even when the app is closed or restarted overnight — previously a full night's session could show a wrong target window the next morning. Also fixes the alarm list showing 24-hour times instead of AM/PM, and corrects the orientation of portrait photos in the photo-dismiss alarm mission."
+  "versionCode": 127,
+  "versionName": "2.19.3",
+  "url": "https://ultiqapp.com/ultiq.2.19.3.apk",
+  "releaseNotes": "Fixes an occasional glitch where a recorded sleep sound (snoring, coughing, or sleep-talk) could display a wildly incorrect duration on the sleep card. Any affected entries are corrected automatically."
 }
