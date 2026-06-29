@@ -92,6 +92,7 @@ class SleepRepository(
                     phonePickups = record.phone_pickups,
                     totalPhoneMinutes = record.total_phone_minutes,
                     notes = record.notes,
+                    isNap = record.is_nap,
                     createdAt = now,
                     updatedAt = now,
                     isSynced = false
@@ -129,6 +130,7 @@ class SleepRepository(
                     phonePickups = record.phone_pickups,
                     totalPhoneMinutes = record.total_phone_minutes,
                     notes = record.notes,
+                    isNap = record.is_nap,
                     createdAt = existing?.createdAt ?: now,
                     updatedAt = now,
                     isSynced = false

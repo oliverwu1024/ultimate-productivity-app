@@ -27,6 +27,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -70,6 +71,14 @@ fun AddSleepDialog(
     var totalPhoneMinutes by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
     var validationError by remember { mutableStateOf<String?>(null) }
+    // §last-night — null = follow the heuristic as the user edits times; once
+    // they tap the toggle it sticks (final value = override ?: heuristic).
+    var napOverride by remember { mutableStateOf<Boolean?>(null) }
+    val napLikely = looksLikeNap(
+        LocalDateTime.of(actualBedDate, actualBedTime).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(),
+        LocalDateTime.of(actualWakeDate, actualWakeTime).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(),
+    )
+    val isNap = napOverride ?: napLikely
 
     val timeFormat = DateTimeFormatter.ofPattern("hh:mm a")
     val dateFormat = DateTimeFormatter.ofPattern("MMM dd, yyyy")
@@ -173,6 +182,23 @@ fun AddSleepDialog(
                 }
             }
 
+            // §last-night — surfaced for any manual entry; defaults to the
+            // heuristic (daytime + short) but the user can flip it.
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Daytime nap?", style = MaterialTheme.typography.labelLarge)
+                    Text(
+                        "Keeps it out of your \"last night\" summary",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(checked = isNap, onCheckedChange = { napOverride = it })
+            }
+
             // Phone pickups stepper
             Text("Phone Pickups", style = MaterialTheme.typography.labelLarge)
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -248,7 +274,8 @@ fun AddSleepDialog(
                                 quality_rating = qualityRating,
                                 phone_pickups = phonePickups,
                                 total_phone_minutes = totalPhoneMinutes.toIntOrNull(),
-                                notes = notes.ifBlank { null }
+                                notes = notes.ifBlank { null },
+                                is_nap = isNap
                             )
                             onSave(dto)
                         }

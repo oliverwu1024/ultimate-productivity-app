@@ -15,6 +15,10 @@ pub struct SleepRecord {
     pub phone_pickups: i32,
     pub total_phone_minutes: Option<i32>,
     pub notes: Option<String>,
+    /// §last-night — daytime nap / short test session. `serde(default)` so
+    /// responses from a backend that predates the column still deserialize.
+    #[serde(default)]
+    pub is_nap: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

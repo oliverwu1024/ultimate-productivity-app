@@ -45,7 +45,7 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
         SleepTombstoneEntity::class,
         PhonePickupEntity::class,
     ],
-    version = 19,
+    version = 20,
     exportSchema = false
 )
 @androidx.room.TypeConverters(com.ultiq.app.data.local.converters.IntListConverter::class)
@@ -428,6 +428,13 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        // §last-night — nap/night flag so "last night" surfaces skip naps.
+        private val MIGRATION_19_20 = object : Migration(19, 20) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `sleep_records` ADD COLUMN `isNap` INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
         private val MIGRATION_6_7 = object : Migration(6, 7) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(
@@ -526,6 +533,7 @@ abstract class AppDatabase : RoomDatabase() {
                     MIGRATION_16_17,
                     MIGRATION_17_18,
                     MIGRATION_18_19,
+                    MIGRATION_19_20,
                 )
                 // Legacy DB has been dropped if it existed; if Room can't
                 // open the file (corrupt / version mismatch from a prior

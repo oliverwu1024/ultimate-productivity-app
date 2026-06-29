@@ -728,7 +728,7 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun saveSessionRecord(qualityRating: Int, notes: String?) {
+    fun saveSessionRecord(qualityRating: Int, notes: String?, isNap: Boolean) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, showEndSleepDialog = false)
 
@@ -752,7 +752,8 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
                 quality_rating = qualityRating,
                 phone_pickups = state.endedPickupEvents.size,
                 total_phone_minutes = if (phoneMinutes > 0) phoneMinutes else null,
-                notes = notes
+                notes = notes,
+                is_nap = isNap
             )
 
             // §10 — snapshot the audio events the service captured during
@@ -792,7 +793,11 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
                     // this explicit refresh the card stays stuck at 0 until
                     // some unrelated Flow trigger fires (next sync, etc.) —
                     // observed as a ~1 min delay during dogfood.
-                    updateTonightAudioCounts(record)
+                    // §last-night — a just-saved nap shouldn't take over the
+                    // "Sleep sounds" card; keep it on the latest overnight sleep.
+                    val latestNonNap = if (!record.isNap) record
+                        else _uiState.value.records.firstOrNull { !it.isNap }
+                    updateTonightAudioCounts(latestNonNap)
                 }
                 // §10 — Upload the per-pickup detail so the past-records
                 // expansion can render the full timeline. Failure here is
@@ -916,7 +921,7 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
                     records = records,
                     stats = records.toLocalStats(target),
                 )
-                updateTonightAudioCounts(records.firstOrNull())
+                updateTonightAudioCounts(records.firstOrNull { !it.isNap })
             }
         }
     }

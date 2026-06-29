@@ -1,6 +1,6 @@
 {
-  "versionCode": 127,
-  "versionName": "2.19.3",
-  "url": "https://ultiqapp.com/ultiq.2.19.3.apk",
-  "releaseNotes": "Fixes an occasional glitch where a recorded sleep sound (snoring, coughing, or sleep-talk) could display a wildly incorrect duration on the sleep card. Any affected entries are corrected automatically."
+  "versionCode": 128,
+  "versionName": "2.20.0",
+  "url": "https://ultiqapp.com/ultiq.2.20.0.apk",
+  "releaseNotes": "Mark a sleep session as a daytime nap so naps and quick tests no longer show up as \"last night\" on your dashboard and Sleep tab. Sleep sounds now show a \"Quiet night\" when nothing's detected, plus a clearer sleep verdict."
 }

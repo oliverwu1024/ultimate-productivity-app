@@ -51,6 +51,12 @@ data class SleepSummary(
     val phonePickups: Int,
     val vsLastWeek: String? = null,
     val rankPhrase: String? = null,
+    /// §sleep-card-audio — compact snore/cough/sleep-talk line mirroring the
+    /// Sleep tab's "Sleep sounds" data so the two surfaces agree. "Quiet
+    /// night" when monitored types were all 0; null when audio monitoring was
+    /// off (we never listened, so the card omits the line rather than
+    /// claiming the night was quiet).
+    val soundsSummary: String? = null,
 )
 
 data class FocusSummary(
@@ -486,7 +492,8 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         val now = System.currentTimeMillis()
         val twoDaysAgo = now - 48 * 3600_000L
         val recent = sleepDao.getRecordsBetween(twoDaysAgo, now).firstOrNull() ?: emptyList()
-        val last = recent.firstOrNull()
+        // §last-night — skip naps so a daytime nap doesn't hijack the card.
+        val last = recent.firstOrNull { !it.isNap }
         if (last == null) {
             _uiState.value = _uiState.value.copy(lastNightSleep = null)
             return
@@ -501,7 +508,8 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         // that night and is often a partial-night value (an alarm at 5am
         // gave one user a target window of 5h 43m, which made an 8h 44m
         // sleep read as "+3h 1m vs optimal sleep" — wildly off).
-        val targetMins = userPreferences.snapshot().sleepTargetMinutes
+        val prefs = userPreferences.snapshot()
+        val targetMins = prefs.sleepTargetMinutes
         val diffMins = durationMins - targetMins
 
         // §sleep-card-calc — "Last week" = previous calendar Mon..Sun, NOT
@@ -545,6 +553,15 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         // wants it; the SleepCard no longer renders it.
         val vsLastWeek = Comparisons.vsLastWeekMinutes(durationMins, lastWeekMinutes)
 
+        // §sleep-card-audio — mirror the Sleep tab's snore/cough/sleep-talk
+        // data onto the Dashboard card so the verdict and the sounds never
+        // tell different stories.
+        val soundsSummary = buildSoundsSummary(
+            recordId = last.id,
+            audioOn = prefs.audioTrackingEnabled,
+            talkOn = prefs.sleepTalkDetectionEnabled,
+        )
+
         _uiState.value = _uiState.value.copy(
             lastNightSleep = SleepSummary(
                 duration = formatDuration(durationMins),
@@ -556,8 +573,28 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                 phonePickups = last.phonePickups,
                 vsLastWeek = vsLastWeek,
                 rankPhrase = rankPhrase,
+                soundsSummary = soundsSummary,
             )
         )
+    }
+
+    /// §sleep-card-audio — builds the Dashboard sleep card's snore/cough/
+    /// sleep-talk line from the same local `sleep_audio_events` the Sleep tab
+    /// reads, so the two surfaces never disagree. Any captured events are
+    /// always shown (they prove we were listening); an event-free night reads
+    /// "Quiet night" only when monitoring was on, else the line is omitted
+    /// (null) so we never claim a night was quiet when we weren't listening.
+    private suspend fun buildSoundsSummary(recordId: String, audioOn: Boolean, talkOn: Boolean): String? {
+        val dao = db.sleepAudioEventDao()
+        val snore = runCatching { dao.countByType(recordId, "snore") }.getOrDefault(0)
+        val cough = runCatching { dao.countByType(recordId, "cough") }.getOrDefault(0)
+        val talk = runCatching { dao.countByType(recordId, "sleep_talk") }.getOrDefault(0)
+        val parts = mutableListOf<String>()
+        if (snore > 0) parts += "$snore snore"
+        if (cough > 0) parts += "$cough cough"
+        if (talk > 0) parts += "$talk sleep-talk"
+        if (parts.isNotEmpty()) return parts.joinToString(" · ")
+        return if (audioOn || talkOn) "Quiet night" else null
     }
 
     private suspend fun loadFocusSummary() {

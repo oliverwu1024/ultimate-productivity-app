@@ -64,7 +64,9 @@ pub fn SleepPage() -> impl IntoView {
             let st = fetch_stats(r.stats_param()).await;
             match (recs, st) {
                 (Ok(rs), Ok(s)) => {
-                    let latest_id = rs.first().map(|r| r.id.clone());
+                    // §last-night — skip naps so the sounds card tracks the
+                    // most-recent overnight sleep, not a daytime nap.
+                    let latest_id = rs.iter().find(|r| !r.is_nap).map(|r| r.id.clone());
                     records.set(rs);
                     stats.set(Some(s));
                     // Fetch audio events for the most-recent record (if any).
@@ -205,7 +207,8 @@ fn LastNightSoundsCard(
             // MMM dd by sleep_day so the card name matches the chart bar.
             let label = records
                 .get()
-                .first()
+                .iter()
+                .find(|r| !r.is_nap)
                 .map(|r| {
                     let now = chrono::Utc::now();
                     let age = now - r.actual_bedtime;

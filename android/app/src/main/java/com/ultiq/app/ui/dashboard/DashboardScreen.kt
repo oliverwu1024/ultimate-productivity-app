@@ -645,6 +645,17 @@ private fun SleepCard(sleep: SleepSummary?, onClick: () -> Unit) {
                         Text(" ${sleep.phonePickups}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
+                // §sleep-card-audio — mirrors the Sleep tab's "Sleep sounds"
+                // counts so the verdict and the audio never disagree. Hidden
+                // when audio monitoring was off (soundsSummary == null).
+                sleep.soundsSummary?.let { sounds ->
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        "🔊 $sounds",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 // §sleep-card-copy — absolute reference instead of the
                 // ambiguous delta line. Matches the focus card pattern.
                 sleep.lastWeekDailyAvgMinutes?.let { avgMins ->

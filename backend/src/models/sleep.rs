@@ -19,6 +19,9 @@ pub struct SleepRecord {
     /// its wall-clock using this, not the user's current tz, so a past sleep
     /// keeps its original time after the user travels. NULL → current tz.
     pub recorded_tz: Option<String>,
+    /// §last-night — true for daytime naps / short test sessions, so the
+    /// "last night" surfaces skip them when picking the most-recent night.
+    pub is_nap: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -39,6 +42,10 @@ pub struct CreateSleepRecord {
     pub phone_pickups: i32,
     pub total_phone_minutes: Option<i32>,
     pub notes: Option<String>,
+    /// §last-night — daytime nap / short test session. Defaults to false
+    /// (overnight sleep) for older clients that don't send the field.
+    #[serde(default)]
+    pub is_nap: bool,
 }
 
 // Response: sleep stats

@@ -26,15 +26,21 @@ object WarmCopy {
         else -> "Tomorrow's a new run."
     }
 
-    /** Sleep card heading varies with quality + how it stacked vs target. */
+    /**
+     * Sleep card heading. Keys off the 1–5 star rating so every tier has a
+     * clear line (no "Last night" dead zones for quality 3 or a short 4).
+     * For mid-tiers, a night that ran >1h under optimal gets a "short"
+     * nuance; top/rough tiers ignore duration (the user's own rating already
+     * tells that story, and the exact delta shows in the line below the card).
+     */
     fun sleepHeader(quality: Int?, vsTargetMinutes: Int?): String {
-        if (quality == null) return "How'd you sleep?"
+        if (quality == null || quality < 1) return "How'd you sleep?"
+        val short = (vsTargetMinutes ?: 0) < -60
         return when {
             quality >= 5 -> "Top night"
-            quality >= 4 && (vsTargetMinutes ?: 0) >= 0 -> "Solid night"
-            quality <= 2 -> "Rough one — go easy today"
-            (vsTargetMinutes ?: 0) < -60 -> "Cut a bit short"
-            else -> "Last night"
+            quality == 4 -> if (short) "Solid, but a bit short" else "Solid night"
+            quality == 3 -> if (short) "Decent, but cut short" else "Decent night"
+            else -> "Rough one — go easy today" // quality 1–2
         }
     }
 

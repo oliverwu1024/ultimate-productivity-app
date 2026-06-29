@@ -230,7 +230,7 @@ fun SleepScreen(
             aiRatingResult = uiState.aiRatingResult,
             aiRatingError = uiState.aiRatingError,
             onRequestAiRating = { viewModel.requestAiSleepRating() },
-            onSave = { quality, notes -> viewModel.saveSessionRecord(quality, notes) },
+            onSave = { quality, notes, isNap -> viewModel.saveSessionRecord(quality, notes, isNap) },
             onDismiss = { viewModel.dismissEndSleepDialog() }
         )
     }
@@ -524,10 +524,17 @@ private fun SleepSubTab(
             )
         }
 
-        // §10 — Show the on-device snore + cough counts for the latest sleep
-        // session. Card hides when neither type fired during the night, so
-        // users who don't snore / never enable the toggle never see it.
-        if (uiState.tonightSnoreCount > 0 || uiState.tonightCoughCount > 0 || uiState.tonightSleepTalkCount > 0) {
+        // §10 — On-device sound summary for the latest sleep session. Shows
+        // the counts whenever events were captured; shows "Quiet night" when
+        // monitoring was on but nothing fired. Stays hidden when monitoring
+        // was off (we never listened, so we can't claim the night was quiet)
+        // or when there's no session yet.
+        val soundsMonitored = uiState.settings?.audioTrackingEnabled == true ||
+            uiState.settings?.sleepTalkDetectionEnabled == true
+        val hasTonightSounds = uiState.tonightSnoreCount > 0 ||
+            uiState.tonightCoughCount > 0 ||
+            uiState.tonightSleepTalkCount > 0
+        if (uiState.tonightSleepRecordId != null && (hasTonightSounds || soundsMonitored)) {
             item(key = "tonight-sounds") {
                 AnimatedAppear {
                     TonightSoundsCard(
@@ -990,7 +997,17 @@ private fun SleepRecordItem(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column {
-                        Text(dateStr, style = MaterialTheme.typography.titleSmall)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(dateStr, style = MaterialTheme.typography.titleSmall)
+                            if (record.isNap) {
+                                Spacer(Modifier.width(6.dp))
+                                Text(
+                                    "· Nap",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.primary,
+                                )
+                            }
+                        }
                         Text("${hours}h ${mins}m", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1511,10 +1528,10 @@ private fun SetSessionTargetDialog(
 }
 
 /**
- * §10 — Renders the snore + cough counts captured by on-device YAMNet
- * during the user's most recent sleep session. Hidden by SleepScreen when
- * neither count is > 0, so users who never snore / never enable tracking
- * never see this surface.
+ * §10 — Renders the snore / cough / sleep-talk counts captured by on-device
+ * YAMNet during the user's most recent sleep session, or a "Quiet night"
+ * state when monitoring was on but nothing fired. SleepScreen decides whether
+ * to show it at all (hidden when monitoring was off or there's no session).
  */
 @Composable
 private fun TonightSoundsCard(
@@ -1561,19 +1578,36 @@ private fun TonightSoundsCard(
                 )
             }
             Spacer(Modifier.height(12.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                if (snoreCount > 0) {
-                    SoundCountTile("Snoring", snoreCount, Modifier.weight(1f))
+            if (snoreCount > 0 || coughCount > 0 || sleepTalkCount > 0) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    if (snoreCount > 0) {
+                        SoundCountTile("Snoring", snoreCount, Modifier.weight(1f))
+                    }
+                    if (coughCount > 0) {
+                        SoundCountTile("Cough", coughCount, Modifier.weight(1f))
+                    }
+                    if (sleepTalkCount > 0) {
+                        SoundCountTile("Sleep-talk", sleepTalkCount, Modifier.weight(1f))
+                    }
                 }
-                if (coughCount > 0) {
-                    SoundCountTile("Cough", coughCount, Modifier.weight(1f))
-                }
-                if (sleepTalkCount > 0) {
-                    SoundCountTile("Sleep-talk", sleepTalkCount, Modifier.weight(1f))
-                }
+            } else {
+                // Monitoring was on but nothing fired — reassure rather than
+                // hide, mirroring the Dashboard card's "Quiet night" line.
+                Text(
+                    "Quiet night",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    "Nothing picked up while you slept.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
     }
