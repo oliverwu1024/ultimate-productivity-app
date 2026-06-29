@@ -648,6 +648,7 @@ fn StatRow(stats: SleepStats) -> impl IntoView {
         format!("{:.1}", stats.avg_phone_pickups)
     };
     let target = format_minutes(stats.sleep_target_minutes as f64);
+    let nap_count = stats.nap_count;
 
     view! {
         <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
@@ -656,6 +657,7 @@ fn StatRow(stats: SleepStats) -> impl IntoView {
             <Stat label="Sleep debt" value=debt sub=None />
             <Stat label="Extra sleep" value=extra sub=None />
             <Stat label="Avg pickups" value=pickups sub=None />
+            {(nap_count > 0).then(|| view! { <Stat label="Naps" value=nap_count.to_string() sub=None /> })}
         </div>
     }
 }
@@ -735,6 +737,7 @@ fn DurationChart(
             // gets a Monday bar.
             let mut points: Vec<(i64, f64, i16)> = Vec::new();
             for rec in &recs {
+                if rec.is_nap { continue; } // §last-night — naps off the chart
                 let sleep_day = crate::sleep_day::sleep_day_for(rec.actual_bedtime);
                 let idx = (sleep_day - start).num_days();
                 if idx >= 0 && idx < days {
@@ -886,6 +889,7 @@ fn QualityHistogram(records: RwSignal<Vec<SleepRecord>>) -> impl IntoView {
             }
             let mut counts = [0_i32; 6]; // index 1..=5 used
             for r in &recs {
+                if r.is_nap { continue; } // §last-night — nights only
                 let q = r.quality_rating.clamp(1, 5) as usize;
                 counts[q] += 1;
             }
@@ -943,6 +947,7 @@ fn PickupsBar(
                 series.push((d, 0));
             }
             for rec in &recs {
+                if rec.is_nap { continue; } // §last-night — nights only
                 // §sleep-day — Same bucketing as DurationChart above so
                 // the two charts always agree column-for-column.
                 let sleep_day = crate::sleep_day::sleep_day_for(rec.actual_bedtime);
@@ -953,8 +958,12 @@ fn PickupsBar(
             }
 
             let max = series.iter().map(|s| s.1).max().unwrap_or(0).max(1);
-            let avg = (recs.iter().map(|r| r.phone_pickups as i64).sum::<i64>() as f64)
-                / (recs.len() as f64);
+            let night_pickups: Vec<i64> = recs.iter().filter(|r| !r.is_nap).map(|r| r.phone_pickups as i64).collect();
+            let avg = if night_pickups.is_empty() {
+                0.0
+            } else {
+                night_pickups.iter().sum::<i64>() as f64 / night_pickups.len() as f64
+            };
 
             view! {
                 <div class="space-y-3">

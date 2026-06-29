@@ -34,6 +34,8 @@ pub struct SleepStats {
     pub avg_phone_pickups: f64,
     pub best_quality_day: Option<String>,
     pub worst_quality_day: Option<String>,
+    #[serde(default)]
+    pub nap_count: i64,
 }
 
 pub async fn list_records(

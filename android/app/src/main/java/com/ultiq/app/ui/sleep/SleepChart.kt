@@ -171,10 +171,14 @@ private fun processRecordsForChart(
 
         for (record in dayRecords) {
             val hours = (record.actualWakeTime - record.actualBedtime).toDouble() / 3_600_000
-            when (classifyByBedtime(record.actualBedtime, zone)) {
-                TimeOfDay.NIGHT -> nightHrs += hours
-                TimeOfDay.MORNING_NAP -> morningHrs += hours
-                TimeOfDay.AFTERNOON_NAP -> afternoonHrs += hours
+            // §last-night — an explicitly-marked nap is never charted as night
+            // sleep, even if it was logged at a night-time bedtime.
+            val tod = classifyByBedtime(record.actualBedtime, zone)
+            when {
+                record.isNap && tod == TimeOfDay.NIGHT -> afternoonHrs += hours
+                tod == TimeOfDay.NIGHT -> nightHrs += hours
+                tod == TimeOfDay.MORNING_NAP -> morningHrs += hours
+                else -> afternoonHrs += hours
             }
         }
 

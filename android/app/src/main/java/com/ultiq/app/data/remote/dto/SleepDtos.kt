@@ -47,7 +47,8 @@ data class SleepStatsDto(
     val sleep_target_minutes: Int,
     val avg_phone_pickups: Double,
     val best_quality_day: String?,
-    val worst_quality_day: String?
+    val worst_quality_day: String?,
+    val nap_count: Long = 0
 )
 
 data class SleepStats(
@@ -59,7 +60,8 @@ data class SleepStats(
     val sleepTargetMinutes: Int = 480,
     val avgPhonePickups: Double = 0.0,
     val bestQualityDay: String? = null,
-    val worstQualityDay: String? = null
+    val worstQualityDay: String? = null,
+    val napCount: Long = 0
 )
 
 fun SleepRecordDto.toEntity(): SleepRecordEntity {
@@ -113,14 +115,19 @@ fun SleepStatsDto.toStats(): SleepStats {
         sleepTargetMinutes = sleep_target_minutes,
         avgPhonePickups = avg_phone_pickups,
         bestQualityDay = best_quality_day,
-        worstQualityDay = worst_quality_day
+        worstQualityDay = worst_quality_day,
+        napCount = nap_count
     )
 }
 
 fun List<SleepRecordEntity>.toLocalStats(targetMinutes: Int): SleepStats {
-    if (isEmpty()) return SleepStats(sleepTargetMinutes = targetMinutes)
+    // §last-night — averages are NIGHTS ONLY; naps are counted separately so
+    // the stats card can show a "Naps" tile without skewing the means.
+    val napCount = count { it.isNap }.toLong()
+    val nights = filter { !it.isNap }
+    if (nights.isEmpty()) return SleepStats(sleepTargetMinutes = targetMinutes, napCount = napCount)
 
-    val count = size.toDouble()
+    val count = nights.size.toDouble()
     val targetMins = targetMinutes.toDouble()
     var totalDurationMins = 0.0
     var totalQuality = 0.0
@@ -130,7 +137,7 @@ fun List<SleepRecordEntity>.toLocalStats(targetMinutes: Int): SleepStats {
     var best: Pair<Int, String>? = null
     var worst: Pair<Int, String>? = null
 
-    for (r in this) {
+    for (r in nights) {
         val actualMins = (r.actualWakeTime - r.actualBedtime).toDouble() / 60_000
         totalDurationMins += actualMins
         totalQuality += r.qualityRating
@@ -149,12 +156,13 @@ fun List<SleepRecordEntity>.toLocalStats(targetMinutes: Int): SleepStats {
     return SleepStats(
         avgDurationMinutes = totalDurationMins / count,
         avgQuality = totalQuality / count,
-        totalRecords = size.toLong(),
+        totalRecords = nights.size.toLong(),
         debtMinutes = debtMins,
         extraMinutes = extraMins,
         sleepTargetMinutes = targetMinutes,
         avgPhonePickups = totalPickups / count,
         bestQualityDay = best?.second,
-        worstQualityDay = worst?.second
+        worstQualityDay = worst?.second,
+        napCount = napCount
     )
 }

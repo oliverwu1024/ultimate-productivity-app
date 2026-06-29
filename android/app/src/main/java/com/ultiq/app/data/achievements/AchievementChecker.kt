@@ -39,7 +39,8 @@ class AchievementChecker(
         val settings = userPreferences.snapshot()
         val zone = ZoneId.systemDefault()
 
-        val sleepRecords = sleepDao.getAllRecords().firstOrNull().orEmpty()
+        // §last-night — naps don't count toward sleep streak achievements.
+        val sleepRecords = sleepDao.getAllRecords().firstOrNull().orEmpty().filter { !it.isNap }
         val allSessions = sessionDao.getAllSessions().firstOrNull().orEmpty()
         val completed = allSessions.filter { it.completed }
 

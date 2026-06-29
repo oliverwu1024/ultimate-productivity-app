@@ -43,7 +43,7 @@ class MorningSummaryReceiver : BroadcastReceiver() {
                     .firstOrNull()
                     .orEmpty()
                 val lastNight = sleepRecords
-                    .firstOrNull()
+                    .firstOrNull { !it.isNap }
                     ?.takeIf { it.actualWakeTime >= staleCutoffMs }
                 val sleepStr = lastNight?.let {
                     val mins = ((it.actualWakeTime - it.actualBedtime) / 60_000L).toInt()

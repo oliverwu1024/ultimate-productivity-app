@@ -137,8 +137,8 @@ class WeeklyReportViewModel(application: Application) : AndroidViewModel(applica
             val eventsThisWeek = calendarRepo.getEventsForRange(start, weekEnd)
                 .firstOrNull().orEmpty()
 
-            val weekSleep = sleepRecordsAll.filter { it.actualWakeTime in weekStartMs..weekEndMs }
-            val priorSleep = sleepRecordsAll.filter { it.actualWakeTime in priorStartMs until weekStartMs }
+            val weekSleep = sleepRecordsAll.filter { it.actualWakeTime in weekStartMs..weekEndMs && !it.isNap }
+            val priorSleep = sleepRecordsAll.filter { it.actualWakeTime in priorStartMs until weekStartMs && !it.isNap }
             val weekSessions = completedAll.filter { it.startedAt in weekStartMs..weekEndMs }
 
             val sleepByDay = buildSleepByDay(start, weekSleep)
@@ -189,7 +189,7 @@ class WeeklyReportViewModel(application: Application) : AndroidViewModel(applica
             val bestDistractionFreeStreak = longestZeroPickupRun(completedAll)
 
             val sleepStreak = sleepTargetStreakNights(
-                records = sleepRecordsAll,
+                records = sleepRecordsAll.filter { !it.isNap },
                 targetBedtime = settings.targetBedtime,
                 targetWakeTime = settings.targetWakeTime,
             )

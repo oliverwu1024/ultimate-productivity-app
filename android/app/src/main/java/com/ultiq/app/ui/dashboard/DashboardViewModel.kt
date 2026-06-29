@@ -530,7 +530,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
 
         val lastWeekRecords = sleepDao.getRecordsBetween(lastWeekStartMs, lastWeekEndMs)
             .firstOrNull().orEmpty()
-            .filter { it.id != last.id }
+            .filter { it.id != last.id && !it.isNap }
         val lastWeekMinutes = lastWeekRecords.map { ((it.actualWakeTime - it.actualBedtime) / 60_000).toInt() }
         // Avg over logged nights (skips unlogged nights) — averaging
         // across all 7 nights would dilute the number if the user
@@ -542,7 +542,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         // recency-weighted comparison, not a calendar one.
         val monthAgo = now - 30 * 86_400_000L
         val past30 = sleepDao.getRecordsBetween(monthAgo, now).firstOrNull().orEmpty()
-            .filter { it.id != last.id }
+            .filter { it.id != last.id && !it.isNap }
         val past30Minutes = past30.map { ((it.actualWakeTime - it.actualBedtime) / 60_000.0) }
         val rankPhrase = if (past30.size >= 4) {
             val rank = Comparisons.rankAmong(durationMins.toDouble(), past30Minutes, largerIsBetter = true)
@@ -700,8 +700,11 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         val lastWeekEndMs = thisWeekStartMs // start of this week = end of last week
 
         // Sleep — this week so far
-        val sleepThis = sleepDao.getRecordsBetween(thisWeekStartMs, nowMs).firstOrNull() ?: emptyList()
-        val sleepPrev = sleepDao.getRecordsBetween(lastWeekStartMs, lastWeekEndMs).firstOrNull() ?: emptyList()
+        // §last-night — weekly highlights are night-only; naps don't count.
+        val sleepThis = (sleepDao.getRecordsBetween(thisWeekStartMs, nowMs).firstOrNull() ?: emptyList())
+            .filter { !it.isNap }
+        val sleepPrev = (sleepDao.getRecordsBetween(lastWeekStartMs, lastWeekEndMs).firstOrNull() ?: emptyList())
+            .filter { !it.isNap }
         val avgSleepThisMins = sleepThis.takeIf { it.isNotEmpty() }
             ?.map { ((it.actualWakeTime - it.actualBedtime) / 60_000).toInt() }?.average() ?: 0.0
         val avgSleepPrevMins = sleepPrev.takeIf { it.isNotEmpty() }

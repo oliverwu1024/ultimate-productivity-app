@@ -386,7 +386,11 @@ async fn stats(
     .fetch_all(&state.pool)
     .await?;
 
-    if records.is_empty() {
+    // §last-night — averages are NIGHTS ONLY; naps are counted separately so
+    // the card can show a "Naps" stat without them skewing the means.
+    let night_records: Vec<&SleepRecord> = records.iter().filter(|r| !r.is_nap).collect();
+    let nap_count = (records.len() - night_records.len()) as i64;
+    if night_records.is_empty() {
         return Ok(Json(SleepStats {
             avg_duration_minutes: 0.0,
             avg_quality: 0.0,
@@ -397,10 +401,11 @@ async fn stats(
             avg_phone_pickups: 0.0,
             best_quality_day: None,
             worst_quality_day: None,
+            nap_count,
         }));
     }
 
-    let count = records.len() as f64;
+    let count = night_records.len() as f64;
     let target_mins = target_minutes as f64;
     let mut total_duration_mins = 0.0;
     let mut total_quality = 0.0;
@@ -410,7 +415,7 @@ async fn stats(
     let mut best: Option<(i16, String)> = None;
     let mut worst: Option<(i16, String)> = None;
 
-    for r in &records {
+    for r in &night_records {
         let actual_mins = (r.actual_wake_time - r.actual_bedtime).num_minutes() as f64;
         total_duration_mins += actual_mins;
         total_quality += r.quality_rating as f64;
@@ -447,12 +452,13 @@ async fn stats(
     Ok(Json(SleepStats {
         avg_duration_minutes: total_duration_mins / count,
         avg_quality: total_quality / count,
-        total_records: records.len() as i64,
+        total_records: night_records.len() as i64,
         debt_minutes: debt_mins,
         extra_minutes: extra_mins,
         sleep_target_minutes: target_minutes,
         avg_phone_pickups: total_pickups / count,
         best_quality_day: best.map(|(_, d)| d),
         worst_quality_day: worst.map(|(_, d)| d),
+        nap_count,
     }))
 }

@@ -96,6 +96,9 @@ data class SleepRatingRequestDto(
     // into the rating. Older backends ignore the field; newer ones
     // include it in the prompt only when > 0.
     val sleep_talk_count: Int = 0,
+    // §last-night — flags a daytime nap so the rating judges restfulness
+    // instead of penalising it against the full-night target.
+    val is_nap: Boolean = false,
 )
 
 /// §10 — Response: integer rating 1-5 plus a one-line justification. The

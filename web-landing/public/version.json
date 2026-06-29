@@ -1,6 +1,6 @@
 {
-  "versionCode": 128,
-  "versionName": "2.20.0",
-  "url": "https://ultiqapp.com/ultiq.2.20.0.apk",
-  "releaseNotes": "Mark a sleep session as a daytime nap so naps and quick tests no longer show up as \"last night\" on your dashboard and Sleep tab. Sleep sounds now show a \"Quiet night\" when nothing's detected, plus a clearer sleep verdict."
+  "versionCode": 129,
+  "versionName": "2.20.1",
+  "url": "https://ultiqapp.com/ultiq.2.20.1.apk",
+  "releaseNotes": "Daytime naps now stay out of your sleep stats, charts, trends, and AI insights — they're tracked separately, never counted as a night. Mark any session as a nap right when you finish it."
 }
