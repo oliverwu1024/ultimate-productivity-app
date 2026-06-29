@@ -61,7 +61,7 @@ fun EndSleepDialog(
     aiRatingLoading: Boolean,
     aiRatingResult: AiSleepRating?,
     aiRatingError: String?,
-    onRequestAiRating: () -> Unit,
+    onRequestAiRating: (isNap: Boolean) -> Unit,
     onSave: (qualityRating: Int, notes: String?, isNap: Boolean) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -116,22 +116,22 @@ fun EndSleepDialog(
                 color = MaterialTheme.colorScheme.primary
             )
 
-            // §last-night — only ask when the session looks like a daytime nap.
-            if (napLikely) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Daytime nap?", style = MaterialTheme.typography.titleSmall)
-                        Text(
-                            "Keeps it out of your \"last night\" summary",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    Switch(checked = isNap, onCheckedChange = { isNap = it })
+            // §last-night — always offer the Night/Nap choice; pre-checked when
+            // the session looks like a daytime nap (short + daytime start), but
+            // the user can mark any session (e.g. a long afternoon nap) too.
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Daytime nap?", style = MaterialTheme.typography.titleSmall)
+                    Text(
+                        "Keeps it out of your \"last night\" summary",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
+                Switch(checked = isNap, onCheckedChange = { isNap = it })
             }
 
             if (pickupEvents.isEmpty()) {
@@ -271,7 +271,7 @@ fun EndSleepDialog(
                 loading = aiRatingLoading,
                 result = aiRatingResult,
                 error = aiRatingError,
-                onRequest = onRequestAiRating,
+                onRequest = { onRequestAiRating(isNap) },
                 onAccept = { qualityRating = it },
             )
 

@@ -60,4 +60,7 @@ pub struct SleepStats {
     pub avg_phone_pickups: f64,
     pub best_quality_day: Option<String>,
     pub worst_quality_day: Option<String>,
+    /// §last-night — daytime naps in the window (excluded from the averages
+    /// above; surfaced so the UI can show a "Naps" stat).
+    pub nap_count: i64,
 }

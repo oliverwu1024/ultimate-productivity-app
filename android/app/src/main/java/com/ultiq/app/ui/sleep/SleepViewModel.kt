@@ -573,7 +573,7 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
      * for the End Sleep dialog to render and offer as a one-tap fill of the
      * self-rate stars. Re-tapping while loading is a no-op.
      */
-    fun requestAiSleepRating() {
+    fun requestAiSleepRating(isNap: Boolean) {
         val state = _uiState.value
         if (state.aiRatingLoading) return
 
@@ -610,6 +610,7 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
                         snore_count = snoreCount,
                         cough_count = coughCount,
                         sleep_talk_count = sleepTalkCount,
+                        is_nap = isNap,
                     )
                 )
             }.fold(

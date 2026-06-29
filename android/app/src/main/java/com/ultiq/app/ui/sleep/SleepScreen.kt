@@ -229,7 +229,7 @@ fun SleepScreen(
             aiRatingLoading = uiState.aiRatingLoading,
             aiRatingResult = uiState.aiRatingResult,
             aiRatingError = uiState.aiRatingError,
-            onRequestAiRating = { viewModel.requestAiSleepRating() },
+            onRequestAiRating = { isNap -> viewModel.requestAiSleepRating(isNap) },
             onSave = { quality, notes, isNap -> viewModel.saveSessionRecord(quality, notes, isNap) },
             onDismiss = { viewModel.dismissEndSleepDialog() }
         )
@@ -890,6 +890,13 @@ private fun StatsRow(stats: SleepStats) {
         }
         item {
             StatCard("Avg Pickups", String.format("%.1f / session", stats.avgPhonePickups))
+        }
+        // §last-night — naps are excluded from the averages above; surface the
+        // count so they're visible without skewing the numbers.
+        if (stats.napCount > 0) {
+            item {
+                StatCard("Naps", stats.napCount.toString())
+            }
         }
     }
 }

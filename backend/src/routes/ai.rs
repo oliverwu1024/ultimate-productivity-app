@@ -198,6 +198,9 @@ struct WeekSummary {
     avg_sleep_quality: f64,
     nights_under_six_hours: i64,
     total_phone_pickups: i64,
+    // §last-night — daytime naps logged this week (excluded from the sleep
+    // averages above; surfaced as a count so the coach can mention them).
+    naps_taken: i64,
     focus_sessions_completed: i64,
     focus_minutes_total: i64,
     avg_focus_session_minutes: i64,
@@ -240,16 +243,20 @@ async fn aggregate_week(pool: &PgPool, user_id: Uuid) -> Result<WeekSummary, App
     // labeled "Tuesday"). Now counts DISTINCT sleep-days using the 6h
     // shift, so the Tue 02:00 bedtime correctly buckets to Monday and the
     // label means what it says.
-    let sleep: (Option<i64>, Option<f64>, Option<f64>, Option<i64>, Option<i64>) =
+    // §last-night — night metrics exclude naps (NOT is_nap); the 6th column
+    // counts naps separately so the data card can surface them without naps
+    // dragging the avg duration / quality / "nights under 6h".
+    let sleep: (Option<i64>, Option<f64>, Option<f64>, Option<i64>, Option<i64>, Option<i64>) =
         sqlx::query_as(
             "SELECT
-                COUNT(DISTINCT DATE((actual_bedtime - INTERVAL '6 hours') AT TIME ZONE COALESCE(recorded_tz, $3)))::BIGINT,
-                AVG(EXTRACT(EPOCH FROM (actual_wake_time - actual_bedtime))/60.0)::DOUBLE PRECISION,
-                AVG(quality_rating)::DOUBLE PRECISION,
-                COUNT(*) FILTER (
-                    WHERE EXTRACT(EPOCH FROM (actual_wake_time - actual_bedtime))/60.0 < 360
-                )::BIGINT,
-                COALESCE(SUM(phone_pickups), 0)::BIGINT
+                (COUNT(DISTINCT DATE((actual_bedtime - INTERVAL '6 hours') AT TIME ZONE COALESCE(recorded_tz, $3))) FILTER (WHERE NOT is_nap))::BIGINT,
+                (AVG(EXTRACT(EPOCH FROM (actual_wake_time - actual_bedtime))/60.0) FILTER (WHERE NOT is_nap))::DOUBLE PRECISION,
+                (AVG(quality_rating) FILTER (WHERE NOT is_nap))::DOUBLE PRECISION,
+                (COUNT(*) FILTER (
+                    WHERE NOT is_nap AND EXTRACT(EPOCH FROM (actual_wake_time - actual_bedtime))/60.0 < 360
+                ))::BIGINT,
+                COALESCE((SUM(phone_pickups) FILTER (WHERE NOT is_nap)), 0)::BIGINT,
+                (COUNT(*) FILTER (WHERE is_nap))::BIGINT
              FROM sleep_records
              WHERE user_id = $1 AND actual_bedtime >= $2",
         )
@@ -377,6 +384,7 @@ async fn aggregate_week(pool: &PgPool, user_id: Uuid) -> Result<WeekSummary, App
         avg_sleep_quality: round2(sleep.2.unwrap_or(0.0)),
         nights_under_six_hours: sleep.3.unwrap_or(0),
         total_phone_pickups: sleep.4.unwrap_or(0),
+        naps_taken: sleep.5.unwrap_or(0),
         focus_sessions_completed: focus.0.unwrap_or(0),
         focus_minutes_total: focus.1.unwrap_or(0),
         avg_focus_session_minutes: focus.2.unwrap_or(0.0).round() as i64,
@@ -470,6 +478,11 @@ fn render_data_card(s: &WeekSummary) -> String {
             format!("{}\n", lines.join("\n"))
         }
     };
+    let naps_section = if s.naps_taken > 0 {
+        format!("| Daytime naps logged | {} |\n", s.naps_taken)
+    } else {
+        String::new()
+    };
     format!(
         r#"### User's last 7 days
 
@@ -480,7 +493,7 @@ fn render_data_card(s: &WeekSummary) -> String {
 | Avg sleep quality (1–5) | {:.2} |
 | Nights under 6 hours | {} |
 | Phone pickups (sleep window) | {} |
-| Focus sessions completed | {} |
+{}| Focus sessions completed | {} |
 | Focus minutes total | {} |
 | Avg focus session length | {} min |
 {}{}| Checklist items due | {} |
@@ -495,6 +508,7 @@ fn render_data_card(s: &WeekSummary) -> String {
         s.avg_sleep_quality,
         s.nights_under_six_hours,
         s.total_phone_pickups,
+        naps_section,
         s.focus_sessions_completed,
         s.focus_minutes_total,
         s.avg_focus_session_minutes,
@@ -936,6 +950,10 @@ struct SleepRatingRequest {
     // reached the model.
     #[serde(default)]
     sleep_talk_count: i32,
+    // §last-night — true when rating a daytime nap; the prompt then judges
+    // restfulness instead of penalising it against the full-night target.
+    #[serde(default)]
+    is_nap: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -1028,7 +1046,7 @@ Output ONLY that line. No greeting, no JSON, no quotes, no extra explanation."
             .to_string(),
     );
 
-    let prompt = format!(
+    let mut prompt = format!(
         "Slept: {actual_h}h {actual_m}m (target {target_h}h {target_m}m)\n\
 Phone pickups: {} times totalling {} minutes\n\
 Snoring episodes: {}\n\
@@ -1040,6 +1058,12 @@ Sleep-talk episodes: {}",
         input.cough_count,
         input.sleep_talk_count,
     );
+    if input.is_nap {
+        prompt.push_str(
+            "\n\nNOTE: This was a DAYTIME NAP, not overnight sleep. Rate how restful the nap \
+was on its own terms; do NOT penalise it for being far shorter than the nightly target.",
+        );
+    }
 
     let user_msg = Message::builder()
         .role(ConversationRole::User)
@@ -1658,6 +1682,10 @@ fn sleep_tool_schema() -> serde_json::Value {
             "notes": {
                 "type": ["string", "null"],
                 "description": "Optional one-line note ('woke up at 3am for water', 'felt anxious'). Null if the user didn't add context."
+            },
+            "is_nap": {
+                "type": ["boolean", "null"],
+                "description": "True if this was a daytime nap rather than overnight sleep (user said 'nap', or a short daytime sleep). Default false / null for a normal night."
             }
         },
         "required": ["actual_bedtime", "actual_wake_time", "quality_rating"]
@@ -2081,7 +2109,7 @@ async fn aggregate_daily(pool: &PgPool, user_id: Uuid) -> Result<Vec<DailyMetric
                 AVG(quality_rating)::DOUBLE PRECISION,
                 COALESCE(SUM(phone_pickups), 0)::BIGINT
              FROM sleep_records
-             WHERE user_id = $1 AND actual_bedtime >= $2 AND actual_bedtime < $3
+             WHERE user_id = $1 AND actual_bedtime >= $2 AND actual_bedtime < $3 AND is_nap = false
              GROUP BY day",
         )
         .bind(user_id)
@@ -3519,7 +3547,7 @@ async fn build_context_card(
            FROM sleep_records sr
            LEFT JOIN sleep_audio_events sae
              ON sae.sleep_record_id = sr.id AND sae.user_id = sr.user_id
-          WHERE sr.user_id = $1
+          WHERE sr.user_id = $1 AND sr.is_nap = false
           GROUP BY sr.id, sr.actual_bedtime, sr.actual_wake_time, sr.quality_rating, sr.phone_pickups, sr.recorded_tz
           ORDER BY sr.actual_bedtime DESC
           LIMIT 3",
@@ -3775,18 +3803,18 @@ async fn handle_get_sleep_history(
             .await
             .map_err(|e| format!("db error: {}", e.message))?,
     );
-    let rows: Vec<(Uuid, DateTime<Utc>, DateTime<Utc>, i16, i32, i64, i64, i64, Option<String>)> = sqlx::query_as(
+    let rows: Vec<(Uuid, DateTime<Utc>, DateTime<Utc>, i16, i32, i64, i64, i64, Option<String>, bool)> = sqlx::query_as(
         "SELECT
              sr.id, sr.actual_bedtime, sr.actual_wake_time, sr.quality_rating, sr.phone_pickups,
              COALESCE(SUM(CASE WHEN sae.event_type = 'snore'      THEN 1 ELSE 0 END), 0)::BIGINT,
              COALESCE(SUM(CASE WHEN sae.event_type = 'cough'      THEN 1 ELSE 0 END), 0)::BIGINT,
              COALESCE(SUM(CASE WHEN sae.event_type = 'sleep_talk' THEN 1 ELSE 0 END), 0)::BIGINT,
-             sr.recorded_tz
+             sr.recorded_tz, sr.is_nap
            FROM sleep_records sr
            LEFT JOIN sleep_audio_events sae
              ON sae.sleep_record_id = sr.id AND sae.user_id = sr.user_id
           WHERE sr.user_id = $1 AND sr.actual_bedtime >= $2
-          GROUP BY sr.id, sr.actual_bedtime, sr.actual_wake_time, sr.quality_rating, sr.phone_pickups, sr.recorded_tz
+          GROUP BY sr.id, sr.actual_bedtime, sr.actual_wake_time, sr.quality_rating, sr.phone_pickups, sr.recorded_tz, sr.is_nap
           ORDER BY sr.actual_bedtime DESC",
     )
     .bind(user_id)
@@ -3796,7 +3824,7 @@ async fn handle_get_sleep_history(
     .map_err(|e| format!("db error: {}", e))?;
     let serializable: Vec<_> = rows
         .iter()
-        .map(|(id, bed, wake, q, p, snore, cough, sleep_talk, rtz)| {
+        .map(|(id, bed, wake, q, p, snore, cough, sleep_talk, rtz, is_nap)| {
             let z = anchor_tz(rtz, tz);
             let mins = wake.signed_duration_since(*bed).num_minutes().max(0);
             json!({
@@ -3809,6 +3837,7 @@ async fn handle_get_sleep_history(
                 "snore_events": snore,
                 "cough_events": cough,
                 "sleep_talk_events": sleep_talk,
+                "is_nap": is_nap,
             })
         })
         .collect();
@@ -3816,7 +3845,7 @@ async fn handle_get_sleep_history(
     let summary = if rows.is_empty() {
         format!("No sleep records in the last {} days", days)
     } else {
-        format!("Pulled {} nights", rows.len())
+        format!("Pulled {} sleep records", rows.len())
     };
     Ok(ToolRunOutcome {
         payload_for_model: payload,
@@ -4495,6 +4524,11 @@ async fn handle_log_sleep_record(
         .and_then(|v| v.as_str())
         .map(|s| s.trim().to_string())
         .filter(|s| !s.is_empty());
+    // §last-night — let Coach log a daytime nap instead of a silent night.
+    let is_nap: bool = input
+        .get("is_nap")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
 
     // Default target_bedtime / target_wake_time from the user's prefs.
     // The `preferences` JSONB blob carries the keys when the user has set
@@ -4518,8 +4552,8 @@ async fn handle_log_sleep_record(
         "INSERT INTO sleep_records
             (user_id, target_bedtime, target_wake_time,
              actual_bedtime, actual_wake_time, quality_rating,
-             phone_pickups, total_phone_minutes, notes, recorded_tz)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, NULL, $8, $9)
+             phone_pickups, total_phone_minutes, notes, recorded_tz, is_nap)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, NULL, $8, $9, $10)
          RETURNING *",
     )
     .bind(user_id)
@@ -4531,6 +4565,7 @@ async fn handle_log_sleep_record(
     .bind(phone_pickups)
     .bind(notes.as_deref())
     .bind(&recorded_tz)
+    .bind(is_nap)
     .fetch_one(&state.pool)
     .await
     .map_err(|e| format!("db error: {}", e))?;
@@ -4748,18 +4783,18 @@ async fn handle_get_sleep_period(
             .await
             .map_err(|e| format!("db error: {}", e.message))?,
     );
-    let rows: Vec<(Uuid, chrono::DateTime<Utc>, chrono::DateTime<Utc>, i16, i32, i64, i64, i64, Option<String>)> = sqlx::query_as(
+    let rows: Vec<(Uuid, chrono::DateTime<Utc>, chrono::DateTime<Utc>, i16, i32, i64, i64, i64, Option<String>, bool)> = sqlx::query_as(
         "SELECT
              sr.id, sr.actual_bedtime, sr.actual_wake_time, sr.quality_rating, sr.phone_pickups,
              COALESCE(SUM(CASE WHEN sae.event_type = 'snore'      THEN 1 ELSE 0 END), 0)::BIGINT,
              COALESCE(SUM(CASE WHEN sae.event_type = 'cough'      THEN 1 ELSE 0 END), 0)::BIGINT,
              COALESCE(SUM(CASE WHEN sae.event_type = 'sleep_talk' THEN 1 ELSE 0 END), 0)::BIGINT,
-             sr.recorded_tz
+             sr.recorded_tz, sr.is_nap
            FROM sleep_records sr
            LEFT JOIN sleep_audio_events sae
              ON sae.sleep_record_id = sr.id AND sae.user_id = sr.user_id
           WHERE sr.user_id = $1 AND sr.actual_bedtime >= $2 AND sr.actual_bedtime <= $3
-          GROUP BY sr.id, sr.actual_bedtime, sr.actual_wake_time, sr.quality_rating, sr.phone_pickups, sr.recorded_tz
+          GROUP BY sr.id, sr.actual_bedtime, sr.actual_wake_time, sr.quality_rating, sr.phone_pickups, sr.recorded_tz, sr.is_nap
           ORDER BY sr.actual_bedtime DESC",
     )
     .bind(user_id)
@@ -4769,24 +4804,29 @@ async fn handle_get_sleep_period(
     .await
     .map_err(|e| format!("db error: {}", e))?;
     let count = rows.len();
-    let total_minutes: i64 = rows
+    // §last-night — aggregates are NIGHTS ONLY; naps stay in the records list
+    // (tagged is_nap) but never dilute avg duration/quality or the audio totals.
+    let nights: Vec<&_> = rows.iter().filter(|r| !r.9).collect();
+    let night_count = nights.len();
+    let nap_count = count - night_count;
+    let total_minutes: i64 = nights
         .iter()
-        .map(|(_, b, w, _, _, _, _, _, _)| w.signed_duration_since(*b).num_minutes().max(0))
+        .map(|r| r.2.signed_duration_since(r.1).num_minutes().max(0))
         .sum();
-    let avg_minutes: i64 = if count > 0 { total_minutes / count as i64 } else { 0 };
-    let avg_quality: f64 = if count > 0 {
-        rows.iter().map(|(_, _, _, q, _, _, _, _, _)| *q as f64).sum::<f64>() / count as f64
+    let avg_minutes: i64 = if night_count > 0 { total_minutes / night_count as i64 } else { 0 };
+    let avg_quality: f64 = if night_count > 0 {
+        nights.iter().map(|r| r.3 as f64).sum::<f64>() / night_count as f64
     } else {
         0.0
     };
-    // Period-level audio totals so the model can answer "how much did I snore
-    // last month" without paging the per-night rows.
-    let snore_total: i64 = rows.iter().map(|(_, _, _, _, _, s, _, _, _)| *s).sum();
-    let cough_total: i64 = rows.iter().map(|(_, _, _, _, _, _, c, _, _)| *c).sum();
-    let sleep_talk_total: i64 = rows.iter().map(|(_, _, _, _, _, _, _, t, _)| *t).sum();
+    // Period-level audio totals (nights only) so the model can answer "how much
+    // did I snore last month" without paging the per-night rows.
+    let snore_total: i64 = nights.iter().map(|r| r.5).sum();
+    let cough_total: i64 = nights.iter().map(|r| r.6).sum();
+    let sleep_talk_total: i64 = nights.iter().map(|r| r.7).sum();
     let serializable: Vec<_> = rows
         .iter()
-        .map(|(id, bed, wake, q, p, snore, cough, sleep_talk, rtz)| {
+        .map(|(id, bed, wake, q, p, snore, cough, sleep_talk, rtz, is_nap)| {
             let z = anchor_tz(rtz, tz);
             let mins = wake.signed_duration_since(*bed).num_minutes().max(0);
             json!({
@@ -4799,6 +4839,7 @@ async fn handle_get_sleep_period(
                 "snore_events": snore,
                 "cough_events": cough,
                 "sleep_talk_events": sleep_talk,
+                "is_nap": is_nap,
             })
         })
         .collect();
@@ -4808,9 +4849,14 @@ async fn handle_get_sleep_period(
         format!("No sleep records logged in {}.", label)
     } else {
         format!(
-            "{} nights logged in {}. avg duration {}h{:02}, avg quality {:.1}/5.",
-            count,
+            "{} nights logged in {}{}. avg duration {}h{:02}, avg quality {:.1}/5 (nights only).",
+            night_count,
             label,
+            if nap_count > 0 {
+                format!(" (plus {} nap{})", nap_count, if nap_count == 1 { "" } else { "s" })
+            } else {
+                String::new()
+            },
             avg_minutes / 60,
             avg_minutes % 60,
             avg_quality,
@@ -4820,6 +4866,8 @@ async fn handle_get_sleep_period(
         "period": period,
         "label": label,
         "count": count,
+        "night_count": night_count,
+        "nap_count": nap_count,
         "avg_duration_minutes": avg_minutes,
         "avg_quality": avg_quality,
         "snore_events_total": snore_total,

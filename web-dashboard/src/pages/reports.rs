@@ -228,21 +228,24 @@ fn PeriodToggle(period: RwSignal<Period>) -> impl IntoView {
 
 #[component]
 fn SleepSection(records: Vec<SleepRecord>) -> impl IntoView {
-    let n = records.len();
-    let total_minutes: f64 = records.iter().map(|r| duration_minutes(r)).sum();
+    // §last-night — night-only aggregates; naps counted separately.
+    let n = records.iter().filter(|r| !r.is_nap).count();
+    let nap_count = records.len() - n;
+    let total_minutes: f64 = records.iter().filter(|r| !r.is_nap).map(|r| duration_minutes(r)).sum();
     let avg = if n == 0 { 0.0 } else { total_minutes / n as f64 };
     let avg_quality = if n == 0 {
         0.0
     } else {
-        records.iter().map(|r| r.quality_rating as f64).sum::<f64>() / n as f64
+        records.iter().filter(|r| !r.is_nap).map(|r| r.quality_rating as f64).sum::<f64>() / n as f64
     };
-    let total_pickups: i32 = records.iter().map(|r| r.phone_pickups).sum();
+    let total_pickups: i32 = records.iter().filter(|r| !r.is_nap).map(|r| r.phone_pickups).sum();
 
     // §sleep-day — Label the best-quality night by its sleep_day so a
     // Tue 02:00 bedtime reads as "Mon 25" (the night it was) instead
     // of "Tue 26" (the morning it ended). Matches Android + chart.
     let best = records
         .iter()
+        .filter(|r| !r.is_nap)
         .max_by_key(|r| r.quality_rating)
         .map(|r| {
             let day = crate::sleep_day::sleep_day_for(r.actual_bedtime);
@@ -261,6 +264,7 @@ fn SleepSection(records: Vec<SleepRecord>) -> impl IntoView {
                     value=if n == 0 { "—".to_string() } else { format!("{:.1}/5", avg_quality) }
                 />
                 <ReportStat label="Total pickups" value=total_pickups.to_string() />
+                {(nap_count > 0).then(|| view! { <ReportStat label="Naps" value=nap_count.to_string() /> })}
             </div>
             <p class="text-sm text-ultiq-indigo/70">
                 <strong>"Best night: "</strong>{best}

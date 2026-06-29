@@ -167,6 +167,7 @@ fn pair_with_focus(
 ) -> Vec<(f64, f64)> {
     let mut pairs = Vec::new();
     for r in sleep {
+        if r.is_nap { continue; } // §last-night — correlate nights only
         // The night anchored to the wake date — pair with focus on the same day.
         let day = r.actual_wake_time.with_timezone(&Local).date_naive();
         let focus = focus_by_day.get(&day).copied().unwrap_or(0.0);
