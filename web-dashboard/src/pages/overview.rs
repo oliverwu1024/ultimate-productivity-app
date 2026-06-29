@@ -291,8 +291,8 @@ fn LastNightCard(sleep: RwSignal<Vec<SleepRecord>>) -> impl IntoView {
             </header>
             {move || {
                 let recs = sleep.get();
-                // Most-recent record by wake time.
-                let latest = recs.iter().max_by_key(|r| r.actual_wake_time).cloned();
+                // Most-recent overnight sleep by wake time (skip daytime naps).
+                let latest = recs.iter().filter(|r| !r.is_nap).max_by_key(|r| r.actual_wake_time).cloned();
                 match latest {
                     None => view! {
                         <p class="text-sm text-ultiq-indigo/50">

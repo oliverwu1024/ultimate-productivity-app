@@ -31,6 +31,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SheetValue
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -61,7 +62,7 @@ fun EndSleepDialog(
     aiRatingResult: AiSleepRating?,
     aiRatingError: String?,
     onRequestAiRating: () -> Unit,
-    onSave: (qualityRating: Int, notes: String?) -> Unit,
+    onSave: (qualityRating: Int, notes: String?, isNap: Boolean) -> Unit,
     onDismiss: () -> Unit
 ) {
     // Reject the Hidden state via gesture so swipe-down can't lose the session.
@@ -81,6 +82,15 @@ fun EndSleepDialog(
     val totalPhoneMinutes = totalPhoneSeconds / 60
     val timeFormat = DateTimeFormatter.ofPattern("hh:mm a")
     val zone = ZoneId.systemDefault()
+
+    // §last-night — pre-select Nap when the just-ended session looks like a
+    // daytime nap (short + started during the day). wake ≈ now at session end,
+    // so reconstruct the start from the duration. Only surfaced when nap-likely.
+    val napLikely = remember(durationMinutes) {
+        val wakeMs = System.currentTimeMillis()
+        looksLikeNap(wakeMs - durationMinutes * 60_000L, wakeMs)
+    }
+    var isNap by remember { mutableStateOf(napLikely) }
 
     ModalBottomSheet(
         // Tapping the scrim or pressing back is ignored — the user must explicitly
@@ -105,6 +115,24 @@ fun EndSleepDialog(
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
             )
+
+            // §last-night — only ask when the session looks like a daytime nap.
+            if (napLikely) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Daytime nap?", style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            "Keeps it out of your \"last night\" summary",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Switch(checked = isNap, onCheckedChange = { isNap = it })
+                }
+            }
 
             if (pickupEvents.isEmpty()) {
                 Text(
@@ -285,7 +313,7 @@ fun EndSleepDialog(
                     if (qualityRating < 1) {
                         error = "Please rate your sleep quality"
                     } else {
-                        onSave(qualityRating, notes.ifBlank { null })
+                        onSave(qualityRating, notes.ifBlank { null }, isNap)
                     }
                 }) { Text("Save") }
             }

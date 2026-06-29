@@ -92,8 +92,8 @@ async fn create(
     let inserted = sqlx::query_as::<_, SleepRecord>(
         "INSERT INTO sleep_records
             (id, user_id, target_bedtime, target_wake_time, actual_bedtime, actual_wake_time,
-             quality_rating, phone_pickups, total_phone_minutes, notes, recorded_tz)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+             quality_rating, phone_pickups, total_phone_minutes, notes, recorded_tz, is_nap)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
          ON CONFLICT (id) DO NOTHING
          RETURNING *",
     )
@@ -108,6 +108,7 @@ async fn create(
     .bind(input.total_phone_minutes)
     .bind(&input.notes)
     .bind(&recorded_tz)
+    .bind(input.is_nap)
     .fetch_optional(&state.pool)
     .await?;
 
@@ -240,8 +241,8 @@ async fn update(
          SET target_bedtime = $1, target_wake_time = $2,
              actual_bedtime = $3, actual_wake_time = $4,
              quality_rating = $5, phone_pickups = $6,
-             total_phone_minutes = $7, notes = $8, updated_at = NOW()
-         WHERE id = $9 AND user_id = $10
+             total_phone_minutes = $7, notes = $8, is_nap = $9, updated_at = NOW()
+         WHERE id = $10 AND user_id = $11
          RETURNING *",
     )
     .bind(input.target_bedtime)
@@ -252,6 +253,7 @@ async fn update(
     .bind(input.phone_pickups)
     .bind(input.total_phone_minutes)
     .bind(&input.notes)
+    .bind(input.is_nap)
     .bind(id)
     .bind(user_id)
     .fetch_optional(&state.pool)
