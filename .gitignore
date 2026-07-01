@@ -21,9 +21,18 @@ android/app/src/debug/google-services.json
 
 # Firebase Admin service-account credentials (server-side push send). NEVER
 # commit — full FCM send capability for the project. Prod copy lives in
-# AWS Secrets Manager; local copy lives outside the repo.
+# AWS Secrets Manager; local copy lives in the gitignored secrets/ folder.
+# NOTE: the Firebase Console downloads the file as <project-id>-firebase-adminsdk-*.json
+# (e.g. ultiq-e559d-firebase-adminsdk-*.json). The two prefix patterns below do
+# NOT match that (the project-id prefix breaks them), so the leading-* pattern is
+# the one that actually catches a Console download anywhere in the tree.
 **/firebase-admin*.json
 **/ultiq-firebase-adminsdk*.json
+**/*firebase-adminsdk*.json
+
+# Local secrets / credentials. Whole folder ignored so ANYTHING inside is
+# uncommittable regardless of filename — belt-and-suspenders for the key above.
+/secrets/
 
 # Built APKs deployed via S3 sync (not via git — too large)
 web-landing/public/*.apk
