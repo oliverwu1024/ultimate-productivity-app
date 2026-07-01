@@ -107,6 +107,11 @@ class FocusTrackingService : Service() {
             unlockCount.value = 0
             sessionStartTime.value = System.currentTimeMillis()
             plannedWorkMinutes.value = durationFromIntent
+            // §widget — durable live-session flag the Focus widget reads. The
+            // in-memory statics proved unreliable when read from a widget refresh.
+            LiveFocusSessionStore(this).save(
+                LiveFocusSessionStore.Snapshot(sessionStartTime.value, durationFromIntent),
+            )
         }
         isRunning.value = true
 
@@ -212,6 +217,9 @@ class FocusTrackingService : Service() {
         serviceScope.cancel()
         isRunning.value = false
         plannedWorkMinutes.value = 0
+        // §widget — any normal stop (widget / lockscreen / in-app) routes through
+        // stopService → onDestroy, so clearing here covers every end path.
+        LiveFocusSessionStore(applicationContext).clear()
         super.onDestroy()
     }
 

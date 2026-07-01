@@ -8,7 +8,7 @@ import com.ultiq.app.data.repository.CalendarRepository
 import com.ultiq.app.data.repository.ChecklistRepository
 import com.ultiq.app.data.repository.SessionRepository
 import com.ultiq.app.data.repository.SleepRepository
-import com.ultiq.app.service.FocusTrackingService
+import com.ultiq.app.service.LiveFocusSessionStore
 import com.ultiq.app.service.LiveSleepSessionStore
 import com.ultiq.app.util.TokenManager
 import com.ultiq.app.util.UserPreferences
@@ -68,25 +68,21 @@ class WidgetDataSource(context: Context) {
     }
 
     /**
-     * Live focus session, if any. "Active" is gated on the tracking service
-     * ([FocusTrackingService.isRunning]) — the same signal SessionsViewModel uses
-     * to decide whether to restore a session. An incomplete session row on its own
-     * is NOT sufficient: a stale/orphaned row (an old session that never completed,
-     * or one pulled from the server) would otherwise render as a timer counting
-     * from an ancient start with a long-finished tag.
+     * Live focus session, if any. Read from the durable [LiveFocusSessionStore]
+     * (SharedPreferences), NOT FocusTrackingService's in-memory statics — those
+     * were unreliable when read from a widget refresh, so the timer never showed.
+     * The store is written on session start and cleared on stop. Tag is best-effort
+     * from the active session row.
      */
     suspend fun focus(): FocusSnapshot {
-        if (!FocusTrackingService.isRunning.value) return FocusSnapshot(active = false)
-        val active = sessionRepo.getActiveSessions().first().firstOrNull()
-        val startedAt = FocusTrackingService.sessionStartTime.value
-            .takeIf { it > 0L } ?: active?.startedAt ?: System.currentTimeMillis()
-        val planned = FocusTrackingService.plannedWorkMinutes.value
-            .takeIf { it > 0 } ?: active?.workDuration ?: 0
+        val live = LiveFocusSessionStore(appContext).load()
+            ?: return FocusSnapshot(active = false)
+        val tag = sessionRepo.getActiveSessions().first().firstOrNull()?.tag ?: "Focus"
         return FocusSnapshot(
             active = true,
-            startedAt = startedAt,
-            tag = active?.tag ?: "Focus",
-            plannedMinutes = planned,
+            startedAt = live.startMs,
+            tag = tag,
+            plannedMinutes = live.plannedMinutes,
         )
     }
 

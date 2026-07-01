@@ -7,13 +7,13 @@ import com.ultiq.app.data.local.AppDatabase
 import com.ultiq.app.data.remote.RetrofitClient
 import com.ultiq.app.data.repository.SessionRepository
 import com.ultiq.app.service.FocusTrackingService
+import com.ultiq.app.service.LiveFocusSessionStore
 import com.ultiq.app.ui.widget.WidgetUpdater
 import com.ultiq.app.util.TokenManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * Handles notification actions for active-session controls (lockscreen + shade).
@@ -29,6 +29,8 @@ class SessionActionReceiver : BroadcastReceiver() {
         val pending = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
+                // Clear the durable flag first so the Focus widget flips to idle fast.
+                LiveFocusSessionStore(app).clear()
                 val db = AppDatabase.getInstance(app)
                 val repo = SessionRepository(db.sessionDao(), RetrofitClient.create(TokenManager(app)))
                 val active = repo.getActiveSessions().first().firstOrNull()
@@ -39,9 +41,6 @@ class SessionActionReceiver : BroadcastReceiver() {
                 } else 0
                 if (active != null) repo.completeSession(active.id, minutes, phonePickups = 0)
                 app.stopService(Intent(app, FocusTrackingService::class.java))
-                // Let the service teardown clear isRunning before repaint so the
-                // Focus widget flips to idle (its focus() reader gates on isRunning).
-                withTimeoutOrNull(2_000) { FocusTrackingService.isRunning.first { !it } }
                 WidgetUpdater.updateAll(app)
             } finally {
                 pending.finish()
