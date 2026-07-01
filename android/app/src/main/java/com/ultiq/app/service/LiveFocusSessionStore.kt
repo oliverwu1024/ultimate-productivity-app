@@ -27,6 +27,8 @@ class LiveFocusSessionStore(context: Context) {
         val plannedMinutes: Int,
         /** -1 = running; >= 0 = paused, holding the frozen elapsed ms at the pause. */
         val pausedElapsedMs: Long = -1L,
+        /** Session tag shown on the widget ("Focus" when started from the widget). */
+        val tag: String = "Focus",
     )
 
     fun save(snapshot: Snapshot) {
@@ -34,6 +36,7 @@ class LiveFocusSessionStore(context: Context) {
             .putLong(KEY_START, snapshot.startMs)
             .putInt(KEY_PLANNED, snapshot.plannedMinutes)
             .putLong(KEY_PAUSED, snapshot.pausedElapsedMs)
+            .putString(KEY_TAG, snapshot.tag)
             .commit()
     }
 
@@ -41,7 +44,12 @@ class LiveFocusSessionStore(context: Context) {
     fun load(): Snapshot? {
         val start = prefs.getLong(KEY_START, 0L)
         if (start <= 0L) return null
-        return Snapshot(start, prefs.getInt(KEY_PLANNED, 0), prefs.getLong(KEY_PAUSED, -1L))
+        return Snapshot(
+            start,
+            prefs.getInt(KEY_PLANNED, 0),
+            prefs.getLong(KEY_PAUSED, -1L),
+            prefs.getString(KEY_TAG, "Focus") ?: "Focus",
+        )
     }
 
     fun clear() {
@@ -53,5 +61,6 @@ class LiveFocusSessionStore(context: Context) {
         private const val KEY_START = "start_ms"
         private const val KEY_PLANNED = "planned_min"
         private const val KEY_PAUSED = "paused_elapsed_ms"
+        private const val KEY_TAG = "tag"
     }
 }

@@ -23,8 +23,8 @@ android {
         applicationId = "com.ultiq.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 140
-        versionName = "2.22.3"
+        versionCode = 142
+        versionName = "2.22.4"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -86,14 +86,6 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
     debugImplementation("androidx.compose.ui:ui-tooling")
-
-    // Jetpack Glance — interactive home-screen widgets (Compose-style).
-    // Pinned 1.1.1: current stable. Glance is versioned independently of the
-    // Compose BOM and moves slowly; both artefacts must share one version.
-    // glance-material3 pulls glance-appwidget → glance transitively.
-    val glanceVersion = "1.1.1"
-    implementation("androidx.glance:glance-appwidget:$glanceVersion")
-    implementation("androidx.glance:glance-material3:$glanceVersion")
 
     // Core
     implementation("androidx.core:core-ktx:1.18.0")

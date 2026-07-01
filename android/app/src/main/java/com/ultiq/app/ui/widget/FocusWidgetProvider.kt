@@ -92,29 +92,33 @@ class FocusWidgetProvider : AppWidgetProvider() {
             val rv = RemoteViews(context.packageName, R.layout.widget_focus_rv)
             rv.setOnClickPendingIntent(
                 R.id.focus_root,
-                PendingIntent.getActivity(
-                    context, 0, openAppIntent(context),
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-                ),
+                widgetOpenPendingIntent(context, NotificationHelper.DEEP_LINK_SESSIONS),
             )
             if (live != null) {
                 // Active: show the live timer only. Stopping is app-only (tap the
                 // widget to open Focus), so there is no Stop button on the widget.
                 rv.setViewVisibility(R.id.focus_chrono, View.VISIBLE)
                 rv.setViewVisibility(R.id.focus_button, View.GONE)
+                val tag = live.tag.ifBlank { "Focus" }
                 if (live.pausedElapsedMs >= 0L) {
                     // Paused in-app — freeze the timer at the paused elapsed.
-                    rv.setTextViewText(R.id.focus_title, "Focus · paused")
+                    rv.setTextViewText(R.id.focus_title, "$tag · paused")
                     rv.setChronometer(
                         R.id.focus_chrono,
                         SystemClock.elapsedRealtime() - live.pausedElapsedMs, null, false,
                     )
                 } else {
-                    rv.setTextViewText(R.id.focus_title, "Focus")
+                    rv.setTextViewText(
+                        R.id.focus_title,
+                        if (live.plannedMinutes > 0) "$tag · ${live.plannedMinutes}m" else tag,
+                    )
                     val elapsed = (System.currentTimeMillis() - live.startMs).coerceAtLeast(0L)
                     rv.setChronometer(R.id.focus_chrono, SystemClock.elapsedRealtime() - elapsed, null, true)
                 }
             } else {
+                // Reset the title too — the launcher reuses the view tree, so an
+                // unset field would keep the previous session's "tag · 25m".
+                rv.setTextViewText(R.id.focus_title, "Focus")
                 rv.setViewVisibility(R.id.focus_chrono, View.GONE)
                 rv.setViewVisibility(R.id.focus_button, View.VISIBLE)
                 rv.setTextViewText(R.id.focus_button, "▶  Start")

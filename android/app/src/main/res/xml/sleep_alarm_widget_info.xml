@@ -8,5 +8,6 @@
     android:widgetCategory="home_screen"
     android:description="@string/widget_sleep_alarm_desc"
     android:previewImage="@drawable/widget_preview_sleep_alarm"
-    android:initialLayout="@layout/glance_default_loading_layout"
+    android:previewLayout="@layout/widget_sleep_alarm_preview"
+    android:initialLayout="@layout/widget_sleep_alarm_rv"
     android:updatePeriodMillis="0" />

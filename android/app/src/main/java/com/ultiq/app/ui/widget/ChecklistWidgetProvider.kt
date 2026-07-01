@@ -90,11 +90,7 @@ class ChecklistWidgetProvider : AppWidgetProvider() {
             rv.setTextViewText(R.id.checklist_count, "${data.doneCount}/${data.total}")
             rv.setOnClickPendingIntent(
                 R.id.checklist_root,
-                PendingIntent.getActivity(
-                    context, 0,
-                    widgetOpenIntent(context, NotificationHelper.DEEP_LINK_CHECKLIST),
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-                ),
+                widgetOpenPendingIntent(context, NotificationHelper.DEEP_LINK_CHECKLIST),
             )
 
             val open = data.open

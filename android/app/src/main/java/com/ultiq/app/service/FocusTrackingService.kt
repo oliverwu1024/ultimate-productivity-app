@@ -43,6 +43,7 @@ class FocusTrackingService : Service() {
         const val CHANNEL_ID = "focus_tracking_v2"
         const val NOTIFICATION_ID = 1002
         const val EXTRA_WORK_DURATION_MIN = "extra_work_duration_min"
+        const val EXTRA_TAG = "extra_tag"
 
         val isRunning = MutableStateFlow(false)
         val sessionStartTime = MutableStateFlow(0L)
@@ -108,8 +109,9 @@ class FocusTrackingService : Service() {
             plannedWorkMinutes.value = durationFromIntent
             // §widget — durable live-session flag the Focus widget reads. The
             // in-memory statics proved unreliable when read from a widget refresh.
+            val tag = intent?.getStringExtra(EXTRA_TAG)?.takeIf { it.isNotBlank() } ?: "Focus"
             LiveFocusSessionStore(this).save(
-                LiveFocusSessionStore.Snapshot(sessionStartTime.value, durationFromIntent),
+                LiveFocusSessionStore.Snapshot(sessionStartTime.value, durationFromIntent, tag = tag),
             )
         }
         isRunning.value = true
