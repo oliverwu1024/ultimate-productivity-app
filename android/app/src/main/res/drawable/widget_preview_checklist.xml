@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Placeholder widget-picker preview: brand card with checklist lines. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#4F5BC4"
+        android:pathData="M12,20 h84 a8,8 0 0 1 8,8 v52 a8,8 0 0 1 -8,8 h-84 a8,8 0 0 1 -8,-8 v-52 a8,8 0 0 1 8,-8 z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M22,37 h16 v6 h-16 z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M46,37 h40 v6 h-40 z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M22,53 h16 v6 h-16 z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M46,53 h40 v6 h-40 z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M22,69 h16 v6 h-16 z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M46,69 h30 v6 h-30 z" />
+</vector>

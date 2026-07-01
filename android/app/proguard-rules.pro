@@ -73,6 +73,14 @@
 -keep class com.ultiq.app.UltiqApp { *; }
 -keep class com.ultiq.app.MainActivity { *; }
 
+# --- Glance widgets ----------------------------------------------------------
+# ActionCallback classes (checklist tick, focus start/stop) are instantiated by
+# reflection from a stored class name; the GlanceAppWidgetReceiver subclasses are
+# manifest-kept but the callbacks + widgets are not. Without this, release-build
+# widget interaction crashes — same failure class as the Gson VersionManifest and
+# MediaPipe AutoValue keeps above.
+-keep class com.ultiq.app.ui.widget.** { *; }
+
 # --- MediaPipe Tasks Audio (YAMNet snore + cough detection, Phase 10) --------
 # In v2.11.0 these rules were insufficient — release-build snore/cough
 # detection silently failed because R8 was stripping the AutoValue-generated

@@ -1,4 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Ultiq</string>
+
+    <!-- Home-screen widgets -->
+    <string name="widget_checklist_label">Ultiq Checklist</string>
+    <string name="widget_checklist_desc">Today\'s tasks — tick them off from the home screen</string>
+    <string name="widget_focus_label">Ultiq Focus</string>
+    <string name="widget_focus_desc">Start a focus session and watch the timer</string>
+    <string name="widget_calendar_label">Ultiq Calendar</string>
+    <string name="widget_calendar_desc">Your next events today</string>
+    <string name="widget_sleep_alarm_label">Ultiq Sleep &amp; Alarm</string>
+    <string name="widget_sleep_alarm_desc">Next alarm and last night\'s sleep</string>
 </resources>

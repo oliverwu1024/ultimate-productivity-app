@@ -47,6 +47,9 @@ class SyncWorker(
 
         return try {
             syncManager.syncAll().getOrThrow()
+            // Refresh home-screen widgets with the freshly-pulled server data.
+            // Bounds the SSE-foreground-only staleness to one sync cycle.
+            runCatching { com.ultiq.app.ui.widget.WidgetUpdater.updateAll(applicationContext) }
             Result.success()
         } catch (_: Exception) {
             Result.retry()

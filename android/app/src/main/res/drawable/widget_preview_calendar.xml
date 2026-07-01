@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Placeholder widget-picker preview: brand card with event rows. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#4F5BC4"
+        android:pathData="M12,20 h84 a8,8 0 0 1 8,8 v52 a8,8 0 0 1 -8,8 h-84 a8,8 0 0 1 -8,-8 v-52 a8,8 0 0 1 8,-8 z" />
+    <path android:fillColor="#BCC2FF" android:pathData="M22,37 h16 v6 h-16 z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M44,37 h42 v6 h-42 z" />
+    <path android:fillColor="#BCC2FF" android:pathData="M22,55 h16 v6 h-16 z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M44,55 h34 v6 h-34 z" />
+</vector>

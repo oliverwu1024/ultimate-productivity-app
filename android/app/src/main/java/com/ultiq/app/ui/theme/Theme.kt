@@ -8,7 +8,9 @@ import androidx.compose.runtime.Composable
 
 enum class ThemeMode { LIGHT, DARK, SYSTEM }
 
-private val LightScheme = lightColorScheme(
+// internal (not private) so the Glance widget theme (ui/widget/UltiqGlanceTheme)
+// can map this exact palette into Glance ColorProviders.
+internal val LightScheme = lightColorScheme(
     primary = LightPrimary,
     onPrimary = LightOnPrimary,
     primaryContainer = LightPrimaryContainer,
@@ -34,7 +36,7 @@ private val LightScheme = lightColorScheme(
     outline = LightOutline,
 )
 
-private val DarkScheme = darkColorScheme(
+internal val DarkScheme = darkColorScheme(
     primary = DarkPrimary,
     onPrimary = DarkOnPrimary,
     primaryContainer = DarkPrimaryContainer,

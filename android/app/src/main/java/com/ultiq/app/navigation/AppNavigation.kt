@@ -434,6 +434,7 @@ fun AppNavigation(
             NotificationHelper.DEEP_LINK_SESSIONS -> Screen.Sessions
             NotificationHelper.DEEP_LINK_CALENDAR -> Screen.Calendar
             NotificationHelper.DEEP_LINK_DASHBOARD -> Screen.Dashboard
+            NotificationHelper.DEEP_LINK_CHECKLIST -> Screen.Checklist
             else -> null
         }
         if (screen != null) {

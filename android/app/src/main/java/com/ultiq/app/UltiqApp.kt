@@ -65,9 +65,25 @@ class UltiqApp : Application() {
                     // AI/scheduler math stops running on a stale zone — no
                     // logout/login needed.
                     syncTimezoneIfChanged()
+                    // Reflect any background changes on the home-screen widgets
+                    // when the app returns to foreground.
+                    refreshWidgets()
+                }
+
+                override fun onStop(owner: LifecycleOwner) {
+                    // Reflect anything the user just did in-app on the widgets as
+                    // they leave (Glance doesn't observe Room itself).
+                    refreshWidgets()
                 }
             }
         )
+    }
+
+    /** Push a fresh snapshot to all home-screen widgets off the main thread. */
+    private fun refreshWidgets() {
+        appScope.launch {
+            runCatching { com.ultiq.app.ui.widget.WidgetUpdater.updateAll(this@UltiqApp) }
+        }
     }
 
     /**
