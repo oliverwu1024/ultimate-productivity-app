@@ -490,6 +490,7 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
                 startMs = effectiveStart,
                 plannedMinutes = _uiState.value.workDuration,
                 pausedElapsedMs = pausedElapsed,
+                tag = _uiState.value.tag.ifBlank { "Focus" },
             ),
         )
         com.ultiq.app.ui.widget.FocusWidgetProvider.updateAll(app)
@@ -727,6 +728,7 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
         val app = getApplication<Application>()
         val intent = Intent(app, FocusTrackingService::class.java).apply {
             putExtra(FocusTrackingService.EXTRA_WORK_DURATION_MIN, _uiState.value.workDuration)
+            putExtra(FocusTrackingService.EXTRA_TAG, _uiState.value.tag.trim())
         }
         ContextCompat.startForegroundService(app, intent)
     }

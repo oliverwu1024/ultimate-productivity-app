@@ -221,7 +221,7 @@
         </receiver>
 
         <receiver
-            android:name=".ui.widget.CalendarWidgetReceiver"
+            android:name=".ui.widget.CalendarWidgetProvider"
             android:exported="true"
             android:label="@string/widget_calendar_label">
             <intent-filter>
@@ -233,7 +233,7 @@
         </receiver>
 
         <receiver
-            android:name=".ui.widget.SleepAlarmWidgetReceiver"
+            android:name=".ui.widget.SleepAlarmWidgetProvider"
             android:exported="true"
             android:label="@string/widget_sleep_alarm_label">
             <intent-filter>

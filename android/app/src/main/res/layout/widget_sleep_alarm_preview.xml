@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widget-picker preview (static sample content) for the Sleep + Alarm widget. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center_vertical"
+    android:padding="12dp"
+    android:background="@drawable/widget_card_bg">
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
+        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="⏰  Next alarm" android:textColor="@color/widget_subtext" android:textSize="13sp" />
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="7:00 AM" android:textColor="@color/widget_text" android:textSize="15sp" android:textStyle="bold" />
+    </LinearLayout>
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginTop="10dp">
+        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="😴  Last night" android:textColor="@color/widget_subtext" android:textSize="13sp" />
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="7h 20m · Good" android:textColor="@color/widget_text" android:textSize="15sp" android:textStyle="bold" />
+    </LinearLayout>
+</LinearLayout>

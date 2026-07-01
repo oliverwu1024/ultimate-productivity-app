@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Classic RemoteViews Calendar widget (read-only; tap opens Calendar). -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/calendar_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="12dp"
+    android:background="@drawable/widget_card_bg">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="6dp"
+        android:text="Next up"
+        android:textColor="@color/widget_text"
+        android:textSize="15sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/cal_empty"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingTop="8dp"
+        android:gravity="center"
+        android:visibility="gone"
+        android:textColor="@color/widget_subtext"
+        android:textSize="13sp" />
+
+    <LinearLayout android:id="@+id/cal_row_0" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:paddingTop="3dp" android:paddingBottom="3dp" android:visibility="gone">
+        <TextView android:id="@+id/cal_time_0" android:layout_width="76dp" android:layout_height="wrap_content" android:textColor="@color/widget_accent" android:textSize="13sp" android:textStyle="bold" />
+        <TextView android:id="@+id/cal_title_0" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:maxLines="1" android:ellipsize="end" android:textColor="@color/widget_text" android:textSize="14sp" />
+    </LinearLayout>
+
+    <LinearLayout android:id="@+id/cal_row_1" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:paddingTop="3dp" android:paddingBottom="3dp" android:visibility="gone">
+        <TextView android:id="@+id/cal_time_1" android:layout_width="76dp" android:layout_height="wrap_content" android:textColor="@color/widget_accent" android:textSize="13sp" android:textStyle="bold" />
+        <TextView android:id="@+id/cal_title_1" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:maxLines="1" android:ellipsize="end" android:textColor="@color/widget_text" android:textSize="14sp" />
+    </LinearLayout>
+
+    <LinearLayout android:id="@+id/cal_row_2" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:paddingTop="3dp" android:paddingBottom="3dp" android:visibility="gone">
+        <TextView android:id="@+id/cal_time_2" android:layout_width="76dp" android:layout_height="wrap_content" android:textColor="@color/widget_accent" android:textSize="13sp" android:textStyle="bold" />
+        <TextView android:id="@+id/cal_title_2" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:maxLines="1" android:ellipsize="end" android:textColor="@color/widget_text" android:textSize="14sp" />
+    </LinearLayout>
+</LinearLayout>

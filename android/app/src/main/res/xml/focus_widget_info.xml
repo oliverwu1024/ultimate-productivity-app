@@ -8,5 +8,6 @@
     android:widgetCategory="home_screen"
     android:description="@string/widget_focus_desc"
     android:previewImage="@drawable/widget_preview_focus"
+    android:previewLayout="@layout/widget_focus_rv"
     android:initialLayout="@layout/widget_focus_rv"
     android:updatePeriodMillis="0" />
