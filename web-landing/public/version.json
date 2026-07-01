@@ -1,5 +1,5 @@
 {
-  "versionCode": 142,
+  "versionCode": 143,
   "versionName": "2.22.4",
   "url": "https://ultiqapp.com/ultiq.2.22.4.apk",
   "releaseNotes": "More home-screen widget polish. The calendar and sleep widgets are snappier, the focus widget now shows your session's tag and length, and the widget picker shows real previews. Plus fixes so each widget reliably opens the right screen."
