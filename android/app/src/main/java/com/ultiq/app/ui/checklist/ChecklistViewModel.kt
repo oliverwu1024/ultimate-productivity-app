@@ -36,6 +36,9 @@ data class ChecklistUiState(
     /** Open items dated yesterday (only meaningful when selectedDate == today
      *  and the user hasn't dismissed the carry-over banner today). */
     val yesterdayOpenItems: List<ChecklistEntity> = emptyList(),
+    /** When true, the picker that lets the user choose *which* of
+     *  `yesterdayOpenItems` to carry forward is shown over the checklist. */
+    val showBringForwardDialog: Boolean = false,
     // §9.5 — AI quick-add state. `aiPrefill` is handed to the existing
     // ChecklistEditDialog as initial state when set.
     val showAiDialog: Boolean = false,
@@ -383,7 +386,12 @@ class ChecklistViewModel(application: Application) : AndroidViewModel(applicatio
     private fun observeYesterdayCarryOver() {
         yesterdayJob?.cancel()
         if (_uiState.value.selectedDate != LocalDate.now()) {
-            _uiState.value = _uiState.value.copy(yesterdayOpenItems = emptyList())
+            // Leaving today also tears down any open picker so it can't
+            // reappear against a stale (now-empty) candidate list.
+            _uiState.value = _uiState.value.copy(
+                yesterdayOpenItems = emptyList(),
+                showBringForwardDialog = false,
+            )
             return
         }
         yesterdayJob = viewModelScope.launch {
@@ -406,16 +414,34 @@ class ChecklistViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-    /** Move every yesterday-open item forward to today.
+    /** Open the picker that lets the user choose which of yesterday's open
+     *  items to carry forward. Opt-in: nothing is pre-selected. */
+    fun openBringForwardDialog() {
+        if (_uiState.value.yesterdayOpenItems.isEmpty()) return
+        _uiState.value = _uiState.value.copy(showBringForwardDialog = true)
+    }
+
+    fun dismissBringForwardDialog() {
+        _uiState.value = _uiState.value.copy(showBringForwardDialog = false)
+    }
+
+    /** Move only the user-picked yesterday-open items forward to today.
+     *  Unpicked items are left on their original day (same effect as
+     *  tapping Dismiss on them).
      *
      *  §fix-carryover-recurring — recurring rows get a separate one-off
      *  *copy* due today rather than having their start date mutated.
      *  Mutating dueDateEpochDay on a recurring row would shift the
      *  recurrence pattern (since dueDate doubles as the start date) —
      *  unwanted side effect. One-offs are mutated in place as before. */
-    fun bringYesterdayForward() {
-        val items = _uiState.value.yesterdayOpenItems
-        if (items.isEmpty()) return
+    fun bringSelectedForward(selectedIds: Set<String>) {
+        val items = _uiState.value.yesterdayOpenItems.filter { it.id in selectedIds }
+        if (items.isEmpty()) {
+            // Nothing valid to move (empty pick or a candidate list that
+            // changed under the dialog) — just close the picker.
+            _uiState.value = _uiState.value.copy(showBringForwardDialog = false)
+            return
+        }
         val todayEpochDay = LocalDate.now().toEpochDay()
         viewModelScope.launch {
             for (item in items) {
@@ -439,12 +465,14 @@ class ChecklistViewModel(application: Application) : AndroidViewModel(applicatio
             // §banner-dismiss-after-bring-forward — recurring rows are
             // intentionally left untouched above, which means they keep
             // matching `getCarryoverCandidates` and the Flow re-emits the
-            // same banner. Without this, the user can tap "Bring forward"
-            // again and again, spawning duplicate one-offs each time.
-            // Mirror dismissYesterdayBanner so the banner's job for today
-            // ends the moment the user acts on it.
+            // same banner. Without this, the user could re-open the picker
+            // and spawn duplicate one-offs. Mirror dismissYesterdayBanner so
+            // the banner's job for today ends the moment the user acts on it.
             userPreferences.setLastCarryOverDismissedEpochDay(todayEpochDay)
-            _uiState.value = _uiState.value.copy(yesterdayOpenItems = emptyList())
+            _uiState.value = _uiState.value.copy(
+                yesterdayOpenItems = emptyList(),
+                showBringForwardDialog = false,
+            )
             yesterdayJob?.cancel()
         }
     }

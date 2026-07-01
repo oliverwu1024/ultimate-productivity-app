@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -164,7 +165,7 @@ fun ChecklistScreen(
             if (state.yesterdayOpenItems.isNotEmpty() && state.selectedDate == LocalDate.now()) {
                 CarryOverBanner(
                     count = state.yesterdayOpenItems.size,
-                    onBringForward = viewModel::bringYesterdayForward,
+                    onBringForward = viewModel::openBringForwardDialog,
                     onDismiss = viewModel::dismissYesterdayBanner,
                 )
             }
@@ -246,6 +247,14 @@ fun ChecklistScreen(
             )
         }
 
+        if (state.showBringForwardDialog) {
+            BringForwardDialog(
+                candidates = state.yesterdayOpenItems,
+                onConfirm = viewModel::bringSelectedForward,
+                onDismiss = viewModel::dismissBringForwardDialog,
+            )
+        }
+
         if (state.showWeeklyPrompt) {
             AlertDialog(
                 onDismissRequest = viewModel::dismissWeeklyPrompt,
@@ -299,6 +308,89 @@ private fun CarryOverBanner(
             TextButton(onClick = onDismiss) { Text("Dismiss") }
         }
     }
+}
+
+/** Picker for choosing which of yesterday's open items to carry forward.
+ *  Opt-in: rows start unticked, so the user selects only what they want to
+ *  move to today; everything left unticked stays on yesterday. */
+@Composable
+private fun BringForwardDialog(
+    candidates: List<ChecklistEntity>,
+    onConfirm: (Set<String>) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var selectedIds by remember { mutableStateOf(emptySet<String>()) }
+    val allSelected = candidates.isNotEmpty() && selectedIds.size == candidates.size
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Bring forward") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        "Pick items to move to today. The rest stay on yesterday.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f),
+                    )
+                    TextButton(
+                        onClick = {
+                            selectedIds =
+                                if (allSelected) emptySet()
+                                else candidates.map { it.id }.toSet()
+                        },
+                    ) { Text(if (allSelected) "Clear" else "All") }
+                }
+                LazyColumn(
+                    modifier = Modifier.heightIn(max = 320.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    items(candidates, key = { it.id }) { item ->
+                        val checked = item.id in selectedIds
+                        val toggle = {
+                            selectedIds =
+                                if (checked) selectedIds - item.id
+                                else selectedIds + item.id
+                        }
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable(onClick = toggle),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Checkbox(checked = checked, onCheckedChange = { toggle() })
+                            Column(modifier = Modifier.weight(1f).padding(start = 4.dp)) {
+                                Text(item.title, style = MaterialTheme.typography.bodyLarge)
+                                scheduleLabel(item)?.let { label ->
+                                    Text(
+                                        label,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onConfirm(selectedIds) },
+                enabled = selectedIds.isNotEmpty(),
+            ) {
+                Text(
+                    if (selectedIds.isEmpty()) "Bring forward"
+                    else "Bring forward (${selectedIds.size})",
+                )
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
 }
 
 @Composable
