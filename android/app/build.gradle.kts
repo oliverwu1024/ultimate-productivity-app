@@ -92,7 +92,7 @@ dependencies {
     implementation("androidx.activity:activity-compose:1.13.0")
 
     // Navigation
-    implementation("androidx.navigation:navigation-compose:2.8.4")
+    implementation("androidx.navigation:navigation-compose:2.9.8")
 
     // Room
     implementation("androidx.room:room-runtime:2.8.4")
@@ -104,9 +104,9 @@ dependencies {
     implementation("com.squareup.retrofit2:converter-gson:2.11.0")
 
     // OkHttp
-    implementation("com.squareup.okhttp3:okhttp:5.3.2")
-    implementation("com.squareup.okhttp3:logging-interceptor:5.3.2")
-    implementation("com.squareup.okhttp3:okhttp-sse:5.3.2")
+    implementation("com.squareup.okhttp3:okhttp:5.4.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:5.4.0")
+    implementation("com.squareup.okhttp3:okhttp-sse:5.4.0")
 
     // DataStore (still used by other prefs; auth tokens moved to EncryptedSharedPreferences)
     implementation("androidx.datastore:datastore-preferences:1.1.1")
@@ -129,7 +129,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
 
     // WorkManager
-    implementation("androidx.work:work-runtime-ktx:2.9.1")
+    implementation("androidx.work:work-runtime-ktx:2.11.2")
 
     // Vico charting
     implementation("com.patrykandpatrick.vico:compose-m3:2.0.0-beta.3")
@@ -146,7 +146,7 @@ dependencies {
     // the messaging library (we don't use Auth, Firestore, Crashlytics, etc).
     // BoM 34.x merged the `-ktx` Kotlin extensions into the main artefact,
     // so we depend on `firebase-messaging` (no -ktx suffix).
-    implementation(platform("com.google.firebase:firebase-bom:34.14.0"))
+    implementation(platform("com.google.firebase:firebase-bom:34.14.1"))
     implementation("com.google.firebase:firebase-messaging")
 
     // Lets us `.await()` Firebase's Task<T> results inside suspend functions
