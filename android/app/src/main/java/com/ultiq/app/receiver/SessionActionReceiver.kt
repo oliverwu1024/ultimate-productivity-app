@@ -13,6 +13,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * Handles notification actions for active-session controls (lockscreen + shade).
@@ -38,6 +39,9 @@ class SessionActionReceiver : BroadcastReceiver() {
                 } else 0
                 if (active != null) repo.completeSession(active.id, minutes, phonePickups = 0)
                 app.stopService(Intent(app, FocusTrackingService::class.java))
+                // Let the service teardown clear isRunning before repaint so the
+                // Focus widget flips to idle (its focus() reader gates on isRunning).
+                withTimeoutOrNull(2_000) { FocusTrackingService.isRunning.first { !it } }
                 WidgetUpdater.updateAll(app)
             } finally {
                 pending.finish()

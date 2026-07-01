@@ -7,16 +7,27 @@ import androidx.glance.GlanceId
 import androidx.glance.action.ActionParameters
 import androidx.glance.appwidget.action.ActionCallback
 import com.ultiq.app.MainActivity
+import com.ultiq.app.data.local.entity.ChecklistCompletionEntity
+import com.ultiq.app.data.repository.ChecklistEchoSuppressor
 import com.ultiq.app.service.FocusTrackingService
 import com.ultiq.app.service.SleepTrackingService
 import com.ultiq.app.util.NotificationHelper
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import java.time.LocalDate
 
 /** Passes the tapped checklist row id from the widget into [ToggleChecklistItem]. */
 val checklistItemIdKey = ActionParameters.Key<String>("checklist_item_id")
+
+/** Detached scope for best-effort background server pushes after a widget tap,
+ *  kept OFF the tap→repaint path. If the process dies mid-push the local row stays
+ *  isSynced=false and the next SyncWorker / foreground sync reconciles it. */
+private val widgetBgScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
 /** A MainActivity intent that deep-links to a tab (reuses the notification deep-link plumbing). */
 fun widgetOpenIntent(context: Context, deepLink: String): Intent =
@@ -34,17 +45,32 @@ fun widgetOpenIntent(context: Context, deepLink: String): Intent =
 class ToggleChecklistItem : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
         val id = parameters[checklistItemIdKey] ?: return
-        withContext(Dispatchers.IO) {
-            val ds = WidgetDataSource(context)
+        val ds = WidgetDataSource(context)
+        val epochDay = LocalDate.now().toEpochDay()
+        val now = System.currentTimeMillis()
+        val recurring = withContext(Dispatchers.IO) {
             val item = ds.db.checklistDao().getById(id)
-            val epochDay = LocalDate.now().toEpochDay()
-            if (item != null && item.recurrenceDaysMask != 0) {
-                ds.checklistRepo.markRecurringCompletedOn(id, epochDay)
+            val isRecurring = item != null && item.recurrenceDaysMask != 0
+            // 1) Optimistic LOCAL write so the widget re-read reflects the tick
+            //    instantly. The repo's network call is the slow part and must NOT
+            //    sit in the tap→repaint path — that was the "huge lag" / tap that
+            //    looked unresponsive (the write had happened; only the repaint lagged).
+            ChecklistEchoSuppressor.noteLocalChange(id)
+            if (isRecurring) {
+                ds.db.checklistCompletionDao().insert(ChecklistCompletionEntity(id, epochDay, now))
             } else {
-                ds.checklistRepo.markCompleted(id)
+                ds.db.checklistDao().markCompletedLocally(id, completedAt = now, updatedAt = now)
             }
+            isRecurring
         }
+        // 2) Repaint NOW — the ticked item drops off the open list immediately.
         ChecklistWidget().update(context, glanceId)
+        // 3) Best-effort server push in the background. On failure/death the local
+        //    row stays isSynced=false and the next sync pushes it.
+        widgetBgScope.launch {
+            if (recurring) ds.checklistRepo.markRecurringCompletedOn(id, epochDay)
+            else ds.checklistRepo.markCompleted(id)
+        }
     }
 }
 
@@ -78,6 +104,9 @@ class StartFocus : ActionCallback {
         withContext(Dispatchers.IO) {
             ds.sessionRepo.createSession(tag = "Focus", workDuration = workDuration, userId = ds.userId())
         }
+        // Wait for the service to flip isRunning before repainting so the widget
+        // shows the active timer, not a one-frame idle (focus() now gates on it).
+        withTimeoutOrNull(2_000) { FocusTrackingService.isRunning.first { it } }
         FocusWidget().update(context, glanceId)
     }
 }
@@ -103,6 +132,8 @@ class StopFocus : ActionCallback {
             }
         }
         app.stopService(Intent(app, FocusTrackingService::class.java))
+        // Wait for the service teardown to clear isRunning so the repaint shows idle.
+        withTimeoutOrNull(2_000) { FocusTrackingService.isRunning.first { !it } }
         FocusWidget().update(context, glanceId)
     }
 }

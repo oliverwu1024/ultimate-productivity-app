@@ -68,21 +68,24 @@ class WidgetDataSource(context: Context) {
     }
 
     /**
-     * Live focus session, if any. Active == an incomplete session row exists
-     * (durable across process death). The start anchor prefers the running
-     * service's value, falling back to the row's `startedAt`.
+     * Live focus session, if any. "Active" is gated on the tracking service
+     * ([FocusTrackingService.isRunning]) — the same signal SessionsViewModel uses
+     * to decide whether to restore a session. An incomplete session row on its own
+     * is NOT sufficient: a stale/orphaned row (an old session that never completed,
+     * or one pulled from the server) would otherwise render as a timer counting
+     * from an ancient start with a long-finished tag.
      */
     suspend fun focus(): FocusSnapshot {
+        if (!FocusTrackingService.isRunning.value) return FocusSnapshot(active = false)
         val active = sessionRepo.getActiveSessions().first().firstOrNull()
-            ?: return FocusSnapshot(active = false)
         val startedAt = FocusTrackingService.sessionStartTime.value
-            .takeIf { it > 0L } ?: active.startedAt
+            .takeIf { it > 0L } ?: active?.startedAt ?: System.currentTimeMillis()
         val planned = FocusTrackingService.plannedWorkMinutes.value
-            .takeIf { it > 0 } ?: active.workDuration
+            .takeIf { it > 0 } ?: active?.workDuration ?: 0
         return FocusSnapshot(
             active = true,
             startedAt = startedAt,
-            tag = active.tag,
+            tag = active?.tag ?: "Focus",
             plannedMinutes = planned,
         )
     }
