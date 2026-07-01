@@ -31,7 +31,7 @@ subtle = "2"
 # code; saves the `qrcodegen` + `image` transitive bloat.
 totp-rs = { version = "5", default-features = false, features = ["otpauth"] }
 base32 = "0.5"
-rand = "0.8"
+rand = "0.10"
 tokio-stream = { version = "0.1", features = ["sync"] }
 futures = "0.3"
 
