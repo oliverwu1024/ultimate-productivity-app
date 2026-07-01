@@ -169,10 +169,6 @@
             android:name=".receiver.ApkInstallResultReceiver"
             android:exported="false" />
 
-        <!-- Lockscreen/shade "Stop focus" action target (headless). -->
-        <receiver
-            android:name=".receiver.SessionActionReceiver"
-            android:exported="false" />
 
         <receiver
             android:name=".ui.lockout.LockoutDeviceAdminReceiver"
@@ -201,7 +197,7 @@
         <!-- Home-screen widgets (Jetpack Glance). exported=true so the launcher,
              a separate process, can bind them. -->
         <receiver
-            android:name=".ui.widget.ChecklistWidgetReceiver"
+            android:name=".ui.widget.ChecklistWidgetProvider"
             android:exported="true"
             android:label="@string/widget_checklist_label">
             <intent-filter>
@@ -213,7 +209,7 @@
         </receiver>
 
         <receiver
-            android:name=".ui.widget.FocusWidgetReceiver"
+            android:name=".ui.widget.FocusWidgetProvider"
             android:exported="true"
             android:label="@string/widget_focus_label">
             <intent-filter>
