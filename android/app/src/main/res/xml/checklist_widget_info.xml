@@ -8,5 +8,5 @@
     android:widgetCategory="home_screen"
     android:description="@string/widget_checklist_desc"
     android:previewImage="@drawable/widget_preview_checklist"
-    android:initialLayout="@layout/glance_default_loading_layout"
+    android:initialLayout="@layout/widget_checklist_rv"
     android:updatePeriodMillis="0" />

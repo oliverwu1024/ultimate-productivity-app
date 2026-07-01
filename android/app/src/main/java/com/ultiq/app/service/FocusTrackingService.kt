@@ -17,7 +17,6 @@ import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.ultiq.app.MainActivity
 import com.ultiq.app.R
-import com.ultiq.app.receiver.SessionActionReceiver
 import com.ultiq.app.ui.lockout.LockoutMode
 import com.ultiq.app.ui.lockout.LockoutOverlayController
 import com.ultiq.app.util.LockoutNotifier
@@ -125,6 +124,11 @@ class FocusTrackingService : Service() {
             startForeground(NOTIFICATION_ID, createNotification())
         }
 
+        // §widget-sync — reflect the running session on the Focus home-screen widget
+        // immediately, covering app-initiated starts (the widget's own start already
+        // repaints). Synchronous RemoteViews push, so it's instant even in background.
+        com.ultiq.app.ui.widget.FocusWidgetProvider.updateAll(applicationContext)
+
         val filter = IntentFilter(Intent.ACTION_USER_PRESENT)
         // System broadcasts: register as EXPORTED on Android 13+ so the system can deliver them.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -220,6 +224,8 @@ class FocusTrackingService : Service() {
         // §widget — any normal stop (widget / lockscreen / in-app) routes through
         // stopService → onDestroy, so clearing here covers every end path.
         LiveFocusSessionStore(applicationContext).clear()
+        // §widget-sync — reflect the ended session on the Focus widget immediately.
+        com.ultiq.app.ui.widget.FocusWidgetProvider.updateAll(applicationContext)
         super.onDestroy()
     }
 
@@ -251,14 +257,6 @@ class FocusTrackingService : Service() {
             this, 0, tapIntent, PendingIntent.FLAG_IMMUTABLE,
         )
 
-        // §lockscreen — headless "Stop focus" via SessionActionReceiver.
-        val stopPi = PendingIntent.getBroadcast(
-            this,
-            0,
-            Intent(this, SessionActionReceiver::class.java)
-                .setAction(SessionActionReceiver.ACTION_STOP_FOCUS),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
         val start = sessionStartTime.value
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Focus session active")
@@ -267,14 +265,12 @@ class FocusTrackingService : Service() {
             .setSmallIcon(R.drawable.ic_notification)
             .setColor(ContextCompat.getColor(this, R.color.ultiq_indigo))
             .setOngoing(true)
-            // §lockscreen — public content + Stop action visible on a secure
-            // lockscreen; STOPWATCH category + immediate behaviour so the
-            // running session surfaces its controls without the ~10s FGS defer.
+            // §lockscreen — public + STOPWATCH so the running session shows on a
+            // secure lockscreen. Display-only: controlling the session is app-only.
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setCategory(NotificationCompat.CATEGORY_STOPWATCH)
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .setContentIntent(pendingIntent)
-            .addAction(R.drawable.ic_notification, "Stop focus", stopPi)
         // Live elapsed, OS-ticked. Guard the post-process-kill case where the
         // start anchor reset to 0 (would otherwise show elapsed-since-epoch).
         if (start > 0L) {

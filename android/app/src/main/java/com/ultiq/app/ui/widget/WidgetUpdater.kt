@@ -12,8 +12,8 @@ import androidx.glance.appwidget.updateAll
 object WidgetUpdater {
     suspend fun updateAll(context: Context) {
         val appContext = context.applicationContext
-        ChecklistWidget().updateAll(appContext)
-        FocusWidget().updateAll(appContext)
+        ChecklistWidgetProvider.updateAll(appContext)
+        FocusWidgetProvider.updateAll(appContext)
         CalendarWidget().updateAll(appContext)
         SleepAlarmWidget().updateAll(appContext)
     }

@@ -165,12 +165,9 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
                 workDuration = settings.defaultWorkDuration,
                 settings = settings,
             )
-            // The activity may be created after a session has already started
-            // (cold open from notification, process death + restore). Pick the
-            // running session back up before showing the IDLE controls.
-            if (FocusTrackingService.isRunning.value) {
-                restoreActiveSession()
-            }
+            // Focus-session restore (cold-open while a session runs) is handled by the
+            // FocusTrackingService.isRunning collector below — StateFlow replays the
+            // current value on subscribe, so an already-running session is picked up.
             loadSessionsAndStats()
             observeTodayChecklist()
             sync()
@@ -180,6 +177,18 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             userPreferences.settings.collect { s ->
                 _uiState.value = _uiState.value.copy(settings = s)
+            }
+        }
+        // §widget-sync — keep the in-app timer in sync with focus sessions started or
+        // stopped from OUTSIDE the app (the Focus widget / lockscreen), with no
+        // foreground/background bounce. StateFlow replays the current value on subscribe.
+        viewModelScope.launch {
+            FocusTrackingService.isRunning.collect { running ->
+                val ts = _uiState.value.timerState
+                when {
+                    running && ts == TimerState.IDLE -> restoreActiveSession()
+                    !running && (ts == TimerState.RUNNING || ts == TimerState.PAUSED) -> resetToIdle()
+                }
             }
         }
         // v2.13.3 — Dropped observeAchievementEvents(). Achievements still
@@ -235,9 +244,12 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
         val startMillis = FocusTrackingService.sessionStartTime.value
         if (startMillis <= 0L) return
 
-        val active = sessionDao.getActiveSessions().firstOrNull()?.firstOrNull() ?: return
+        // Row may not exist yet when the session was JUST started from the widget
+        // (its createSession is async) — fall back to the service state so the timer
+        // still shows; the id is picked up later (completeSession re-fetches it).
+        val active = sessionDao.getActiveSessions().firstOrNull()?.firstOrNull()
         val planned = FocusTrackingService.plannedWorkMinutes.value
-            .takeIf { it > 0 } ?: active.workDuration
+            .takeIf { it > 0 } ?: active?.workDuration ?: _uiState.value.workDuration
         val plannedSec = planned * 60
         val elapsedSec = ((System.currentTimeMillis() - startMillis) / 1000L)
             .toInt()
@@ -247,13 +259,13 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
         sessionStartMillis = startMillis
         pausedAccumMillis = 0L
         pauseStartMillis = 0L
-        currentSessionId = active.id
+        currentSessionId = active?.id
 
         _uiState.value = _uiState.value.copy(
             timerState = TimerState.RUNNING,
             workDuration = planned,
-            tag = active.tag,
-            selectedChecklistItemId = active.checklistItemId,
+            tag = active?.tag ?: "Focus",
+            selectedChecklistItemId = active?.checklistItemId,
             timeRemainingSeconds = if (overtime) 0 else plannedSec - elapsedSec,
             totalTimeSeconds = plannedSec,
             isOvertime = overtime,
@@ -263,6 +275,30 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
 
         startTimer()
         startPickupPolling()
+    }
+
+    /** §widget-sync — mirror the IDLE reset used by cancel/complete, for when a focus
+     *  session is ended from OUTSIDE the app (widget / lockscreen). Does not touch the
+     *  service (already stopped) or the session row. */
+    private fun resetToIdle() {
+        val cur = _uiState.value
+        // If an end-of-session prompt is showing, the APP ended this session
+        // (completeSession) — don't clobber its completion/debrief prompt.
+        if (cur.completionPrompt != null || cur.debriefPrompt != null) return
+        timerJob?.cancel()
+        pickupPollJob?.cancel()
+        currentSessionId = null
+        sessionStartMillis = 0L
+        pausedAccumMillis = 0L
+        pauseStartMillis = 0L
+        _uiState.value = cur.copy(
+            timerState = TimerState.IDLE,
+            timeRemainingSeconds = 0,
+            totalTimeSeconds = 0,
+            isOvertime = false,
+            overtimeSeconds = 0,
+            phonePickups = 0,
+        )
     }
 
 
@@ -425,6 +461,7 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
             pauseStartMillis = System.currentTimeMillis()
         }
         _uiState.value = _uiState.value.copy(timerState = TimerState.PAUSED)
+        syncFocusStoreForWidget()
     }
 
     fun resumeTimer() {
@@ -434,6 +471,28 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
         }
         _uiState.value = _uiState.value.copy(timerState = TimerState.RUNNING)
         startTimer()
+        syncFocusStoreForWidget()
+    }
+
+    /** §widget-sync — mirror the in-app pause/resume into the durable focus store so
+     *  the Focus widget's timer freezes/resumes with it (RemoteViews push is instant).
+     *  Uses the effective (pause-adjusted) start so the running elapsed stays correct. */
+    private fun syncFocusStoreForWidget() {
+        if (sessionStartMillis <= 0L) return
+        val effectiveStart = sessionStartMillis + pausedAccumMillis
+        val pausedElapsed = if (_uiState.value.timerState == TimerState.PAUSED) {
+            val pauseAt = if (pauseStartMillis > 0L) pauseStartMillis else System.currentTimeMillis()
+            (pauseAt - effectiveStart).coerceAtLeast(0L)
+        } else -1L
+        val app = getApplication<Application>()
+        com.ultiq.app.service.LiveFocusSessionStore(app).save(
+            com.ultiq.app.service.LiveFocusSessionStore.Snapshot(
+                startMs = effectiveStart,
+                plannedMinutes = _uiState.value.workDuration,
+                pausedElapsedMs = pausedElapsed,
+            ),
+        )
+        com.ultiq.app.ui.widget.FocusWidgetProvider.updateAll(app)
     }
 
     fun deletePastSession(id: String) {
@@ -528,12 +587,17 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
         val linkedItemId = state.selectedChecklistItemId
         val linkedItemTitle = state.openChecklistItems.firstOrNull { it.id == linkedItemId }?.title
 
-        val completedSessionId = currentSessionId
+        val capturedSessionId = currentSessionId
         // §v2.16.18 — Snapshot the session window before we null it out;
         // savePickupEvents queries PhoneUsageTracker for the per-event
         // detail across the same range that produced the count.
         val pickupWindowStart = sessionStartMillis
         viewModelScope.launch {
+            // §widget-sync — re-fetch the id if it wasn't captured yet (session started
+            // from the widget, whose row-create is async — see restoreActiveSession),
+            // else an immediate in-app stop wouldn't complete the row.
+            val completedSessionId = capturedSessionId
+                ?: sessionDao.getActiveSessions().firstOrNull()?.firstOrNull()?.id
             completedSessionId?.let { id ->
                 repository.completeSession(id, totalMinutes, state.phonePickups)
                 // §v2.16.18 — Save the per-pickup timeline so the past
@@ -624,9 +688,14 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
                     cur.sessionId,
                     com.ultiq.app.data.remote.dto.SessionDebriefRequestDto(text = text),
                 )
-                // Server is the source of truth — next sync will pull the
-                // saved fields into Room. We surface the tag in the dialog
-                // immediately so the user gets the feedback now.
+                // §record-sync — persist the debrief + tag onto the local session row
+                // right away so the record log shows it immediately, instead of waiting
+                // for the next sync (tab switch / foreground) to pull it back.
+                runCatching {
+                    sessionDao.getById(cur.sessionId)?.let { row ->
+                        sessionDao.insert(row.copy(debrief = text, debriefTag = resp.debrief_tag))
+                    }
+                }
                 _uiState.value = _uiState.value.copy(
                     debriefPrompt = cur.copy(
                         text = text,

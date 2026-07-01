@@ -22,14 +22,18 @@ class LiveFocusSessionStore(context: Context) {
         .getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
     data class Snapshot(
+        /** Effective (pause-adjusted) wall-clock start: running elapsed = now - startMs. */
         val startMs: Long,
         val plannedMinutes: Int,
+        /** -1 = running; >= 0 = paused, holding the frozen elapsed ms at the pause. */
+        val pausedElapsedMs: Long = -1L,
     )
 
     fun save(snapshot: Snapshot) {
         prefs.edit()
             .putLong(KEY_START, snapshot.startMs)
             .putInt(KEY_PLANNED, snapshot.plannedMinutes)
+            .putLong(KEY_PAUSED, snapshot.pausedElapsedMs)
             .commit()
     }
 
@@ -37,7 +41,7 @@ class LiveFocusSessionStore(context: Context) {
     fun load(): Snapshot? {
         val start = prefs.getLong(KEY_START, 0L)
         if (start <= 0L) return null
-        return Snapshot(start, prefs.getInt(KEY_PLANNED, 0))
+        return Snapshot(start, prefs.getInt(KEY_PLANNED, 0), prefs.getLong(KEY_PAUSED, -1L))
     }
 
     fun clear() {
@@ -48,5 +52,6 @@ class LiveFocusSessionStore(context: Context) {
         private const val PREFS = "live_focus_session"
         private const val KEY_START = "start_ms"
         private const val KEY_PLANNED = "planned_min"
+        private const val KEY_PAUSED = "paused_elapsed_ms"
     }
 }

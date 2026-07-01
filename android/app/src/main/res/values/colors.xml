@@ -2,4 +2,9 @@
 <resources>
     <!-- Brand accent. Mirrors the ultiq-indigo token in web-landing/app/globals.css. -->
     <color name="ultiq_indigo">#2A1B6E</color>
+
+    <!-- RemoteViews widget surface + text (light). -night variant flips for dark mode. -->
+    <color name="widget_bg">#FEFBFF</color>
+    <color name="widget_text">#1B1B1F</color>
+    <color name="widget_subtext">#46464F</color>
 </resources>
