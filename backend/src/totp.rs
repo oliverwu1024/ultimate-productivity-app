@@ -5,7 +5,7 @@
 //! the current 30-second window (with a ±1 step allowance for clock drift).
 
 use base32::Alphabet;
-use rand::RngCore;
+use rand::Rng;
 use totp_rs::{Algorithm, TOTP};
 
 /// Length of a freshly generated TOTP seed. 20 bytes is the SHA-1 / 6-digit
@@ -28,7 +28,7 @@ pub const ISSUER: &str = "Ultiq";
 /// Generate a fresh 20-byte TOTP seed.
 pub fn generate_secret() -> Vec<u8> {
     let mut buf = vec![0u8; SECRET_LEN];
-    rand::thread_rng().fill_bytes(&mut buf);
+    rand::rng().fill_bytes(&mut buf);
     buf
 }
 
