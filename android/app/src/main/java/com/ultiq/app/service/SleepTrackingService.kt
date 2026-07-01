@@ -53,7 +53,10 @@ class SleepTrackingService : Service() {
 
     companion object {
         const val TAG = "SleepTrackingService"
-        const val CHANNEL_ID = "sleep_tracking"
+        // §lockscreen — bumped from "sleep_tracking": channel lockscreen
+        // visibility is immutable after creation, so a new id is needed to give
+        // existing installs the public/controllable notification.
+        const val CHANNEL_ID = "sleep_tracking_v2"
         const val NOTIFICATION_ID = 1001
 
         // §sleep-state-fix — Start-intent extras carrying the user-confirmed
@@ -638,8 +641,13 @@ class SleepTrackingService : Service() {
         ).apply {
             description = "Tracks your sleep session"
             setShowBadge(false)
+            // §lockscreen — show the session + End control on a secure lockscreen.
+            lockscreenVisibility = Notification.VISIBILITY_PUBLIC
         }
         val manager = getSystemService(NotificationManager::class.java)
+        // Drop the pre-lockscreen channel so upgraders don't keep its frozen
+        // (private) visibility.
+        manager.deleteNotificationChannel("sleep_tracking")
         manager.createNotificationChannel(channel)
     }
 
@@ -652,14 +660,37 @@ class SleepTrackingService : Service() {
         )
 
         val title = if (audioActive) "Tracking sleep + sounds" else "Sleep tracking active"
-        return NotificationCompat.Builder(this, CHANNEL_ID)
+        // §lockscreen — "End sleep" opens the Sleep tab; the End-Sleep flow keeps
+        // its mandatory quality-rating dialog, so we never end silently here.
+        val endPi = PendingIntent.getActivity(
+            this,
+            1,
+            Intent(this, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                putExtra(NotificationHelper.EXTRA_DEEP_LINK, NotificationHelper.DEEP_LINK_SLEEP)
+            },
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        val start = sessionStartTime.value
+        val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(title)
             .setContentText("Tap to open app")
             // §branding — see LockoutNotifier / NotificationHelper.
             .setSmallIcon(R.drawable.ic_notification)
             .setColor(ContextCompat.getColor(this, R.color.ultiq_indigo))
             .setOngoing(true)
+            // §lockscreen — public content + End action on a secure lockscreen;
+            // STOPWATCH + immediate so controls surface without the FGS defer.
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setCategory(NotificationCompat.CATEGORY_STOPWATCH)
+            .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .setContentIntent(pendingIntent)
-            .build()
+            .addAction(R.drawable.ic_notification, "End sleep", endPi)
+        // Live elapsed, OS-ticked. Sleep has a durable start anchor
+        // (LiveSleepSessionStore), so this stays correct across a restart.
+        if (start > 0L) {
+            builder.setUsesChronometer(true).setWhen(start)
+        }
+        return builder.build()
     }
 }

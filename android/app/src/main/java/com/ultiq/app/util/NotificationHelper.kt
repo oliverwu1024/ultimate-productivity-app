@@ -38,6 +38,7 @@ object NotificationHelper {
     const val DEEP_LINK_SLEEP = "sleep"
     const val DEEP_LINK_SESSIONS = "sessions"
     const val DEEP_LINK_CALENDAR = "calendar"
+    const val DEEP_LINK_CHECKLIST = "checklist"
 
     fun ensureChannels(context: Context) {
         val manager = context.getSystemService(NotificationManager::class.java) ?: return

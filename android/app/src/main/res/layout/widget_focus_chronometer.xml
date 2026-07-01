@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Hosted inside the Glance FocusWidget via AndroidRemoteViews. The OS ticks
+     this Chronometer once a second with the app asleep, giving a live elapsed
+     timer Glance can't render on its own. -->
+<Chronometer xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/focus_chrono"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:textSize="26sp"
+    android:textStyle="bold"
+    android:textColor="?android:attr/textColorPrimary" />

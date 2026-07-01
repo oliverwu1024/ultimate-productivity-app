@@ -87,6 +87,14 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended")
     debugImplementation("androidx.compose.ui:ui-tooling")
 
+    // Jetpack Glance — interactive home-screen widgets (Compose-style).
+    // Pinned 1.1.1: current stable. Glance is versioned independently of the
+    // Compose BOM and moves slowly; both artefacts must share one version.
+    // glance-material3 pulls glance-appwidget → glance transitively.
+    val glanceVersion = "1.1.1"
+    implementation("androidx.glance:glance-appwidget:$glanceVersion")
+    implementation("androidx.glance:glance-material3:$glanceVersion")
+
     // Core
     implementation("androidx.core:core-ktx:1.18.0")
     implementation("androidx.activity:activity-compose:1.13.0")

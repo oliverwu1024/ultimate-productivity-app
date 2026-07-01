@@ -169,6 +169,11 @@
             android:name=".receiver.ApkInstallResultReceiver"
             android:exported="false" />
 
+        <!-- Lockscreen/shade "Stop focus" action target (headless). -->
+        <receiver
+            android:name=".receiver.SessionActionReceiver"
+            android:exported="false" />
+
         <receiver
             android:name=".ui.lockout.LockoutDeviceAdminReceiver"
             android:exported="true"
@@ -190,6 +195,67 @@
                 <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
                 <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Home-screen widgets (Jetpack Glance). exported=true so the launcher,
+             a separate process, can bind them. -->
+        <receiver
+            android:name=".ui.widget.ChecklistWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_checklist_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/checklist_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".ui.widget.FocusWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_focus_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/focus_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".ui.widget.CalendarWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_calendar_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/calendar_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".ui.widget.SleepAlarmWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_sleep_alarm_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/sleep_alarm_widget_info" />
+        </receiver>
+
+        <!-- Recompute "today" / elapsed / next on midnight, clock change, travel. -->
+        <receiver
+            android:name=".ui.widget.WidgetTimeChangeReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.DATE_CHANGED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
             </intent-filter>
         </receiver>
     </application>
