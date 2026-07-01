@@ -6,10 +6,12 @@ import androidx.core.content.ContextCompat
 import androidx.glance.GlanceId
 import androidx.glance.action.ActionParameters
 import androidx.glance.appwidget.action.ActionCallback
+import androidx.glance.appwidget.updateAll
 import com.ultiq.app.MainActivity
 import com.ultiq.app.data.local.entity.ChecklistCompletionEntity
 import com.ultiq.app.data.repository.ChecklistEchoSuppressor
 import com.ultiq.app.service.FocusTrackingService
+import com.ultiq.app.service.LiveFocusSessionStore
 import com.ultiq.app.service.SleepTrackingService
 import com.ultiq.app.util.NotificationHelper
 import kotlinx.coroutines.CoroutineScope
@@ -18,7 +20,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeoutOrNull
 import java.time.LocalDate
 
 /** Passes the tapped checklist row id from the widget into [ToggleChecklistItem]. */
@@ -64,7 +65,9 @@ class ToggleChecklistItem : ActionCallback {
             isRecurring
         }
         // 2) Repaint NOW — the ticked item drops off the open list immediately.
-        ChecklistWidget().update(context, glanceId)
+        //    updateAll (not update(glanceId)): the per-instance update was
+        //    unreliable from a callback; updateAll matches the working refresh path.
+        ChecklistWidget().updateAll(context)
         // 3) Best-effort server push in the background. On failure/death the local
         //    row stays isSynced=false and the next sync pushes it.
         widgetBgScope.launch {
@@ -95,19 +98,21 @@ class StartFocus : ActionCallback {
         }
         val ds = WidgetDataSource(context)
         val workDuration = ds.prefs.snapshot().defaultWorkDuration
+        // Optimistic durable active-flag FIRST so the widget flips to the timer
+        // instantly (the service also writes it, but that write is async).
+        LiveFocusSessionStore(app).save(
+            LiveFocusSessionStore.Snapshot(System.currentTimeMillis(), workDuration),
+        )
         ContextCompat.startForegroundService(
             app,
             Intent(app, FocusTrackingService::class.java)
                 .putExtra(FocusTrackingService.EXTRA_WORK_DURATION_MIN, workDuration),
         )
-        // Durable session row for the in-app timer/history + process-death restore.
-        withContext(Dispatchers.IO) {
+        // Durable session row for the in-app timer/history — off the repaint path.
+        widgetBgScope.launch {
             ds.sessionRepo.createSession(tag = "Focus", workDuration = workDuration, userId = ds.userId())
         }
-        // Wait for the service to flip isRunning before repainting so the widget
-        // shows the active timer, not a one-frame idle (focus() now gates on it).
-        withTimeoutOrNull(2_000) { FocusTrackingService.isRunning.first { it } }
-        FocusWidget().update(context, glanceId)
+        FocusWidget().updateAll(app)
     }
 }
 
@@ -120,7 +125,10 @@ class StopFocus : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
         val app = context.applicationContext
         val ds = WidgetDataSource(context)
-        withContext(Dispatchers.IO) {
+        // Clear the durable flag FIRST so the widget flips to idle immediately.
+        LiveFocusSessionStore(app).clear()
+        // Complete the session + stop the service off the repaint path.
+        widgetBgScope.launch {
             val active = ds.sessionRepo.getActiveSessions().first().firstOrNull()
             val startedAt = FocusTrackingService.sessionStartTime.value
                 .takeIf { it > 0L } ?: active?.startedAt ?: 0L
@@ -132,8 +140,6 @@ class StopFocus : ActionCallback {
             }
         }
         app.stopService(Intent(app, FocusTrackingService::class.java))
-        // Wait for the service teardown to clear isRunning so the repaint shows idle.
-        withTimeoutOrNull(2_000) { FocusTrackingService.isRunning.first { !it } }
-        FocusWidget().update(context, glanceId)
+        FocusWidget().updateAll(app)
     }
 }

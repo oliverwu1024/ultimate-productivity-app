@@ -1,6 +1,6 @@
 {
-  "versionCode": 132,
-  "versionName": "2.22.1",
-  "url": "https://ultiqapp.com/ultiq.2.22.1.apk",
-  "releaseNotes": "Home-screen widgets — put your checklist, focus timer, calendar, and next alarm + last night's sleep right on your home screen, and control a running focus or sleep session from the lockscreen. This update makes the checklist widget tick instantly and fixes the focus widget so it only shows a timer when a session is actually running."
+  "versionCode": 133,
+  "versionName": "2.22.2",
+  "url": "https://ultiqapp.com/ultiq.2.22.2.apk",
+  "releaseNotes": "Home-screen widgets — put your checklist, focus timer, calendar, and next alarm + last night's sleep right on your home screen, and control a running focus or sleep session from the lockscreen. This update fixes the checklist and focus widgets so they respond instantly and show the live timer as soon as you start a session."
 }
