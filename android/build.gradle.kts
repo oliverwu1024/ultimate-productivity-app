@@ -6,5 +6,5 @@ plugins {
     // §9.8 — Firebase Cloud Messaging needs the google-services plugin to
     // process `app/google-services.json` at build time (generates the Firebase
     // initializer resources). Declared `apply false` here; applied in app/.
-    id("com.google.gms.google-services") version "4.4.4" apply false
+    id("com.google.gms.google-services") version "4.5.0" apply false
 }
