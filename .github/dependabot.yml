@@ -28,9 +28,23 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
+    # vico compose-m3 is pinned at 2.0.0-beta.3: 3.x is a charting-API rewrite
+    # (SleepChart.kt — the whole core.* package + builders were renamed). Ignore
+    # MAJOR bumps until that migration is done + verified on-device; delete this
+    # entry to pick it back up. Minor/patch within the pinned major still flow.
+    ignore:
+      - dependency-name: "com.patrykandpatrick.vico:compose-m3"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "npm"
     directory: "/web-landing"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
+    # eslint is pinned at ^9: eslint 10 breaks eslint-config-next's bundled
+    # eslint-plugin-react (calls the removed context.getFilename()). Ignore MAJOR
+    # bumps until eslint-config-next supports eslint 10; delete this entry then.
+    # Only the `eslint` core package is pinned — configs/plugins still update.
+    ignore:
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
