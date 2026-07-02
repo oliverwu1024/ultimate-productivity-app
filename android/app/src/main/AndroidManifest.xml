@@ -208,6 +208,13 @@
                 android:resource="@xml/checklist_widget_info" />
         </receiver>
 
+        <!-- Collection service backing the Checklist widget's scrollable list.
+             BIND_REMOTEVIEWS lets only the system/launcher bind it. -->
+        <service
+            android:name=".ui.widget.ChecklistRemoteViewsService"
+            android:exported="false"
+            android:permission="android.permission.BIND_REMOTEVIEWS" />
+
         <receiver
             android:name=".ui.widget.FocusWidgetProvider"
             android:exported="true"
@@ -231,6 +238,12 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/calendar_widget_info" />
         </receiver>
+
+        <!-- Collection service backing the Calendar widget's scrollable list. -->
+        <service
+            android:name=".ui.widget.CalendarRemoteViewsService"
+            android:exported="false"
+            android:permission="android.permission.BIND_REMOTEVIEWS" />
 
         <receiver
             android:name=".ui.widget.SleepAlarmWidgetProvider"

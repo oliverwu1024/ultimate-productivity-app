@@ -185,6 +185,27 @@ class CalendarRepository(
         }
     }
 
+    /**
+     * Optimistic LOCAL-ONLY mark-done (no network). Flips the same state
+     * [setEventDone] would — per-occurrence `doneDates` for recurring events, the
+     * `isDone` flag for one-offs — so a caller (e.g. the home-screen widget) can
+     * update its UI instantly and then call [setEventDone] to sync. Idempotent.
+     */
+    suspend fun markDoneLocally(id: String, isDone: Boolean, occurrenceDate: LocalDate? = null) {
+        val existing = calendarEventDao.getById(id) ?: return
+        val now = System.currentTimeMillis()
+        val updated = if (occurrenceDate != null && existing.isRecurring) {
+            existing.copy(
+                doneDates = toggleDate(existing.doneDates, occurrenceDate.format(ISO_DATE), present = isDone),
+                updatedAt = now,
+                isSynced = false,
+            )
+        } else {
+            existing.copy(isDone = isDone, updatedAt = now, isSynced = false)
+        }
+        calendarEventDao.insert(updated)
+    }
+
     /** Delete a calendar event. Scope controls the radius of the action on
      *  recurring series; for non-recurring rows the scope is ignored. */
     suspend fun deleteEvent(

@@ -1,6 +1,6 @@
 {
-  "versionCode": 143,
-  "versionName": "2.22.4",
-  "url": "https://ultiqapp.com/ultiq.2.22.4.apk",
-  "releaseNotes": "More home-screen widget polish. The calendar and sleep widgets are snappier, the focus widget now shows your session's tag and length, and the widget picker shows real previews. Plus fixes so each widget reliably opens the right screen."
+  "versionCode": 144,
+  "versionName": "2.22.5",
+  "url": "https://ultiqapp.com/ultiq.2.22.5.apk",
+  "releaseNotes": "The checklist and calendar widgets are now scrollable, interactive lists — tap to check off items and events right from your home screen, with a live \"N left\" count. Calendar events now stay until you tick them (and reappear if you un-tick them in the app)."
 }
