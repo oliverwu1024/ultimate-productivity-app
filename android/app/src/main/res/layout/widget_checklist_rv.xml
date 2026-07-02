@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Classic RemoteViews Checklist widget (not Glance) so taps repaint synchronously.
-     Fixed row slots (row_0..row_5) — populated/hidden by ChecklistWidgetProvider. -->
+<!-- Classic RemoteViews Checklist widget (not Glance) so taps repaint promptly.
+     Scrollable ListView backed by ChecklistRemoteViewsService — shows ALL open
+     items, not a fixed six. Row taps ride a pending-intent template + per-row
+     fill-in intent (ChecklistWidgetProvider). -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/checklist_root"
     android:layout_width="match_parent"
@@ -9,21 +11,37 @@
     android:padding="12dp"
     android:background="@drawable/widget_card_bg">
 
+    <!-- Tap target to open the app (checklist tab). Taller + a chevron so it reads
+         as tappable — the scrollable list below owns its own touches, so this bar is
+         the widget's open-app affordance. -->
     <LinearLayout
+        android:id="@+id/checklist_header"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:layout_marginBottom="6dp">
+        android:paddingTop="6dp"
+        android:paddingBottom="8dp"
+        android:layout_marginBottom="4dp">
 
         <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Today"
+            android:textColor="@color/widget_text"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <!-- Remaining (open) count — the intuitive "how many to go" number. Takes the
+             middle space so the done/total sits on the right. -->
+        <TextView
+            android:id="@+id/checklist_left"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Today"
-            android:textColor="@color/widget_text"
-            android:textSize="15sp"
-            android:textStyle="bold" />
+            android:layout_marginStart="8dp"
+            android:textColor="@color/widget_subtext"
+            android:textSize="13sp" />
 
         <TextView
             android:id="@+id/checklist_count"
@@ -31,45 +49,38 @@
             android:layout_height="wrap_content"
             android:textColor="@color/widget_subtext"
             android:textSize="13sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:text="›"
+            android:textColor="@color/widget_subtext"
+            android:textSize="19sp"
+            android:importantForAccessibility="no" />
     </LinearLayout>
 
-    <TextView
-        android:id="@+id/checklist_empty"
+    <!-- ListView + its empty view share the same area; the collection adapter
+         toggles between them via RemoteViews.setEmptyView. -->
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:paddingTop="8dp"
-        android:gravity="center"
-        android:visibility="gone"
-        android:textColor="@color/widget_subtext"
-        android:textSize="13sp" />
+        android:layout_height="0dp"
+        android:layout_weight="1">
 
-    <LinearLayout android:id="@+id/row_0" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:paddingTop="3dp" android:paddingBottom="3dp" android:visibility="gone">
-        <ImageView android:layout_width="20dp" android:layout_height="20dp" android:src="@drawable/ic_widget_checkbox" android:importantForAccessibility="no" />
-        <TextView android:id="@+id/title_0" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="8dp" android:maxLines="1" android:ellipsize="end" android:textColor="@color/widget_text" android:textSize="14sp" />
-    </LinearLayout>
+        <ListView
+            android:id="@+id/checklist_list"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:divider="@null"
+            android:dividerHeight="0dp" />
 
-    <LinearLayout android:id="@+id/row_1" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:paddingTop="3dp" android:paddingBottom="3dp" android:visibility="gone">
-        <ImageView android:layout_width="20dp" android:layout_height="20dp" android:src="@drawable/ic_widget_checkbox" android:importantForAccessibility="no" />
-        <TextView android:id="@+id/title_1" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="8dp" android:maxLines="1" android:ellipsize="end" android:textColor="@color/widget_text" android:textSize="14sp" />
-    </LinearLayout>
-
-    <LinearLayout android:id="@+id/row_2" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:paddingTop="3dp" android:paddingBottom="3dp" android:visibility="gone">
-        <ImageView android:layout_width="20dp" android:layout_height="20dp" android:src="@drawable/ic_widget_checkbox" android:importantForAccessibility="no" />
-        <TextView android:id="@+id/title_2" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="8dp" android:maxLines="1" android:ellipsize="end" android:textColor="@color/widget_text" android:textSize="14sp" />
-    </LinearLayout>
-
-    <LinearLayout android:id="@+id/row_3" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:paddingTop="3dp" android:paddingBottom="3dp" android:visibility="gone">
-        <ImageView android:layout_width="20dp" android:layout_height="20dp" android:src="@drawable/ic_widget_checkbox" android:importantForAccessibility="no" />
-        <TextView android:id="@+id/title_3" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="8dp" android:maxLines="1" android:ellipsize="end" android:textColor="@color/widget_text" android:textSize="14sp" />
-    </LinearLayout>
-
-    <LinearLayout android:id="@+id/row_4" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:paddingTop="3dp" android:paddingBottom="3dp" android:visibility="gone">
-        <ImageView android:layout_width="20dp" android:layout_height="20dp" android:src="@drawable/ic_widget_checkbox" android:importantForAccessibility="no" />
-        <TextView android:id="@+id/title_4" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="8dp" android:maxLines="1" android:ellipsize="end" android:textColor="@color/widget_text" android:textSize="14sp" />
-    </LinearLayout>
-
-    <LinearLayout android:id="@+id/row_5" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:paddingTop="3dp" android:paddingBottom="3dp" android:visibility="gone">
-        <ImageView android:layout_width="20dp" android:layout_height="20dp" android:src="@drawable/ic_widget_checkbox" android:importantForAccessibility="no" />
-        <TextView android:id="@+id/title_5" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="8dp" android:maxLines="1" android:ellipsize="end" android:textColor="@color/widget_text" android:textSize="14sp" />
-    </LinearLayout>
+        <TextView
+            android:id="@+id/checklist_empty"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:visibility="gone"
+            android:textColor="@color/widget_subtext"
+            android:textSize="13sp" />
+    </FrameLayout>
 </LinearLayout>

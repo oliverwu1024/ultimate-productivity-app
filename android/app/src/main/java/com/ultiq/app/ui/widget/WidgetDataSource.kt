@@ -86,16 +86,21 @@ class WidgetDataSource(context: Context) {
         )
     }
 
-    /** Today's upcoming (not-yet-ended, not-done) events, soonest first. */
-    suspend fun calendar(): CalendarSnapshot {
-        val now = System.currentTimeMillis()
+    /**
+     * Today's NOT-done events, soonest first — checklist-style: they stay until the
+     * user ticks them (no "already ended" filter, no row cap), tapping marks done.
+     * done/total drive the header count.
+     */
+    suspend fun todayCalendar(): CalendarSnapshot {
         val events = calendarRepo.getEventsForDay(LocalDate.now()).first()
-        val upcoming = events
-            .filter { !it.isDone && it.endTime >= now }
-            .sortedBy { it.startTime }
-            .take(CALENDAR_MAX_ROWS)
-            .map { CalendarEventView(it.title, it.startTime, it.category) }
-        return CalendarSnapshot(upcoming)
+        val open = events.filter { !it.isDone }.sortedBy { it.startTime }
+        return CalendarSnapshot(
+            open = open.map {
+                CalendarEventView(it.id, it.title, it.startTime, it.category, it.isRecurring)
+            },
+            total = events.size,
+            doneCount = events.size - open.size,
+        )
     }
 
     /** Next enabled alarm + last night's sleep (or a live session, if running). */
@@ -149,11 +154,19 @@ data class FocusSnapshot(
     val plannedMinutes: Int = 0,
 )
 
-private const val CALENDAR_MAX_ROWS = 3
+data class CalendarEventView(
+    val id: String,
+    val title: String,
+    val startTime: Long,
+    val category: String,
+    val isRecurring: Boolean,
+)
 
-data class CalendarEventView(val title: String, val startTime: Long, val category: String)
-
-data class CalendarSnapshot(val upcoming: List<CalendarEventView>)
+data class CalendarSnapshot(
+    val open: List<CalendarEventView>,
+    val total: Int,
+    val doneCount: Int,
+)
 
 data class LastNightView(val durationMinutes: Int, val quality: Int)
 
