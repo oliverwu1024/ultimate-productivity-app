@@ -472,6 +472,19 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
         _uiState.value = _uiState.value.copy(timerState = TimerState.RUNNING)
         startTimer()
         syncFocusStoreForWidget()
+        // Re-arm the lockout gate immediately (mirrors the gate shown on a fresh start),
+        // rather than leaving the user ungated until the next lock/unlock. Store already
+        // holds pausedElapsedMs = -1 from syncFocusStoreForWidget above, so the service's
+        // pause guard won't suppress it.
+        showGateNow()
+    }
+
+    private fun showGateNow() {
+        val app = getApplication<Application>()
+        val intent = Intent(app, FocusTrackingService::class.java).apply {
+            action = FocusTrackingService.ACTION_SHOW_GATE_NOW
+        }
+        ContextCompat.startForegroundService(app, intent)
     }
 
     /** §widget-sync — mirror the in-app pause/resume into the durable focus store so

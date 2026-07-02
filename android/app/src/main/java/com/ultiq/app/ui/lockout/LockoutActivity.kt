@@ -14,6 +14,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.ultiq.app.MainActivity
 import com.ultiq.app.service.FocusTrackingService
+import com.ultiq.app.service.LiveFocusSessionStore
 import com.ultiq.app.service.SleepTrackingService
 import com.ultiq.app.ui.theme.UltiqTheme
 import com.ultiq.app.ui.theme.ThemeMode
@@ -78,17 +79,30 @@ class LockoutActivity : ComponentActivity() {
             val plannedWorkMinutes by FocusTrackingService.plannedWorkMinutes.collectAsState()
 
             var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
+            var effectiveStart by remember { mutableLongStateOf(sessionStartedAt) }
             LaunchedEffect(Unit) {
                 while (true) {
-                    delay(1_000)
+                    // A paused (or ended) focus session releases the gate — pausing is
+                    // the user's "I need a break" signal, so the lockout must not stay up
+                    // or keep ticking. The in-app timer writes pausedElapsedMs (>= 0 ⇒
+                    // paused) to the durable store; mirror LockoutOverlayController.
+                    if (mode == LockoutMode.FOCUS) {
+                        val snap = LiveFocusSessionStore(applicationContext).load()
+                        if (snap == null || snap.pausedElapsedMs >= 0L) {
+                            dismiss()
+                            return@LaunchedEffect
+                        }
+                        effectiveStart = snap.startMs
+                    }
                     now = System.currentTimeMillis()
+                    delay(1_000)
                 }
             }
 
             UltiqTheme(themeMode = themeMode) {
                 LockoutScreen(
                     mode = mode,
-                    elapsedMillis = (now - sessionStartedAt).coerceAtLeast(0),
+                    elapsedMillis = (now - effectiveStart).coerceAtLeast(0),
                     plannedWorkMinutes = if (mode == LockoutMode.FOCUS) plannedWorkMinutes else 0,
                     unlockCount = unlockCount,
                     showUnlockCount = settings?.showPickupCountOnLockout ?: true,

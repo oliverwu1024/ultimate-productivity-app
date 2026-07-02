@@ -29,6 +29,7 @@ import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.ultiq.app.MainActivity
 import com.ultiq.app.service.FocusTrackingService
+import com.ultiq.app.service.LiveFocusSessionStore
 import com.ultiq.app.service.SleepTrackingService
 import com.ultiq.app.ui.theme.UltiqTheme
 import kotlinx.coroutines.delay
@@ -62,6 +63,14 @@ object LockoutOverlayController {
     fun isShown(): Boolean = overlayView != null
 
     fun isInGracePeriod(): Boolean = System.currentTimeMillis() < graceUntilMillis
+
+    /**
+     * Cancel any active "I need my phone" grace window. Called on resume so the gate
+     * re-arms right away instead of staying suppressed for the leftover grace minutes.
+     */
+    fun clearGrace() {
+        graceUntilMillis = 0L
+    }
 
     fun show(context: Context, mode: LockoutMode, sessionStartedAt: Long, graceMinutes: Int = 5) {
         check(Looper.myLooper() == Looper.getMainLooper()) {
@@ -113,10 +122,25 @@ object LockoutOverlayController {
             setViewTreeSavedStateRegistryOwner(viewOwner)
             setContent {
                 var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
+                var effectiveStart by remember { mutableLongStateOf(sessionStartedAt) }
                 LaunchedEffect(Unit) {
                     while (true) {
-                        delay(1_000)
+                        // Release the gate the moment focus is paused (or ended) — a
+                        // paused session is the user's "I need a break" signal, so the
+                        // overlay must neither keep ticking nor stay up. Read the durable
+                        // store the in-app timer writes on pause (pausedElapsedMs >= 0).
+                        if (mode == LockoutMode.FOCUS) {
+                            val snap = LiveFocusSessionStore(ctx).load()
+                            if (snap == null || snap.pausedElapsedMs >= 0L) {
+                                hide()
+                                return@LaunchedEffect
+                            }
+                            // Track the pause-adjusted start so the elapsed shown here
+                            // matches the app/widget after any pause/resume.
+                            effectiveStart = snap.startMs
+                        }
                         now = System.currentTimeMillis()
+                        delay(1_000)
                     }
                 }
 
@@ -129,7 +153,7 @@ object LockoutOverlayController {
                 UltiqTheme {
                     LockoutScreen(
                         mode = mode,
-                        elapsedMillis = (now - sessionStartedAt).coerceAtLeast(0),
+                        elapsedMillis = (now - effectiveStart).coerceAtLeast(0),
                         plannedWorkMinutes = if (mode == LockoutMode.FOCUS) plannedWorkMinutes else 0,
                         unlockCount = unlockCount,
                         showUnlockCount = true,
