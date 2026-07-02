@@ -45,6 +45,13 @@ class FocusTrackingService : Service() {
         const val EXTRA_WORK_DURATION_MIN = "extra_work_duration_min"
         const val EXTRA_TAG = "extra_tag"
 
+        /**
+         * Re-arm signal sent when a paused session resumes: pop the gate immediately
+         * (mirroring the gate shown on a fresh start) instead of waiting for the next
+         * lock/unlock. Handled without re-initialising the already-live receiver/watcher.
+         */
+        const val ACTION_SHOW_GATE_NOW = "com.ultiq.app.focus.SHOW_GATE_NOW"
+
         val isRunning = MutableStateFlow(false)
         val sessionStartTime = MutableStateFlow(0L)
         /** Planned focus minutes for the active session — drives the overtime label on the overlay. */
@@ -65,6 +72,10 @@ class FocusTrackingService : Service() {
                 val settings = userPreferences.settings.first()
                 Log.d(TAG, "USER_PRESENT — lockoutForFocus=${settings.lockoutForFocus}")
                 if (!settings.lockoutForFocus) return@launch
+                if (isFocusPaused()) {
+                    Log.d(TAG, "USER_PRESENT — focus paused, gate suppressed")
+                    return@launch
+                }
 
                 unlockCount.value = unlockCount.value + 1
 
@@ -97,7 +108,19 @@ class FocusTrackingService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        Log.d(TAG, "onStartCommand — starting focus tracking")
+        Log.d(TAG, "onStartCommand — action=${intent?.action}")
+
+        // Resume re-arm: a paused session was resumed. The receiver + foreground watcher
+        // are already live from the original start, so don't re-init them — just cancel any
+        // leftover "I need my phone" grace and pop the gate now (isFocusPaused() is already
+        // false because resumeTimer commits pausedElapsedMs = -1 before signalling us).
+        if (intent?.action == ACTION_SHOW_GATE_NOW) {
+            enterForeground()
+            LockoutOverlayController.clearGrace()
+            showLockoutNow()
+            return START_STICKY
+        }
+
         // Only treat this as a fresh start when the caller supplied a planned
         // duration. If Android system-restarts the service (START_STICKY with a
         // null intent), we must NOT wipe sessionStartTime / plannedWorkMinutes
@@ -116,15 +139,7 @@ class FocusTrackingService : Service() {
         }
         isRunning.value = true
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            startForeground(
-                NOTIFICATION_ID,
-                createNotification(),
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE,
-            )
-        } else {
-            startForeground(NOTIFICATION_ID, createNotification())
-        }
+        enterForeground()
 
         // §widget-sync — reflect the running session on the Focus home-screen widget
         // immediately, covering app-initiated starts (the widget's own start already
@@ -148,6 +163,19 @@ class FocusTrackingService : Service() {
         return START_STICKY
     }
 
+    /** Start (or refresh) the foreground notification. Idempotent when already foreground. */
+    private fun enterForeground() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            startForeground(
+                NOTIFICATION_ID,
+                createNotification(),
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE,
+            )
+        } else {
+            startForeground(NOTIFICATION_ID, createNotification())
+        }
+    }
+
     /**
      * Periodically check the foreground app. If the user has navigated away from this
      * app (or any system surface) during a focus session and isn't in the grace
@@ -162,6 +190,7 @@ class FocusTrackingService : Service() {
                 delay(3_000)
                 val settings = userPreferences.settings.first()
                 if (!settings.lockoutForFocus) continue
+                if (isFocusPaused()) continue
                 if (LockoutOverlayController.isShown()) continue
                 if (LockoutOverlayController.isInGracePeriod()) continue
                 val foreground = tracker.getForegroundPackage() ?: continue
@@ -190,6 +219,10 @@ class FocusTrackingService : Service() {
                 Log.d(TAG, "Initial gate skipped — lockoutForFocus disabled")
                 return@launch
             }
+            if (isFocusPaused()) {
+                Log.d(TAG, "Initial gate skipped — focus paused")
+                return@launch
+            }
 
             if (LockoutOverlayController.canShow(applicationContext)) {
                 Log.d(TAG, "Showing initial lockout overlay (focus)")
@@ -211,6 +244,15 @@ class FocusTrackingService : Service() {
             }
         }
     }
+
+    /**
+     * A paused focus session must not gate the phone — pausing is the user's explicit
+     * "I need a break" signal, so the lockout should neither pop nor re-snap while
+     * paused. Reads the durable [LiveFocusSessionStore] the in-app timer writes on
+     * pause/resume (`pausedElapsedMs >= 0` ⇒ paused), which covers every pause path.
+     */
+    private fun isFocusPaused(): Boolean =
+        (LiveFocusSessionStore(applicationContext).load()?.pausedElapsedMs ?: -1L) >= 0L
 
     override fun onDestroy() {
         Log.d(TAG, "onDestroy — stopping focus tracking")

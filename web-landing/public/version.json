@@ -1,6 +1,6 @@
 {
-  "versionCode": 144,
-  "versionName": "2.22.5",
-  "url": "https://ultiqapp.com/ultiq.2.22.5.apk",
-  "releaseNotes": "The checklist and calendar widgets are now scrollable, interactive lists — tap to check off items and events right from your home screen, with a live \"N left\" count. Calendar events now stay until you tick them (and reappear if you un-tick them in the app)."
+  "versionCode": 145,
+  "versionName": "2.22.6",
+  "url": "https://ultiqapp.com/ultiq.2.22.6.apk",
+  "releaseNotes": "Focus sessions: pausing now clears the lockout screen and stops its timer instead of leaving it up and counting, and resuming re-arms the lockout right away."
 }
