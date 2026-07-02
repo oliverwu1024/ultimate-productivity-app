@@ -1,6 +1,6 @@
 plugins {
     id("com.android.application") version "8.13.2" apply false
-    id("org.jetbrains.kotlin.android") version "2.2.21" apply false
+    id("org.jetbrains.kotlin.android") version "2.4.0" apply false
     id("org.jetbrains.kotlin.plugin.compose") version "2.2.21" apply false
     id("com.google.devtools.ksp") version "2.2.21-2.0.5" apply false
     // §9.8 — Firebase Cloud Messaging needs the google-services plugin to
