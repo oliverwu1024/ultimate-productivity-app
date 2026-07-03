@@ -1,6 +1,8 @@
 package com.ultiq.app.util
 
+import android.content.Context
 import android.os.Build
+import android.os.PowerManager
 
 /**
  * Per-OEM guidance for keeping wake-up alarms reliable. Several Chinese OEMs
@@ -25,6 +27,19 @@ object OemBatteryGuidance {
     fun displayName(manufacturer: String = Build.MANUFACTURER): String {
         val lower = manufacturer.lowercase()
         return KNOWN_DISPLAY_NAMES[lower] ?: manufacturer
+    }
+
+    /**
+     * True when the OS is *not* exempting us from battery optimisation — i.e.
+     * Doze / the OEM killer can still freeze our background alarm work, so the
+     * guidance card is worth showing. Once the user excludes Ultiq this flips
+     * to false and the callout can hide. Reading the exemption state needs no
+     * permission (only the direct-request intent is Play-restricted, and we
+     * don't use it — the card deep-links to dontkillmyapp.com instead).
+     */
+    fun isBatteryOptimized(context: Context): Boolean {
+        val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+        return !pm.isIgnoringBatteryOptimizations(context.packageName)
     }
 
     private fun slugFor(manufacturer: String): String? {

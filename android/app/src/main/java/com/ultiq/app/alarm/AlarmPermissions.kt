@@ -20,6 +20,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.ultiq.app.util.OemBatteryGuidance
 
 /**
  * Three OS-level permissions gate reliable Phase 8 alarms:
@@ -60,6 +61,28 @@ fun rememberAlarmPermissionState(): AlarmPermissionState {
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
     return state
+}
+
+/**
+ * Reactive battery-optimisation state for the OEM guidance card. Re-checks on
+ * ON_RESUME so the callout self-hides the moment the user returns from
+ * excluding Ultiq (same lifecycle trick as [rememberAlarmPermissionState]).
+ */
+@Composable
+fun rememberBatteryOptimized(): Boolean {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var optimized by remember { mutableStateOf(OemBatteryGuidance.isBatteryOptimized(context)) }
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                optimized = OemBatteryGuidance.isBatteryOptimized(context)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+    return optimized
 }
 
 fun checkAlarmPermissions(context: Context): AlarmPermissionState {

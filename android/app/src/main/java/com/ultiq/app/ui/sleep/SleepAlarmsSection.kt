@@ -42,6 +42,7 @@ import com.ultiq.app.alarm.openAppNotificationSettings
 import com.ultiq.app.alarm.openExactAlarmSettings
 import com.ultiq.app.alarm.openFullScreenIntentSettings
 import com.ultiq.app.alarm.rememberAlarmPermissionState
+import com.ultiq.app.alarm.rememberBatteryOptimized
 import com.ultiq.app.data.local.entity.AlarmEntity
 import com.ultiq.app.util.OemBatteryGuidance
 
@@ -137,9 +138,13 @@ fun LazyListScope.sleepAlarmsSection(
         // of scroll position.
     }
 
-    val oemUrl = OemBatteryGuidance.urlFor()
-    if (oemUrl != null) {
-        item(key = "alarms-oem") {
+    // OEM battery-killer guidance — only for manufacturers known to over-kill
+    // background apps (Xiaomi, Samsung, …) AND only while we're still subject
+    // to battery optimisation. Re-checks on resume (mirrors the permissions
+    // banner above), so once the user excludes Ultiq the card self-hides.
+    item(key = "alarms-oem") {
+        val oemUrl = OemBatteryGuidance.urlFor()
+        if (oemUrl != null && rememberBatteryOptimized()) {
             OemBatteryGuidanceCard(
                 manufacturer = OemBatteryGuidance.displayName(),
                 url = oemUrl,
