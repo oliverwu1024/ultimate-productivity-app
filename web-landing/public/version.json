@@ -1,6 +1,6 @@
 {
-  "versionCode": 146,
-  "versionName": "2.22.7",
-  "url": "https://ultiqapp.com/ultiq.2.22.7.apk",
-  "releaseNotes": "Alarms: the 'make alarms reliable' battery tip now only appears while the app is still being battery-optimised on aggressive-battery phones, and hides itself once you've excluded Ultiq."
+  "versionCode": 147,
+  "versionName": "2.22.8",
+  "url": "https://ultiqapp.com/ultiq.2.22.8.apk",
+  "releaseNotes": "Alarms: you can now dismiss the 'make alarms reliable' battery tip with the ✕ — handy on phones (some HTC/OEM models) that don't report the battery-optimisation exemption back to the app."
 }

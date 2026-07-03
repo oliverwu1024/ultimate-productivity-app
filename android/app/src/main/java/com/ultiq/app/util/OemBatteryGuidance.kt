@@ -42,6 +42,25 @@ object OemBatteryGuidance {
         return !pm.isIgnoringBatteryOptimizations(context.packageName)
     }
 
+    /**
+     * Per-device "user closed the card" flag. Some OEMs (HTC especially) don't
+     * report the battery-optimisation exemption back through [isBatteryOptimized],
+     * so the card can't tell it's been handled — this lets the user dismiss it
+     * for good. Local-only (device-specific), survives restarts.
+     */
+    fun isDismissed(context: Context): Boolean =
+        prefs(context).getBoolean(KEY_DISMISSED, false)
+
+    fun setDismissed(context: Context) {
+        prefs(context).edit().putBoolean(KEY_DISMISSED, true).apply()
+    }
+
+    private fun prefs(context: Context) =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+
+    private const val PREFS = "oem_battery_guidance"
+    private const val KEY_DISMISSED = "dismissed"
+
     private fun slugFor(manufacturer: String): String? {
         val lower = manufacturer.lowercase()
         return KNOWN_SLUGS[lower]
