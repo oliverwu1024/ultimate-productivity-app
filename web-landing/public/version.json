@@ -1,6 +1,6 @@
 {
-  "versionCode": 145,
-  "versionName": "2.22.6",
-  "url": "https://ultiqapp.com/ultiq.2.22.6.apk",
-  "releaseNotes": "Focus sessions: pausing now clears the lockout screen and stops its timer instead of leaving it up and counting, and resuming re-arms the lockout right away."
+  "versionCode": 146,
+  "versionName": "2.22.7",
+  "url": "https://ultiqapp.com/ultiq.2.22.7.apk",
+  "releaseNotes": "Alarms: the 'make alarms reliable' battery tip now only appears while the app is still being battery-optimised on aggressive-battery phones, and hides itself once you've excluded Ultiq."
 }
