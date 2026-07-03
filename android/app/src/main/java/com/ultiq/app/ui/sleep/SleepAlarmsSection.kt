@@ -18,18 +18,24 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.Camera
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Vibration
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -139,15 +145,22 @@ fun LazyListScope.sleepAlarmsSection(
     }
 
     // OEM battery-killer guidance — only for manufacturers known to over-kill
-    // background apps (Xiaomi, Samsung, …) AND only while we're still subject
-    // to battery optimisation. Re-checks on resume (mirrors the permissions
-    // banner above), so once the user excludes Ultiq the card self-hides.
+    // background apps (Xiaomi, Samsung, …), only while we're still subject to
+    // battery optimisation, and only until the user dismisses it. Some OEMs
+    // (e.g. HTC) don't report the exemption back through the framework flag,
+    // so the ✕ is the reliable escape hatch there.
     item(key = "alarms-oem") {
+        val context = LocalContext.current
         val oemUrl = OemBatteryGuidance.urlFor()
-        if (oemUrl != null && rememberBatteryOptimized()) {
+        var dismissed by remember { mutableStateOf(OemBatteryGuidance.isDismissed(context)) }
+        if (oemUrl != null && rememberBatteryOptimized() && !dismissed) {
             OemBatteryGuidanceCard(
                 manufacturer = OemBatteryGuidance.displayName(),
                 url = oemUrl,
+                onDismiss = {
+                    OemBatteryGuidance.setDismissed(context)
+                    dismissed = true
+                },
                 modifier = Modifier.padding(horizontal = 16.dp),
             )
         }
@@ -314,6 +327,7 @@ private fun BadgeChip(icon: ImageVector, label: String) {
 private fun OemBatteryGuidanceCard(
     manufacturer: String,
     url: String,
+    onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -322,12 +336,25 @@ private fun OemBatteryGuidanceCard(
         modifier = modifier.fillMaxWidth(),
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(
-                "Make alarms reliable on this $manufacturer",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onTertiaryContainer,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "Make alarms reliable on this $manufacturer",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                    modifier = Modifier.weight(1f),
+                )
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.size(24.dp),
+                ) {
+                    Icon(
+                        Icons.Default.Close,
+                        contentDescription = "Dismiss",
+                        tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                    )
+                }
+            }
             Text(
                 "$manufacturer phones aggressively kill background apps, which can " +
                     "stop alarms from firing. Follow the dontkillmyapp.com guide to " +
