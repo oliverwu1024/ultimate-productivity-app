@@ -4,8 +4,8 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -23,7 +23,7 @@ import com.ultiq.app.util.ThemePreference
 import com.ultiq.app.util.UserPreferences
 import kotlinx.coroutines.delay
 
-class LockoutActivity : ComponentActivity() {
+class LockoutActivity : AppCompatActivity() {
 
     companion object {
         private const val EXTRA_MODE = "mode"

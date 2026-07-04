@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- §13 (i18n) — locales the app ships translations for. Powers the Android 13+
+     system per-app language screen (Settings → Apps → Ultiq → Language) and
+     constrains AppCompatDelegate.setApplicationLocales. Keep in sync with the
+     values-<locale>/ resource dirs. Chinese uses script subtags (zh-Hans /
+     zh-Hant), NOT region (zh-CN / zh-TW). -->
+<locale-config xmlns:android="http://schemas.android.com/apk/res/android">
+    <locale android:name="en" />
+    <locale android:name="es" />
+    <locale android:name="pt-BR" />
+    <locale android:name="fr" />
+    <locale android:name="de" />
+    <locale android:name="ja" />
+    <locale android:name="zh-Hans" />
+    <locale android:name="zh-Hant" />
+    <locale android:name="ko" />
+    <locale android:name="hi" />
+    <locale android:name="vi" />
+    <locale android:name="th" />
+    <locale android:name="ar" />
+</locale-config>

@@ -53,11 +53,32 @@ jobs:
               - 'scripts/i18n-web-check.sh'
               - '.github/workflows/ci.yml'
 
-  # ---- Android ----
-  # NOTE: the Android build (+ Lint i18n gate) joins in the next PR (the first to
-  # touch android/). It needs google-services.json — gitignored — injected from a
-  # repo secret, set up alongside the lint baseline there. `changes.outputs.android`
-  # is emitted now so wiring the job later is a one-spot change.
+  # ---- Android (Kotlin/Compose) ----
+  android:
+    needs: changes
+    if: ${{ needs.changes.outputs.android == 'true' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: android
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/setup-java@1bcf9fb12cf4aa7d266a90ae39939e61372fe520 # v5.4.0
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+      # google-services.json is gitignored (real Firebase project/app IDs). The
+      # Gradle plugin only validates JSON structure + package_name at build time —
+      # it never contacts Firebase — so a committed stub with both applicationIds
+      # (com.ultiq.app + .debug) suffices; FCM isn't exercised in CI. Temurin 17
+      # bundles jlink, so the local JAVA_HOME=/opt/android-studio/jbr hack is unused.
+      - name: Provision build-only google-services.json
+        run: cp ci/google-services.stub.json app/google-services.json
+      # Hard gate: app must assemble, and Lint must find NO NEW i18n issues beyond
+      # the committed lint-baseline.xml (MissingTranslation/StringFormat*/… as errors).
+      - name: assembleDebug + lintDebug
+        run: ./gradlew :app:assembleDebug :app:lintDebug --no-daemon
 
   # ---- Backend (Rust/Axum). sqlx 0.9 uses RUNTIME queries (no query! macro) ⇒
   #      no DATABASE_URL / SQLX_OFFLINE / Postgres service needed. ----
@@ -199,7 +220,7 @@ jobs:
   #      path-filtered skips don't hang branch protection. Mark THIS required. ----
   ci-success:
     if: always()
-    needs: [changes, backend, web-dashboard, web-landing, i18n-web, gitleaks]
+    needs: [changes, android, backend, web-dashboard, web-landing, i18n-web, gitleaks]
     runs-on: ubuntu-latest
     steps:
       - name: Verify all needed jobs succeeded or were skipped
