@@ -180,4 +180,82 @@
     <string name="update_installed">अपडेट इंस्टॉल हुआ — Ultiq पुनः शुरू करने के लिए टैप करें</string>
     <string name="update_failed">अपडेट विफल — पुनः प्रयास करने के लिए टैप करें</string>
     <string name="update_available">Ultiq %1$s उपलब्ध है — इंस्टॉल करने के लिए टैप करें</string>
+
+    <!-- ══════════════════ §13.1 Android sweep — checklist ══════════════════ -->
+
+    <!-- Shared actions / fields / labels (reused across screens) -->
+    <string name="action_save">सहेजें</string>
+    <string name="action_add">जोड़ें</string>
+    <string name="action_skip">छोड़ें</string>
+    <string name="action_remove">हटाएं</string>
+    <string name="action_back">वापस</string>
+    <string name="action_all">सभी</string>
+    <string name="action_clear">साफ करें</string>
+    <string name="field_title">शीर्षक</string>
+    <string name="field_description_optional">विवरण (वैकल्पिक)</string>
+    <string name="field_priority">प्राथमिकता</string>
+    <string name="date_today">आज</string>
+    <string name="date_tomorrow">कल</string>
+    <string name="date_yesterday">कल</string>
+    <string name="priority_high">उच्च</string>
+    <string name="priority_med">मध्यम</string>
+    <string name="priority_low">निम्न</string>
+    <string name="recur_every_day">हर दिन</string>
+    <string name="recur_weekdays">कार्यदिवस</string>
+    <string name="recur_weekends">सप्ताहांत</string>
+    <string name="ai_quick_add_cd">AI से जल्दी जोड़ें</string>
+    <string name="ai_err_parse">यह समझ नहीं आया — दूसरे तरीके से लिखें।</string>
+
+    <!-- Checklist -->
+    <string name="checklist_title">चेकलिस्ट</string>
+    <string name="checklist_section_open">खुले</string>
+    <string name="checklist_delete_item_title">इस आइटम को हटाएं?</string>
+    <string name="checklist_delete_item_body">\'%1$s\' हटा दिया जाएगा।</string>
+    <string name="checklist_plan_week_q">सप्ताह की योजना बनाएं?</string>
+    <string name="checklist_plan_week_body">हर दिन क्या करना है यह तय करें। बाद में जोड़ सकते हैं या छोड़ सकते हैं।</string>
+    <string name="checklist_plan_now">अभी योजना बनाएं</string>
+    <string name="checklist_bring_forward">आगे लाएं</string>
+    <string name="checklist_bring_forward_body">जो आइटम आज लाने हैं उन्हें चुनें। बाकी कल पर रहेंगे।</string>
+    <string name="checklist_bring_forward_count">आगे लाएं (%1$d)</string>
+    <string name="checklist_prev_day_cd">पिछला दिन</string>
+    <string name="checklist_next_day_cd">अगला दिन</string>
+    <string name="checklist_nothing_today">आज कुछ नहीं</string>
+    <string name="checklist_percent">%1$d%%</string>
+    <string name="checklist_completed_count">पूर्ण (%1$d)</string>
+    <string name="checklist_new_item">नया आइटम</string>
+    <string name="checklist_edit_item">आइटम संपादित करें</string>
+    <string name="checklist_schedule">शेड्यूल</string>
+    <string name="checklist_schedule_repeat">दोहराएं</string>
+    <string name="checklist_schedule_bydue">देय तक</string>
+    <string name="checklist_schedule_help_oneoff">केवल चुने हुए दिन होगा।</string>
+    <string name="checklist_schedule_help_recurring">चुनें कि यह सप्ताह के किन दिनों पर दोहराए।</string>
+    <string name="checklist_schedule_help_untildue">नियत तिथि तक हर दिन दिखेगा। पूर्ण करने पर हर जगह से हट जाएगा।</string>
+    <string name="checklist_prefix_on">को</string>
+    <string name="checklist_prefix_starts">शुरू</string>
+    <string name="checklist_prefix_due">देय</string>
+    <string name="checklist_date_line">%1$s: %2$s</string>
+    <string name="checklist_estimate_optional">अनुमानित मिनट (वैकल्पिक)</string>
+    <string name="checklist_include_today_q">आज शामिल करें?</string>
+    <string name="checklist_include_today_body">आज %1$s है, जो इस कार्य के दोहराव शेड्यूल में नहीं है। क्या इसे आज की सूची में भी जोड़ें?</string>
+    <string name="checklist_include_today_yes">हाँ, आज जोड़ें</string>
+    <string name="checklist_include_today_no">नहीं, केवल भविष्य</string>
+    <string name="checklist_repeats">दोहराव: %1$s</string>
+    <string name="checklist_due_date">देय %1$s</string>
+    <string name="checklist_err_title_empty">शीर्षक खाली नहीं हो सकता</string>
+    <string name="checklist_err_delete">\'%1$s\' हटाया नहीं जा सका — कनेक्शन जाँचें</string>
+
+    <!-- Weekly planner -->
+    <string name="planner_title">सप्ताह की योजना बनाएं</string>
+    <string name="planner_week_range">%1$s – %2$s</string>
+    <string name="planner_save_count">%1$d सहेजें</string>
+    <string name="planner_add_item">आइटम जोड़ें</string>
+
+    <plurals name="checklist_carryover">
+        <item quantity="one">%1$d कल का अधूरा</item>
+        <item quantity="other">%1$d कल के अधूरे</item>
+    </plurals>
+    <plurals name="estimate_minutes">
+        <item quantity="one">%1$d मिनट</item>
+        <item quantity="other">%1$d मिनट</item>
+    </plurals>
 </resources>

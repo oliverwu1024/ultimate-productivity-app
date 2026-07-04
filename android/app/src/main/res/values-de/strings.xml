@@ -180,4 +180,82 @@
     <string name="update_installed">Update installiert — tippen, um Ultiq neu zu starten</string>
     <string name="update_failed">Update fehlgeschlagen — erneut tippen</string>
     <string name="update_available">Ultiq %1$s verfügbar — tippen zum Installieren</string>
+
+    <!-- ══════════════════ §13.1 Android sweep — checklist ══════════════════ -->
+
+    <!-- Shared actions / fields / labels (reused across screens) -->
+    <string name="action_save">Speichern</string>
+    <string name="action_add">Hinzufügen</string>
+    <string name="action_skip">Überspringen</string>
+    <string name="action_remove">Entfernen</string>
+    <string name="action_back">Zurück</string>
+    <string name="action_all">Alle</string>
+    <string name="action_clear">Löschen</string>
+    <string name="field_title">Titel</string>
+    <string name="field_description_optional">Beschreibung (optional)</string>
+    <string name="field_priority">Priorität</string>
+    <string name="date_today">Heute</string>
+    <string name="date_tomorrow">Morgen</string>
+    <string name="date_yesterday">Gestern</string>
+    <string name="priority_high">Hoch</string>
+    <string name="priority_med">Mittel</string>
+    <string name="priority_low">Niedrig</string>
+    <string name="recur_every_day">Täglich</string>
+    <string name="recur_weekdays">Werktage</string>
+    <string name="recur_weekends">Wochenenden</string>
+    <string name="ai_quick_add_cd">Schnell mit AI hinzufügen</string>
+    <string name="ai_err_parse">Konnte das nicht verarbeiten – versuch es anders.</string>
+
+    <!-- Checklist -->
+    <string name="checklist_title">Checkliste</string>
+    <string name="checklist_section_open">Offen</string>
+    <string name="checklist_delete_item_title">Element löschen?</string>
+    <string name="checklist_delete_item_body">\'%1$s\' wird entfernt.</string>
+    <string name="checklist_plan_week_q">Woche planen?</string>
+    <string name="checklist_plan_week_body">Skizziere, was du jeden Tag erledigen möchtest. Du kannst jederzeit mehr hinzufügen oder überspringen.</string>
+    <string name="checklist_plan_now">Jetzt planen</string>
+    <string name="checklist_bring_forward">Übernehmen</string>
+    <string name="checklist_bring_forward_body">Wähle Aufgaben aus, die auf heute verschoben werden. Der Rest bleibt gestern.</string>
+    <string name="checklist_bring_forward_count">Übernehmen (%1$d)</string>
+    <string name="checklist_prev_day_cd">Vorheriger Tag</string>
+    <string name="checklist_next_day_cd">Nächster Tag</string>
+    <string name="checklist_nothing_today">Nichts für heute</string>
+    <string name="checklist_percent">%1$d%%</string>
+    <string name="checklist_completed_count">Erledigt (%1$d)</string>
+    <string name="checklist_new_item">Neues Element</string>
+    <string name="checklist_edit_item">Element bearbeiten</string>
+    <string name="checklist_schedule">Zeitplan</string>
+    <string name="checklist_schedule_repeat">Wiederholen</string>
+    <string name="checklist_schedule_bydue">Nach Fälligkeit</string>
+    <string name="checklist_schedule_help_oneoff">Erscheint nur am gewählten Tag.</string>
+    <string name="checklist_schedule_help_recurring">Wähle, an welchen Wochentagen es wiederholt wird.</string>
+    <string name="checklist_schedule_help_untildue">Täglich bis zum Fälligkeitsdatum. Als erledigt markieren entfernt es überall.</string>
+    <string name="checklist_prefix_on">Am</string>
+    <string name="checklist_prefix_starts">Beginnt</string>
+    <string name="checklist_prefix_due">Fällig</string>
+    <string name="checklist_date_line">%1$s: %2$s</string>
+    <string name="checklist_estimate_optional">Minuten schätzen (optional)</string>
+    <string name="checklist_include_today_q">Heute einschließen?</string>
+    <string name="checklist_include_today_body">Heute ist %1$s, das nicht im Wiederholungsplan liegt. Zur heutigen Liste hinzufügen?</string>
+    <string name="checklist_include_today_yes">Ja, heute hinzufügen</string>
+    <string name="checklist_include_today_no">Nein, nur zukünftig</string>
+    <string name="checklist_repeats">Wiederholt: %1$s</string>
+    <string name="checklist_due_date">Fällig %1$s</string>
+    <string name="checklist_err_title_empty">Titel darf nicht leer sein</string>
+    <string name="checklist_err_delete">\'%1$s\' konnte nicht gelöscht werden – Verbindung prüfen</string>
+
+    <!-- Weekly planner -->
+    <string name="planner_title">Woche planen</string>
+    <string name="planner_week_range">%1$s – %2$s</string>
+    <string name="planner_save_count">Speichern (%1$d)</string>
+    <string name="planner_add_item">Element hinzufügen</string>
+
+    <plurals name="checklist_carryover">
+        <item quantity="one">%1$d offen von gestern</item>
+        <item quantity="other">%1$d offen von gestern</item>
+    </plurals>
+    <plurals name="estimate_minutes">
+        <item quantity="one">%1$d Min.</item>
+        <item quantity="other">%1$d Min.</item>
+    </plurals>
 </resources>

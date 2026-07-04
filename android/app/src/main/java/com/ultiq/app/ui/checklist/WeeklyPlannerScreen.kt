@@ -45,9 +45,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ultiq.app.R
+import com.ultiq.app.util.LocaleManager
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -76,10 +79,10 @@ fun WeeklyPlannerScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Plan your week") },
+                title = { Text(stringResource(R.string.planner_title)) },
                 navigationIcon = {
                     IconButton(onClick = onDone) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back))
                     }
                 },
             )
@@ -93,8 +96,11 @@ fun WeeklyPlannerScreen(
         ) {
             Surface(color = MaterialTheme.colorScheme.surfaceVariant) {
                 Text(
-                    "${state.weekStart.format(DateTimeFormatter.ofPattern("MMM d"))} – " +
-                        "${state.weekStart.plusDays(6).format(DateTimeFormatter.ofPattern("MMM d"))}",
+                    stringResource(
+                        R.string.planner_week_range,
+                        state.weekStart.format(DateTimeFormatter.ofPattern("MMM d", LocaleManager.currentLocale())),
+                        state.weekStart.plusDays(6).format(DateTimeFormatter.ofPattern("MMM d", LocaleManager.currentLocale())),
+                    ),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier
@@ -129,7 +135,7 @@ fun WeeklyPlannerScreen(
                 Button(
                     onClick = onDone,
                     modifier = Modifier.weight(1f),
-                ) { Text(if (totalItems == 0) "Cancel" else "Skip") }
+                ) { Text(if (totalItems == 0) stringResource(R.string.action_cancel) else stringResource(R.string.action_skip)) }
                 Button(
                     onClick = { viewModel.save() },
                     enabled = totalItems > 0 && !state.isSaving,
@@ -143,7 +149,7 @@ fun WeeklyPlannerScreen(
                         )
                         Spacer(Modifier.width(8.dp))
                     }
-                    Text("Save $totalItems")
+                    Text(stringResource(R.string.planner_save_count, totalItems))
                 }
             }
         }
@@ -169,14 +175,14 @@ private fun DayCard(
             val isToday = date == LocalDate.now()
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    date.format(DateTimeFormatter.ofPattern("EEEE")) +
-                        if (isToday) "  •  Today" else "",
+                    date.format(DateTimeFormatter.ofPattern("EEEE", LocaleManager.currentLocale())) +
+                        if (isToday) "  •  " + stringResource(R.string.date_today) else "",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f),
                 )
                 Text(
-                    date.format(DateTimeFormatter.ofPattern("MMM d")),
+                    date.format(DateTimeFormatter.ofPattern("MMM d", LocaleManager.currentLocale())),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -206,7 +212,7 @@ private fun DayCard(
                     IconButton(onClick = { onRemove(item.id) }) {
                         Icon(
                             Icons.Default.Close,
-                            "Remove",
+                            stringResource(R.string.action_remove),
                             modifier = Modifier.size(18.dp),
                         )
                     }
@@ -217,7 +223,7 @@ private fun DayCard(
                 OutlinedTextField(
                     value = inputText,
                     onValueChange = { inputText = it },
-                    label = { Text("Add item") },
+                    label = { Text(stringResource(R.string.planner_add_item)) },
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.weight(1f),
@@ -229,7 +235,7 @@ private fun DayCard(
                     },
                     enabled = inputText.isNotBlank(),
                 ) {
-                    Icon(Icons.Default.Add, "Add")
+                    Icon(Icons.Default.Add, stringResource(R.string.action_add))
                 }
             }
         }

@@ -172,4 +172,80 @@
     <string name="update_installed">ติดตั้งอัปเดตแล้ว — กดเพื่อรีสตาร์ท Ultiq</string>
     <string name="update_failed">การอัปเดตล้มเหลว — กดเพื่อลองอีกครั้ง</string>
     <string name="update_available">Ultiq %1$s พร้อมใช้งาน — กดเพื่อติดตั้ง</string>
+
+    <!-- ══════════════════ §13.1 Android sweep — checklist ══════════════════ -->
+
+    <!-- Shared actions / fields / labels (reused across screens) -->
+    <string name="action_save">บันทึก</string>
+    <string name="action_add">เพิ่ม</string>
+    <string name="action_skip">ข้าม</string>
+    <string name="action_remove">นำออก</string>
+    <string name="action_back">ย้อนกลับ</string>
+    <string name="action_all">ทั้งหมด</string>
+    <string name="action_clear">ล้าง</string>
+    <string name="field_title">ชื่อ</string>
+    <string name="field_description_optional">คำอธิบาย (ไม่บังคับ)</string>
+    <string name="field_priority">ความสำคัญ</string>
+    <string name="date_today">วันนี้</string>
+    <string name="date_tomorrow">พรุ่งนี้</string>
+    <string name="date_yesterday">เมื่อวาน</string>
+    <string name="priority_high">สูง</string>
+    <string name="priority_med">กลาง</string>
+    <string name="priority_low">ต่ำ</string>
+    <string name="recur_every_day">ทุกวัน</string>
+    <string name="recur_weekdays">วันทำงาน</string>
+    <string name="recur_weekends">วันหยุดสุดสัปดาห์</string>
+    <string name="ai_quick_add_cd">เพิ่มด่วนด้วย AI</string>
+    <string name="ai_err_parse">ไม่สามารถแปลความหมายได้ — ลองพูดใหม่อีกครั้ง</string>
+
+    <!-- Checklist -->
+    <string name="checklist_title">เช็คลิสต์</string>
+    <string name="checklist_section_open">เปิด</string>
+    <string name="checklist_delete_item_title">ลบรายการนี้?</string>
+    <string name="checklist_delete_item_body">\'%1$s\' จะถูกลบออก</string>
+    <string name="checklist_plan_week_q">วางแผนสัปดาห์?</string>
+    <string name="checklist_plan_week_body">วางแผนสิ่งที่อยากทำในแต่ละวัน เพิ่มเติมได้เสมอ หรือข้ามแล้วค่อยเติมทีหลัง</string>
+    <string name="checklist_plan_now">วางแผนเลย</string>
+    <string name="checklist_bring_forward">นำมาวันนี้</string>
+    <string name="checklist_bring_forward_body">เลือกรายการที่ต้องการย้ายมาวันนี้ ที่เหลือคงอยู่ที่เมื่อวาน</string>
+    <string name="checklist_bring_forward_count">นำมา (%1$d)</string>
+    <string name="checklist_prev_day_cd">วันก่อนหน้า</string>
+    <string name="checklist_next_day_cd">วันถัดไป</string>
+    <string name="checklist_nothing_today">ไม่มีรายการวันนี้</string>
+    <string name="checklist_percent">%1$d%%</string>
+    <string name="checklist_completed_count">เสร็จแล้ว (%1$d)</string>
+    <string name="checklist_new_item">รายการใหม่</string>
+    <string name="checklist_edit_item">แก้ไขรายการ</string>
+    <string name="checklist_schedule">กำหนดการ</string>
+    <string name="checklist_schedule_repeat">ทำซ้ำ</string>
+    <string name="checklist_schedule_bydue">ตามกำหนด</string>
+    <string name="checklist_schedule_help_oneoff">ปรากฏเฉพาะวันที่เลือก</string>
+    <string name="checklist_schedule_help_recurring">เลือกวันในสัปดาห์ที่จะทำซ้ำ</string>
+    <string name="checklist_schedule_help_untildue">แสดงทุกวันจนถึงกำหนด ทำเครื่องหมายเสร็จแล้วจะลบออกทุกที่</string>
+    <string name="checklist_prefix_on">วันที่</string>
+    <string name="checklist_prefix_starts">เริ่ม</string>
+    <string name="checklist_prefix_due">ครบกำหนด</string>
+    <string name="checklist_date_line">%1$s: %2$s</string>
+    <string name="checklist_estimate_optional">ประมาณกี่นาที (ไม่บังคับ)</string>
+    <string name="checklist_include_today_q">รวมวันนี้ด้วยไหม?</string>
+    <string name="checklist_include_today_body">วันนี้คือ %1$s ซึ่งไม่ได้อยู่ในกำหนดการทำซ้ำ ต้องการเพิ่มในรายการวันนี้ด้วยไหม?</string>
+    <string name="checklist_include_today_yes">ใช่ เพิ่มวันนี้</string>
+    <string name="checklist_include_today_no">ไม่ เฉพาะอนาคต</string>
+    <string name="checklist_repeats">ทำซ้ำ: %1$s</string>
+    <string name="checklist_due_date">ครบกำหนด %1$s</string>
+    <string name="checklist_err_title_empty">กรุณาใส่ชื่อ</string>
+    <string name="checklist_err_delete">ไม่สามารถลบ \'%1$s\' ได้ — ตรวจสอบการเชื่อมต่อ</string>
+
+    <!-- Weekly planner -->
+    <string name="planner_title">วางแผนสัปดาห์</string>
+    <string name="planner_week_range">%1$s – %2$s</string>
+    <string name="planner_save_count">บันทึก %1$d</string>
+    <string name="planner_add_item">เพิ่มรายการ</string>
+
+    <plurals name="checklist_carryover">
+        <item quantity="other">%1$d รายการที่ยังไม่เสร็จจากเมื่อวาน</item>
+    </plurals>
+    <plurals name="estimate_minutes">
+        <item quantity="other">%1$d นาที</item>
+    </plurals>
 </resources>

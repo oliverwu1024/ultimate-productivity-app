@@ -172,4 +172,80 @@
     <string name="update_installed">更新已安裝——點擊重新啟動 Ultiq</string>
     <string name="update_failed">更新失敗——點擊重試</string>
     <string name="update_available">Ultiq %1$s 已可下載——點擊安裝</string>
+
+    <!-- ══════════════════ §13.1 Android sweep — checklist ══════════════════ -->
+
+    <!-- Shared actions / fields / labels (reused across screens) -->
+    <string name="action_save">儲存</string>
+    <string name="action_add">新增</string>
+    <string name="action_skip">略過</string>
+    <string name="action_remove">移除</string>
+    <string name="action_back">返回</string>
+    <string name="action_all">全部</string>
+    <string name="action_clear">清除</string>
+    <string name="field_title">標題</string>
+    <string name="field_description_optional">說明（選填）</string>
+    <string name="field_priority">優先順序</string>
+    <string name="date_today">今天</string>
+    <string name="date_tomorrow">明天</string>
+    <string name="date_yesterday">昨天</string>
+    <string name="priority_high">高</string>
+    <string name="priority_med">中</string>
+    <string name="priority_low">低</string>
+    <string name="recur_every_day">每天</string>
+    <string name="recur_weekdays">平日</string>
+    <string name="recur_weekends">週末</string>
+    <string name="ai_quick_add_cd">用 AI 快速新增</string>
+    <string name="ai_err_parse">無法解析，請換個說法。</string>
+
+    <!-- Checklist -->
+    <string name="checklist_title">待辦清單</string>
+    <string name="checklist_section_open">進行中</string>
+    <string name="checklist_delete_item_title">刪除此項目？</string>
+    <string name="checklist_delete_item_body">「%1$s」將被移除。</string>
+    <string name="checklist_plan_week_q">規劃本週？</string>
+    <string name="checklist_plan_week_body">規劃每天想完成的事，隨時可以新增，或略過後再慢慢填。</string>
+    <string name="checklist_plan_now">立即規劃</string>
+    <string name="checklist_bring_forward">移至今天</string>
+    <string name="checklist_bring_forward_body">選擇要移至今天的項目，其餘留在昨天。</string>
+    <string name="checklist_bring_forward_count">移至今天（%1$d）</string>
+    <string name="checklist_prev_day_cd">前一天</string>
+    <string name="checklist_next_day_cd">後一天</string>
+    <string name="checklist_nothing_today">今天沒有待辦事項</string>
+    <string name="checklist_percent">%1$d%%</string>
+    <string name="checklist_completed_count">已完成（%1$d）</string>
+    <string name="checklist_new_item">新增項目</string>
+    <string name="checklist_edit_item">編輯項目</string>
+    <string name="checklist_schedule">排程</string>
+    <string name="checklist_schedule_repeat">重複</string>
+    <string name="checklist_schedule_bydue">依截止日</string>
+    <string name="checklist_schedule_help_oneoff">僅在選定日期出現。</string>
+    <string name="checklist_schedule_help_recurring">選擇每週重複的日期。</string>
+    <string name="checklist_schedule_help_untildue">每天顯示直到截止日，標記完成後將從所有地方移除。</string>
+    <string name="checklist_prefix_on">於</string>
+    <string name="checklist_prefix_starts">開始</string>
+    <string name="checklist_prefix_due">截止</string>
+    <string name="checklist_date_line">%1$s：%2$s</string>
+    <string name="checklist_estimate_optional">預估分鐘（選填）</string>
+    <string name="checklist_include_today_q">包含今天？</string>
+    <string name="checklist_include_today_body">今天是 %1$s，不在此任務的重複排程中。也要加入今天的清單嗎？</string>
+    <string name="checklist_include_today_yes">是，加入今天</string>
+    <string name="checklist_include_today_no">否，僅限未來</string>
+    <string name="checklist_repeats">重複：%1$s</string>
+    <string name="checklist_due_date">截止 %1$s</string>
+    <string name="checklist_err_title_empty">標題不能為空</string>
+    <string name="checklist_err_delete">無法刪除「%1$s」— 請檢查網路連線</string>
+
+    <!-- Weekly planner -->
+    <string name="planner_title">規劃本週</string>
+    <string name="planner_week_range">%1$s – %2$s</string>
+    <string name="planner_save_count">儲存（%1$d）</string>
+    <string name="planner_add_item">新增項目</string>
+
+    <plurals name="checklist_carryover">
+        <item quantity="other">昨天有 %1$d 項未完成</item>
+    </plurals>
+    <plurals name="estimate_minutes">
+        <item quantity="other">%1$d 分鐘</item>
+    </plurals>
 </resources>

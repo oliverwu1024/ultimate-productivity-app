@@ -212,4 +212,90 @@
     <string name="update_installed">تم تثبيت التحديث — اضغط لإعادة تشغيل Ultiq</string>
     <string name="update_failed">فشل التحديث — اضغط للمحاولة مجددًا</string>
     <string name="update_available">Ultiq %1$s متاح — اضغط للتثبيت</string>
+
+    <!-- ══════════════════ §13.1 Android sweep — checklist ══════════════════ -->
+
+    <!-- Shared actions / fields / labels (reused across screens) -->
+    <string name="action_save">حفظ</string>
+    <string name="action_add">إضافة</string>
+    <string name="action_skip">تخطي</string>
+    <string name="action_remove">إزالة</string>
+    <string name="action_back">رجوع</string>
+    <string name="action_all">الكل</string>
+    <string name="action_clear">مسح</string>
+    <string name="field_title">العنوان</string>
+    <string name="field_description_optional">الوصف (اختياري)</string>
+    <string name="field_priority">الأولوية</string>
+    <string name="date_today">اليوم</string>
+    <string name="date_tomorrow">غداً</string>
+    <string name="date_yesterday">أمس</string>
+    <string name="priority_high">عالية</string>
+    <string name="priority_med">متوسطة</string>
+    <string name="priority_low">منخفضة</string>
+    <string name="recur_every_day">كل يوم</string>
+    <string name="recur_weekdays">أيام الأسبوع</string>
+    <string name="recur_weekends">نهاية الأسبوع</string>
+    <string name="ai_quick_add_cd">إضافة سريعة بالذكاء AI</string>
+    <string name="ai_err_parse">لم أتمكن من فهم ذلك — حاول إعادة الصياغة.</string>
+
+    <!-- Checklist -->
+    <string name="checklist_title">قائمة المهام</string>
+    <string name="checklist_section_open">مفتوحة</string>
+    <string name="checklist_delete_item_title">حذف هذا العنصر؟</string>
+    <string name="checklist_delete_item_body">سيتم إزالة \'%1$s\'.</string>
+    <string name="checklist_plan_week_q">تخطيط أسبوعك؟</string>
+    <string name="checklist_plan_week_body">ارسم ما تريد إنجازه كل يوم. يمكنك دائماً إضافة المزيد أو التخطي والإضافة لاحقاً.</string>
+    <string name="checklist_plan_now">خطط الآن</string>
+    <string name="checklist_bring_forward">نقل لليوم</string>
+    <string name="checklist_bring_forward_body">اختر العناصر التي تريد نقلها إلى اليوم. تبقى البقية في الأمس.</string>
+    <string name="checklist_bring_forward_count">نقل لليوم (%1$d)</string>
+    <string name="checklist_prev_day_cd">اليوم السابق</string>
+    <string name="checklist_next_day_cd">اليوم التالي</string>
+    <string name="checklist_nothing_today">لا شيء لليوم</string>
+    <string name="checklist_percent">%1$d%%</string>
+    <string name="checklist_completed_count">مكتملة (%1$d)</string>
+    <string name="checklist_new_item">عنصر جديد</string>
+    <string name="checklist_edit_item">تعديل العنصر</string>
+    <string name="checklist_schedule">الجدول</string>
+    <string name="checklist_schedule_repeat">تكرار</string>
+    <string name="checklist_schedule_bydue">حسب الموعد</string>
+    <string name="checklist_schedule_help_oneoff">يحدث في اليوم المحدد فقط.</string>
+    <string name="checklist_schedule_help_recurring">اختر أيام الأسبوع التي تتكرر فيها المهمة.</string>
+    <string name="checklist_schedule_help_untildue">يظهر كل يوم حتى تاريخ الاستحقاق. وضع علامة اكتمال يزيله من كل مكان.</string>
+    <string name="checklist_prefix_on">في</string>
+    <string name="checklist_prefix_starts">يبدأ</string>
+    <string name="checklist_prefix_due">موعد</string>
+    <string name="checklist_date_line">%1$s: %2$s</string>
+    <string name="checklist_estimate_optional">الوقت المقدر بالدقائق (اختياري)</string>
+    <string name="checklist_include_today_q">تضمين اليوم؟</string>
+    <string name="checklist_include_today_body">اليوم هو %1$s، وهو غير موجود في جدول تكرار هذه المهمة. هل تريد إضافته لقائمة اليوم أيضاً؟</string>
+    <string name="checklist_include_today_yes">نعم، أضف اليوم</string>
+    <string name="checklist_include_today_no">لا، المستقبل فقط</string>
+    <string name="checklist_repeats">يتكرر: %1$s</string>
+    <string name="checklist_due_date">موعد %1$s</string>
+    <string name="checklist_err_title_empty">لا يمكن أن يكون العنوان فارغاً</string>
+    <string name="checklist_err_delete">تعذّر حذف \'%1$s\' — تحقق من اتصالك</string>
+
+    <!-- Weekly planner -->
+    <string name="planner_title">خطط أسبوعك</string>
+    <string name="planner_week_range">%1$s – %2$s</string>
+    <string name="planner_save_count">حفظ %1$d</string>
+    <string name="planner_add_item">إضافة عنصر</string>
+
+    <plurals name="checklist_carryover">
+        <item quantity="zero">لا شيء غير مكتمل من الأمس</item>
+        <item quantity="one">%1$d عنصر غير مكتمل من الأمس</item>
+        <item quantity="two">%1$d عنصران غير مكتملَين من الأمس</item>
+        <item quantity="few">%1$d عناصر غير مكتملة من الأمس</item>
+        <item quantity="many">%1$d عنصر غير مكتمل من الأمس</item>
+        <item quantity="other">%1$d عنصر غير مكتمل من الأمس</item>
+    </plurals>
+    <plurals name="estimate_minutes">
+        <item quantity="zero">لا دقائق</item>
+        <item quantity="one">%1$d دقيقة</item>
+        <item quantity="two">%1$d دقيقتان</item>
+        <item quantity="few">%1$d دقائق</item>
+        <item quantity="many">%1$d دقيقة</item>
+        <item quantity="other">%1$d دقيقة</item>
+    </plurals>
 </resources>
