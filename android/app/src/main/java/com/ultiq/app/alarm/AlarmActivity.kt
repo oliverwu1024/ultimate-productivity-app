@@ -4,8 +4,8 @@ import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.view.WindowManager
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -54,7 +54,7 @@ import java.time.format.DateTimeFormatter
  * `setShowWhenLocked` + `setTurnScreenOn`, keeps the screen awake while
  * shown. v0 has no missions — just a big Dismiss button.
  */
-class AlarmActivity : ComponentActivity() {
+class AlarmActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

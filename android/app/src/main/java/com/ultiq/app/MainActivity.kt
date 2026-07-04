@@ -3,7 +3,6 @@ package com.ultiq.app
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -11,6 +10,7 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 import com.ultiq.app.navigation.AppNavigation
@@ -20,7 +20,7 @@ import com.ultiq.app.util.NotificationHelper
 import com.ultiq.app.util.ThemePreference
 import kotlinx.coroutines.flow.MutableStateFlow
 
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
 
     private val deepLink = MutableStateFlow<String?>(null)
 

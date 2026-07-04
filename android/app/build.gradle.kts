@@ -74,6 +74,22 @@ android {
         compose = true
         buildConfig = true
     }
+
+    lint {
+        // §13 (i18n) — promote catalog-integrity checks to errors so a missing
+        // translation or a format-arg mismatch fails `:app:lintDebug` in CI.
+        // HardcodedText/SetTextI18n stay at default severity: they scan View XML
+        // + setText(), not Compose Text(), so they can't police Compose literals.
+        baseline = file("lint-baseline.xml")
+        checkReleaseBuilds = false
+        error += listOf(
+            "MissingTranslation",
+            "ExtraTranslation",
+            "StringFormatMatches",
+            "StringFormatInvalid",
+            "ImpliedQuantity",
+        )
+    }
 }
 
 dependencies {
@@ -90,6 +106,10 @@ dependencies {
     // Core
     implementation("androidx.core:core-ktx:1.18.0")
     implementation("androidx.activity:activity-compose:1.13.0")
+    // §13 (i18n) — AppCompatDelegate.setApplicationLocales powers the in-app
+    // language picker (per-app locales, backported below API 33). The three
+    // activities extend AppCompatActivity; themes reparent to Theme.AppCompat.*.
+    implementation("androidx.appcompat:appcompat:1.7.1")
 
     // Navigation
     implementation("androidx.navigation:navigation-compose:2.9.8")
