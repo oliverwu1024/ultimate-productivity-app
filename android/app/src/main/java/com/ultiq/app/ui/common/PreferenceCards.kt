@@ -29,8 +29,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.ultiq.app.R
+import com.ultiq.app.util.LocaleManager
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
@@ -82,7 +85,7 @@ fun TimeSettingCard(
     onTimeChange: (LocalTime) -> Unit,
 ) {
     val context = LocalContext.current
-    val fmt = DateTimeFormatter.ofPattern("h:mm a")
+    val fmt = DateTimeFormatter.ofPattern("h:mm a", LocaleManager.currentLocale())
 
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -154,7 +157,7 @@ fun StepperCard(
                 IconButton(
                     onClick = { onValueChange((value - step).coerceAtLeast(range.first)) },
                     enabled = value > range.first,
-                ) { Icon(Icons.Default.Remove, "Decrease") }
+                ) { Icon(Icons.Default.Remove, stringResource(R.string.action_decrease)) }
                 Text(
                     "$value $suffix",
                     style = MaterialTheme.typography.titleLarge,
@@ -166,7 +169,7 @@ fun StepperCard(
                 IconButton(
                     onClick = { onValueChange((value + step).coerceAtMost(range.last)) },
                     enabled = value < range.last,
-                ) { Icon(Icons.Default.Add, "Increase") }
+                ) { Icon(Icons.Default.Add, stringResource(R.string.action_increase)) }
             }
         }
     }
@@ -218,7 +221,7 @@ fun DurationStepperCard(
                 IconButton(
                     onClick = { onValueChange((valueMinutes - stepMinutes).coerceAtLeast(range.first)) },
                     enabled = valueMinutes > range.first,
-                ) { Icon(Icons.Default.Remove, "Decrease") }
+                ) { Icon(Icons.Default.Remove, stringResource(R.string.action_decrease)) }
                 Text(
                     formatDuration(valueMinutes),
                     style = MaterialTheme.typography.titleLarge,
@@ -230,7 +233,7 @@ fun DurationStepperCard(
                 IconButton(
                     onClick = { onValueChange((valueMinutes + stepMinutes).coerceAtMost(range.last)) },
                     enabled = valueMinutes < range.last,
-                ) { Icon(Icons.Default.Add, "Increase") }
+                ) { Icon(Icons.Default.Add, stringResource(R.string.action_increase)) }
             }
         }
     }
@@ -329,7 +332,7 @@ fun ConfigureHintCard(
             androidx.compose.material3.IconButton(onClick = onDismiss) {
                 androidx.compose.material3.Icon(
                     androidx.compose.material.icons.Icons.Default.Close,
-                    contentDescription = "Dismiss hint",
+                    contentDescription = stringResource(R.string.common_dismiss_hint),
                     tint = MaterialTheme.colorScheme.onPrimaryContainer,
                 )
             }

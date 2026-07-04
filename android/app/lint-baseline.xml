@@ -125,55 +125,11 @@
     <issue
         id="DefaultLocale"
         message="Implicitly using the default locale is a common source of bugs: Use `String.format(Locale, ...)` instead"
-        errorLine1="                    value = if (h != null &amp;&amp; h.avgSleepQuality > 0) String.format(&quot;%.1f/5&quot;, h.avgSleepQuality) else &quot;-&quot;,"
-        errorLine2="                                                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/ultiq/app/ui/dashboard/DashboardScreen.kt"
-            line="1034"
-            column="69"/>
-    </issue>
-
-    <issue
-        id="DefaultLocale"
-        message="Implicitly using the default locale is a common source of bugs: Use `String.format(Locale, ...)` instead"
-        errorLine1="                        String.format(&quot;%.1fh&quot;, h.totalFocusHours)"
-        errorLine2="                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/ultiq/app/ui/dashboard/DashboardScreen.kt"
-            line="1042"
-            column="25"/>
-    </issue>
-
-    <issue
-        id="DefaultLocale"
-        message="Implicitly using the default locale is a common source of bugs: Use `String.format(Locale, ...)` instead"
-        errorLine1="                        value = h.lastWeekQuality?.let { String.format(&quot;%.1f/5&quot;, it) },"
-        errorLine2="                                                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/ultiq/app/ui/dashboard/DashboardScreen.kt"
-            line="1088"
-            column="58"/>
-    </issue>
-
-    <issue
-        id="DefaultLocale"
-        message="Implicitly using the default locale is a common source of bugs: Use `String.format(Locale, ...)` instead"
-        errorLine1="                        value = h.lastWeekFocusHours?.let { String.format(&quot;%.1fh&quot;, it) },"
-        errorLine2="                                                            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/ultiq/app/ui/dashboard/DashboardScreen.kt"
-            line="1092"
-            column="61"/>
-    </issue>
-
-    <issue
-        id="DefaultLocale"
-        message="Implicitly using the default locale is a common source of bugs: Use `String.format(Locale, ...)` instead"
         errorLine1="            StatCard(&quot;Avg Quality&quot;, String.format(&quot;%.1f / 5&quot;, stats.avgQuality))"
         errorLine2="                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/ultiq/app/ui/sleep/SleepScreen.kt"
-            line="871"
+            line="872"
             column="37"/>
     </issue>
 
@@ -184,7 +140,7 @@
         errorLine2="                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/ultiq/app/ui/sleep/SleepScreen.kt"
-            line="892"
+            line="893"
             column="37"/>
     </issue>
 
@@ -360,7 +316,7 @@
         errorLine2="                                                           ~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/ultiq/app/ui/calendar/CalendarScreen.kt"
-            line="512"
+            line="514"
             column="60"/>
     </issue>
 
@@ -536,7 +492,7 @@
         errorLine2="    ~~~~~~~~">
         <location
             file="src/main/java/com/ultiq/app/ui/sessions/SessionsScreen.kt"
-            line="725"
+            line="727"
             column="5"/>
     </issue>
 
@@ -591,6 +547,17 @@
     </issue>
 
     <issue
+        id="PluralsCandidate"
+        message="Formatting %d followed by words (&quot;done&quot;): This should probably be a plural rather than a string"
+        errorLine1="    &lt;string name=&quot;dashboard_checklist_done&quot;>%1$d of %2$d done&lt;/string>"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="79"
+            column="5"/>
+    </issue>
+
+    <issue
         id="ObsoleteSdkInt"
         message="Unnecessary; `SDK_INT` is always >= 26"
         errorLine1="        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {"
@@ -630,7 +597,7 @@
         errorLine2="                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/ultiq/app/ui/common/UpdateBanner.kt"
-            line="74"
+            line="76"
             column="33"/>
     </issue>
 
@@ -703,7 +670,7 @@
         errorLine2="        ~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/ultiq/app/ui/checklist/ChecklistScreen.kt"
-            line="679"
+            line="685"
             column="9"/>
     </issue>
 
@@ -714,7 +681,7 @@
         errorLine2="                                     ~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/ultiq/app/ui/checklist/ChecklistScreen.kt"
-            line="691"
+            line="697"
             column="38"/>
     </issue>
 
@@ -736,7 +703,7 @@
         errorLine2="              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/ultiq/app/ui/calendar/CalendarScreen.kt"
-            line="815"
+            line="817"
             column="15"/>
     </issue>
 
@@ -791,7 +758,7 @@
         errorLine2="                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/ultiq/app/ui/dashboard/DashboardScreen.kt"
-            line="238"
+            line="235"
             column="33"/>
     </issue>
 
@@ -912,7 +879,7 @@
         errorLine2="                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/ultiq/app/ui/settings/SettingsScreen.kt"
-            line="170"
+            line="176"
             column="29"/>
     </issue>
 
@@ -923,7 +890,7 @@
         errorLine2="                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/ultiq/app/ui/settings/SettingsScreen.kt"
-            line="236"
+            line="242"
             column="29"/>
     </issue>
 
@@ -934,7 +901,7 @@
         errorLine2="                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/ultiq/app/ui/settings/SettingsScreen.kt"
-            line="458"
+            line="464"
             column="36"/>
     </issue>
 
@@ -945,7 +912,7 @@
         errorLine2="                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/ultiq/app/ui/settings/SettingsScreen.kt"
-            line="458"
+            line="464"
             column="36"/>
     </issue>
 
@@ -1022,7 +989,7 @@
         errorLine2="                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/ultiq/app/ui/common/UpdateBanner.kt"
-            line="79"
+            line="81"
             column="37"/>
     </issue>
 

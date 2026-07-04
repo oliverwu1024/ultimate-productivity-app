@@ -24,7 +24,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.ultiq.app.R
 
 /**
  * Unified swipe-to-delete affordance used by every list-based screen
@@ -75,10 +77,10 @@ fun SwipeToDeleteBox(
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.error,
                     ),
-                ) { Text("Delete") }
+                ) { Text(stringResource(R.string.action_delete)) }
             },
             dismissButton = {
-                TextButton(onClick = { pendingDelete = false }) { Text("Cancel") }
+                TextButton(onClick = { pendingDelete = false }) { Text(stringResource(R.string.action_cancel)) }
             },
         )
     }
@@ -96,7 +98,7 @@ fun SwipeToDeleteBox(
             ) {
                 Icon(
                     Icons.Default.Delete,
-                    contentDescription = "Delete",
+                    contentDescription = stringResource(R.string.action_delete),
                     tint = MaterialTheme.colorScheme.onError,
                 )
             }

@@ -587,7 +587,8 @@ private fun SleepSubTab(
 
         if (uiState.records.isEmpty()) {
             item(key = "empty") {
-                val (title, body) = WarmCopy.sleepEmpty()
+                val context = LocalContext.current
+                val (title, body) = WarmCopy.sleepEmpty(context)
                 MascotEmptyState(title = title, body = body)
             }
         } else {

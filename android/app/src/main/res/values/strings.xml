@@ -34,4 +34,166 @@
     <string name="settings_language">Language</string>
     <string name="settings_language_system">System default</string>
     <string name="common_close">Close</string>
+
+    <!-- ══════════════════ §13.1 Android sweep — dashboard + common ══════════════════ -->
+
+    <!-- Shared actions / labels (reused across screens) -->
+    <string name="action_settings">Settings</string>
+    <string name="action_logout">Logout</string>
+    <string name="action_dismiss">Dismiss</string>
+    <string name="action_refresh">Refresh</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_generate">Generate</string>
+    <string name="action_view_all">View all</string>
+    <string name="action_decrease">Decrease</string>
+    <string name="action_increase">Increase</string>
+    <string name="common_dismiss_hint">Dismiss hint</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard_title">Dashboard</string>
+    <string name="dashboard_coach">Coach</string>
+    <string name="dashboard_coach_cd">Talk to your coach</string>
+    <string name="dashboard_today_calendar">Today\'s calendar</string>
+    <string name="dashboard_today_plan">Today\'s plan</string>
+    <string name="dashboard_this_week">This week</string>
+    <string name="dashboard_today">Today</string>
+    <string name="dashboard_did_you_know">Did you know?</string>
+    <string name="dashboard_web_promo">Ultiq is also on the web — full analytics at app.ultiqapp.com</string>
+    <string name="dashboard_heads_up">Heads-up</string>
+    <string name="dashboard_offline_note">Day-to-day tracking works offline, but a connection is needed for cross-device sync, AI insights, weekly summaries, and audio clip playback.</string>
+    <string name="dashboard_lock_overlay_title">Grant lock &amp; overlay in Settings</string>
+    <string name="dashboard_lock_overlay_body">Focus mode and sleep lockout need \'Display over other apps\' and \'Strict lock\' to work reliably. Without them, the lockout screen can be swiped away. Open Settings (top right) to grant.</string>
+    <string name="dashboard_prefs_title">Set up your sleep &amp; focus preferences</string>
+    <string name="dashboard_prefs_body">Your wake-up alarms and sleep settings live on the Sleep tab; your focus settings live on the Focus tab. Open each tab and scroll down to configure — or tap this card\'s × to hide it.</string>
+    <string name="dashboard_not_synced">Not synced yet</string>
+    <string name="dashboard_just_synced">Just synced</string>
+    <string name="dashboard_synced_minutes_ago">Synced %1$dm ago</string>
+    <string name="dashboard_synced_hours_ago">Synced %1$dh ago</string>
+    <string name="dashboard_sleep_rank">✦ %1$s</string>
+    <string name="dashboard_sleep_vs_optimal">%1$s vs optimal sleep</string>
+    <string name="dashboard_sleep_sounds">🔊 %1$s</string>
+    <string name="dashboard_last_week_daily_avg">Last week\'s daily average was %1$s</string>
+    <string name="dashboard_focus_today">today</string>
+    <string name="dashboard_longest_streak">Longest streak yet — keep it going</string>
+    <string name="dashboard_checklist_done">%1$d of %2$d done</string>
+    <string name="dashboard_quick_sleep">Log Sleep</string>
+    <string name="dashboard_quick_focus">Start Focus</string>
+    <string name="dashboard_quick_event">Add Event</string>
+    <string name="dashboard_stat_avg_sleep">Avg sleep</string>
+    <string name="dashboard_stat_avg_quality">Avg quality</string>
+    <string name="dashboard_stat_total_focus">Total focus</string>
+    <string name="dashboard_stat_calendar_events">Calendar events</string>
+    <string name="dashboard_marked_done">Marked done</string>
+    <string name="dashboard_last_week">Last week</string>
+    <string name="dashboard_sleep_debt">Sleep debt</string>
+    <string name="dashboard_extra_rest">Extra rest</string>
+    <string name="dashboard_on_target">on target</string>
+    <string name="dashboard_net_on_target">Net: on target</string>
+    <string name="dashboard_net_over">Net: +%1$s vs goal</string>
+    <string name="dashboard_net_under">Net: −%1$s vs goal</string>
+    <string name="dashboard_achievements">Achievements</string>
+    <string name="dashboard_achievements_count">%1$d / %2$d</string>
+    <string name="dashboard_achievement_latest">Latest: %1$s</string>
+    <string name="dashboard_anomaly_heads_up">Heads up</string>
+    <string name="dashboard_insight_title">Past 7 days — AI summary</string>
+    <string name="dashboard_insight_generating">Generating your week…</string>
+    <string name="dashboard_insight_generated">Generated %1$s</string>
+    <string name="dashboard_insight_next_refresh">Next refresh %1$s</string>
+    <string name="dashboard_insight_cached">Refreshes every 24 hours — your next summary\'s on its way.</string>
+    <string name="dashboard_insight_error_signin">Sign in to see your weekly insight</string>
+    <string name="dashboard_insight_error_limit">Daily AI limit reached — back tomorrow</string>
+    <string name="dashboard_insight_error_generic">Couldn\'t load your weekly insight</string>
+    <string name="dashboard_quiet_night">Quiet night</string>
+
+    <plurals name="dashboard_sessions_today">
+        <item quantity="one">%1$d session today</item>
+        <item quantity="other">%1$d sessions today</item>
+    </plurals>
+    <plurals name="dashboard_more_items">
+        <item quantity="one">+%1$d more</item>
+        <item quantity="other">+%1$d more</item>
+    </plurals>
+    <plurals name="dashboard_sound_snore">
+        <item quantity="one">%1$d snore</item>
+        <item quantity="other">%1$d snores</item>
+    </plurals>
+    <plurals name="dashboard_sound_cough">
+        <item quantity="one">%1$d cough</item>
+        <item quantity="other">%1$d coughs</item>
+    </plurals>
+    <plurals name="dashboard_sound_talk">
+        <item quantity="one">%1$d sleep-talk</item>
+        <item quantity="other">%1$d sleep-talks</item>
+    </plurals>
+
+    <!-- WarmCopy — companion-voice copy -->
+    <string name="warm_greeting_up_early">Up early</string>
+    <string name="warm_greeting_morning">Good morning</string>
+    <string name="warm_greeting_lunch">Lunch break?</string>
+    <string name="warm_greeting_afternoon">Good afternoon</string>
+    <string name="warm_greeting_evening">Good evening</string>
+    <string name="warm_greeting_winding_down">Winding down</string>
+    <string name="warm_greeting_up_late">Up late</string>
+    <string name="warm_subtitle_fresh_start">A fresh start.</string>
+    <string name="warm_subtitle_half_day">Half the day to go.</string>
+    <string name="warm_subtitle_how_land">How\'d today land?</string>
+    <string name="warm_subtitle_rest_soon">Time to rest soon.</string>
+    <string name="warm_subtitle_new_run">Tomorrow\'s a new run.</string>
+    <string name="warm_sleep_how">How\'d you sleep?</string>
+    <string name="warm_sleep_top">Top night</string>
+    <string name="warm_sleep_solid">Solid night</string>
+    <string name="warm_sleep_solid_short">Solid, but a bit short</string>
+    <string name="warm_sleep_decent">Decent night</string>
+    <string name="warm_sleep_decent_short">Decent, but cut short</string>
+    <string name="warm_sleep_rough">Rough one — go easy today</string>
+    <string name="warm_sleep_empty_title">No nights logged yet</string>
+    <string name="warm_sleep_empty_body">Tap Start Sleep tonight — we\'ll handle the rest.</string>
+    <string name="warm_focus_ready">Ready to focus?</string>
+    <string name="warm_focus_starting">Just getting started</string>
+    <string name="warm_focus_momentum">Good momentum</string>
+    <string name="warm_focus_deep">Deep in it</string>
+    <string name="warm_focus_big">Big focus day</string>
+    <string name="warm_focus_empty_title">Nothing yet today</string>
+    <string name="warm_focus_empty_body">Tag a task and start your first focus block.</string>
+    <string name="warm_achievement_unlocked">Unlocked: %1$s</string>
+    <string name="warm_calendar_empty_title">Nothing scheduled</string>
+    <string name="warm_calendar_empty_body">Add an event and it\'ll show up here.</string>
+    <string name="warm_checklist_empty_title">Today\'s wide open</string>
+    <string name="warm_checklist_empty_body">Add a task to get going.</string>
+    <string name="warm_sessions_empty_title">Ready to focus?</string>
+    <string name="warm_sessions_empty_body">Tag a task, pick durations, and start your first focus block.</string>
+    <string name="warm_upcoming_empty">Nothing on your calendar today</string>
+
+    <plurals name="warm_streak_days">
+        <item quantity="one">%1$d day</item>
+        <item quantity="other">%1$d days</item>
+    </plurals>
+    <plurals name="warm_streak_longest">
+        <item quantity="one">%1$d-day streak — longest yet</item>
+        <item quantity="other">%1$d-day streak — longest yet</item>
+    </plurals>
+    <plurals name="warm_streak_one_off">
+        <item quantity="one">%1$d day, one off your record</item>
+        <item quantity="other">%1$d days, one off your record</item>
+    </plurals>
+
+    <!-- Achievement celebration -->
+    <string name="achievement_unlocked_title">Achievement unlocked</string>
+    <string name="achievement_nice">Nice</string>
+
+    <!-- AI quick-add (NL parse) dialog -->
+    <string name="ai_parse_calendar_title">Quick add event</string>
+    <string name="ai_parse_calendar_hint">e.g. lunch with Sarah tomorrow 1pm</string>
+    <string name="ai_parse_checklist_title">Quick add task</string>
+    <string name="ai_parse_checklist_hint">e.g. buy groceries on friday</string>
+    <string name="ai_parse_description">Type a sentence and we\'ll fill in the details for you to review.</string>
+
+    <!-- In-app APK update banner -->
+    <string name="update_downloading_pct">Downloading Ultiq %1$s… %2$d%%</string>
+    <string name="update_downloading">Downloading Ultiq %1$s…</string>
+    <string name="update_awaiting_confirm">System prompt is open — tap Install there</string>
+    <string name="update_installed">Update installed — tap to restart Ultiq</string>
+    <string name="update_failed">Update failed — tap to retry</string>
+    <string name="update_available">Ultiq %1$s is available — tap to install</string>
 </resources>
