@@ -3,6 +3,7 @@ package com.ultiq.app.ui.checklist
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.ultiq.app.R
 import com.ultiq.app.data.local.AppDatabase
 import com.ultiq.app.data.local.entity.ChecklistEntity
 import com.ultiq.app.data.remote.RetrofitClient
@@ -189,7 +190,7 @@ class ChecklistViewModel(application: Application) : AndroidViewModel(applicatio
                 if (cl == null) {
                     _uiState.value = _uiState.value.copy(
                         aiLoading = false,
-                        aiError = "Couldn't parse that — try rephrasing.",
+                        aiError = getApplication<Application>().getString(R.string.ai_err_parse),
                     )
                     return@onSuccess
                 }
@@ -231,7 +232,9 @@ class ChecklistViewModel(application: Application) : AndroidViewModel(applicatio
         alsoCreateTodayOneOff: Boolean = false,
     ) {
         if (title.isBlank()) {
-            _uiState.value = _uiState.value.copy(error = "Title can't be empty")
+            _uiState.value = _uiState.value.copy(
+                error = getApplication<Application>().getString(R.string.checklist_err_title_empty),
+            )
             return
         }
         viewModelScope.launch {
@@ -308,7 +311,7 @@ class ChecklistViewModel(application: Application) : AndroidViewModel(applicatio
             val result = repository.delete(item.id)
             result.onFailure {
                 _uiState.value = _uiState.value.copy(
-                    error = "Couldn't delete '${item.title}' — check your connection",
+                    error = getApplication<Application>().getString(R.string.checklist_err_delete, item.title),
                 )
             }
         }

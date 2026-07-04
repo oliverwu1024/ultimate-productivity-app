@@ -172,4 +172,80 @@
     <string name="update_installed">アップデート完了 — タップしてUltiqを再起動</string>
     <string name="update_failed">アップデート失敗 — タップして再試行</string>
     <string name="update_available">Ultiq %1$sが利用可能 — タップしてインストール</string>
+
+    <!-- ══════════════════ §13.1 Android sweep — checklist ══════════════════ -->
+
+    <!-- Shared actions / fields / labels (reused across screens) -->
+    <string name="action_save">保存</string>
+    <string name="action_add">追加</string>
+    <string name="action_skip">スキップ</string>
+    <string name="action_remove">削除</string>
+    <string name="action_back">戻る</string>
+    <string name="action_all">すべて</string>
+    <string name="action_clear">クリア</string>
+    <string name="field_title">タイトル</string>
+    <string name="field_description_optional">説明（任意）</string>
+    <string name="field_priority">優先度</string>
+    <string name="date_today">今日</string>
+    <string name="date_tomorrow">明日</string>
+    <string name="date_yesterday">昨日</string>
+    <string name="priority_high">高</string>
+    <string name="priority_med">中</string>
+    <string name="priority_low">低</string>
+    <string name="recur_every_day">毎日</string>
+    <string name="recur_weekdays">平日</string>
+    <string name="recur_weekends">週末</string>
+    <string name="ai_quick_add_cd">AIで素早く追加</string>
+    <string name="ai_err_parse">うまく認識できませんでした。言い方を変えてみてください。</string>
+
+    <!-- Checklist -->
+    <string name="checklist_title">チェックリスト</string>
+    <string name="checklist_section_open">未完了</string>
+    <string name="checklist_delete_item_title">このアイテムを削除しますか？</string>
+    <string name="checklist_delete_item_body">「%1$s」が削除されます。</string>
+    <string name="checklist_plan_week_q">今週を計画しますか？</string>
+    <string name="checklist_plan_week_body">毎日やりたいことをざっくり書き出しましょう。後から追加したり、スキップしながら進めることもできます。</string>
+    <string name="checklist_plan_now">今すぐ計画する</string>
+    <string name="checklist_bring_forward">持ち越す</string>
+    <string name="checklist_bring_forward_body">今日に移動するアイテムを選んでください。残りは昨日のままです。</string>
+    <string name="checklist_bring_forward_count">持ち越す（%1$d）</string>
+    <string name="checklist_prev_day_cd">前の日</string>
+    <string name="checklist_next_day_cd">次の日</string>
+    <string name="checklist_nothing_today">今日のタスクはありません</string>
+    <string name="checklist_percent">%1$d%%</string>
+    <string name="checklist_completed_count">完了（%1$d）</string>
+    <string name="checklist_new_item">新しいアイテム</string>
+    <string name="checklist_edit_item">アイテムを編集</string>
+    <string name="checklist_schedule">スケジュール</string>
+    <string name="checklist_schedule_repeat">繰り返し</string>
+    <string name="checklist_schedule_bydue">期限まで</string>
+    <string name="checklist_schedule_help_oneoff">選んだ日のみ表示されます。</string>
+    <string name="checklist_schedule_help_recurring">繰り返す曜日を選んでください。</string>
+    <string name="checklist_schedule_help_untildue">期限日まで毎日表示されます。完了にすると全日から削除されます。</string>
+    <string name="checklist_prefix_on">日付</string>
+    <string name="checklist_prefix_starts">開始</string>
+    <string name="checklist_prefix_due">期限</string>
+    <string name="checklist_date_line">%1$s: %2$s</string>
+    <string name="checklist_estimate_optional">所要分数（任意）</string>
+    <string name="checklist_include_today_q">今日も含めますか？</string>
+    <string name="checklist_include_today_body">今日（%1$s）はこのタスクの繰り返し設定に含まれていません。今日のリストにも追加しますか？</string>
+    <string name="checklist_include_today_yes">はい、今日も追加</string>
+    <string name="checklist_include_today_no">いいえ、今後のみ</string>
+    <string name="checklist_repeats">繰り返し: %1$s</string>
+    <string name="checklist_due_date">期限: %1$s</string>
+    <string name="checklist_err_title_empty">タイトルを入力してください</string>
+    <string name="checklist_err_delete">「%1$s」の削除に失敗しました。接続を確認してください。</string>
+
+    <!-- Weekly planner -->
+    <string name="planner_title">今週の計画</string>
+    <string name="planner_week_range">%1$s – %2$s</string>
+    <string name="planner_save_count">%1$d 件保存</string>
+    <string name="planner_add_item">アイテムを追加</string>
+
+    <plurals name="checklist_carryover">
+        <item quantity="other">昨日から%1$d件未完了</item>
+    </plurals>
+    <plurals name="estimate_minutes">
+        <item quantity="other">%1$d 分</item>
+    </plurals>
 </resources>

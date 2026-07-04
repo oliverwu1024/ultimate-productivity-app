@@ -68,6 +68,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextDecoration
@@ -79,8 +81,13 @@ import com.ultiq.app.ui.common.AiParseSurface
 import com.ultiq.app.ui.common.MascotEmptyState
 import com.ultiq.app.ui.copy.WarmCopy
 import kotlinx.coroutines.launch
+import android.content.Context
+import com.ultiq.app.R
+import com.ultiq.app.util.LocaleManager
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.time.format.TextStyle
 
 // §13 (i18n) — a function (not a cached val) so it reads the CURRENT app locale
 // on every call. A top-level val binds Locale.getDefault() once at class-load,
@@ -127,9 +134,9 @@ fun ChecklistScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Checklist") },
+                title = { Text(stringResource(R.string.checklist_title)) },
                 actions = {
-                    TextButton(onClick = viewModel::jumpToToday) { Text("Today") }
+                    TextButton(onClick = viewModel::jumpToToday) { Text(stringResource(R.string.date_today)) }
                 },
             )
         },
@@ -143,12 +150,12 @@ fun ChecklistScreen(
                     onClick = viewModel::showAiDialog,
                     containerColor = MaterialTheme.colorScheme.secondaryContainer,
                 ) {
-                    Icon(Icons.Default.AutoAwesome, "Quick add with AI")
+                    Icon(Icons.Default.AutoAwesome, stringResource(R.string.ai_quick_add_cd))
                 }
                 ExtendedFloatingActionButton(
                     onClick = viewModel::openAddDialog,
                     icon = { Icon(Icons.Default.Add, null) },
-                    text = { Text("Add") },
+                    text = { Text(stringResource(R.string.action_add)) },
                 )
             }
         },
@@ -185,7 +192,7 @@ fun ChecklistScreen(
                 }
 
                 if (state.openItems.isNotEmpty()) {
-                    item { SectionLabel("Open") }
+                    item { SectionLabel(stringResource(R.string.checklist_section_open)) }
                     items(state.openItems, key = { it.id }) { item ->
                         // §delete-consistency — swipe row to delete with
                         // confirm dialog. Replaces the previous trash-icon
@@ -202,8 +209,8 @@ fun ChecklistScreen(
                         // already removed in v2.16.5-v2.16.9; this is the
                         // perceptual layer.
                         com.ultiq.app.ui.common.SwipeToDeleteBox(
-                            confirmTitle = "Delete this item?",
-                            confirmBody = "'${item.title}' will be removed.",
+                            confirmTitle = stringResource(R.string.checklist_delete_item_title),
+                            confirmBody = stringResource(R.string.checklist_delete_item_body, item.title),
                             onDelete = { viewModel.deleteItem(item) },
                             modifier = Modifier.animateItem(),
                         ) {
@@ -263,21 +270,18 @@ fun ChecklistScreen(
         if (state.showWeeklyPrompt) {
             AlertDialog(
                 onDismissRequest = viewModel::dismissWeeklyPrompt,
-                title = { Text("Plan your week?") },
+                title = { Text(stringResource(R.string.checklist_plan_week_q)) },
                 text = {
-                    Text(
-                        "Sketch what you want to get done each day. " +
-                            "You can always add more or skip and fill in as you go.",
-                    )
+                    Text(stringResource(R.string.checklist_plan_week_body))
                 },
                 confirmButton = {
                     Button(onClick = {
                         viewModel.dismissWeeklyPrompt()
                         onNavigateToWeeklyPlanner()
-                    }) { Text("Plan now") }
+                    }) { Text(stringResource(R.string.checklist_plan_now)) }
                 },
                 dismissButton = {
-                    TextButton(onClick = viewModel::dismissWeeklyPrompt) { Text("Skip") }
+                    TextButton(onClick = viewModel::dismissWeeklyPrompt) { Text(stringResource(R.string.action_skip)) }
                 },
             )
         }
@@ -291,7 +295,7 @@ private fun CarryOverBanner(
     onBringForward: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val label = if (count == 1) "1 unfinished from yesterday" else "$count unfinished from yesterday"
+    val label = pluralStringResource(R.plurals.checklist_carryover, count, count)
     Surface(
         color = MaterialTheme.colorScheme.tertiaryContainer,
         modifier = Modifier.fillMaxWidth(),
@@ -309,8 +313,8 @@ private fun CarryOverBanner(
                 color = MaterialTheme.colorScheme.onTertiaryContainer,
                 modifier = Modifier.weight(1f),
             )
-            TextButton(onClick = onBringForward) { Text("Bring forward") }
-            TextButton(onClick = onDismiss) { Text("Dismiss") }
+            TextButton(onClick = onBringForward) { Text(stringResource(R.string.checklist_bring_forward)) }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_dismiss)) }
         }
     }
 }
@@ -324,12 +328,13 @@ private fun BringForwardDialog(
     onConfirm: (Set<String>) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val context = LocalContext.current
     var selectedIds by remember { mutableStateOf(emptySet<String>()) }
     val allSelected = candidates.isNotEmpty() && selectedIds.size == candidates.size
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Bring forward") },
+        title = { Text(stringResource(R.string.checklist_bring_forward)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(
@@ -337,7 +342,7 @@ private fun BringForwardDialog(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                        "Pick items to move to today. The rest stay on yesterday.",
+                        stringResource(R.string.checklist_bring_forward_body),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.weight(1f),
@@ -348,7 +353,7 @@ private fun BringForwardDialog(
                                 if (allSelected) emptySet()
                                 else candidates.map { it.id }.toSet()
                         },
-                    ) { Text(if (allSelected) "Clear" else "All") }
+                    ) { Text(if (allSelected) stringResource(R.string.action_clear) else stringResource(R.string.action_all)) }
                 }
                 LazyColumn(
                     modifier = Modifier.heightIn(max = 320.dp),
@@ -370,7 +375,7 @@ private fun BringForwardDialog(
                             Checkbox(checked = checked, onCheckedChange = { toggle() })
                             Column(modifier = Modifier.weight(1f).padding(start = 4.dp)) {
                                 Text(item.title, style = MaterialTheme.typography.bodyLarge)
-                                scheduleLabel(item)?.let { label ->
+                                scheduleLabel(context, item)?.let { label ->
                                     Text(
                                         label,
                                         style = MaterialTheme.typography.labelSmall,
@@ -389,12 +394,12 @@ private fun BringForwardDialog(
                 enabled = selectedIds.isNotEmpty(),
             ) {
                 Text(
-                    if (selectedIds.isEmpty()) "Bring forward"
-                    else "Bring forward (${selectedIds.size})",
+                    if (selectedIds.isEmpty()) stringResource(R.string.checklist_bring_forward)
+                    else stringResource(R.string.checklist_bring_forward_count, selectedIds.size),
                 )
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
     )
 }
 
@@ -412,13 +417,13 @@ private fun DateSelector(date: LocalDate, onPrev: () -> Unit, onNext: () -> Unit
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             IconButton(onClick = onPrev) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Previous day")
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.checklist_prev_day_cd))
             }
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 val label = when (date) {
-                    LocalDate.now() -> "Today"
-                    LocalDate.now().plusDays(1) -> "Tomorrow"
-                    LocalDate.now().minusDays(1) -> "Yesterday"
+                    LocalDate.now() -> stringResource(R.string.date_today)
+                    LocalDate.now().plusDays(1) -> stringResource(R.string.date_tomorrow)
+                    LocalDate.now().minusDays(1) -> stringResource(R.string.date_yesterday)
                     else -> date.format(dateFormatter())
                 }
                 Text(label, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
@@ -431,7 +436,7 @@ private fun DateSelector(date: LocalDate, onPrev: () -> Unit, onNext: () -> Unit
                 }
             }
             IconButton(onClick = onNext) {
-                Icon(Icons.AutoMirrored.Filled.ArrowForward, "Next day")
+                Icon(Icons.AutoMirrored.Filled.ArrowForward, stringResource(R.string.checklist_next_day_cd))
             }
         }
     }
@@ -445,13 +450,14 @@ private fun ProgressBar(done: Int, total: Int, progress: Float) {
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Text(
-                if (total == 0) "Nothing for today" else "$done of $total done",
+                if (total == 0) stringResource(R.string.checklist_nothing_today)
+                else stringResource(R.string.dashboard_checklist_done, done, total),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             if (total > 0) {
                 Text(
-                    "${(progress * 100).toInt()}%",
+                    stringResource(R.string.checklist_percent, (progress * 100).toInt()),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -494,6 +500,7 @@ private fun ChecklistRow(
     onToggle: () -> Unit,
     onEdit: () -> Unit,
 ) {
+    val context = LocalContext.current
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         modifier = Modifier
@@ -537,14 +544,14 @@ private fun ChecklistRow(
                             )
                             Spacer(Modifier.width(2.dp))
                             Text(
-                                "$mins min",
+                                pluralStringResource(R.plurals.estimate_minutes, mins, mins),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }
                 }
-                scheduleLabel(item)?.let { label ->
+                scheduleLabel(context, item)?.let { label ->
                     Text(
                         label,
                         style = MaterialTheme.typography.labelSmall,
@@ -560,9 +567,9 @@ private fun ChecklistRow(
 @Composable
 private fun PriorityChip(priority: Int) {
     val (label, color) = when (priority) {
-        2 -> "High" to MaterialTheme.colorScheme.error
-        1 -> "Med" to MaterialTheme.colorScheme.tertiary
-        else -> "Low" to MaterialTheme.colorScheme.outline
+        2 -> stringResource(R.string.priority_high) to MaterialTheme.colorScheme.error
+        1 -> stringResource(R.string.priority_med) to MaterialTheme.colorScheme.tertiary
+        else -> stringResource(R.string.priority_low) to MaterialTheme.colorScheme.outline
     }
     Surface(
         shape = RoundedCornerShape(8.dp),
@@ -609,7 +616,7 @@ private fun CompletedSection(
                 )
                 Spacer(Modifier.width(4.dp))
                 Text(
-                    "Completed (${items.size})".uppercase(),
+                    stringResource(R.string.checklist_completed_count, items.size).uppercase(),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -702,29 +709,29 @@ private fun ChecklistEditDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (editing == null) "New item" else "Edit item") },
+        title = { Text(if (editing == null) stringResource(R.string.checklist_new_item) else stringResource(R.string.checklist_edit_item)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
-                    label = { Text("Title") },
+                    label = { Text(stringResource(R.string.field_title)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
-                    label = { Text("Description (optional)") },
+                    label = { Text(stringResource(R.string.field_description_optional)) },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 2,
                 )
 
-                Text("Schedule", style = MaterialTheme.typography.labelMedium)
+                Text(stringResource(R.string.checklist_schedule), style = MaterialTheme.typography.labelMedium)
                 val modeLabels = listOf(
-                    ScheduleMode.ONE_OFF to "Today",
-                    ScheduleMode.RECURRING to "Repeat",
-                    ScheduleMode.UNTIL_DUE to "By due",
+                    ScheduleMode.ONE_OFF to stringResource(R.string.date_today),
+                    ScheduleMode.RECURRING to stringResource(R.string.checklist_schedule_repeat),
+                    ScheduleMode.UNTIL_DUE to stringResource(R.string.checklist_schedule_bydue),
                 )
                 SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                     modeLabels.forEachIndexed { i, (value, label) ->
@@ -740,9 +747,9 @@ private fun ChecklistEditDialog(
                 // ("Today" / "Repeat" / "By due") isn't load-bearing on its own.
                 Text(
                     when (mode) {
-                        ScheduleMode.ONE_OFF -> "Happens on the picked day only."
-                        ScheduleMode.RECURRING -> "Pick which days of the week it repeats on."
-                        ScheduleMode.UNTIL_DUE -> "Shows every day until the due date. Marking done removes it everywhere."
+                        ScheduleMode.ONE_OFF -> stringResource(R.string.checklist_schedule_help_oneoff)
+                        ScheduleMode.RECURRING -> stringResource(R.string.checklist_schedule_help_recurring)
+                        ScheduleMode.UNTIL_DUE -> stringResource(R.string.checklist_schedule_help_untildue)
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -765,24 +772,28 @@ private fun ChecklistEditDialog(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     val prefix = when (mode) {
-                        ScheduleMode.ONE_OFF -> "On"
-                        ScheduleMode.RECURRING -> "Starts"
-                        ScheduleMode.UNTIL_DUE -> "Due"
+                        ScheduleMode.ONE_OFF -> stringResource(R.string.checklist_prefix_on)
+                        ScheduleMode.RECURRING -> stringResource(R.string.checklist_prefix_starts)
+                        ScheduleMode.UNTIL_DUE -> stringResource(R.string.checklist_prefix_due)
                     }
-                    Text("$prefix: ${dueDate.format(dateFormatter())}")
+                    Text(stringResource(R.string.checklist_date_line, prefix, dueDate.format(dateFormatter())))
                 }
 
                 OutlinedTextField(
                     value = minutesText,
                     onValueChange = { v -> minutesText = v.filter(Char::isDigit).take(4) },
-                    label = { Text("Estimated minutes (optional)") },
+                    label = { Text(stringResource(R.string.checklist_estimate_optional)) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
 
-                Text("Priority", style = MaterialTheme.typography.labelMedium)
-                val labels = listOf("Low" to 0, "Med" to 1, "High" to 2)
+                Text(stringResource(R.string.field_priority), style = MaterialTheme.typography.labelMedium)
+                val labels = listOf(
+                    stringResource(R.string.priority_low) to 0,
+                    stringResource(R.string.priority_med) to 1,
+                    stringResource(R.string.priority_high) to 2,
+                )
                 SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                     labels.forEachIndexed { i, (label, value) ->
                         SegmentedButton(
@@ -828,9 +839,9 @@ private fun ChecklistEditDialog(
                         false,
                     )
                 }
-            }) { Text("Save") }
+            }) { Text(stringResource(R.string.action_save)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
     )
 
     if (showIncludeTodayPrompt) {
@@ -850,11 +861,13 @@ private fun ChecklistEditDialog(
         }
         AlertDialog(
             onDismissRequest = { showIncludeTodayPrompt = false },
-            title = { Text("Include today?") },
+            title = { Text(stringResource(R.string.checklist_include_today_q)) },
             text = {
                 Text(
-                    "Today is ${today.dayOfWeek.name.lowercase().replaceFirstChar { it.uppercase() }}, " +
-                        "which isn't in this task's repeat schedule. Add it to today's list as well?",
+                    stringResource(
+                        R.string.checklist_include_today_body,
+                        today.dayOfWeek.getDisplayName(TextStyle.FULL, LocaleManager.currentLocale()),
+                    ),
                 )
             },
             confirmButton = {
@@ -870,7 +883,7 @@ private fun ChecklistEditDialog(
                         params.showUntilDue,
                         true,
                     )
-                }) { Text("Yes, add today") }
+                }) { Text(stringResource(R.string.checklist_include_today_yes)) }
             },
             dismissButton = {
                 TextButton(onClick = {
@@ -885,7 +898,7 @@ private fun ChecklistEditDialog(
                         params.showUntilDue,
                         false,
                     )
-                }) { Text("No, future only") }
+                }) { Text(stringResource(R.string.checklist_include_today_no)) }
             },
         )
     }
@@ -906,7 +919,12 @@ private data class SaveCommit(
 private fun DayOfWeekChips(mask: Int, onChange: (Int) -> Unit) {
     // §UX: app weeks elsewhere start Sunday (matches the alarm RepeatPicker
     // and the system locale most users come in on); bit 0 = Sun … bit 6 = Sat.
-    val labels = listOf("S", "M", "T", "W", "T", "F", "S")
+    // §13.1 — narrow day letters resolve from the app locale (Sun-first order).
+    val locale = LocaleManager.currentLocale()
+    val labels = (0..6).map { bit ->
+        val dow = if (bit == 0) DayOfWeek.SUNDAY else DayOfWeek.of(bit)
+        dow.getDisplayName(TextStyle.NARROW, locale)
+    }
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -937,33 +955,40 @@ private fun DayOfWeekChips(mask: Int, onChange: (Int) -> Unit) {
             onClick = { onChange(0b1111111) },
             contentPadding = tightPadding,
             modifier = Modifier.weight(1f),
-        ) { Text("Every day", maxLines = 1, softWrap = false) }
+        ) { Text(stringResource(R.string.recur_every_day), maxLines = 1, softWrap = false) }
         TextButton(
             onClick = { onChange(0b0111110) },
             contentPadding = tightPadding,
             modifier = Modifier.weight(1f),
-        ) { Text("Weekdays", maxLines = 1, softWrap = false) }
+        ) { Text(stringResource(R.string.recur_weekdays), maxLines = 1, softWrap = false) }
         TextButton(
             onClick = { onChange(0b1000001) },
             contentPadding = tightPadding,
             modifier = Modifier.weight(1f),
-        ) { Text("Weekends", maxLines = 1, softWrap = false) }
+        ) { Text(stringResource(R.string.recur_weekends), maxLines = 1, softWrap = false) }
     }
 }
 
-/** Human-readable summary of an item's schedule, shown under each row. */
-internal fun scheduleLabel(item: ChecklistEntity): String? {
+/** Human-readable summary of an item's schedule, shown under each row.
+ *  §13.1 — takes a [Context] so labels + day names resolve in the app locale. */
+internal fun scheduleLabel(context: Context, item: ChecklistEntity): String? {
     if (item.recurrenceDaysMask != 0) {
-        if (item.recurrenceDaysMask == 0b1111111) return "Every day"
-        if (item.recurrenceDaysMask == 0b0111110) return "Weekdays"
-        if (item.recurrenceDaysMask == 0b1000001) return "Weekends"
-        val names = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+        if (item.recurrenceDaysMask == 0b1111111) return context.getString(R.string.recur_every_day)
+        if (item.recurrenceDaysMask == 0b0111110) return context.getString(R.string.recur_weekdays)
+        if (item.recurrenceDaysMask == 0b1000001) return context.getString(R.string.recur_weekends)
+        val locale = LocaleManager.currentLocale()
         val picked = (0..6).filter { (item.recurrenceDaysMask shr it) and 1 == 1 }
-            .joinToString(", ") { names[it] }
-        return "Repeats: $picked"
+            .joinToString(", ") { bit ->
+                val dow = if (bit == 0) DayOfWeek.SUNDAY else DayOfWeek.of(bit)
+                dow.getDisplayName(TextStyle.SHORT, locale)
+            }
+        return context.getString(R.string.checklist_repeats, picked)
     }
     if (item.showUntilDue) {
-        return "Due ${LocalDate.ofEpochDay(item.dueDateEpochDay).format(dateFormatter())}"
+        return context.getString(
+            R.string.checklist_due_date,
+            LocalDate.ofEpochDay(item.dueDateEpochDay).format(dateFormatter()),
+        )
     }
     return null
 }

@@ -172,4 +172,80 @@
     <string name="update_installed">Đã cập nhật — nhấn để khởi động lại Ultiq</string>
     <string name="update_failed">Cập nhật thất bại — nhấn để thử lại</string>
     <string name="update_available">Ultiq %1$s đã sẵn sàng — nhấn để cài đặt</string>
+
+    <!-- ══════════════════ §13.1 Android sweep — checklist ══════════════════ -->
+
+    <!-- Shared actions / fields / labels (reused across screens) -->
+    <string name="action_save">Lưu</string>
+    <string name="action_add">Thêm</string>
+    <string name="action_skip">Bỏ qua</string>
+    <string name="action_remove">Xóa</string>
+    <string name="action_back">Quay lại</string>
+    <string name="action_all">Tất cả</string>
+    <string name="action_clear">Xóa sạch</string>
+    <string name="field_title">Tiêu đề</string>
+    <string name="field_description_optional">Mô tả (tùy chọn)</string>
+    <string name="field_priority">Ưu tiên</string>
+    <string name="date_today">Hôm nay</string>
+    <string name="date_tomorrow">Ngày mai</string>
+    <string name="date_yesterday">Hôm qua</string>
+    <string name="priority_high">Cao</string>
+    <string name="priority_med">Vừa</string>
+    <string name="priority_low">Thấp</string>
+    <string name="recur_every_day">Mỗi ngày</string>
+    <string name="recur_weekdays">Ngày thường</string>
+    <string name="recur_weekends">Cuối tuần</string>
+    <string name="ai_quick_add_cd">Thêm nhanh bằng AI</string>
+    <string name="ai_err_parse">Không hiểu được — thử diễn đạt lại nhé.</string>
+
+    <!-- Checklist -->
+    <string name="checklist_title">Checklist</string>
+    <string name="checklist_section_open">Đang mở</string>
+    <string name="checklist_delete_item_title">Xóa mục này?</string>
+    <string name="checklist_delete_item_body">\'%1$s\' sẽ bị xóa.</string>
+    <string name="checklist_plan_week_q">Lập kế hoạch tuần?</string>
+    <string name="checklist_plan_week_body">Phác thảo những việc muốn làm mỗi ngày. Bạn có thể thêm sau hoặc bỏ qua và điền dần.</string>
+    <string name="checklist_plan_now">Lập kế hoạch ngay</string>
+    <string name="checklist_bring_forward">Chuyển tiếp</string>
+    <string name="checklist_bring_forward_body">Chọn các mục muốn chuyển sang hôm nay. Phần còn lại giữ nguyên ở hôm qua.</string>
+    <string name="checklist_bring_forward_count">Chuyển tiếp (%1$d)</string>
+    <string name="checklist_prev_day_cd">Ngày trước</string>
+    <string name="checklist_next_day_cd">Ngày sau</string>
+    <string name="checklist_nothing_today">Không có gì cho hôm nay</string>
+    <string name="checklist_percent">%1$d%%</string>
+    <string name="checklist_completed_count">Đã hoàn thành (%1$d)</string>
+    <string name="checklist_new_item">Mục mới</string>
+    <string name="checklist_edit_item">Chỉnh sửa mục</string>
+    <string name="checklist_schedule">Lịch</string>
+    <string name="checklist_schedule_repeat">Lặp lại</string>
+    <string name="checklist_schedule_bydue">Theo hạn</string>
+    <string name="checklist_schedule_help_oneoff">Chỉ xảy ra vào ngày đã chọn.</string>
+    <string name="checklist_schedule_help_recurring">Chọn những ngày trong tuần để lặp lại.</string>
+    <string name="checklist_schedule_help_untildue">Hiện mỗi ngày cho đến hạn. Đánh dấu hoàn thành sẽ xóa khỏi tất cả.</string>
+    <string name="checklist_prefix_on">Vào</string>
+    <string name="checklist_prefix_starts">Bắt đầu</string>
+    <string name="checklist_prefix_due">Hạn</string>
+    <string name="checklist_date_line">%1$s: %2$s</string>
+    <string name="checklist_estimate_optional">Số phút ước tính (tùy chọn)</string>
+    <string name="checklist_include_today_q">Bao gồm hôm nay?</string>
+    <string name="checklist_include_today_body">Hôm nay là %1$s, không có trong lịch lặp lại của nhiệm vụ này. Thêm vào danh sách hôm nay?</string>
+    <string name="checklist_include_today_yes">Có, thêm hôm nay</string>
+    <string name="checklist_include_today_no">Không, chỉ sau này</string>
+    <string name="checklist_repeats">Lặp lại: %1$s</string>
+    <string name="checklist_due_date">Hạn %1$s</string>
+    <string name="checklist_err_title_empty">Tiêu đề không được để trống</string>
+    <string name="checklist_err_delete">Không thể xóa \'%1$s\' — kiểm tra kết nối</string>
+
+    <!-- Weekly planner -->
+    <string name="planner_title">Lập kế hoạch tuần</string>
+    <string name="planner_week_range">%1$s – %2$s</string>
+    <string name="planner_save_count">Lưu %1$d</string>
+    <string name="planner_add_item">Thêm mục</string>
+
+    <plurals name="checklist_carryover">
+        <item quantity="other">%1$d chưa hoàn thành từ hôm qua</item>
+    </plurals>
+    <plurals name="estimate_minutes">
+        <item quantity="other">%1$d phút</item>
+    </plurals>
 </resources>
