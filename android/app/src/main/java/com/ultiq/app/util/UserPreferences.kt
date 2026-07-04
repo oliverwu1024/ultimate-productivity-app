@@ -81,6 +81,10 @@ data class UserSettings(
      *  once? Gates the dialog so it only fires the first time the master
      *  toggle is flipped on per device. */
     val sleepAudioRecordingConsentSeen: Boolean,
+    /** §13 (i18n) — selected app language as a BCP-47 tag (e.g. "es", "zh-Hans").
+     *  Empty = follow the system language. Synced via /auth/me so a new device
+     *  restores the choice; the applied locale itself lives in AppCompat's store. */
+    val appLanguage: String,
 )
 
 class UserPreferences(private val context: Context) {
@@ -120,6 +124,7 @@ class UserPreferences(private val context: Context) {
         // §tz Phase B — last device timezone we PATCHed to the server, so the
         // foreground check only re-syncs when the device zone actually changed.
         val LAST_SYNCED_TIMEZONE = stringPreferencesKey("last_synced_timezone")
+        val APP_LANGUAGE = stringPreferencesKey("app_language")
     }
 
     private val defaults = UserSettings(
@@ -151,6 +156,7 @@ class UserPreferences(private val context: Context) {
         sleepAudioRecordCough = true,
         sleepAudioRecordSleepTalk = true,
         sleepAudioRecordingConsentSeen = false,
+        appLanguage = "",
     )
 
     val settings: Flow<UserSettings> = context.userDataStore.data.map { prefs ->
@@ -190,6 +196,7 @@ class UserPreferences(private val context: Context) {
             sleepAudioRecordCough = prefs[Keys.SLEEP_AUDIO_RECORD_COUGH] ?: defaults.sleepAudioRecordCough,
             sleepAudioRecordSleepTalk = prefs[Keys.SLEEP_AUDIO_RECORD_SLEEP_TALK] ?: defaults.sleepAudioRecordSleepTalk,
             sleepAudioRecordingConsentSeen = prefs[Keys.SLEEP_AUDIO_RECORDING_CONSENT_SEEN] ?: defaults.sleepAudioRecordingConsentSeen,
+            appLanguage = prefs[Keys.APP_LANGUAGE] ?: defaults.appLanguage,
         )
     }
 
@@ -311,6 +318,11 @@ class UserPreferences(private val context: Context) {
         context.userDataStore.edit { it[Keys.SLEEP_AUDIO_RECORDING_CONSENT_SEEN] = seen }
     }
 
+    /** §13 (i18n) — persist the selected app language (BCP-47 tag; "" = system). */
+    suspend fun setAppLanguage(tag: String) {
+        context.userDataStore.edit { it[Keys.APP_LANGUAGE] = tag }
+    }
+
     /** §tz Phase B — the device timezone last synced to the server (null until
      *  the first sync). Read/written directly (not via UserSettings) since it's
      *  app-plumbing, not a user-facing setting. */
@@ -383,6 +395,9 @@ class UserPreferences(private val context: Context) {
             }
             server.get("sleep_audio_record_sleep_talk")?.takeIf { !it.isJsonNull }?.asBoolean?.let {
                 prefs[Keys.SLEEP_AUDIO_RECORD_SLEEP_TALK] = it
+            }
+            server.get("app_language")?.takeIf { !it.isJsonNull }?.asString?.let {
+                prefs[Keys.APP_LANGUAGE] = it
             }
         }
     }

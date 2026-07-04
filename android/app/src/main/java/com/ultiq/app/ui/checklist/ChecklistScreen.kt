@@ -82,7 +82,12 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
-private val dateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("EEE, MMM d")
+// §13 (i18n) — a function (not a cached val) so it reads the CURRENT app locale
+// on every call. A top-level val binds Locale.getDefault() once at class-load,
+// which sticks to whatever language was active the first time the checklist
+// opened (the Arabic-date-stuck bug).
+private fun dateFormatter(): DateTimeFormatter =
+    DateTimeFormatter.ofPattern("EEE, MMM d", com.ultiq.app.util.LocaleManager.currentLocale())
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -414,12 +419,12 @@ private fun DateSelector(date: LocalDate, onPrev: () -> Unit, onNext: () -> Unit
                     LocalDate.now() -> "Today"
                     LocalDate.now().plusDays(1) -> "Tomorrow"
                     LocalDate.now().minusDays(1) -> "Yesterday"
-                    else -> date.format(dateFormatter)
+                    else -> date.format(dateFormatter())
                 }
                 Text(label, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                if (label != date.format(dateFormatter)) {
+                if (label != date.format(dateFormatter())) {
                     Text(
-                        date.format(dateFormatter),
+                        date.format(dateFormatter()),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -763,7 +768,7 @@ private fun ChecklistEditDialog(
                         ScheduleMode.RECURRING -> "Starts"
                         ScheduleMode.UNTIL_DUE -> "Due"
                     }
-                    Text("$prefix: ${dueDate.format(dateFormatter)}")
+                    Text("$prefix: ${dueDate.format(dateFormatter())}")
                 }
 
                 OutlinedTextField(
@@ -957,7 +962,7 @@ internal fun scheduleLabel(item: ChecklistEntity): String? {
         return "Repeats: $picked"
     }
     if (item.showUntilDue) {
-        return "Due ${LocalDate.ofEpochDay(item.dueDateEpochDay).format(dateFormatter)}"
+        return "Due ${LocalDate.ofEpochDay(item.dueDateEpochDay).format(dateFormatter())}"
     }
     return null
 }

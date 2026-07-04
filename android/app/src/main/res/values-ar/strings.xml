@@ -1,0 +1,21 @@
+<resources>
+    <string name="auth_email">البريد الإلكتروني</string>
+    <string name="auth_password">كلمة المرور</string>
+    <string name="auth_show_password">إظهار كلمة المرور</string>
+    <string name="auth_hide_password">إخفاء كلمة المرور</string>
+
+    <string name="login_title">مرحبًا بعودتك</string>
+    <string name="login_button">تسجيل الدخول</string>
+    <string name="login_forgot_password">هل نسيت كلمة المرور؟</string>
+    <string name="login_register_prompt">ليس لديك حساب؟ سجّل الآن</string>
+
+    <string name="register_title">إنشاء حساب</string>
+    <string name="register_confirm_password">تأكيد كلمة المرور</string>
+    <string name="register_passwords_mismatch">كلمتا المرور غير متطابقتين</string>
+    <string name="register_button">تسجيل</string>
+    <string name="register_login_prompt">لديك حساب بالفعل؟ تسجيل الدخول</string>
+
+    <string name="settings_language">اللغة</string>
+    <string name="settings_language_system">الإعداد الافتراضي للنظام</string>
+    <string name="common_close">إغلاق</string>
+</resources>

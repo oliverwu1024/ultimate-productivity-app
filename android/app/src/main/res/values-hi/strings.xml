@@ -1,0 +1,21 @@
+<resources>
+    <string name="auth_email">ईमेल</string>
+    <string name="auth_password">पासवर्ड</string>
+    <string name="auth_show_password">पासवर्ड दिखाएँ</string>
+    <string name="auth_hide_password">पासवर्ड छिपाएँ</string>
+
+    <string name="login_title">वापसी पर स्वागत है</string>
+    <string name="login_button">लॉग इन करें</string>
+    <string name="login_forgot_password">पासवर्ड भूल गए?</string>
+    <string name="login_register_prompt">खाता नहीं है? रजिस्टर करें</string>
+
+    <string name="register_title">खाता बनाएँ</string>
+    <string name="register_confirm_password">पासवर्ड की पुष्टि करें</string>
+    <string name="register_passwords_mismatch">पासवर्ड मेल नहीं खाते</string>
+    <string name="register_button">रजिस्टर करें</string>
+    <string name="register_login_prompt">पहले से खाता है? लॉग इन करें</string>
+
+    <string name="settings_language">भाषा</string>
+    <string name="settings_language_system">सिस्टम डिफ़ॉल्ट</string>
+    <string name="common_close">बंद करें</string>
+</resources>

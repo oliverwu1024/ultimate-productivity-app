@@ -1,0 +1,21 @@
+<resources>
+    <string name="auth_email">電子郵件</string>
+    <string name="auth_password">密碼</string>
+    <string name="auth_show_password">顯示密碼</string>
+    <string name="auth_hide_password">隱藏密碼</string>
+
+    <string name="login_title">歡迎回來</string>
+    <string name="login_button">登入</string>
+    <string name="login_forgot_password">忘記密碼？</string>
+    <string name="login_register_prompt">還沒有帳號？註冊</string>
+
+    <string name="register_title">建立帳號</string>
+    <string name="register_confirm_password">確認密碼</string>
+    <string name="register_passwords_mismatch">兩次輸入的密碼不一致</string>
+    <string name="register_button">註冊</string>
+    <string name="register_login_prompt">已有帳號？登入</string>
+
+    <string name="settings_language">語言</string>
+    <string name="settings_language_system">系統預設</string>
+    <string name="common_close">關閉</string>
+</resources>

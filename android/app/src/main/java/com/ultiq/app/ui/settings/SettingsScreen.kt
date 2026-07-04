@@ -154,6 +154,12 @@ fun SettingsScreen(
         ) {
             item { SectionHeader("Appearance") }
             item { ThemeCard(current = uiState.themeMode, onSelect = viewModel::setThemeMode) }
+            item {
+                LanguageCard(
+                    currentTag = com.ultiq.app.util.LocaleManager.currentTag(),
+                    onSelect = viewModel::setAppLanguage,
+                )
+            }
 
             // Sleep goal, schedule, focus defaults, and per-mode lockout
             // toggles + grace now live on the Sleep and Focus tabs themselves

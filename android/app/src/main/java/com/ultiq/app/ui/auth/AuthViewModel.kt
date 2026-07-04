@@ -141,6 +141,15 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                 // a fresh install on a new device picks up the user's existing
                 // bedtime/wake/focus config rather than starting from defaults.
                 response.user.preferences?.let { userPreferences.applyServerPreferences(it) }
+                // §13 (i18n) — on a new device, restore the synced app language.
+                // No-op for a returning user (AppCompat's store already matches),
+                // so it only recreates when the language genuinely differs.
+                response.user.preferences?.get("app_language")?.takeIf { !it.isJsonNull }?.asString
+                    ?.let { lang ->
+                        if (lang.isNotBlank() && lang != com.ultiq.app.util.LocaleManager.currentTag()) {
+                            com.ultiq.app.util.LocaleManager.setLanguage(lang)
+                        }
+                    }
                 // §i18n (v2.13.9) — Push the device's IANA timezone to the
                 // server so all "today" bucketing + the anomaly scheduler use
                 // the user's local clock instead of UTC. Fire-and-forget;
@@ -185,6 +194,14 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                 // symmetry with login (and so that account-merge flows work
                 // when we eventually have them).
                 response.user.preferences?.let { userPreferences.applyServerPreferences(it) }
+                // §13 (i18n) — symmetry with login; a brand-new account has no
+                // stored language so this is a no-op.
+                response.user.preferences?.get("app_language")?.takeIf { !it.isJsonNull }?.asString
+                    ?.let { lang ->
+                        if (lang.isNotBlank() && lang != com.ultiq.app.util.LocaleManager.currentTag()) {
+                            com.ultiq.app.util.LocaleManager.setLanguage(lang)
+                        }
+                    }
                 // §i18n (v2.13.9) — Same as login. For a brand-new account
                 // this is what actually populates the timezone column on the
                 // server (which would otherwise stay at the 'UTC' default

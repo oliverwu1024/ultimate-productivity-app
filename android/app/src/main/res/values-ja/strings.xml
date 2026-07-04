@@ -1,0 +1,21 @@
+<resources>
+    <string name="auth_email">メールアドレス</string>
+    <string name="auth_password">パスワード</string>
+    <string name="auth_show_password">パスワードを表示</string>
+    <string name="auth_hide_password">パスワードを非表示</string>
+
+    <string name="login_title">おかえりなさい</string>
+    <string name="login_button">ログイン</string>
+    <string name="login_forgot_password">パスワードをお忘れですか？</string>
+    <string name="login_register_prompt">アカウントをお持ちでない場合は登録</string>
+
+    <string name="register_title">アカウントを作成</string>
+    <string name="register_confirm_password">パスワードの確認</string>
+    <string name="register_passwords_mismatch">パスワードが一致しません</string>
+    <string name="register_button">登録</string>
+    <string name="register_login_prompt">すでにアカウントをお持ちですか？ログイン</string>
+
+    <string name="settings_language">言語</string>
+    <string name="settings_language_system">システムのデフォルト</string>
+    <string name="common_close">閉じる</string>
+</resources>
