@@ -18,4 +18,174 @@
     <string name="settings_language">Langue</string>
     <string name="settings_language_system">Par défaut du système</string>
     <string name="common_close">Fermer</string>
+
+    <!-- ══════════════════ §13.1 Android sweep — dashboard + common ══════════════════ -->
+
+    <!-- Shared actions / labels (reused across screens) -->
+    <string name="action_settings">Paramètres</string>
+    <string name="action_logout">Déconnexion</string>
+    <string name="action_dismiss">Fermer</string>
+    <string name="action_refresh">Actualiser</string>
+    <string name="action_cancel">Annuler</string>
+    <string name="action_delete">Supprimer</string>
+    <string name="action_generate">Générer</string>
+    <string name="action_view_all">Tout voir</string>
+    <string name="action_decrease">Diminuer</string>
+    <string name="action_increase">Augmenter</string>
+    <string name="common_dismiss_hint">Fermer l\'astuce</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard_title">Tableau de bord</string>
+    <string name="dashboard_coach">Coach</string>
+    <string name="dashboard_coach_cd">Parler avec votre coach</string>
+    <string name="dashboard_today_calendar">Calendrier du jour</string>
+    <string name="dashboard_today_plan">Plan du jour</string>
+    <string name="dashboard_this_week">Cette semaine</string>
+    <string name="dashboard_today">Aujourd\'hui</string>
+    <string name="dashboard_did_you_know">Le saviez-vous ?</string>
+    <string name="dashboard_web_promo">Ultiq est aussi sur le web — analyses complètes sur app.ultiqapp.com</string>
+    <string name="dashboard_heads_up">Attention</string>
+    <string name="dashboard_offline_note">Le suivi quotidien fonctionne hors ligne, mais une connexion est nécessaire pour la sync multi-appareils, les insights IA, les résumés hebdomadaires et la lecture des clips audio.</string>
+    <string name="dashboard_lock_overlay_title">Accorder verrouillage &amp; superposition dans Paramètres</string>
+    <string name="dashboard_lock_overlay_body">Le mode Focus et le verrouillage sommeil nécessitent \'Affichage par-dessus les applis\' et \'Verrouillage strict\' pour fonctionner correctement. Sans eux, l\'écran de verrouillage peut être glissé. Ouvrez Paramètres (en haut à droite) pour accorder.</string>
+    <string name="dashboard_prefs_title">Configurer vos préférences sommeil &amp; focus</string>
+    <string name="dashboard_prefs_body">Vos alarmes et réglages de sommeil se trouvent dans l\'onglet Sommeil ; vos réglages Focus dans l\'onglet Focus. Ouvrez chaque onglet et faites défiler pour configurer — ou appuyez sur × de cette carte pour la masquer.</string>
+    <string name="dashboard_not_synced">Pas encore synchronisé</string>
+    <string name="dashboard_just_synced">Synchronisé à l\'instant</string>
+    <string name="dashboard_synced_minutes_ago">Synchronisé il y a %1$dm</string>
+    <string name="dashboard_synced_hours_ago">Synchronisé il y a %1$dh</string>
+    <string name="dashboard_sleep_rank">✦ %1$s</string>
+    <string name="dashboard_sleep_vs_optimal">%1$s vs sommeil optimal</string>
+    <string name="dashboard_sleep_sounds">🔊 %1$s</string>
+    <string name="dashboard_last_week_daily_avg">La moyenne journalière de la semaine dernière était %1$s</string>
+    <string name="dashboard_focus_today">aujourd\'hui</string>
+    <string name="dashboard_longest_streak">Plus longue série — continuez comme ça</string>
+    <string name="dashboard_checklist_done">%1$d sur %2$d terminé(s)</string>
+    <string name="dashboard_quick_sleep">Enregistrer sommeil</string>
+    <string name="dashboard_quick_focus">Démarrer Focus</string>
+    <string name="dashboard_quick_event">Ajouter un événement</string>
+    <string name="dashboard_stat_avg_sleep">Sommeil moy.</string>
+    <string name="dashboard_stat_avg_quality">Qualité moy.</string>
+    <string name="dashboard_stat_total_focus">Focus total</string>
+    <string name="dashboard_stat_calendar_events">Événements</string>
+    <string name="dashboard_marked_done">Marqué terminé</string>
+    <string name="dashboard_last_week">Semaine dernière</string>
+    <string name="dashboard_sleep_debt">Dette de sommeil</string>
+    <string name="dashboard_extra_rest">Repos supplémentaire</string>
+    <string name="dashboard_on_target">dans l\'objectif</string>
+    <string name="dashboard_net_on_target">Net : dans l\'objectif</string>
+    <string name="dashboard_net_over">Net : +%1$s vs objectif</string>
+    <string name="dashboard_net_under">Net : −%1$s vs objectif</string>
+    <string name="dashboard_achievements">Succès</string>
+    <string name="dashboard_achievements_count">%1$d / %2$d</string>
+    <string name="dashboard_achievement_latest">Dernier : %1$s</string>
+    <string name="dashboard_anomaly_heads_up">Attention</string>
+    <string name="dashboard_insight_title">7 derniers jours — résumé IA</string>
+    <string name="dashboard_insight_generating">Génération de votre semaine…</string>
+    <string name="dashboard_insight_generated">Généré %1$s</string>
+    <string name="dashboard_insight_next_refresh">Prochain rafraîchissement %1$s</string>
+    <string name="dashboard_insight_cached">Actualise toutes les 24 heures — votre prochain résumé arrive bientôt.</string>
+    <string name="dashboard_insight_error_signin">Connectez-vous pour voir votre insight hebdomadaire</string>
+    <string name="dashboard_insight_error_limit">Limite IA quotidienne atteinte — revenez demain</string>
+    <string name="dashboard_insight_error_generic">Impossible de charger votre insight hebdomadaire</string>
+    <string name="dashboard_quiet_night">Nuit calme</string>
+
+    <plurals name="dashboard_sessions_today">
+        <item quantity="one">%1$d session aujourd\'hui</item>
+        <item quantity="many">%1$d sessions aujourd\'hui</item>
+        <item quantity="other">%1$d sessions aujourd\'hui</item>
+    </plurals>
+    <plurals name="dashboard_more_items">
+        <item quantity="one">+%1$d de plus</item>
+        <item quantity="many">+%1$d de plus</item>
+        <item quantity="other">+%1$d de plus</item>
+    </plurals>
+    <plurals name="dashboard_sound_snore">
+        <item quantity="one">%1$d ronflement</item>
+        <item quantity="many">%1$d ronflements</item>
+        <item quantity="other">%1$d ronflements</item>
+    </plurals>
+    <plurals name="dashboard_sound_cough">
+        <item quantity="one">%1$d toux</item>
+        <item quantity="many">%1$d toux</item>
+        <item quantity="other">%1$d toux</item>
+    </plurals>
+    <plurals name="dashboard_sound_talk">
+        <item quantity="one">%1$d somniloquie</item>
+        <item quantity="many">%1$d somniloquies</item>
+        <item quantity="other">%1$d somniloquies</item>
+    </plurals>
+
+    <!-- WarmCopy — companion-voice copy -->
+    <string name="warm_greeting_up_early">Debout tôt</string>
+    <string name="warm_greeting_morning">Bonjour</string>
+    <string name="warm_greeting_lunch">Pause déjeuner ?</string>
+    <string name="warm_greeting_afternoon">Bon après-midi</string>
+    <string name="warm_greeting_evening">Bonsoir</string>
+    <string name="warm_greeting_winding_down">Fin de soirée</string>
+    <string name="warm_greeting_up_late">Encore debout</string>
+    <string name="warm_subtitle_fresh_start">Un nouveau départ.</string>
+    <string name="warm_subtitle_half_day">La journée est à moitié faite.</string>
+    <string name="warm_subtitle_how_land">Comment s\'est passée ta journée ?</string>
+    <string name="warm_subtitle_rest_soon">Bientôt l\'heure de se reposer.</string>
+    <string name="warm_subtitle_new_run">Demain, c\'est reparti.</string>
+    <string name="warm_sleep_how">Vous avez bien dormi ?</string>
+    <string name="warm_sleep_top">Nuit parfaite</string>
+    <string name="warm_sleep_solid">Bonne nuit</string>
+    <string name="warm_sleep_solid_short">Bonne, mais un peu courte</string>
+    <string name="warm_sleep_decent">Nuit correcte</string>
+    <string name="warm_sleep_decent_short">Correcte, mais écourtée</string>
+    <string name="warm_sleep_rough">Nuit difficile — allez-y doucement</string>
+    <string name="warm_sleep_empty_title">Aucune nuit enregistrée</string>
+    <string name="warm_sleep_empty_body">Appuyez sur Démarrer sommeil ce soir — on s\'occupe du reste.</string>
+    <string name="warm_focus_ready">Prêt à vous concentrer ?</string>
+    <string name="warm_focus_starting">On commence</string>
+    <string name="warm_focus_momentum">Bonne lancée</string>
+    <string name="warm_focus_deep">En pleine concentration</string>
+    <string name="warm_focus_big">Grande journée focus</string>
+    <string name="warm_focus_empty_title">Rien pour l\'instant</string>
+    <string name="warm_focus_empty_body">Étiquetez une tâche et démarrez votre premier bloc focus.</string>
+    <string name="warm_achievement_unlocked">Débloqué : %1$s</string>
+    <string name="warm_calendar_empty_title">Rien de prévu</string>
+    <string name="warm_calendar_empty_body">Ajoutez un événement et il apparaîtra ici.</string>
+    <string name="warm_checklist_empty_title">Journée dégagée</string>
+    <string name="warm_checklist_empty_body">Ajoutez une tâche pour commencer.</string>
+    <string name="warm_sessions_empty_title">Prêt à vous concentrer ?</string>
+    <string name="warm_sessions_empty_body">Étiquetez une tâche, choisissez les durées et démarrez votre premier bloc focus.</string>
+    <string name="warm_upcoming_empty">Rien au calendrier aujourd\'hui</string>
+
+    <plurals name="warm_streak_days">
+        <item quantity="one">%1$d jour</item>
+        <item quantity="many">%1$d jours</item>
+        <item quantity="other">%1$d jours</item>
+    </plurals>
+    <plurals name="warm_streak_longest">
+        <item quantity="one">Série de %1$d jour — nouveau record</item>
+        <item quantity="many">Série de %1$d jours — nouveau record</item>
+        <item quantity="other">Série de %1$d jours — nouveau record</item>
+    </plurals>
+    <plurals name="warm_streak_one_off">
+        <item quantity="one">%1$d jour — à un jour du record</item>
+        <item quantity="many">%1$d jours — à un jour du record</item>
+        <item quantity="other">%1$d jours — à un jour du record</item>
+    </plurals>
+
+    <!-- Achievement celebration -->
+    <string name="achievement_unlocked_title">Succès débloqué</string>
+    <string name="achievement_nice">Super</string>
+
+    <!-- AI quick-add (NL parse) dialog -->
+    <string name="ai_parse_calendar_title">Ajout rapide d\'événement</string>
+    <string name="ai_parse_calendar_hint">ex. déjeuner avec Sarah demain à 13h</string>
+    <string name="ai_parse_checklist_title">Ajout rapide de tâche</string>
+    <string name="ai_parse_checklist_hint">ex. acheter des courses vendredi</string>
+    <string name="ai_parse_description">Tapez une phrase et nous remplirons les détails à vérifier.</string>
+
+    <!-- In-app APK update banner -->
+    <string name="update_downloading_pct">Téléchargement d\'Ultiq %1$s… %2$d%%</string>
+    <string name="update_downloading">Téléchargement d\'Ultiq %1$s…</string>
+    <string name="update_awaiting_confirm">L\'invite système est ouverte — appuyez sur Installer</string>
+    <string name="update_installed">Mise à jour installée — appuyez pour redémarrer Ultiq</string>
+    <string name="update_failed">Mise à jour échouée — appuyez pour réessayer</string>
+    <string name="update_available">Ultiq %1$s est disponible — appuyez pour installer</string>
 </resources>

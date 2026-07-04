@@ -18,4 +18,158 @@
     <string name="settings_language">語言</string>
     <string name="settings_language_system">系統預設</string>
     <string name="common_close">關閉</string>
+
+    <!-- ══════════════════ §13.1 Android sweep — dashboard + common ══════════════════ -->
+
+    <!-- Shared actions / labels (reused across screens) -->
+    <string name="action_settings">設定</string>
+    <string name="action_logout">登出</string>
+    <string name="action_dismiss">關閉</string>
+    <string name="action_refresh">重新整理</string>
+    <string name="action_cancel">取消</string>
+    <string name="action_delete">刪除</string>
+    <string name="action_generate">生成</string>
+    <string name="action_view_all">查看全部</string>
+    <string name="action_decrease">減少</string>
+    <string name="action_increase">增加</string>
+    <string name="common_dismiss_hint">關閉提示</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard_title">主頁</string>
+    <string name="dashboard_coach">教練</string>
+    <string name="dashboard_coach_cd">與您的教練對話</string>
+    <string name="dashboard_today_calendar">今日行事曆</string>
+    <string name="dashboard_today_plan">今日計畫</string>
+    <string name="dashboard_this_week">本週</string>
+    <string name="dashboard_today">今天</string>
+    <string name="dashboard_did_you_know">您知道嗎？</string>
+    <string name="dashboard_web_promo">Ultiq 也有網頁版——完整數據分析請訪問 app.ultiqapp.com</string>
+    <string name="dashboard_heads_up">注意</string>
+    <string name="dashboard_offline_note">日常追蹤可離線使用，但跨裝置同步、AI 洞察、每週摘要及音訊片段播放需要網路連線。</string>
+    <string name="dashboard_lock_overlay_title">在設定中授予鎖定及懸浮視窗權限</string>
+    <string name="dashboard_lock_overlay_body">專注模式和睡眠鎖定需要「顯示在其他應用程式上層」和「嚴格鎖定」才能正常運作。若未授權，鎖定畫面可被滑開。請開啟設定（右上角）進行授權。</string>
+    <string name="dashboard_prefs_title">設定您的睡眠及專注偏好</string>
+    <string name="dashboard_prefs_body">您的鬧鐘和睡眠設定在睡眠分頁；專注設定在專注分頁。開啟各分頁向下捲動即可設定——或點選此卡片的 × 關閉。</string>
+    <string name="dashboard_not_synced">尚未同步</string>
+    <string name="dashboard_just_synced">剛剛同步</string>
+    <string name="dashboard_synced_minutes_ago">%1$d 分鐘前同步</string>
+    <string name="dashboard_synced_hours_ago">%1$d 小時前同步</string>
+    <string name="dashboard_sleep_rank">✦ %1$s</string>
+    <string name="dashboard_sleep_vs_optimal">%1$s vs 最佳睡眠</string>
+    <string name="dashboard_sleep_sounds">🔊 %1$s</string>
+    <string name="dashboard_last_week_daily_avg">上週每日平均為 %1$s</string>
+    <string name="dashboard_focus_today">今天</string>
+    <string name="dashboard_longest_streak">最長連續紀錄——繼續保持</string>
+    <string name="dashboard_checklist_done">%1$d / %2$d 已完成</string>
+    <string name="dashboard_quick_sleep">記錄睡眠</string>
+    <string name="dashboard_quick_focus">開始專注</string>
+    <string name="dashboard_quick_event">新增活動</string>
+    <string name="dashboard_stat_avg_sleep">平均睡眠</string>
+    <string name="dashboard_stat_avg_quality">平均品質</string>
+    <string name="dashboard_stat_total_focus">總專注時間</string>
+    <string name="dashboard_stat_calendar_events">行事曆活動</string>
+    <string name="dashboard_marked_done">已標記完成</string>
+    <string name="dashboard_last_week">上週</string>
+    <string name="dashboard_sleep_debt">睡眠赤字</string>
+    <string name="dashboard_extra_rest">額外休息</string>
+    <string name="dashboard_on_target">達標</string>
+    <string name="dashboard_net_on_target">合計：達標</string>
+    <string name="dashboard_net_over">合計：+%1$s vs 目標</string>
+    <string name="dashboard_net_under">合計：−%1$s vs 目標</string>
+    <string name="dashboard_achievements">成就</string>
+    <string name="dashboard_achievements_count">%1$d / %2$d</string>
+    <string name="dashboard_achievement_latest">最新：%1$s</string>
+    <string name="dashboard_anomaly_heads_up">注意</string>
+    <string name="dashboard_insight_title">過去 7 天——AI 摘要</string>
+    <string name="dashboard_insight_generating">正在生成您的週報…</string>
+    <string name="dashboard_insight_generated">已生成於 %1$s</string>
+    <string name="dashboard_insight_next_refresh">下次更新 %1$s</string>
+    <string name="dashboard_insight_cached">每 24 小時更新一次——您的下一份摘要正在準備中。</string>
+    <string name="dashboard_insight_error_signin">登入以查看每週洞察</string>
+    <string name="dashboard_insight_error_limit">今日 AI 使用上限已達——明天再來</string>
+    <string name="dashboard_insight_error_generic">無法載入您的每週洞察</string>
+    <string name="dashboard_quiet_night">寂靜之夜</string>
+
+    <plurals name="dashboard_sessions_today">
+        <item quantity="other">今日 %1$d 場專注</item>
+    </plurals>
+    <plurals name="dashboard_more_items">
+        <item quantity="other">+%1$d 更多</item>
+    </plurals>
+    <plurals name="dashboard_sound_snore">
+        <item quantity="other">%1$d 次鼾聲</item>
+    </plurals>
+    <plurals name="dashboard_sound_cough">
+        <item quantity="other">%1$d 次咳嗽</item>
+    </plurals>
+    <plurals name="dashboard_sound_talk">
+        <item quantity="other">%1$d 次夢話</item>
+    </plurals>
+
+    <!-- WarmCopy — companion-voice copy -->
+    <string name="warm_greeting_up_early">起得真早</string>
+    <string name="warm_greeting_morning">早安</string>
+    <string name="warm_greeting_lunch">午休時間？</string>
+    <string name="warm_greeting_afternoon">午安</string>
+    <string name="warm_greeting_evening">晚上好</string>
+    <string name="warm_greeting_winding_down">準備休息了</string>
+    <string name="warm_greeting_up_late">熬夜了</string>
+    <string name="warm_subtitle_fresh_start">嶄新的開始。</string>
+    <string name="warm_subtitle_half_day">還有半天。</string>
+    <string name="warm_subtitle_how_land">今天過得如何？</string>
+    <string name="warm_subtitle_rest_soon">快到休息時間了。</string>
+    <string name="warm_subtitle_new_run">明天又是新的一天。</string>
+    <string name="warm_sleep_how">睡得好嗎？</string>
+    <string name="warm_sleep_top">極佳的夜晚</string>
+    <string name="warm_sleep_solid">充實的夜晚</string>
+    <string name="warm_sleep_solid_short">充實，但有點短</string>
+    <string name="warm_sleep_decent">還不錯的夜晚</string>
+    <string name="warm_sleep_decent_short">還不錯，但有點短</string>
+    <string name="warm_sleep_rough">睡得不好——今天輕鬆一點</string>
+    <string name="warm_sleep_empty_title">尚無睡眠記錄</string>
+    <string name="warm_sleep_empty_body">今晚點擊「開始睡眠」——其餘的交給我們。</string>
+    <string name="warm_focus_ready">準備好專注了嗎？</string>
+    <string name="warm_focus_starting">剛剛開始</string>
+    <string name="warm_focus_momentum">狀態不錯</string>
+    <string name="warm_focus_deep">全神貫注中</string>
+    <string name="warm_focus_big">超高效專注日</string>
+    <string name="warm_focus_empty_title">今天還沒有記錄</string>
+    <string name="warm_focus_empty_body">標記任務並開始您的第一個專注時段。</string>
+    <string name="warm_achievement_unlocked">已解鎖：%1$s</string>
+    <string name="warm_calendar_empty_title">沒有排程</string>
+    <string name="warm_calendar_empty_body">新增活動後即會顯示在這裡。</string>
+    <string name="warm_checklist_empty_title">今天一片空白</string>
+    <string name="warm_checklist_empty_body">新增任務，開始行動。</string>
+    <string name="warm_sessions_empty_title">準備好專注了嗎？</string>
+    <string name="warm_sessions_empty_body">標記任務、選擇時長，並開始您的第一個專注時段。</string>
+    <string name="warm_upcoming_empty">今天行事曆上沒有安排</string>
+
+    <plurals name="warm_streak_days">
+        <item quantity="other">%1$d 天</item>
+    </plurals>
+    <plurals name="warm_streak_longest">
+        <item quantity="other">%1$d 天連勝——最長紀錄</item>
+    </plurals>
+    <plurals name="warm_streak_one_off">
+        <item quantity="other">%1$d 天，離記錄只差一步</item>
+    </plurals>
+
+    <!-- Achievement celebration -->
+    <string name="achievement_unlocked_title">成就已解鎖</string>
+    <string name="achievement_nice">太棒了</string>
+
+    <!-- AI quick-add (NL parse) dialog -->
+    <string name="ai_parse_calendar_title">快速新增活動</string>
+    <string name="ai_parse_calendar_hint">例如：明天下午一點和 Sarah 吃午飯</string>
+    <string name="ai_parse_checklist_title">快速新增任務</string>
+    <string name="ai_parse_checklist_hint">例如：週五買食材</string>
+    <string name="ai_parse_description">輸入一句話，我們會自動填入細節供您確認。</string>
+
+    <!-- In-app APK update banner -->
+    <string name="update_downloading_pct">正在下載 Ultiq %1$s… %2$d%%</string>
+    <string name="update_downloading">正在下載 Ultiq %1$s…</string>
+    <string name="update_awaiting_confirm">系統提示已開啟——請在那裡點擊安裝</string>
+    <string name="update_installed">更新已安裝——點擊重新啟動 Ultiq</string>
+    <string name="update_failed">更新失敗——點擊重試</string>
+    <string name="update_available">Ultiq %1$s 已可下載——點擊安裝</string>
 </resources>

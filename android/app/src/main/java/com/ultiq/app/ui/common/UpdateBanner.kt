@@ -28,8 +28,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.ultiq.app.R
 import com.ultiq.app.util.ApkUpdater
 import com.ultiq.app.util.UpdateChecker
 import com.ultiq.app.util.UpdateInfo
@@ -44,18 +46,18 @@ fun UpdateBanner(info: UpdateInfo) {
             val pct = if (updater.totalBytes > 0) {
                 (updater.downloadedBytes * 100 / updater.totalBytes).toInt()
             } else null
-            val msg = if (pct != null) "Downloading Ultiq ${info.versionName}… $pct%"
-            else "Downloading Ultiq ${info.versionName}…"
+            val msg = if (pct != null) stringResource(R.string.update_downloading_pct, info.versionName, pct)
+            else stringResource(R.string.update_downloading, info.versionName)
             msg to false
         }
-        ApkUpdater.Stage.AwaitingConfirm -> "System prompt is open — tap Install there" to false
+        ApkUpdater.Stage.AwaitingConfirm -> stringResource(R.string.update_awaiting_confirm) to false
         // §fix-restart-after-install — the new APK is on disk but the
         // running process is still the old code on most OEMs. Make the
         // banner clickable and have it kill+relaunch so the launcher
         // brings up the freshly-installed version.
-        ApkUpdater.Stage.Installing -> "Update installed — tap to restart Ultiq" to true
-        ApkUpdater.Stage.Failed -> "Update failed — tap to retry" to true
-        ApkUpdater.Stage.Idle -> "Ultiq ${info.versionName} is available — tap to install" to true
+        ApkUpdater.Stage.Installing -> stringResource(R.string.update_installed) to true
+        ApkUpdater.Stage.Failed -> stringResource(R.string.update_failed) to true
+        ApkUpdater.Stage.Idle -> stringResource(R.string.update_available, info.versionName) to true
     }
 
     Column(
@@ -114,7 +116,7 @@ fun UpdateBanner(info: UpdateInfo) {
             }) {
                 Icon(
                     Icons.Default.Close,
-                    contentDescription = "Dismiss",
+                    contentDescription = stringResource(R.string.action_dismiss),
                     tint = MaterialTheme.colorScheme.onTertiaryContainer,
                 )
             }

@@ -18,4 +18,158 @@
     <string name="settings_language">言語</string>
     <string name="settings_language_system">システムのデフォルト</string>
     <string name="common_close">閉じる</string>
+
+    <!-- ══════════════════ §13.1 Android sweep — dashboard + common ══════════════════ -->
+
+    <!-- Shared actions / labels (reused across screens) -->
+    <string name="action_settings">設定</string>
+    <string name="action_logout">ログアウト</string>
+    <string name="action_dismiss">閉じる</string>
+    <string name="action_refresh">更新</string>
+    <string name="action_cancel">キャンセル</string>
+    <string name="action_delete">削除</string>
+    <string name="action_generate">生成</string>
+    <string name="action_view_all">すべて見る</string>
+    <string name="action_decrease">減らす</string>
+    <string name="action_increase">増やす</string>
+    <string name="common_dismiss_hint">ヒントを閉じる</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard_title">ダッシュボード</string>
+    <string name="dashboard_coach">コーチ</string>
+    <string name="dashboard_coach_cd">コーチに話しかける</string>
+    <string name="dashboard_today_calendar">今日のカレンダー</string>
+    <string name="dashboard_today_plan">今日のプラン</string>
+    <string name="dashboard_this_week">今週</string>
+    <string name="dashboard_today">今日</string>
+    <string name="dashboard_did_you_know">ご存知ですか？</string>
+    <string name="dashboard_web_promo">UltiqはWebでも使えます — app.ultiqapp.comでフル分析を</string>
+    <string name="dashboard_heads_up">お知らせ</string>
+    <string name="dashboard_offline_note">日々のトラッキングはオフラインでも使えますが、デバイス間の同期、AIインサイト、週次サマリー、音声クリップの再生にはネット接続が必要です。</string>
+    <string name="dashboard_lock_overlay_title">設定でロック &amp; オーバーレイを許可してください</string>
+    <string name="dashboard_lock_overlay_body">フォーカスモードと睡眠ロックアウトが確実に機能するには、「他のアプリの上に表示」と「厳格なロック」の許可が必要です。許可がないと、ロック画面がスワイプで解除されます。設定（右上）を開いて許可してください。</string>
+    <string name="dashboard_prefs_title">睡眠 &amp; フォーカスの設定をする</string>
+    <string name="dashboard_prefs_body">起床アラームと睡眠の設定は睡眠タブに、フォーカスの設定はフォーカスタブにあります。各タブを開いてスクロールして設定するか、このカードの×をタップして非表示にしてください。</string>
+    <string name="dashboard_not_synced">未同期</string>
+    <string name="dashboard_just_synced">同期完了</string>
+    <string name="dashboard_synced_minutes_ago">%1$dm前に同期</string>
+    <string name="dashboard_synced_hours_ago">%1$dh前に同期</string>
+    <string name="dashboard_sleep_rank">✦ %1$s</string>
+    <string name="dashboard_sleep_vs_optimal">%1$s（最適な睡眠との比較）</string>
+    <string name="dashboard_sleep_sounds">🔊 %1$s</string>
+    <string name="dashboard_last_week_daily_avg">先週の1日平均は%1$sでした</string>
+    <string name="dashboard_focus_today">今日</string>
+    <string name="dashboard_longest_streak">最長ストリーク達成 — 続けよう</string>
+    <string name="dashboard_checklist_done">%1$d / %2$d 完了</string>
+    <string name="dashboard_quick_sleep">睡眠を記録</string>
+    <string name="dashboard_quick_focus">フォーカスを開始</string>
+    <string name="dashboard_quick_event">イベント追加</string>
+    <string name="dashboard_stat_avg_sleep">平均睡眠</string>
+    <string name="dashboard_stat_avg_quality">平均品質</string>
+    <string name="dashboard_stat_total_focus">フォーカス合計</string>
+    <string name="dashboard_stat_calendar_events">カレンダーイベント</string>
+    <string name="dashboard_marked_done">完了にした</string>
+    <string name="dashboard_last_week">先週</string>
+    <string name="dashboard_sleep_debt">睡眠負債</string>
+    <string name="dashboard_extra_rest">余分な休息</string>
+    <string name="dashboard_on_target">目標通り</string>
+    <string name="dashboard_net_on_target">合計：目標通り</string>
+    <string name="dashboard_net_over">合計：目標比+%1$s</string>
+    <string name="dashboard_net_under">合計：目標比−%1$s</string>
+    <string name="dashboard_achievements">実績</string>
+    <string name="dashboard_achievements_count">%1$d / %2$d</string>
+    <string name="dashboard_achievement_latest">最新：%1$s</string>
+    <string name="dashboard_anomaly_heads_up">お知らせ</string>
+    <string name="dashboard_insight_title">過去7日間 — AIサマリー</string>
+    <string name="dashboard_insight_generating">週次サマリーを生成中…</string>
+    <string name="dashboard_insight_generated">%1$sに生成</string>
+    <string name="dashboard_insight_next_refresh">次の更新：%1$s</string>
+    <string name="dashboard_insight_cached">24時間ごとに更新されます — 次のサマリーをお届け中。</string>
+    <string name="dashboard_insight_error_signin">週次インサイトを見るにはサインインしてください</string>
+    <string name="dashboard_insight_error_limit">1日のAI利用上限に達しました — 明日また</string>
+    <string name="dashboard_insight_error_generic">週次インサイトを読み込めませんでした</string>
+    <string name="dashboard_quiet_night">静かな夜</string>
+
+    <plurals name="dashboard_sessions_today">
+        <item quantity="other">今日は%1$dセッション</item>
+    </plurals>
+    <plurals name="dashboard_more_items">
+        <item quantity="other">+%1$d件</item>
+    </plurals>
+    <plurals name="dashboard_sound_snore">
+        <item quantity="other">いびき%1$d回</item>
+    </plurals>
+    <plurals name="dashboard_sound_cough">
+        <item quantity="other">せき%1$d回</item>
+    </plurals>
+    <plurals name="dashboard_sound_talk">
+        <item quantity="other">寝言%1$d回</item>
+    </plurals>
+
+    <!-- WarmCopy — companion-voice copy -->
+    <string name="warm_greeting_up_early">早起きですね</string>
+    <string name="warm_greeting_morning">おはようございます</string>
+    <string name="warm_greeting_lunch">ランチ休憩ですか？</string>
+    <string name="warm_greeting_afternoon">こんにちは</string>
+    <string name="warm_greeting_evening">こんばんは</string>
+    <string name="warm_greeting_winding_down">そろそろ落ち着く時間</string>
+    <string name="warm_greeting_up_late">夜更かしですね</string>
+    <string name="warm_subtitle_fresh_start">新しいスタートです。</string>
+    <string name="warm_subtitle_half_day">あと半日。</string>
+    <string name="warm_subtitle_how_land">今日はどうでしたか？</string>
+    <string name="warm_subtitle_rest_soon">もうすぐ休む時間。</string>
+    <string name="warm_subtitle_new_run">明日はまた新たな一日。</string>
+    <string name="warm_sleep_how">眠れましたか？</string>
+    <string name="warm_sleep_top">最高の夜</string>
+    <string name="warm_sleep_solid">しっかり眠れた夜</string>
+    <string name="warm_sleep_solid_short">しっかり眠れたが少し短め</string>
+    <string name="warm_sleep_decent">まあまあの夜</string>
+    <string name="warm_sleep_decent_short">まあまあだが短め</string>
+    <string name="warm_sleep_rough">少し辛い夜でした — 今日はゆっくり</string>
+    <string name="warm_sleep_empty_title">まだ記録がありません</string>
+    <string name="warm_sleep_empty_body">今夜「睡眠開始」をタップ — あとはお任せ。</string>
+    <string name="warm_focus_ready">フォーカスの準備はできましたか？</string>
+    <string name="warm_focus_starting">ウォームアップ中</string>
+    <string name="warm_focus_momentum">調子が出てきた</string>
+    <string name="warm_focus_deep">深く集中中</string>
+    <string name="warm_focus_big">集中の一日</string>
+    <string name="warm_focus_empty_title">今日はまだ記録なし</string>
+    <string name="warm_focus_empty_body">タスクにタグを付けて最初のフォーカスブロックを始めよう。</string>
+    <string name="warm_achievement_unlocked">解除：%1$s</string>
+    <string name="warm_calendar_empty_title">予定なし</string>
+    <string name="warm_calendar_empty_body">イベントを追加するとここに表示されます。</string>
+    <string name="warm_checklist_empty_title">今日は予定が空です</string>
+    <string name="warm_checklist_empty_body">タスクを追加して始めよう。</string>
+    <string name="warm_sessions_empty_title">フォーカスの準備はできましたか？</string>
+    <string name="warm_sessions_empty_body">タスクにタグを付けて時間を選び、最初のフォーカスブロックを始めよう。</string>
+    <string name="warm_upcoming_empty">今日のカレンダーに予定はありません</string>
+
+    <plurals name="warm_streak_days">
+        <item quantity="other">%1$d日</item>
+    </plurals>
+    <plurals name="warm_streak_longest">
+        <item quantity="other">%1$d日ストリーク — 最長記録</item>
+    </plurals>
+    <plurals name="warm_streak_one_off">
+        <item quantity="other">%1$d日 — あと1日で記録更新</item>
+    </plurals>
+
+    <!-- Achievement celebration -->
+    <string name="achievement_unlocked_title">実績を解除しました</string>
+    <string name="achievement_nice">いいね</string>
+
+    <!-- AI quick-add (NL parse) dialog -->
+    <string name="ai_parse_calendar_title">イベントをクイック追加</string>
+    <string name="ai_parse_calendar_hint">例：明日午後1時にサラとランチ</string>
+    <string name="ai_parse_checklist_title">タスクをクイック追加</string>
+    <string name="ai_parse_checklist_hint">例：金曜日に食料品を買う</string>
+    <string name="ai_parse_description">文章を入力すると、詳細を自動入力します。確認してください。</string>
+
+    <!-- In-app APK update banner -->
+    <string name="update_downloading_pct">Ultiq %1$sをダウンロード中… %2$d%%</string>
+    <string name="update_downloading">Ultiq %1$sをダウンロード中…</string>
+    <string name="update_awaiting_confirm">システムプロンプトが開いています — そちらで「インストール」をタップ</string>
+    <string name="update_installed">アップデート完了 — タップしてUltiqを再起動</string>
+    <string name="update_failed">アップデート失敗 — タップして再試行</string>
+    <string name="update_available">Ultiq %1$sが利用可能 — タップしてインストール</string>
 </resources>

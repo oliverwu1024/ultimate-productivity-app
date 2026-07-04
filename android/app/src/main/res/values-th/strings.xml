@@ -18,4 +18,158 @@
     <string name="settings_language">ภาษา</string>
     <string name="settings_language_system">ค่าเริ่มต้นของระบบ</string>
     <string name="common_close">ปิด</string>
+
+    <!-- ══════════════════ §13.1 Android sweep — dashboard + common ══════════════════ -->
+
+    <!-- Shared actions / labels (reused across screens) -->
+    <string name="action_settings">การตั้งค่า</string>
+    <string name="action_logout">ออกจากระบบ</string>
+    <string name="action_dismiss">ปิด</string>
+    <string name="action_refresh">รีเฟรช</string>
+    <string name="action_cancel">ยกเลิก</string>
+    <string name="action_delete">ลบ</string>
+    <string name="action_generate">สร้าง</string>
+    <string name="action_view_all">ดูทั้งหมด</string>
+    <string name="action_decrease">ลด</string>
+    <string name="action_increase">เพิ่ม</string>
+    <string name="common_dismiss_hint">ปิดคำแนะนำ</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard_title">แดชบอร์ด</string>
+    <string name="dashboard_coach">โค้ช</string>
+    <string name="dashboard_coach_cd">พูดคุยกับโค้ช</string>
+    <string name="dashboard_today_calendar">ปฏิทินวันนี้</string>
+    <string name="dashboard_today_plan">แผนวันนี้</string>
+    <string name="dashboard_this_week">สัปดาห์นี้</string>
+    <string name="dashboard_today">วันนี้</string>
+    <string name="dashboard_did_you_know">รู้หรือไม่?</string>
+    <string name="dashboard_web_promo">Ultiq ใช้งานได้บนเว็บด้วย — ดูสถิติครบที่ app.ultiqapp.com</string>
+    <string name="dashboard_heads_up">แจ้งเตือน</string>
+    <string name="dashboard_offline_note">การติดตามรายวันใช้งานได้แบบออฟไลน์ แต่ต้องเชื่อมต่ออินเทอร์เน็ตเพื่อซิงค์ข้ามอุปกรณ์ AI insights สรุปรายสัปดาห์ และเล่นคลิปเสียง</string>
+    <string name="dashboard_lock_overlay_title">อนุญาตล็อคหน้าจอ &amp; แสดงทับในการตั้งค่า</string>
+    <string name="dashboard_lock_overlay_body">โหมดโฟกัสและการล็อคระหว่างนอนต้องการ \'แสดงทับแอปอื่น\' และ \'ล็อคเข้มงวด\' เพื่อให้ทำงานได้ดี หากไม่มีสิทธิ์เหล่านี้ หน้าจอล็อคจะถูกปัดออกได้ เปิดการตั้งค่า (มุมบนขวา) เพื่ออนุญาต</string>
+    <string name="dashboard_prefs_title">ตั้งค่าการนอนหลับ &amp; โฟกัสของคุณ</string>
+    <string name="dashboard_prefs_body">การตั้งนาฬิกาปลุกและการตั้งค่าการนอนอยู่ในแท็บนอนหลับ การตั้งค่าโฟกัสอยู่ในแท็บโฟกัส เปิดแต่ละแท็บแล้วเลื่อนลงเพื่อตั้งค่า หรือกด × ที่การ์ดนี้เพื่อซ่อน</string>
+    <string name="dashboard_not_synced">ยังไม่ได้ซิงค์</string>
+    <string name="dashboard_just_synced">ซิงค์แล้ว</string>
+    <string name="dashboard_synced_minutes_ago">ซิงค์ %1$d นาทีที่แล้ว</string>
+    <string name="dashboard_synced_hours_ago">ซิงค์ %1$d ชั่วโมงที่แล้ว</string>
+    <string name="dashboard_sleep_rank">✦ %1$s</string>
+    <string name="dashboard_sleep_vs_optimal">%1$s เทียบกับการนอนหลับที่เหมาะสม</string>
+    <string name="dashboard_sleep_sounds">🔊 %1$s</string>
+    <string name="dashboard_last_week_daily_avg">ค่าเฉลี่ยรายวันสัปดาห์ที่แล้วคือ %1$s</string>
+    <string name="dashboard_focus_today">วันนี้</string>
+    <string name="dashboard_longest_streak">สตรีคยาวที่สุดเท่าที่เคยมี — ทำต่อไปเลย</string>
+    <string name="dashboard_checklist_done">%1$d จาก %2$d เสร็จแล้ว</string>
+    <string name="dashboard_quick_sleep">บันทึกการนอน</string>
+    <string name="dashboard_quick_focus">เริ่มโฟกัส</string>
+    <string name="dashboard_quick_event">เพิ่มกิจกรรม</string>
+    <string name="dashboard_stat_avg_sleep">ค่าเฉลี่ยการนอน</string>
+    <string name="dashboard_stat_avg_quality">คุณภาพเฉลี่ย</string>
+    <string name="dashboard_stat_total_focus">โฟกัสทั้งหมด</string>
+    <string name="dashboard_stat_calendar_events">กิจกรรมปฏิทิน</string>
+    <string name="dashboard_marked_done">ทำเครื่องหมายเสร็จแล้ว</string>
+    <string name="dashboard_last_week">สัปดาห์ที่แล้ว</string>
+    <string name="dashboard_sleep_debt">การนอนที่ขาดไป</string>
+    <string name="dashboard_extra_rest">พักเพิ่มเติม</string>
+    <string name="dashboard_on_target">ตรงเป้า</string>
+    <string name="dashboard_net_on_target">สุทธิ: ตรงเป้า</string>
+    <string name="dashboard_net_over">สุทธิ: +%1$s เทียบกับเป้าหมาย</string>
+    <string name="dashboard_net_under">สุทธิ: −%1$s เทียบกับเป้าหมาย</string>
+    <string name="dashboard_achievements">ความสำเร็จ</string>
+    <string name="dashboard_achievements_count">%1$d / %2$d</string>
+    <string name="dashboard_achievement_latest">ล่าสุด: %1$s</string>
+    <string name="dashboard_anomaly_heads_up">แจ้งเตือน</string>
+    <string name="dashboard_insight_title">7 วันที่ผ่านมา — สรุปจาก AI</string>
+    <string name="dashboard_insight_generating">กำลังสร้างสรุปสัปดาห์ของคุณ…</string>
+    <string name="dashboard_insight_generated">สร้างเมื่อ %1$s</string>
+    <string name="dashboard_insight_next_refresh">รีเฟรชครั้งถัดไป %1$s</string>
+    <string name="dashboard_insight_cached">รีเฟรชทุก 24 ชั่วโมง — สรุปครั้งถัดไปกำลังมา</string>
+    <string name="dashboard_insight_error_signin">เข้าสู่ระบบเพื่อดูสรุปรายสัปดาห์</string>
+    <string name="dashboard_insight_error_limit">ถึงขีดจำกัด AI รายวันแล้ว — กลับมาพรุ่งนี้</string>
+    <string name="dashboard_insight_error_generic">ไม่สามารถโหลดสรุปรายสัปดาห์ได้</string>
+    <string name="dashboard_quiet_night">คืนที่เงียบสงบ</string>
+
+    <plurals name="dashboard_sessions_today">
+        <item quantity="other">%1$d เซสชันวันนี้</item>
+    </plurals>
+    <plurals name="dashboard_more_items">
+        <item quantity="other">+%1$d เพิ่มเติม</item>
+    </plurals>
+    <plurals name="dashboard_sound_snore">
+        <item quantity="other">กรน %1$d ครั้ง</item>
+    </plurals>
+    <plurals name="dashboard_sound_cough">
+        <item quantity="other">ไอ %1$d ครั้ง</item>
+    </plurals>
+    <plurals name="dashboard_sound_talk">
+        <item quantity="other">พูดละเมอ %1$d ครั้ง</item>
+    </plurals>
+
+    <!-- WarmCopy — companion-voice copy -->
+    <string name="warm_greeting_up_early">ตื่นเช้า</string>
+    <string name="warm_greeting_morning">อรุณสวัสดิ์</string>
+    <string name="warm_greeting_lunch">พักกินข้าวกลางวัน?</string>
+    <string name="warm_greeting_afternoon">สวัสดีตอนบ่าย</string>
+    <string name="warm_greeting_evening">สวัสดีตอนเย็น</string>
+    <string name="warm_greeting_winding_down">ผ่อนคลายก่อนนอน</string>
+    <string name="warm_greeting_up_late">ตื่นดึก</string>
+    <string name="warm_subtitle_fresh_start">เริ่มต้นใหม่อีกครั้ง</string>
+    <string name="warm_subtitle_half_day">ยังเหลืออีกครึ่งวัน</string>
+    <string name="warm_subtitle_how_land">วันนี้เป็นยังไงบ้าง?</string>
+    <string name="warm_subtitle_rest_soon">ใกล้ถึงเวลาพักแล้ว</string>
+    <string name="warm_subtitle_new_run">พรุ่งนี้เริ่มใหม่อีกครั้ง</string>
+    <string name="warm_sleep_how">นอนหลับคืนนี้เป็นยังไงบ้าง?</string>
+    <string name="warm_sleep_top">คืนที่ยอดเยี่ยม</string>
+    <string name="warm_sleep_solid">คืนที่ดีมาก</string>
+    <string name="warm_sleep_solid_short">ดีมาก แต่นอนสั้นไปหน่อย</string>
+    <string name="warm_sleep_decent">คืนที่พอใช้</string>
+    <string name="warm_sleep_decent_short">พอใช้ แต่สั้นไปหน่อย</string>
+    <string name="warm_sleep_rough">คืนยากๆ — วันนี้อย่าหักโหม</string>
+    <string name="warm_sleep_empty_title">ยังไม่ได้บันทึกการนอน</string>
+    <string name="warm_sleep_empty_body">กด เริ่มนอนหลับ คืนนี้ แล้วเราจะดูแลส่วนที่เหลือให้</string>
+    <string name="warm_focus_ready">พร้อมโฟกัสแล้วหรือยัง?</string>
+    <string name="warm_focus_starting">เพิ่งเริ่มต้น</string>
+    <string name="warm_focus_momentum">ได้จังหวะดีแล้ว</string>
+    <string name="warm_focus_deep">จดจ่ออยู่กับงาน</string>
+    <string name="warm_focus_big">วันโฟกัสเต็มพิกัด</string>
+    <string name="warm_focus_empty_title">วันนี้ยังไม่มีอะไร</string>
+    <string name="warm_focus_empty_body">แท็กงานแล้วเริ่มบล็อกโฟกัสแรกของคุณ</string>
+    <string name="warm_achievement_unlocked">ปลดล็อค: %1$s</string>
+    <string name="warm_calendar_empty_title">ยังไม่มีกำหนดการ</string>
+    <string name="warm_calendar_empty_body">เพิ่มกิจกรรมแล้วมันจะปรากฏที่นี่</string>
+    <string name="warm_checklist_empty_title">วันนี้ว่างอยู่เลย</string>
+    <string name="warm_checklist_empty_body">เพิ่มงานเพื่อเริ่มต้น</string>
+    <string name="warm_sessions_empty_title">พร้อมโฟกัสแล้วหรือยัง?</string>
+    <string name="warm_sessions_empty_body">แท็กงาน เลือกระยะเวลา แล้วเริ่มบล็อกโฟกัสแรกของคุณ</string>
+    <string name="warm_upcoming_empty">วันนี้ไม่มีกำหนดการในปฏิทิน</string>
+
+    <plurals name="warm_streak_days">
+        <item quantity="other">%1$d วัน</item>
+    </plurals>
+    <plurals name="warm_streak_longest">
+        <item quantity="other">สตรีค %1$d วัน — ยาวที่สุดเท่าที่เคยมี</item>
+    </plurals>
+    <plurals name="warm_streak_one_off">
+        <item quantity="other">%1$d วัน ขาดอีกหนึ่งวันจากสถิติของคุณ</item>
+    </plurals>
+
+    <!-- Achievement celebration -->
+    <string name="achievement_unlocked_title">ปลดล็อคความสำเร็จแล้ว</string>
+    <string name="achievement_nice">เยี่ยมเลย</string>
+
+    <!-- AI quick-add (NL parse) dialog -->
+    <string name="ai_parse_calendar_title">เพิ่มกิจกรรมด่วน</string>
+    <string name="ai_parse_calendar_hint">เช่น ทานข้าวกลางวันกับ Sarah พรุ่งนี้บ่ายโมง</string>
+    <string name="ai_parse_checklist_title">เพิ่มงานด่วน</string>
+    <string name="ai_parse_checklist_hint">เช่น ซื้อของชำวันศุกร์</string>
+    <string name="ai_parse_description">พิมพ์ประโยคแล้วเราจะกรอกรายละเอียดให้คุณตรวจสอบ</string>
+
+    <!-- In-app APK update banner -->
+    <string name="update_downloading_pct">กำลังดาวน์โหลด Ultiq %1$s… %2$d%%</string>
+    <string name="update_downloading">กำลังดาวน์โหลด Ultiq %1$s…</string>
+    <string name="update_awaiting_confirm">หน้าจอระบบเปิดอยู่ — กด ติดตั้ง ที่นั่น</string>
+    <string name="update_installed">ติดตั้งอัปเดตแล้ว — กดเพื่อรีสตาร์ท Ultiq</string>
+    <string name="update_failed">การอัปเดตล้มเหลว — กดเพื่อลองอีกครั้ง</string>
+    <string name="update_available">Ultiq %1$s พร้อมใช้งาน — กดเพื่อติดตั้ง</string>
 </resources>

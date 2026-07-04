@@ -24,7 +24,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.ultiq.app.R
 
 /// §9.5 — Reusable "describe what you want in one line" dialog used on
 /// Calendar + Checklist. The caller owns the loading + error state via the
@@ -47,8 +49,10 @@ fun AiParsePromptDialog(
     }
 
     val (title, placeholder) = when (surface) {
-        AiParseSurface.CALENDAR -> "Quick add event" to "e.g. lunch with Sarah tomorrow 1pm"
-        AiParseSurface.CHECKLIST -> "Quick add task" to "e.g. buy groceries on friday"
+        AiParseSurface.CALENDAR ->
+            stringResource(R.string.ai_parse_calendar_title) to stringResource(R.string.ai_parse_calendar_hint)
+        AiParseSurface.CHECKLIST ->
+            stringResource(R.string.ai_parse_checklist_title) to stringResource(R.string.ai_parse_checklist_hint)
     }
 
     AlertDialog(
@@ -57,7 +61,7 @@ fun AiParsePromptDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    "Type a sentence and we'll fill in the details for you to review.",
+                    stringResource(R.string.ai_parse_description),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -95,10 +99,10 @@ fun AiParsePromptDialog(
             Button(
                 onClick = { onSubmit(text.trim()) },
                 enabled = !loading && text.trim().isNotEmpty(),
-            ) { Text("Generate") }
+            ) { Text(stringResource(R.string.action_generate)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, enabled = !loading) { Text("Cancel") }
+            TextButton(onClick = onDismiss, enabled = !loading) { Text(stringResource(R.string.action_cancel)) }
         },
     )
 }

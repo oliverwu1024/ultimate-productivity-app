@@ -67,7 +67,10 @@ import androidx.compose.foundation.border
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import com.ultiq.app.R
+import com.ultiq.app.util.LocaleManager
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -171,7 +174,7 @@ fun DashboardScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Dashboard") },
+                title = { Text(stringResource(R.string.dashboard_title)) },
                 actions = {
                     TextButton(onClick = onNavigateToSettings) {
                         Icon(
@@ -180,10 +183,10 @@ fun DashboardScreen(
                             modifier = Modifier.size(ButtonDefaults.IconSize)
                         )
                         Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-                        Text("Settings")
+                        Text(stringResource(R.string.action_settings))
                     }
                     IconButton(onClick = onLogout) {
-                        Icon(Icons.AutoMirrored.Filled.Logout, "Logout")
+                        Icon(Icons.AutoMirrored.Filled.Logout, stringResource(R.string.action_logout))
                     }
                 }
             )
@@ -206,11 +209,8 @@ fun DashboardScreen(
             if (uiState.showLockOverlayHint) {
                 item {
                     com.ultiq.app.ui.common.ConfigureHintCard(
-                        title = "Grant lock & overlay in Settings",
-                        body = "Focus mode and sleep lockout need 'Display over " +
-                            "other apps' and 'Strict lock' to work reliably. " +
-                            "Without them, the lockout screen can be swiped " +
-                            "away. Open Settings (top right) to grant.",
+                        title = stringResource(R.string.dashboard_lock_overlay_title),
+                        body = stringResource(R.string.dashboard_lock_overlay_body),
                         onDismiss = { viewModel.dismissLockOverlayHint() },
                     )
                 }
@@ -219,11 +219,8 @@ fun DashboardScreen(
             if (uiState.showPrefsHint) {
                 item {
                     com.ultiq.app.ui.common.ConfigureHintCard(
-                        title = "Set up your sleep & focus preferences",
-                        body = "Your wake-up alarms and sleep settings live on the " +
-                            "Sleep tab; your focus settings live on the Focus tab. " +
-                            "Open each tab and scroll down to configure — or tap " +
-                            "this card's × to hide it.",
+                        title = stringResource(R.string.dashboard_prefs_title),
+                        body = stringResource(R.string.dashboard_prefs_body),
                         onDismiss = { viewModel.dismissPrefsHint() },
                     )
                 }
@@ -282,7 +279,7 @@ fun DashboardScreen(
 
             item {
                 Text(
-                    "Today's calendar",
+                    stringResource(R.string.dashboard_today_calendar),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -290,7 +287,7 @@ fun DashboardScreen(
             if (uiState.upcomingItems.isEmpty()) {
                 item {
                     Text(
-                        WarmCopy.upcomingEventsEmpty(),
+                        WarmCopy.upcomingEventsEmpty(context),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -322,7 +319,7 @@ fun DashboardScreen(
             if (uiState.upcomingItems.isNotEmpty()) {
                 item {
                     TextButton(onClick = onNavigateToCalendar) {
-                        Text("View all")
+                        Text(stringResource(R.string.action_view_all))
                     }
                 }
             }
@@ -417,12 +414,12 @@ private fun WebDashboardHint(
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    "Did you know?",
+                    stringResource(R.string.dashboard_did_you_know),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f),
                 )
                 Text(
-                    "Ultiq is also on the web — full analytics at app.ultiqapp.com",
+                    stringResource(R.string.dashboard_web_promo),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onTertiaryContainer,
                 )
@@ -430,7 +427,7 @@ private fun WebDashboardHint(
             IconButton(onClick = onDismiss) {
                 Icon(
                     Icons.Default.Close,
-                    contentDescription = "Dismiss",
+                    contentDescription = stringResource(R.string.action_dismiss),
                     tint = MaterialTheme.colorScheme.onTertiaryContainer,
                 )
             }
@@ -466,14 +463,12 @@ private fun InternetHint(onDismiss: () -> Unit) {
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    "Heads-up",
+                    stringResource(R.string.dashboard_heads_up),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                 )
                 Text(
-                    "Day-to-day tracking works offline, but a connection is needed for " +
-                        "cross-device sync, AI insights, weekly summaries, and audio clip " +
-                        "playback.",
+                    stringResource(R.string.dashboard_offline_note),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -481,7 +476,7 @@ private fun InternetHint(onDismiss: () -> Unit) {
             IconButton(onClick = onDismiss) {
                 Icon(
                     Icons.Default.Close,
-                    contentDescription = "Dismiss",
+                    contentDescription = stringResource(R.string.action_dismiss),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -492,15 +487,16 @@ private fun InternetHint(onDismiss: () -> Unit) {
 @Composable
 private fun GreetingHeader(onCoachClick: () -> Unit) {
     val now = LocalTime.now()
+    val context = LocalContext.current
     Row(verticalAlignment = Alignment.CenterVertically) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                WarmCopy.greeting(now),
+                WarmCopy.greeting(context, now),
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold
             )
             Text(
-                WarmCopy.greetingSubtitle(now),
+                WarmCopy.greetingSubtitle(context, now),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -545,13 +541,13 @@ private fun CoachMascotEntry(onClick: () -> Unit) {
         ) {
             Image(
                 painter = painterResource(R.drawable.ic_coach_mascot),
-                contentDescription = "Talk to your coach",
+                contentDescription = stringResource(R.string.dashboard_coach_cd),
                 modifier = Modifier.size(44.dp),
             )
         }
         Spacer(Modifier.height(4.dp))
         Text(
-            "Coach",
+            stringResource(R.string.dashboard_coach),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.primary,
             fontWeight = FontWeight.SemiBold,
@@ -566,13 +562,13 @@ private fun SyncIndicator(isSyncing: Boolean, lastSyncTime: Long, onRefresh: () 
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        val text = if (lastSyncTime == 0L) "Not synced yet" else {
+        val text = if (lastSyncTime == 0L) stringResource(R.string.dashboard_not_synced) else {
             val agoMs = System.currentTimeMillis() - lastSyncTime
             val agoMins = (agoMs / 60_000).toInt()
             when {
-                agoMins < 1 -> "Just synced"
-                agoMins < 60 -> "Synced ${agoMins}m ago"
-                else -> "Synced ${agoMins / 60}h ago"
+                agoMins < 1 -> stringResource(R.string.dashboard_just_synced)
+                agoMins < 60 -> stringResource(R.string.dashboard_synced_minutes_ago, agoMins)
+                else -> stringResource(R.string.dashboard_synced_hours_ago, agoMins / 60)
             }
         }
         Text(text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -580,7 +576,7 @@ private fun SyncIndicator(isSyncing: Boolean, lastSyncTime: Long, onRefresh: () 
             CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
         } else {
             IconButton(onClick = onRefresh, modifier = Modifier.size(32.dp)) {
-                Icon(Icons.Default.Refresh, "Refresh", modifier = Modifier.size(20.dp))
+                Icon(Icons.Default.Refresh, stringResource(R.string.action_refresh), modifier = Modifier.size(20.dp))
             }
         }
     }
@@ -588,6 +584,7 @@ private fun SyncIndicator(isSyncing: Boolean, lastSyncTime: Long, onRefresh: () 
 
 @Composable
 private fun SleepCard(sleep: SleepSummary?, onClick: () -> Unit) {
+    val context = LocalContext.current
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -596,7 +593,7 @@ private fun SleepCard(sleep: SleepSummary?, onClick: () -> Unit) {
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                WarmCopy.sleepHeader(sleep?.quality, sleep?.vsTargetMinutes),
+                WarmCopy.sleepHeader(context, sleep?.quality, sleep?.vsTargetMinutes),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontWeight = FontWeight.SemiBold,
@@ -607,7 +604,7 @@ private fun SleepCard(sleep: SleepSummary?, onClick: () -> Unit) {
 
                 if (sleep.rankPhrase != null) {
                     Text(
-                        "✦ ${sleep.rankPhrase}",
+                        stringResource(R.string.dashboard_sleep_rank, sleep.rankPhrase),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Medium,
@@ -636,7 +633,7 @@ private fun SleepCard(sleep: SleepSummary?, onClick: () -> Unit) {
                     // colours as before.
                     val vsColor = if (sleep.vsTargetMinutes >= 0) Color(0xFF4CAF50) else MaterialTheme.colorScheme.error
                     Text(
-                        "${sleep.vsTarget} vs optimal sleep",
+                        stringResource(R.string.dashboard_sleep_vs_optimal, sleep.vsTarget),
                         style = MaterialTheme.typography.bodySmall,
                         color = vsColor,
                     )
@@ -651,7 +648,7 @@ private fun SleepCard(sleep: SleepSummary?, onClick: () -> Unit) {
                 sleep.soundsSummary?.let { sounds ->
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        "🔊 $sounds",
+                        stringResource(R.string.dashboard_sleep_sounds, sounds),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -663,13 +660,13 @@ private fun SleepCard(sleep: SleepSummary?, onClick: () -> Unit) {
                     val am = avgMins % 60
                     val avgStr = if (ah > 0) "${ah}h ${am}m" else "${am}m"
                     Text(
-                        "Last week's daily average was $avgStr",
+                        stringResource(R.string.dashboard_last_week_daily_avg, avgStr),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             } else {
-                val (title, body) = WarmCopy.sleepEmpty()
+                val (title, body) = WarmCopy.sleepEmpty(context)
                 Text(title, style = MaterialTheme.typography.bodyMedium)
                 Text(body, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -679,6 +676,7 @@ private fun SleepCard(sleep: SleepSummary?, onClick: () -> Unit) {
 
 @Composable
 private fun FocusCard(focus: FocusSummary?, onClick: () -> Unit) {
+    val context = LocalContext.current
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -687,7 +685,7 @@ private fun FocusCard(focus: FocusSummary?, onClick: () -> Unit) {
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                WarmCopy.focusHeader(focus?.totalMinutesToday),
+                WarmCopy.focusHeader(context, focus?.totalMinutesToday),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontWeight = FontWeight.SemiBold,
@@ -701,7 +699,7 @@ private fun FocusCard(focus: FocusSummary?, onClick: () -> Unit) {
                 Text(timeStr, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.width(6.dp))
                 Text(
-                    "today",
+                    stringResource(R.string.dashboard_focus_today),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 4.dp),
@@ -716,7 +714,7 @@ private fun FocusCard(focus: FocusSummary?, onClick: () -> Unit) {
                 val am = avgMins % 60
                 val avgStr = if (ah > 0) "${ah}h ${am}m" else "${am}m"
                 Text(
-                    "Last week's daily average was $avgStr",
+                    stringResource(R.string.dashboard_last_week_daily_avg, avgStr),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -727,9 +725,12 @@ private fun FocusCard(focus: FocusSummary?, onClick: () -> Unit) {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("${f.sessionsToday} session${if (f.sessionsToday != 1) "s" else ""} today", style = MaterialTheme.typography.bodySmall)
+                Text(
+                    pluralStringResource(R.plurals.dashboard_sessions_today, f.sessionsToday, f.sessionsToday),
+                    style = MaterialTheme.typography.bodySmall,
+                )
 
-                val streakLine = WarmCopy.streakLine(f.currentStreak, f.longestStreak)
+                val streakLine = WarmCopy.streakLine(context, f.currentStreak, f.longestStreak)
                 if (streakLine != null) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         val streakColor = if (f.currentStreak >= f.longestStreak && f.currentStreak >= 2) {
@@ -752,7 +753,7 @@ private fun FocusCard(focus: FocusSummary?, onClick: () -> Unit) {
             if (f.currentStreak >= f.longestStreak && f.currentStreak >= 2) {
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "Longest streak yet — keep it going",
+                    stringResource(R.string.dashboard_longest_streak),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Medium,
@@ -779,6 +780,7 @@ private fun AnimatedStreakNumber(value: Int, color: Color) {
 
 @Composable
 private fun ChecklistCard(summary: TodayChecklistSummary?, onClick: () -> Unit) {
+    val context = LocalContext.current
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -799,14 +801,14 @@ private fun ChecklistCard(summary: TodayChecklistSummary?, onClick: () -> Unit) 
                     tint = MaterialTheme.colorScheme.primary,
                 )
                 Text(
-                    "Today's plan",
+                    stringResource(R.string.dashboard_today_plan),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f),
                 )
                 if (summary != null && summary.totalCount > 0) {
                     Text(
-                        "${summary.completedCount} of ${summary.totalCount} done",
+                        stringResource(R.string.dashboard_checklist_done, summary.completedCount, summary.totalCount),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -814,7 +816,7 @@ private fun ChecklistCard(summary: TodayChecklistSummary?, onClick: () -> Unit) 
             }
 
             if (summary == null || summary.totalCount == 0) {
-                val (_, body) = WarmCopy.checklistEmpty()
+                val (_, body) = WarmCopy.checklistEmpty(context)
                 Text(
                     body,
                     style = MaterialTheme.typography.bodyMedium,
@@ -852,7 +854,11 @@ private fun ChecklistCard(summary: TodayChecklistSummary?, onClick: () -> Unit) 
                 }
                 if (summary.openItems.size > 3) {
                     Text(
-                        "+${summary.openItems.size - 3} more",
+                        pluralStringResource(
+                            R.plurals.dashboard_more_items,
+                            summary.openItems.size - 3,
+                            summary.openItems.size - 3,
+                        ),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -897,7 +903,7 @@ private fun UpcomingChecklistItem(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    "Today",
+                    stringResource(R.string.dashboard_today),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -909,7 +915,7 @@ private fun UpcomingChecklistItem(
 @Composable
 private fun UpcomingEventItem(event: CalendarEventEntity, onClick: () -> Unit, onSetDone: (Boolean) -> Unit, modifier: Modifier = Modifier) {
     val zone = ZoneId.systemDefault()
-    val fmt = DateTimeFormatter.ofPattern("EEE h:mm a")
+    val fmt = DateTimeFormatter.ofPattern("EEE h:mm a", LocaleManager.currentLocale())
     val timeStr = Instant.ofEpochMilli(event.startTime).atZone(zone).format(fmt)
     val dotColor = categoryColor(event.category)
 
@@ -959,9 +965,9 @@ private fun QuickActionsRow(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        QuickActionButton("Log Sleep", Icons.Default.Nightlight, onSleep, Modifier.weight(1f))
-        QuickActionButton("Start Focus", Icons.Default.PlayArrow, onFocus, Modifier.weight(1f))
-        QuickActionButton("Add Event", Icons.Default.Add, onEvent, Modifier.weight(1f))
+        QuickActionButton(stringResource(R.string.dashboard_quick_sleep), Icons.Default.Nightlight, onSleep, Modifier.weight(1f))
+        QuickActionButton(stringResource(R.string.dashboard_quick_focus), Icons.Default.PlayArrow, onFocus, Modifier.weight(1f))
+        QuickActionButton(stringResource(R.string.dashboard_quick_event), Icons.Default.Add, onEvent, Modifier.weight(1f))
     }
 }
 
@@ -988,7 +994,7 @@ private fun WeeklyHighlightsCard(highlights: WeeklyHighlights?, onClick: () -> U
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                "This week",
+                stringResource(R.string.dashboard_this_week),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontWeight = FontWeight.SemiBold,
@@ -1023,29 +1029,29 @@ private fun WeeklyHighlightsCard(highlights: WeeklyHighlights?, onClick: () -> U
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 HighlightStat(
-                    label = "Avg sleep",
+                    label = stringResource(R.string.dashboard_stat_avg_sleep),
                     value = h?.avgSleepDuration ?: "-",
                     subtitle = null,
                     modifier = Modifier.weight(1f),
                     valueColor = avgSleepColor,
                 )
                 HighlightStat(
-                    label = "Avg quality",
-                    value = if (h != null && h.avgSleepQuality > 0) String.format("%.1f/5", h.avgSleepQuality) else "-",
+                    label = stringResource(R.string.dashboard_stat_avg_quality),
+                    value = if (h != null && h.avgSleepQuality > 0) String.format(LocaleManager.currentLocale(), "%.1f/5", h.avgSleepQuality) else "-",
                     subtitle = null,
                     modifier = Modifier.weight(1f),
                     valueColor = avgQualityColor,
                 )
                 HighlightStat(
-                    label = "Total focus",
+                    label = stringResource(R.string.dashboard_stat_total_focus),
                     value = if (h != null && h.totalFocusHours > 0.0) {
-                        String.format("%.1fh", h.totalFocusHours)
+                        String.format(LocaleManager.currentLocale(), "%.1fh", h.totalFocusHours)
                     } else "-",
                     subtitle = null,
                     modifier = Modifier.weight(1f),
                 )
                 HighlightStat(
-                    label = "Calendar events",
+                    label = stringResource(R.string.dashboard_stat_calendar_events),
                     value = if (h != null && h.eventsTotal > 0) "${h.eventsTotal}" else "-",
                     subtitle = null,
                     modifier = Modifier.weight(1f),
@@ -1085,15 +1091,15 @@ private fun WeeklyHighlightsCard(highlights: WeeklyHighlights?, onClick: () -> U
                         modifier = Modifier.weight(1f),
                     )
                     LastWeekColumn(
-                        value = h.lastWeekQuality?.let { String.format("%.1f/5", it) },
+                        value = h.lastWeekQuality?.let { String.format(LocaleManager.currentLocale(), "%.1f/5", it) },
                         modifier = Modifier.weight(1f),
                     )
                     LastWeekColumn(
-                        value = h.lastWeekFocusHours?.let { String.format("%.1fh", it) },
+                        value = h.lastWeekFocusHours?.let { String.format(LocaleManager.currentLocale(), "%.1fh", it) },
                         modifier = Modifier.weight(1f),
                     )
                     LastWeekColumn(
-                        label = "Marked done",
+                        label = stringResource(R.string.dashboard_marked_done),
                         value = if (showMarkedDone) "${h.eventsDone}" else null,
                         modifier = Modifier.weight(1f),
                     )
@@ -1111,13 +1117,13 @@ private fun WeeklyHighlightsCard(highlights: WeeklyHighlights?, onClick: () -> U
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     SleepBalanceTile(
-                        label = "Sleep debt",
+                        label = stringResource(R.string.dashboard_sleep_debt),
                         minutes = h.sleepDebtMinutes,
                         positiveIsGood = false,
                         modifier = Modifier.weight(1f),
                     )
                     SleepBalanceTile(
-                        label = "Extra rest",
+                        label = stringResource(R.string.dashboard_extra_rest),
                         minutes = h.sleepExtraMinutes,
                         positiveIsGood = true,
                         modifier = Modifier.weight(1f),
@@ -1135,15 +1141,15 @@ private fun WeeklyHighlightsCard(highlights: WeeklyHighlights?, onClick: () -> U
                     val absH = absNet / 60
                     val absM = absNet % 60
                     val magnitude = when {
-                        absNet == 0 -> "on target"
+                        absNet == 0 -> stringResource(R.string.dashboard_on_target)
                         absH == 0 -> "${absM}m"
                         absM == 0 -> "${absH}h"
                         else -> "${absH}h ${absM}m"
                     }
                     val (label, color) = when {
-                        net > 0 -> "Net: +$magnitude vs goal" to Color(0xFF4CAF50)
-                        net < 0 -> "Net: −$magnitude vs goal" to MaterialTheme.colorScheme.error
-                        else -> "Net: on target" to MaterialTheme.colorScheme.onSurfaceVariant
+                        net > 0 -> stringResource(R.string.dashboard_net_over, magnitude) to Color(0xFF4CAF50)
+                        net < 0 -> stringResource(R.string.dashboard_net_under, magnitude) to MaterialTheme.colorScheme.error
+                        else -> stringResource(R.string.dashboard_net_on_target) to MaterialTheme.colorScheme.onSurfaceVariant
                     }
                     Text(
                         text = label,
@@ -1270,7 +1276,7 @@ private fun HighlightStat(
 private fun LastWeekColumn(
     value: String?,
     modifier: Modifier = Modifier,
-    label: String = "Last week",
+    label: String = stringResource(R.string.dashboard_last_week),
 ) {
     Column(
         modifier = modifier,
@@ -1310,13 +1316,13 @@ private fun AchievementsCard(earned: Int, total: Int, recent: List<AchievementBa
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    "Achievements",
+                    stringResource(R.string.dashboard_achievements),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f),
                 )
                 Text(
-                    "$earned / $total",
+                    stringResource(R.string.dashboard_achievements_count, earned, total),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -1343,7 +1349,7 @@ private fun AchievementsCard(earned: Int, total: Int, recent: List<AchievementBa
             val newest = recent.firstOrNull()
             if (newest != null) {
                 Text(
-                    "Latest: ${newest.name}",
+                    stringResource(R.string.dashboard_achievement_latest, newest.name),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -1379,7 +1385,7 @@ private fun AnomalyAlertCard(
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    "Heads up",
+                    stringResource(R.string.dashboard_anomaly_heads_up),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onTertiaryContainer,
                     fontWeight = FontWeight.SemiBold,
@@ -1387,7 +1393,7 @@ private fun AnomalyAlertCard(
                 )
                 TextButton(onClick = onDismiss) {
                     Text(
-                        "Dismiss",
+                        stringResource(R.string.action_dismiss),
                         color = MaterialTheme.colorScheme.onTertiaryContainer,
                     )
                 }
@@ -1421,7 +1427,7 @@ private fun AiWeeklyInsightCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    "Past 7 days — AI summary",
+                    stringResource(R.string.dashboard_insight_title),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontWeight = FontWeight.SemiBold,
@@ -1431,7 +1437,7 @@ private fun AiWeeklyInsightCard(
                     onClick = onRefresh,
                     enabled = state !is WeeklyInsightState.Loading,
                 ) {
-                    Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                    Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.action_refresh))
                 }
             }
             Spacer(Modifier.height(8.dp))
@@ -1445,7 +1451,7 @@ private fun AiWeeklyInsightCard(
                         )
                         Spacer(Modifier.width(12.dp))
                         Text(
-                            "Generating your week…",
+                            stringResource(R.string.dashboard_insight_generating),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -1473,7 +1479,7 @@ private fun AiWeeklyInsightCard(
                     // drops its footer.
                     val zone = java.time.ZoneId.systemDefault()
                     val fmt = java.time.format.DateTimeFormatter
-                        .ofPattern("MMM d 'at' h:mm a")
+                        .ofPattern("MMM d 'at' h:mm a", LocaleManager.currentLocale())
                     val gen = runCatching {
                         java.time.OffsetDateTime.parse(state.generatedAt)
                             .atZoneSameInstant(zone)
@@ -1486,18 +1492,18 @@ private fun AiWeeklyInsightCard(
                     }.getOrNull()
                     if (gen != null && exp != null) {
                         Text(
-                            "Generated $gen",
+                            stringResource(R.string.dashboard_insight_generated, gen),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Text(
-                            "Next refresh $exp",
+                            stringResource(R.string.dashboard_insight_next_refresh, exp),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     } else if (state.cached) {
                         Text(
-                            "Refreshes every 24 hours — your next summary's on its way.",
+                            stringResource(R.string.dashboard_insight_cached),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )

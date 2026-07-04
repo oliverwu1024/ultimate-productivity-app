@@ -478,7 +478,8 @@ private fun SectionLabel(text: String) {
 
 @Composable
 private fun EmptyState() {
-    val (title, body) = WarmCopy.checklistEmpty()
+    val context = LocalContext.current
+    val (title, body) = WarmCopy.checklistEmpty(context)
     MascotEmptyState(title = title, body = body)
 }
 

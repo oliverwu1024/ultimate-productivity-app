@@ -18,4 +18,158 @@
     <string name="settings_language">Ngôn ngữ</string>
     <string name="settings_language_system">Mặc định hệ thống</string>
     <string name="common_close">Đóng</string>
+
+    <!-- ══════════════════ §13.1 Android sweep — dashboard + common ══════════════════ -->
+
+    <!-- Shared actions / labels (reused across screens) -->
+    <string name="action_settings">Cài đặt</string>
+    <string name="action_logout">Đăng xuất</string>
+    <string name="action_dismiss">Bỏ qua</string>
+    <string name="action_refresh">Làm mới</string>
+    <string name="action_cancel">Hủy</string>
+    <string name="action_delete">Xóa</string>
+    <string name="action_generate">Tạo</string>
+    <string name="action_view_all">Xem tất cả</string>
+    <string name="action_decrease">Giảm</string>
+    <string name="action_increase">Tăng</string>
+    <string name="common_dismiss_hint">Bỏ qua gợi ý</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard_title">Tổng quan</string>
+    <string name="dashboard_coach">Coach</string>
+    <string name="dashboard_coach_cd">Nói chuyện với coach của bạn</string>
+    <string name="dashboard_today_calendar">Lịch hôm nay</string>
+    <string name="dashboard_today_plan">Kế hoạch hôm nay</string>
+    <string name="dashboard_this_week">Tuần này</string>
+    <string name="dashboard_today">Hôm nay</string>
+    <string name="dashboard_did_you_know">Bạn có biết?</string>
+    <string name="dashboard_web_promo">Ultiq cũng có trên web — phân tích đầy đủ tại app.ultiqapp.com</string>
+    <string name="dashboard_heads_up">Lưu ý</string>
+    <string name="dashboard_offline_note">Theo dõi hàng ngày hoạt động ngoại tuyến, nhưng cần kết nối để đồng bộ nhiều thiết bị, thông tin AI, tóm tắt tuần và phát clip âm thanh.</string>
+    <string name="dashboard_lock_overlay_title">Cấp quyền khóa &amp; lớp phủ trong Cài đặt</string>
+    <string name="dashboard_lock_overlay_body">Chế độ tập trung và khóa khi ngủ cần \'Hiển thị trên ứng dụng khác\' và \'Khóa chặt\' để hoạt động ổn định. Nếu thiếu, màn hình khóa có thể bị vuốt đi. Mở Cài đặt (góc trên phải) để cấp quyền.</string>
+    <string name="dashboard_prefs_title">Thiết lập tùy chọn ngủ &amp; tập trung</string>
+    <string name="dashboard_prefs_body">Chuông báo thức và cài đặt ngủ ở tab Ngủ; cài đặt tập trung ở tab Tập trung. Mở từng tab và cuộn xuống để cấu hình — hoặc nhấn × trên thẻ này để ẩn.</string>
+    <string name="dashboard_not_synced">Chưa đồng bộ</string>
+    <string name="dashboard_just_synced">Vừa đồng bộ</string>
+    <string name="dashboard_synced_minutes_ago">Đã đồng bộ %1$dm trước</string>
+    <string name="dashboard_synced_hours_ago">Đã đồng bộ %1$dh trước</string>
+    <string name="dashboard_sleep_rank">✦ %1$s</string>
+    <string name="dashboard_sleep_vs_optimal">%1$s so với giấc ngủ tối ưu</string>
+    <string name="dashboard_sleep_sounds">🔊 %1$s</string>
+    <string name="dashboard_last_week_daily_avg">Trung bình hàng ngày tuần trước là %1$s</string>
+    <string name="dashboard_focus_today">hôm nay</string>
+    <string name="dashboard_longest_streak">Chuỗi dài nhất từ trước đến giờ — tiếp tục nào</string>
+    <string name="dashboard_checklist_done">%1$d/%2$d hoàn thành</string>
+    <string name="dashboard_quick_sleep">Ghi Ngủ</string>
+    <string name="dashboard_quick_focus">Bắt đầu Tập trung</string>
+    <string name="dashboard_quick_event">Thêm Sự kiện</string>
+    <string name="dashboard_stat_avg_sleep">Ngủ TB</string>
+    <string name="dashboard_stat_avg_quality">Chất lượng TB</string>
+    <string name="dashboard_stat_total_focus">Tổng tập trung</string>
+    <string name="dashboard_stat_calendar_events">Sự kiện lịch</string>
+    <string name="dashboard_marked_done">Đã hoàn thành</string>
+    <string name="dashboard_last_week">Tuần trước</string>
+    <string name="dashboard_sleep_debt">Thiếu ngủ</string>
+    <string name="dashboard_extra_rest">Ngủ thêm</string>
+    <string name="dashboard_on_target">đúng mục tiêu</string>
+    <string name="dashboard_net_on_target">Tổng: đúng mục tiêu</string>
+    <string name="dashboard_net_over">Tổng: +%1$s so với mục tiêu</string>
+    <string name="dashboard_net_under">Tổng: −%1$s so với mục tiêu</string>
+    <string name="dashboard_achievements">Thành tích</string>
+    <string name="dashboard_achievements_count">%1$d / %2$d</string>
+    <string name="dashboard_achievement_latest">Mới nhất: %1$s</string>
+    <string name="dashboard_anomaly_heads_up">Lưu ý</string>
+    <string name="dashboard_insight_title">7 ngày qua — tóm tắt AI</string>
+    <string name="dashboard_insight_generating">Đang tạo tóm tắt tuần…</string>
+    <string name="dashboard_insight_generated">Đã tạo %1$s</string>
+    <string name="dashboard_insight_next_refresh">Làm mới tiếp theo %1$s</string>
+    <string name="dashboard_insight_cached">Làm mới mỗi 24 giờ — tóm tắt tiếp theo đang được chuẩn bị.</string>
+    <string name="dashboard_insight_error_signin">Đăng nhập để xem thông tin tuần</string>
+    <string name="dashboard_insight_error_limit">Đã đạt giới hạn AI hôm nay — quay lại ngày mai</string>
+    <string name="dashboard_insight_error_generic">Không thể tải thông tin tuần</string>
+    <string name="dashboard_quiet_night">Đêm yên tĩnh</string>
+
+    <plurals name="dashboard_sessions_today">
+        <item quantity="other">%1$d phiên hôm nay</item>
+    </plurals>
+    <plurals name="dashboard_more_items">
+        <item quantity="other">+%1$d thêm</item>
+    </plurals>
+    <plurals name="dashboard_sound_snore">
+        <item quantity="other">%1$d lần ngáy</item>
+    </plurals>
+    <plurals name="dashboard_sound_cough">
+        <item quantity="other">%1$d lần ho</item>
+    </plurals>
+    <plurals name="dashboard_sound_talk">
+        <item quantity="other">%1$d lần nói mớ</item>
+    </plurals>
+
+    <!-- WarmCopy — companion-voice copy -->
+    <string name="warm_greeting_up_early">Dậy sớm</string>
+    <string name="warm_greeting_morning">Chào buổi sáng</string>
+    <string name="warm_greeting_lunch">Giờ nghỉ trưa?</string>
+    <string name="warm_greeting_afternoon">Chào buổi chiều</string>
+    <string name="warm_greeting_evening">Chào buổi tối</string>
+    <string name="warm_greeting_winding_down">Sắp nghỉ ngơi</string>
+    <string name="warm_greeting_up_late">Thức khuya</string>
+    <string name="warm_subtitle_fresh_start">Khởi đầu tươi mới.</string>
+    <string name="warm_subtitle_half_day">Còn nửa ngày nữa.</string>
+    <string name="warm_subtitle_how_land">Hôm nay thế nào?</string>
+    <string name="warm_subtitle_rest_soon">Sắp đến giờ nghỉ rồi.</string>
+    <string name="warm_subtitle_new_run">Ngày mai là một khởi đầu mới.</string>
+    <string name="warm_sleep_how">Bạn ngủ thế nào?</string>
+    <string name="warm_sleep_top">Đêm xuất sắc</string>
+    <string name="warm_sleep_solid">Đêm ngon giấc</string>
+    <string name="warm_sleep_solid_short">Ngon giấc, nhưng hơi ngắn</string>
+    <string name="warm_sleep_decent">Đêm ổn</string>
+    <string name="warm_sleep_decent_short">Ổn, nhưng bị cắt ngắn</string>
+    <string name="warm_sleep_rough">Đêm vất vả — hôm nay thư giãn nhé</string>
+    <string name="warm_sleep_empty_title">Chưa có đêm nào được ghi lại</string>
+    <string name="warm_sleep_empty_body">Nhấn Bắt đầu Ngủ tối nay — chúng tôi lo phần còn lại.</string>
+    <string name="warm_focus_ready">Sẵn sàng tập trung?</string>
+    <string name="warm_focus_starting">Mới bắt đầu thôi</string>
+    <string name="warm_focus_momentum">Đang có đà tốt</string>
+    <string name="warm_focus_deep">Đang tập trung cao độ</string>
+    <string name="warm_focus_big">Ngày tập trung cao</string>
+    <string name="warm_focus_empty_title">Hôm nay chưa có gì</string>
+    <string name="warm_focus_empty_body">Gắn thẻ nhiệm vụ và bắt đầu khối tập trung đầu tiên.</string>
+    <string name="warm_achievement_unlocked">Đã mở khóa: %1$s</string>
+    <string name="warm_calendar_empty_title">Chưa có lịch nào</string>
+    <string name="warm_calendar_empty_body">Thêm sự kiện và nó sẽ hiện ở đây.</string>
+    <string name="warm_checklist_empty_title">Hôm nay còn trống</string>
+    <string name="warm_checklist_empty_body">Thêm nhiệm vụ để bắt đầu.</string>
+    <string name="warm_sessions_empty_title">Sẵn sàng tập trung?</string>
+    <string name="warm_sessions_empty_body">Gắn thẻ nhiệm vụ, chọn thời lượng và bắt đầu khối tập trung đầu tiên.</string>
+    <string name="warm_upcoming_empty">Hôm nay không có lịch</string>
+
+    <plurals name="warm_streak_days">
+        <item quantity="other">%1$d ngày</item>
+    </plurals>
+    <plurals name="warm_streak_longest">
+        <item quantity="other">Chuỗi %1$d ngày — dài nhất từ trước đến giờ</item>
+    </plurals>
+    <plurals name="warm_streak_one_off">
+        <item quantity="other">%1$d ngày, kém một ngày so với kỷ lục</item>
+    </plurals>
+
+    <!-- Achievement celebration -->
+    <string name="achievement_unlocked_title">Thành tích đã mở khóa</string>
+    <string name="achievement_nice">Tuyệt vời</string>
+
+    <!-- AI quick-add (NL parse) dialog -->
+    <string name="ai_parse_calendar_title">Thêm sự kiện nhanh</string>
+    <string name="ai_parse_calendar_hint">vd. ăn trưa với Sarah ngày mai lúc 1 giờ chiều</string>
+    <string name="ai_parse_checklist_title">Thêm nhiệm vụ nhanh</string>
+    <string name="ai_parse_checklist_hint">vd. mua đồ tạp hóa vào thứ Sáu</string>
+    <string name="ai_parse_description">Nhập một câu và chúng tôi sẽ điền thông tin để bạn xem xét.</string>
+
+    <!-- In-app APK update banner -->
+    <string name="update_downloading_pct">Đang tải Ultiq %1$s… %2$d%%</string>
+    <string name="update_downloading">Đang tải Ultiq %1$s…</string>
+    <string name="update_awaiting_confirm">Hộp thoại hệ thống đang mở — nhấn Cài đặt ở đó</string>
+    <string name="update_installed">Đã cập nhật — nhấn để khởi động lại Ultiq</string>
+    <string name="update_failed">Cập nhật thất bại — nhấn để thử lại</string>
+    <string name="update_available">Ultiq %1$s đã sẵn sàng — nhấn để cài đặt</string>
 </resources>

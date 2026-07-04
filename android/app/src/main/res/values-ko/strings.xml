@@ -18,4 +18,158 @@
     <string name="settings_language">언어</string>
     <string name="settings_language_system">시스템 기본값</string>
     <string name="common_close">닫기</string>
+
+    <!-- ══════════════════ §13.1 Android sweep — dashboard + common ══════════════════ -->
+
+    <!-- Shared actions / labels (reused across screens) -->
+    <string name="action_settings">설정</string>
+    <string name="action_logout">로그아웃</string>
+    <string name="action_dismiss">닫기</string>
+    <string name="action_refresh">새로고침</string>
+    <string name="action_cancel">취소</string>
+    <string name="action_delete">삭제</string>
+    <string name="action_generate">생성</string>
+    <string name="action_view_all">전체 보기</string>
+    <string name="action_decrease">줄이기</string>
+    <string name="action_increase">늘리기</string>
+    <string name="common_dismiss_hint">힌트 닫기</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard_title">대시보드</string>
+    <string name="dashboard_coach">코치</string>
+    <string name="dashboard_coach_cd">코치와 대화하기</string>
+    <string name="dashboard_today_calendar">오늘의 캘린더</string>
+    <string name="dashboard_today_plan">오늘의 계획</string>
+    <string name="dashboard_this_week">이번 주</string>
+    <string name="dashboard_today">오늘</string>
+    <string name="dashboard_did_you_know">알고 계셨나요?</string>
+    <string name="dashboard_web_promo">Ultiq는 웹에서도 이용 가능해요 — app.ultiqapp.com에서 전체 분석을 확인하세요</string>
+    <string name="dashboard_heads_up">알림</string>
+    <string name="dashboard_offline_note">일일 추적은 오프라인에서도 작동하지만, 기기 간 동기화, AI 인사이트, 주간 요약, 오디오 클립 재생에는 연결이 필요해요.</string>
+    <string name="dashboard_lock_overlay_title">설정에서 잠금 &amp; 오버레이 권한 허용</string>
+    <string name="dashboard_lock_overlay_body">집중 모드와 수면 잠금 기능이 제대로 작동하려면 \'다른 앱 위에 표시\'와 \'잠금 강화\' 권한이 필요해요. 없으면 잠금 화면이 닫힐 수 있어요. 오른쪽 상단의 설정에서 허용해 주세요.</string>
+    <string name="dashboard_prefs_title">수면 &amp; 집중 환경설정 구성하기</string>
+    <string name="dashboard_prefs_body">기상 알람과 수면 설정은 수면 탭에, 집중 설정은 집중 탭에 있어요. 각 탭을 열고 아래로 스크롤하여 설정하거나, 카드의 ×를 탭하여 숨기세요.</string>
+    <string name="dashboard_not_synced">아직 동기화 안 됨</string>
+    <string name="dashboard_just_synced">방금 동기화됨</string>
+    <string name="dashboard_synced_minutes_ago">%1$d분 전에 동기화됨</string>
+    <string name="dashboard_synced_hours_ago">%1$d시간 전에 동기화됨</string>
+    <string name="dashboard_sleep_rank">✦ %1$s</string>
+    <string name="dashboard_sleep_vs_optimal">%1$s (최적 수면 대비)</string>
+    <string name="dashboard_sleep_sounds">🔊 %1$s</string>
+    <string name="dashboard_last_week_daily_avg">지난 주 일일 평균은 %1$s였어요</string>
+    <string name="dashboard_focus_today">오늘</string>
+    <string name="dashboard_longest_streak">역대 최장 연속 기록 — 계속 이어가요</string>
+    <string name="dashboard_checklist_done">%2$d개 중 %1$d개 완료</string>
+    <string name="dashboard_quick_sleep">수면 기록</string>
+    <string name="dashboard_quick_focus">집중 시작</string>
+    <string name="dashboard_quick_event">이벤트 추가</string>
+    <string name="dashboard_stat_avg_sleep">평균 수면</string>
+    <string name="dashboard_stat_avg_quality">평균 품질</string>
+    <string name="dashboard_stat_total_focus">총 집중 시간</string>
+    <string name="dashboard_stat_calendar_events">캘린더 이벤트</string>
+    <string name="dashboard_marked_done">완료로 표시됨</string>
+    <string name="dashboard_last_week">지난 주</string>
+    <string name="dashboard_sleep_debt">수면 부족</string>
+    <string name="dashboard_extra_rest">추가 수면</string>
+    <string name="dashboard_on_target">목표 달성</string>
+    <string name="dashboard_net_on_target">합계: 목표 달성</string>
+    <string name="dashboard_net_over">합계: 목표 대비 +%1$s</string>
+    <string name="dashboard_net_under">합계: 목표 대비 −%1$s</string>
+    <string name="dashboard_achievements">업적</string>
+    <string name="dashboard_achievements_count">%1$d / %2$d</string>
+    <string name="dashboard_achievement_latest">최근: %1$s</string>
+    <string name="dashboard_anomaly_heads_up">알림</string>
+    <string name="dashboard_insight_title">지난 7일 — AI 요약</string>
+    <string name="dashboard_insight_generating">주간 요약 생성 중…</string>
+    <string name="dashboard_insight_generated">%1$s에 생성됨</string>
+    <string name="dashboard_insight_next_refresh">다음 갱신: %1$s</string>
+    <string name="dashboard_insight_cached">24시간마다 갱신됩니다 — 다음 요약이 준비 중이에요.</string>
+    <string name="dashboard_insight_error_signin">주간 인사이트를 보려면 로그인하세요</string>
+    <string name="dashboard_insight_error_limit">AI 일일 한도 초과 — 내일 다시 확인하세요</string>
+    <string name="dashboard_insight_error_generic">주간 인사이트를 불러오지 못했어요</string>
+    <string name="dashboard_quiet_night">조용한 밤</string>
+
+    <plurals name="dashboard_sessions_today">
+        <item quantity="other">오늘 %1$d개의 세션</item>
+    </plurals>
+    <plurals name="dashboard_more_items">
+        <item quantity="other">+%1$d 더</item>
+    </plurals>
+    <plurals name="dashboard_sound_snore">
+        <item quantity="other">코골이 %1$d회</item>
+    </plurals>
+    <plurals name="dashboard_sound_cough">
+        <item quantity="other">기침 %1$d회</item>
+    </plurals>
+    <plurals name="dashboard_sound_talk">
+        <item quantity="other">잠꼬대 %1$d회</item>
+    </plurals>
+
+    <!-- WarmCopy — companion-voice copy -->
+    <string name="warm_greeting_up_early">일찍 일어났네요</string>
+    <string name="warm_greeting_morning">좋은 아침이에요</string>
+    <string name="warm_greeting_lunch">점심 시간인가요?</string>
+    <string name="warm_greeting_afternoon">좋은 오후예요</string>
+    <string name="warm_greeting_evening">좋은 저녁이에요</string>
+    <string name="warm_greeting_winding_down">마무리 할 시간이에요</string>
+    <string name="warm_greeting_up_late">늦게까지 깨어 있네요</string>
+    <string name="warm_subtitle_fresh_start">새로운 시작이에요.</string>
+    <string name="warm_subtitle_half_day">하루의 반이 남았어요.</string>
+    <string name="warm_subtitle_how_land">오늘 하루 어떠셨나요?</string>
+    <string name="warm_subtitle_rest_soon">곧 쉴 시간이에요.</string>
+    <string name="warm_subtitle_new_run">내일은 새 출발이에요.</string>
+    <string name="warm_sleep_how">잘 주무셨나요?</string>
+    <string name="warm_sleep_top">최고의 밤</string>
+    <string name="warm_sleep_solid">좋은 수면</string>
+    <string name="warm_sleep_solid_short">좋은 수면이지만 좀 짧았어요</string>
+    <string name="warm_sleep_decent">괜찮은 수면</string>
+    <string name="warm_sleep_decent_short">괜찮지만 좀 짧았어요</string>
+    <string name="warm_sleep_rough">힘든 수면이었어요 — 오늘은 무리하지 마세요</string>
+    <string name="warm_sleep_empty_title">아직 수면 기록이 없어요</string>
+    <string name="warm_sleep_empty_body">오늘 밤 수면 시작을 탭하세요 — 나머지는 저희가 해드릴게요.</string>
+    <string name="warm_focus_ready">집중할 준비가 되셨나요?</string>
+    <string name="warm_focus_starting">이제 시작이에요</string>
+    <string name="warm_focus_momentum">좋은 흐름이에요</string>
+    <string name="warm_focus_deep">깊이 집중 중이에요</string>
+    <string name="warm_focus_big">집중력 넘치는 하루</string>
+    <string name="warm_focus_empty_title">오늘은 아직 아무것도 없네요</string>
+    <string name="warm_focus_empty_body">작업을 태그하고 첫 집중 블록을 시작하세요.</string>
+    <string name="warm_achievement_unlocked">달성: %1$s</string>
+    <string name="warm_calendar_empty_title">예정된 일정이 없어요</string>
+    <string name="warm_calendar_empty_body">이벤트를 추가하면 여기에 표시돼요.</string>
+    <string name="warm_checklist_empty_title">오늘은 텅 비어 있어요</string>
+    <string name="warm_checklist_empty_body">할 일을 추가하고 시작해 보세요.</string>
+    <string name="warm_sessions_empty_title">집중할 준비가 되셨나요?</string>
+    <string name="warm_sessions_empty_body">작업을 태그하고 시간을 선택하여 첫 집중 블록을 시작하세요.</string>
+    <string name="warm_upcoming_empty">오늘 캘린더에 일정이 없어요</string>
+
+    <plurals name="warm_streak_days">
+        <item quantity="other">%1$d일</item>
+    </plurals>
+    <plurals name="warm_streak_longest">
+        <item quantity="other">%1$d일 연속 — 역대 최장 기록</item>
+    </plurals>
+    <plurals name="warm_streak_one_off">
+        <item quantity="other">%1$d일, 최고 기록까지 하루</item>
+    </plurals>
+
+    <!-- Achievement celebration -->
+    <string name="achievement_unlocked_title">업적 달성</string>
+    <string name="achievement_nice">대단해요</string>
+
+    <!-- AI quick-add (NL parse) dialog -->
+    <string name="ai_parse_calendar_title">이벤트 빠르게 추가</string>
+    <string name="ai_parse_calendar_hint">예: 내일 오후 1시 Sarah와 점심</string>
+    <string name="ai_parse_checklist_title">할 일 빠르게 추가</string>
+    <string name="ai_parse_checklist_hint">예: 금요일에 장 보기</string>
+    <string name="ai_parse_description">문장을 입력하면 세부 내용을 채워드릴게요.</string>
+
+    <!-- In-app APK update banner -->
+    <string name="update_downloading_pct">Ultiq %1$s 다운로드 중… %2$d%%</string>
+    <string name="update_downloading">Ultiq %1$s 다운로드 중…</string>
+    <string name="update_awaiting_confirm">시스템 창이 열렸어요 — 설치를 탭하세요</string>
+    <string name="update_installed">업데이트 완료 — 탭하여 Ultiq 재시작</string>
+    <string name="update_failed">업데이트 실패 — 탭하여 다시 시도</string>
+    <string name="update_available">Ultiq %1$s 사용 가능 — 탭하여 설치</string>
 </resources>

@@ -18,4 +18,166 @@
     <string name="settings_language">भाषा</string>
     <string name="settings_language_system">सिस्टम डिफ़ॉल्ट</string>
     <string name="common_close">बंद करें</string>
+
+    <!-- ══════════════════ §13.1 Android sweep — dashboard + common ══════════════════ -->
+
+    <!-- Shared actions / labels (reused across screens) -->
+    <string name="action_settings">सेटिंग्स</string>
+    <string name="action_logout">लॉग आउट</string>
+    <string name="action_dismiss">खारिज करें</string>
+    <string name="action_refresh">रीफ्रेश करें</string>
+    <string name="action_cancel">रद्द करें</string>
+    <string name="action_delete">हटाएं</string>
+    <string name="action_generate">बनाएं</string>
+    <string name="action_view_all">सभी देखें</string>
+    <string name="action_decrease">घटाएं</string>
+    <string name="action_increase">बढ़ाएं</string>
+    <string name="common_dismiss_hint">संकेत छुपाएं</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard_title">Dashboard</string>
+    <string name="dashboard_coach">Coach</string>
+    <string name="dashboard_coach_cd">अपने Coach से बात करें</string>
+    <string name="dashboard_today_calendar">आज का कैलेंडर</string>
+    <string name="dashboard_today_plan">आज की योजना</string>
+    <string name="dashboard_this_week">इस हफ़्ते</string>
+    <string name="dashboard_today">आज</string>
+    <string name="dashboard_did_you_know">क्या आप जानते हैं?</string>
+    <string name="dashboard_web_promo">Ultiq वेब पर भी है — पूरी एनालिटिक्स app.ultiqapp.com पर देखें</string>
+    <string name="dashboard_heads_up">ध्यान दें</string>
+    <string name="dashboard_offline_note">दिन-प्रतिदिन की ट्रैकिंग ऑफलाइन काम करती है, लेकिन क्रॉस-डिवाइस सिंक, AI इनसाइट्स, साप्ताहिक सारांश और ऑडियो क्लिप चलाने के लिए इंटरनेट ज़रूरी है।</string>
+    <string name="dashboard_lock_overlay_title">सेटिंग्स में लॉक &amp; ओवरले अनुमति दें</string>
+    <string name="dashboard_lock_overlay_body">Focus मोड और स्लीप लॉकआउट को सही से काम करने के लिए \'अन्य ऐप्स पर दिखाएं\' और \'सख्त लॉक\' ज़रूरी है। इनके बिना, लॉकआउट स्क्रीन को स्वाइप किया जा सकता है। अनुमति देने के लिए सेटिंग्स खोलें (ऊपर दाईं ओर)।</string>
+    <string name="dashboard_prefs_title">अपनी Sleep &amp; Focus प्राथमिकताएं सेट करें</string>
+    <string name="dashboard_prefs_body">वेक-अप अलार्म और Sleep सेटिंग्स Sleep टैब पर हैं; Focus सेटिंग्स Focus टैब पर। कॉन्फ़िगर करने के लिए प्रत्येक टैब खोलें — या इस कार्ड के × से छुपाएं।</string>
+    <string name="dashboard_not_synced">अभी सिंक नहीं हुआ</string>
+    <string name="dashboard_just_synced">अभी सिंक हुआ</string>
+    <string name="dashboard_synced_minutes_ago">%1$d मिनट पहले सिंक हुआ</string>
+    <string name="dashboard_synced_hours_ago">%1$d घंटे पहले सिंक हुआ</string>
+    <string name="dashboard_sleep_rank">✦ %1$s</string>
+    <string name="dashboard_sleep_vs_optimal">%1$s बनाम आदर्श नींद</string>
+    <string name="dashboard_sleep_sounds">🔊 %1$s</string>
+    <string name="dashboard_last_week_daily_avg">पिछले हफ़्ते का दैनिक औसत %1$s था</string>
+    <string name="dashboard_focus_today">आज</string>
+    <string name="dashboard_longest_streak">अब तक की सबसे लंबी Streak — जारी रखें</string>
+    <string name="dashboard_checklist_done">%2$d में से %1$d पूर्ण</string>
+    <string name="dashboard_quick_sleep">Sleep लॉग करें</string>
+    <string name="dashboard_quick_focus">Focus शुरू करें</string>
+    <string name="dashboard_quick_event">इवेंट जोड़ें</string>
+    <string name="dashboard_stat_avg_sleep">औसत नींद</string>
+    <string name="dashboard_stat_avg_quality">औसत गुणवत्ता</string>
+    <string name="dashboard_stat_total_focus">कुल Focus</string>
+    <string name="dashboard_stat_calendar_events">कैलेंडर इवेंट</string>
+    <string name="dashboard_marked_done">पूर्ण किया</string>
+    <string name="dashboard_last_week">पिछला हफ़्ता</string>
+    <string name="dashboard_sleep_debt">नींद की कमी</string>
+    <string name="dashboard_extra_rest">अतिरिक्त आराम</string>
+    <string name="dashboard_on_target">लक्ष्य पर</string>
+    <string name="dashboard_net_on_target">कुल: लक्ष्य पर</string>
+    <string name="dashboard_net_over">कुल: +%1$s लक्ष्य से अधिक</string>
+    <string name="dashboard_net_under">कुल: −%1$s लक्ष्य से कम</string>
+    <string name="dashboard_achievements">उपलब्धियां</string>
+    <string name="dashboard_achievements_count">%1$d / %2$d</string>
+    <string name="dashboard_achievement_latest">नवीनतम: %1$s</string>
+    <string name="dashboard_anomaly_heads_up">ध्यान दें</string>
+    <string name="dashboard_insight_title">पिछले 7 दिन — AI सारांश</string>
+    <string name="dashboard_insight_generating">आपका सप्ताह तैयार हो रहा है…</string>
+    <string name="dashboard_insight_generated">बनाया गया %1$s</string>
+    <string name="dashboard_insight_next_refresh">अगला रीफ्रेश %1$s</string>
+    <string name="dashboard_insight_cached">हर 24 घंटे में रीफ्रेश होता है — आपका अगला सारांश आ रहा है।</string>
+    <string name="dashboard_insight_error_signin">साप्ताहिक इनसाइट देखने के लिए साइन इन करें</string>
+    <string name="dashboard_insight_error_limit">दैनिक AI सीमा पूरी हुई — कल वापस आएं</string>
+    <string name="dashboard_insight_error_generic">साप्ताहिक इनसाइट लोड नहीं हो सकी</string>
+    <string name="dashboard_quiet_night">शांत रात</string>
+
+    <plurals name="dashboard_sessions_today">
+        <item quantity="one">%1$d सत्र आज</item>
+        <item quantity="other">%1$d सत्र आज</item>
+    </plurals>
+    <plurals name="dashboard_more_items">
+        <item quantity="one">+%1$d और</item>
+        <item quantity="other">+%1$d और</item>
+    </plurals>
+    <plurals name="dashboard_sound_snore">
+        <item quantity="one">%1$d खर्राटा</item>
+        <item quantity="other">%1$d खर्राटे</item>
+    </plurals>
+    <plurals name="dashboard_sound_cough">
+        <item quantity="one">%1$d खांसी</item>
+        <item quantity="other">%1$d खांसी</item>
+    </plurals>
+    <plurals name="dashboard_sound_talk">
+        <item quantity="one">%1$d नींद में बात</item>
+        <item quantity="other">%1$d नींद में बातें</item>
+    </plurals>
+
+    <!-- WarmCopy — companion-voice copy -->
+    <string name="warm_greeting_up_early">जल्दी उठे</string>
+    <string name="warm_greeting_morning">सुप्रभात</string>
+    <string name="warm_greeting_lunch">लंच ब्रेक?</string>
+    <string name="warm_greeting_afternoon">शुभ दोपहर</string>
+    <string name="warm_greeting_evening">शुभ शाम</string>
+    <string name="warm_greeting_winding_down">दिन ढल रहा है</string>
+    <string name="warm_greeting_up_late">देर रात जागे</string>
+    <string name="warm_subtitle_fresh_start">एक नई शुरुआत।</string>
+    <string name="warm_subtitle_half_day">आधा दिन बाकी है।</string>
+    <string name="warm_subtitle_how_land">आज का दिन कैसा रहा?</string>
+    <string name="warm_subtitle_rest_soon">जल्द आराम का समय।</string>
+    <string name="warm_subtitle_new_run">कल फिर एक नई शुरुआत।</string>
+    <string name="warm_sleep_how">नींद कैसी रही?</string>
+    <string name="warm_sleep_top">शानदार रात</string>
+    <string name="warm_sleep_solid">अच्छी रात</string>
+    <string name="warm_sleep_solid_short">अच्छी, पर थोड़ी कम</string>
+    <string name="warm_sleep_decent">ठीक-ठाक रात</string>
+    <string name="warm_sleep_decent_short">ठीक-ठाक, पर कम</string>
+    <string name="warm_sleep_rough">कठिन रात — आज हल्का लें</string>
+    <string name="warm_sleep_empty_title">अभी कोई रात दर्ज नहीं</string>
+    <string name="warm_sleep_empty_body">आज रात Start Sleep टैप करें — बाकी हम संभाल लेंगे।</string>
+    <string name="warm_focus_ready">Focus के लिए तैयार?</string>
+    <string name="warm_focus_starting">अभी शुरुआत</string>
+    <string name="warm_focus_momentum">अच्छी गति</string>
+    <string name="warm_focus_deep">पूरी तरह डूबे</string>
+    <string name="warm_focus_big">बड़ा Focus दिन</string>
+    <string name="warm_focus_empty_title">आज अभी कुछ नहीं</string>
+    <string name="warm_focus_empty_body">एक टास्क टैग करें और पहला Focus ब्लॉक शुरू करें।</string>
+    <string name="warm_achievement_unlocked">अनलॉक हुआ: %1$s</string>
+    <string name="warm_calendar_empty_title">कोई इवेंट नहीं</string>
+    <string name="warm_calendar_empty_body">एक इवेंट जोड़ें और यह यहां दिखेगा।</string>
+    <string name="warm_checklist_empty_title">आज का दिन खाली है</string>
+    <string name="warm_checklist_empty_body">शुरू करने के लिए टास्क जोड़ें।</string>
+    <string name="warm_sessions_empty_title">Focus के लिए तैयार?</string>
+    <string name="warm_sessions_empty_body">एक टास्क टैग करें, समय चुनें और पहला Focus ब्लॉक शुरू करें।</string>
+    <string name="warm_upcoming_empty">आज कैलेंडर में कुछ नहीं</string>
+
+    <plurals name="warm_streak_days">
+        <item quantity="one">%1$d दिन</item>
+        <item quantity="other">%1$d दिन</item>
+    </plurals>
+    <plurals name="warm_streak_longest">
+        <item quantity="one">%1$d दिन की Streak — अब तक की सबसे लंबी</item>
+        <item quantity="other">%1$d दिन की Streak — अब तक की सबसे लंबी</item>
+    </plurals>
+    <plurals name="warm_streak_one_off">
+        <item quantity="one">%1$d दिन, रिकॉर्ड से एक कम</item>
+        <item quantity="other">%1$d दिन, रिकॉर्ड से एक कम</item>
+    </plurals>
+
+    <!-- Achievement celebration -->
+    <string name="achievement_unlocked_title">उपलब्धि अनलॉक हुई</string>
+    <string name="achievement_nice">शाबाश</string>
+
+    <!-- AI quick-add (NL parse) dialog -->
+    <string name="ai_parse_calendar_title">इवेंट जल्दी जोड़ें</string>
+    <string name="ai_parse_calendar_hint">जैसे: कल दोपहर 1 बजे Sarah के साथ लंच</string>
+    <string name="ai_parse_checklist_title">टास्क जल्दी जोड़ें</string>
+    <string name="ai_parse_checklist_hint">जैसे: शुक्रवार को सब्ज़ियाँ खरीदना</string>
+    <string name="ai_parse_description">एक वाक्य लिखें और हम विवरण भर देंगे।</string>
+
+    <!-- In-app APK update banner -->
+    <string name="update_downloading_pct">Ultiq %1$s डाउनलोड हो रहा है… %2$d%%</string>
+    <string name="update_downloading">Ultiq %1$s डाउनलोड हो रहा है…</string>
+    <string name="update_awaiting_confirm">सिस्टम प्रॉम्प्ट खुला है — वहां Install टैप करें</string>
+    <string name="update_installed">अपडेट इंस्टॉल हुआ — Ultiq पुनः शुरू करने के लिए टैप करें</string>
+    <string name="update_failed">अपडेट विफल — पुनः प्रयास करने के लिए टैप करें</string>
+    <string name="update_available">Ultiq %1$s उपलब्ध है — इंस्टॉल करने के लिए टैप करें</string>
 </resources>

@@ -1,30 +1,40 @@
 package com.ultiq.app.ui.copy
 
+import android.content.Context
+import com.ultiq.app.R
 import java.time.LocalTime
 
 /**
  * Copy variants that make Ultiq sound like a companion, not a form.
  * Picks deterministic-but-varied lines from time-of-day or simple context.
+ *
+ * §13.1 (i18n) — the branching stays in Kotlin; only the text moved to
+ * `strings.xml`. Every entry point takes a [Context] so it resolves in the
+ * user's chosen app language (callers pass `LocalContext.current`).
  */
 object WarmCopy {
 
-    fun greeting(now: LocalTime = LocalTime.now()): String = when (now.hour) {
-        in 5..7 -> "Up early"
-        in 8..11 -> "Good morning"
-        in 12..13 -> "Lunch break?"
-        in 14..16 -> "Good afternoon"
-        in 17..19 -> "Good evening"
-        in 20..22 -> "Winding down"
-        else -> "Up late"
-    }
+    fun greeting(context: Context, now: LocalTime = LocalTime.now()): String = context.getString(
+        when (now.hour) {
+            in 5..7 -> R.string.warm_greeting_up_early
+            in 8..11 -> R.string.warm_greeting_morning
+            in 12..13 -> R.string.warm_greeting_lunch
+            in 14..16 -> R.string.warm_greeting_afternoon
+            in 17..19 -> R.string.warm_greeting_evening
+            in 20..22 -> R.string.warm_greeting_winding_down
+            else -> R.string.warm_greeting_up_late
+        }
+    )
 
-    fun greetingSubtitle(now: LocalTime = LocalTime.now()): String = when (now.hour) {
-        in 5..11 -> "A fresh start."
-        in 12..16 -> "Half the day to go."
-        in 17..20 -> "How'd today land?"
-        in 21..23 -> "Time to rest soon."
-        else -> "Tomorrow's a new run."
-    }
+    fun greetingSubtitle(context: Context, now: LocalTime = LocalTime.now()): String = context.getString(
+        when (now.hour) {
+            in 5..11 -> R.string.warm_subtitle_fresh_start
+            in 12..16 -> R.string.warm_subtitle_half_day
+            in 17..20 -> R.string.warm_subtitle_how_land
+            in 21..23 -> R.string.warm_subtitle_rest_soon
+            else -> R.string.warm_subtitle_new_run
+        }
+    )
 
     /**
      * Sleep card heading. Keys off the 1–5 star rating so every tier has a
@@ -33,55 +43,64 @@ object WarmCopy {
      * nuance; top/rough tiers ignore duration (the user's own rating already
      * tells that story, and the exact delta shows in the line below the card).
      */
-    fun sleepHeader(quality: Int?, vsTargetMinutes: Int?): String {
-        if (quality == null || quality < 1) return "How'd you sleep?"
+    fun sleepHeader(context: Context, quality: Int?, vsTargetMinutes: Int?): String {
+        if (quality == null || quality < 1) return context.getString(R.string.warm_sleep_how)
         val short = (vsTargetMinutes ?: 0) < -60
-        return when {
-            quality >= 5 -> "Top night"
-            quality == 4 -> if (short) "Solid, but a bit short" else "Solid night"
-            quality == 3 -> if (short) "Decent, but cut short" else "Decent night"
-            else -> "Rough one — go easy today" // quality 1–2
-        }
+        return context.getString(
+            when {
+                quality >= 5 -> R.string.warm_sleep_top
+                quality == 4 -> if (short) R.string.warm_sleep_solid_short else R.string.warm_sleep_solid
+                quality == 3 -> if (short) R.string.warm_sleep_decent_short else R.string.warm_sleep_decent
+                else -> R.string.warm_sleep_rough // quality 1–2
+            }
+        )
     }
 
-    fun sleepEmpty(): Pair<String, String> =
-        "No nights logged yet" to "Tap Start Sleep tonight — we'll handle the rest."
+    fun sleepEmpty(context: Context): Pair<String, String> =
+        context.getString(R.string.warm_sleep_empty_title) to context.getString(R.string.warm_sleep_empty_body)
 
     /** Focus card heading varies with minutes today. */
-    fun focusHeader(minutesToday: Int?): String {
+    fun focusHeader(context: Context, minutesToday: Int?): String {
         val m = minutesToday ?: 0
-        return when {
-            m == 0 -> "Ready to focus?"
-            m < 25 -> "Just getting started"
-            m < 90 -> "Good momentum"
-            m < 180 -> "Deep in it"
-            else -> "Big focus day"
-        }
+        return context.getString(
+            when {
+                m == 0 -> R.string.warm_focus_ready
+                m < 25 -> R.string.warm_focus_starting
+                m < 90 -> R.string.warm_focus_momentum
+                m < 180 -> R.string.warm_focus_deep
+                else -> R.string.warm_focus_big
+            }
+        )
     }
 
-    fun focusEmpty(): Pair<String, String> =
-        "Nothing yet today" to "Tag a task and start your first focus block."
+    fun focusEmpty(context: Context): Pair<String, String> =
+        context.getString(R.string.warm_focus_empty_title) to context.getString(R.string.warm_focus_empty_body)
 
     /** Streak phrasing — surfaces record proximity when relevant. */
-    fun streakLine(current: Int, longest: Int): String? {
+    fun streakLine(context: Context, current: Int, longest: Int): String? {
         if (current <= 0) return null
         return when {
-            current >= longest && current >= 2 -> "$current-day streak — longest yet"
-            current == longest - 1 && longest >= 3 -> "$current days, one off your record"
-            else -> "$current day${if (current != 1) "s" else ""}"
+            current >= longest && current >= 2 ->
+                context.resources.getQuantityString(R.plurals.warm_streak_longest, current, current)
+            current == longest - 1 && longest >= 3 ->
+                context.resources.getQuantityString(R.plurals.warm_streak_one_off, current, current)
+            else ->
+                context.resources.getQuantityString(R.plurals.warm_streak_days, current, current)
         }
     }
 
-    fun achievementEarned(name: String): String = "Unlocked: $name"
+    fun achievementEarned(context: Context, name: String): String =
+        context.getString(R.string.warm_achievement_unlocked, name)
 
-    fun calendarEmpty(): Pair<String, String> =
-        "Nothing scheduled" to "Add an event and it'll show up here."
+    fun calendarEmpty(context: Context): Pair<String, String> =
+        context.getString(R.string.warm_calendar_empty_title) to context.getString(R.string.warm_calendar_empty_body)
 
-    fun checklistEmpty(): Pair<String, String> =
-        "Today's wide open" to "Add a task to get going."
+    fun checklistEmpty(context: Context): Pair<String, String> =
+        context.getString(R.string.warm_checklist_empty_title) to context.getString(R.string.warm_checklist_empty_body)
 
-    fun sessionsEmpty(): Pair<String, String> =
-        "Ready to focus?" to "Tag a task, pick durations, and start your first focus block."
+    fun sessionsEmpty(context: Context): Pair<String, String> =
+        context.getString(R.string.warm_sessions_empty_title) to context.getString(R.string.warm_sessions_empty_body)
 
-    fun upcomingEventsEmpty(): String = "Nothing on your calendar today"
+    fun upcomingEventsEmpty(context: Context): String =
+        context.getString(R.string.warm_upcoming_empty)
 }

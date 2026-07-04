@@ -75,6 +75,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -197,7 +198,8 @@ fun SessionsScreen(
 
             if (uiState.recentSessions.isEmpty() && uiState.timerState == TimerState.IDLE) {
                 item(key = "empty") {
-                    val (title, body) = WarmCopy.sessionsEmpty()
+                    val context = LocalContext.current
+                    val (title, body) = WarmCopy.sessionsEmpty(context)
                     MascotEmptyState(title = title, body = body)
                 }
             } else if (uiState.recentSessions.isNotEmpty()) {

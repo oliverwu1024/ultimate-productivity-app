@@ -18,4 +18,198 @@
     <string name="settings_language">اللغة</string>
     <string name="settings_language_system">الإعداد الافتراضي للنظام</string>
     <string name="common_close">إغلاق</string>
+
+    <!-- ══════════════════ §13.1 Android sweep — dashboard + common ══════════════════ -->
+
+    <!-- Shared actions / labels (reused across screens) -->
+    <string name="action_settings">الإعدادات</string>
+    <string name="action_logout">تسجيل الخروج</string>
+    <string name="action_dismiss">رفض</string>
+    <string name="action_refresh">تحديث</string>
+    <string name="action_cancel">إلغاء</string>
+    <string name="action_delete">حذف</string>
+    <string name="action_generate">توليد</string>
+    <string name="action_view_all">عرض الكل</string>
+    <string name="action_decrease">تقليل</string>
+    <string name="action_increase">زيادة</string>
+    <string name="common_dismiss_hint">إغلاق التلميح</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard_title">لوحة التحكم</string>
+    <string name="dashboard_coach">المدرب</string>
+    <string name="dashboard_coach_cd">تحدث مع مدربك</string>
+    <string name="dashboard_today_calendar">تقويم اليوم</string>
+    <string name="dashboard_today_plan">خطة اليوم</string>
+    <string name="dashboard_this_week">هذا الأسبوع</string>
+    <string name="dashboard_today">اليوم</string>
+    <string name="dashboard_did_you_know">هل تعلم؟</string>
+    <string name="dashboard_web_promo">Ultiq متاح أيضًا على الويب — تحليلات كاملة على app.ultiqapp.com</string>
+    <string name="dashboard_heads_up">تنبيه</string>
+    <string name="dashboard_offline_note">التتبع اليومي يعمل بدون إنترنت، لكن الاتصال مطلوب للمزامنة بين الأجهزة ورؤى AI والملخصات الأسبوعية وتشغيل المقاطع الصوتية.</string>
+    <string name="dashboard_lock_overlay_title">منح أذونات القفل والتراكب في الإعدادات</string>
+    <string name="dashboard_lock_overlay_body">وضع التركيز وقفل النوم يحتاجان إلى \'العرض فوق التطبيقات الأخرى\' و\'القفل المشدد\' للعمل بشكل موثوق. بدونهما يمكن إزالة شاشة القفل بالتمرير. افتح الإعدادات (أعلى اليمين) للمنح.</string>
+    <string name="dashboard_prefs_title">إعداد تفضيلات النوم والتركيز</string>
+    <string name="dashboard_prefs_body">منبهات الاستيقاظ وإعدادات النوم موجودة في تبويب النوم؛ وإعدادات التركيز في تبويب التركيز. افتح كل تبويب ومرر لأسفل للضبط — أو اضغط × في هذه البطاقة لإخفائها.</string>
+    <string name="dashboard_not_synced">لم تتم المزامنة بعد</string>
+    <string name="dashboard_just_synced">تمت المزامنة للتو</string>
+    <string name="dashboard_synced_minutes_ago">تمت المزامنة منذ %1$d دقيقة</string>
+    <string name="dashboard_synced_hours_ago">تمت المزامنة منذ %1$d ساعة</string>
+    <string name="dashboard_sleep_rank">✦ %1$s</string>
+    <string name="dashboard_sleep_vs_optimal">%1$s مقابل النوم المثالي</string>
+    <string name="dashboard_sleep_sounds">🔊 %1$s</string>
+    <string name="dashboard_last_week_daily_avg">متوسط الأسبوع الماضي اليومي كان %1$s</string>
+    <string name="dashboard_focus_today">اليوم</string>
+    <string name="dashboard_longest_streak">أطول سلسلة حتى الآن — واصل المسيرة</string>
+    <string name="dashboard_checklist_done">%1$d من %2$d مكتمل</string>
+    <string name="dashboard_quick_sleep">تسجيل النوم</string>
+    <string name="dashboard_quick_focus">بدء التركيز</string>
+    <string name="dashboard_quick_event">إضافة حدث</string>
+    <string name="dashboard_stat_avg_sleep">متوسط النوم</string>
+    <string name="dashboard_stat_avg_quality">متوسط الجودة</string>
+    <string name="dashboard_stat_total_focus">إجمالي التركيز</string>
+    <string name="dashboard_stat_calendar_events">أحداث التقويم</string>
+    <string name="dashboard_marked_done">تم التحديد كمنجز</string>
+    <string name="dashboard_last_week">الأسبوع الماضي</string>
+    <string name="dashboard_sleep_debt">دين النوم</string>
+    <string name="dashboard_extra_rest">راحة إضافية</string>
+    <string name="dashboard_on_target">في الهدف</string>
+    <string name="dashboard_net_on_target">الصافي: في الهدف</string>
+    <string name="dashboard_net_over">الصافي: +%1$s مقابل الهدف</string>
+    <string name="dashboard_net_under">الصافي: −%1$s مقابل الهدف</string>
+    <string name="dashboard_achievements">الإنجازات</string>
+    <string name="dashboard_achievements_count">%1$d / %2$d</string>
+    <string name="dashboard_achievement_latest">الأحدث: %1$s</string>
+    <string name="dashboard_anomaly_heads_up">تنبيه</string>
+    <string name="dashboard_insight_title">الأيام السبعة الماضية — ملخص AI</string>
+    <string name="dashboard_insight_generating">جارٍ توليد ملخص أسبوعك…</string>
+    <string name="dashboard_insight_generated">تم التوليد %1$s</string>
+    <string name="dashboard_insight_next_refresh">التحديث التالي %1$s</string>
+    <string name="dashboard_insight_cached">يتجدد كل 24 ساعة — ملخصك القادم في الطريق.</string>
+    <string name="dashboard_insight_error_signin">سجّل الدخول لرؤية رؤيتك الأسبوعية</string>
+    <string name="dashboard_insight_error_limit">تم بلوغ حد AI اليومي — عُد غدًا</string>
+    <string name="dashboard_insight_error_generic">تعذّر تحميل رؤيتك الأسبوعية</string>
+    <string name="dashboard_quiet_night">ليلة هادئة</string>
+
+    <plurals name="dashboard_sessions_today">
+        <item quantity="zero">لا جلسات اليوم</item>
+        <item quantity="one">%1$d جلسة اليوم</item>
+        <item quantity="two">جلستان اليوم</item>
+        <item quantity="few">%1$d جلسات اليوم</item>
+        <item quantity="many">%1$d جلسة اليوم</item>
+        <item quantity="other">%1$d جلسة اليوم</item>
+    </plurals>
+    <plurals name="dashboard_more_items">
+        <item quantity="zero">+%1$d أكثر</item>
+        <item quantity="one">+%1$d أكثر</item>
+        <item quantity="two">+%1$d أكثر</item>
+        <item quantity="few">+%1$d أكثر</item>
+        <item quantity="many">+%1$d أكثر</item>
+        <item quantity="other">+%1$d أكثر</item>
+    </plurals>
+    <plurals name="dashboard_sound_snore">
+        <item quantity="zero">لا شخير</item>
+        <item quantity="one">%1$d شخيرة</item>
+        <item quantity="two">شخيرتان</item>
+        <item quantity="few">%1$d شخيرات</item>
+        <item quantity="many">%1$d شخيرة</item>
+        <item quantity="other">%1$d شخيرة</item>
+    </plurals>
+    <plurals name="dashboard_sound_cough">
+        <item quantity="zero">لا سعال</item>
+        <item quantity="one">%1$d سعلة</item>
+        <item quantity="two">سعلتان</item>
+        <item quantity="few">%1$d سعلات</item>
+        <item quantity="many">%1$d سعلة</item>
+        <item quantity="other">%1$d سعلة</item>
+    </plurals>
+    <plurals name="dashboard_sound_talk">
+        <item quantity="zero">لا كلام نوم</item>
+        <item quantity="one">%1$d مرة كلام نوم</item>
+        <item quantity="two">مرتا كلام نوم</item>
+        <item quantity="few">%1$d مرات كلام نوم</item>
+        <item quantity="many">%1$d مرة كلام نوم</item>
+        <item quantity="other">%1$d مرة كلام نوم</item>
+    </plurals>
+
+    <!-- WarmCopy — companion-voice copy -->
+    <string name="warm_greeting_up_early">صحوت مبكرًا</string>
+    <string name="warm_greeting_morning">صباح الخير</string>
+    <string name="warm_greeting_lunch">استراحة الغداء؟</string>
+    <string name="warm_greeting_afternoon">مساء الخير</string>
+    <string name="warm_greeting_evening">مساء النور</string>
+    <string name="warm_greeting_winding_down">وقت الاسترخاء</string>
+    <string name="warm_greeting_up_late">ما زلت مستيقظًا</string>
+    <string name="warm_subtitle_fresh_start">بداية جديدة.</string>
+    <string name="warm_subtitle_half_day">نصف اليوم ما زال أمامك.</string>
+    <string name="warm_subtitle_how_land">كيف كان يومك؟</string>
+    <string name="warm_subtitle_rest_soon">وقت الراحة قريب.</string>
+    <string name="warm_subtitle_new_run">غدٌ جديد ينتظرك.</string>
+    <string name="warm_sleep_how">كيف نمت؟</string>
+    <string name="warm_sleep_top">ليلة رائعة</string>
+    <string name="warm_sleep_solid">ليلة جيدة</string>
+    <string name="warm_sleep_solid_short">جيدة، لكن قصيرة قليلًا</string>
+    <string name="warm_sleep_decent">ليلة مقبولة</string>
+    <string name="warm_sleep_decent_short">مقبولة، لكن قُطعت مبكرًا</string>
+    <string name="warm_sleep_rough">ليلة صعبة — تعامل مع يومك برفق</string>
+    <string name="warm_sleep_empty_title">لم تُسجَّل أي ليالٍ بعد</string>
+    <string name="warm_sleep_empty_body">اضغط بدء النوم الليلة — سنتولى الباقي.</string>
+    <string name="warm_focus_ready">هل أنت مستعد للتركيز؟</string>
+    <string name="warm_focus_starting">بدء الانطلاق</string>
+    <string name="warm_focus_momentum">زخم جيد</string>
+    <string name="warm_focus_deep">في عمق التركيز</string>
+    <string name="warm_focus_big">يوم تركيز كبير</string>
+    <string name="warm_focus_empty_title">لا شيء حتى الآن اليوم</string>
+    <string name="warm_focus_empty_body">أضف وسمًا لمهمة وابدأ أول جلسة تركيز.</string>
+    <string name="warm_achievement_unlocked">تم الفتح: %1$s</string>
+    <string name="warm_calendar_empty_title">لا شيء مجدول</string>
+    <string name="warm_calendar_empty_body">أضف حدثًا وسيظهر هنا.</string>
+    <string name="warm_checklist_empty_title">اليوم مفتوح تمامًا</string>
+    <string name="warm_checklist_empty_body">أضف مهمة للبدء.</string>
+    <string name="warm_sessions_empty_title">هل أنت مستعد للتركيز؟</string>
+    <string name="warm_sessions_empty_body">أضف وسمًا، اختر المدة، وابدأ أول جلسة تركيز.</string>
+    <string name="warm_upcoming_empty">لا شيء في تقويمك اليوم</string>
+
+    <plurals name="warm_streak_days">
+        <item quantity="zero">لا أيام</item>
+        <item quantity="one">%1$d يوم</item>
+        <item quantity="two">يومان</item>
+        <item quantity="few">%1$d أيام</item>
+        <item quantity="many">%1$d يومًا</item>
+        <item quantity="other">%1$d يوم</item>
+    </plurals>
+    <plurals name="warm_streak_longest">
+        <item quantity="zero">سلسلة %1$d أيام — الأطول حتى الآن</item>
+        <item quantity="one">سلسلة %1$d يوم — الأطول حتى الآن</item>
+        <item quantity="two">سلسلة يومين — الأطول حتى الآن</item>
+        <item quantity="few">سلسلة %1$d أيام — الأطول حتى الآن</item>
+        <item quantity="many">سلسلة %1$d يومًا — الأطول حتى الآن</item>
+        <item quantity="other">سلسلة %1$d يوم — الأطول حتى الآن</item>
+    </plurals>
+    <plurals name="warm_streak_one_off">
+        <item quantity="zero">لا أيام، يوم واحد قبل رقمك القياسي</item>
+        <item quantity="one">%1$d يوم، يوم واحد قبل رقمك القياسي</item>
+        <item quantity="two">يومان، يوم واحد قبل رقمك القياسي</item>
+        <item quantity="few">%1$d أيام، يوم واحد قبل رقمك القياسي</item>
+        <item quantity="many">%1$d يومًا، يوم واحد قبل رقمك القياسي</item>
+        <item quantity="other">%1$d يوم، يوم واحد قبل رقمك القياسي</item>
+    </plurals>
+
+    <!-- Achievement celebration -->
+    <string name="achievement_unlocked_title">تم فتح إنجاز</string>
+    <string name="achievement_nice">رائع</string>
+
+    <!-- AI quick-add (NL parse) dialog -->
+    <string name="ai_parse_calendar_title">إضافة حدث سريع</string>
+    <string name="ai_parse_calendar_hint">مثال: غداء مع سارة غدًا الساعة 1 ظهرًا</string>
+    <string name="ai_parse_checklist_title">إضافة مهمة سريعة</string>
+    <string name="ai_parse_checklist_hint">مثال: شراء البقالة يوم الجمعة</string>
+    <string name="ai_parse_description">اكتب جملة وسنملأ التفاصيل لمراجعتك.</string>
+
+    <!-- In-app APK update banner -->
+    <string name="update_downloading_pct">تنزيل Ultiq %1$s… %2$d%%</string>
+    <string name="update_downloading">تنزيل Ultiq %1$s…</string>
+    <string name="update_awaiting_confirm">موجّه النظام مفتوح — اضغط تثبيت هناك</string>
+    <string name="update_installed">تم تثبيت التحديث — اضغط لإعادة تشغيل Ultiq</string>
+    <string name="update_failed">فشل التحديث — اضغط للمحاولة مجددًا</string>
+    <string name="update_available">Ultiq %1$s متاح — اضغط للتثبيت</string>
 </resources>

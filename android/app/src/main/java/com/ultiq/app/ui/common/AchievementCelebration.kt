@@ -29,9 +29,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.ultiq.app.R
 
 /**
  * Celebratory modal shown when the user earns an achievement.
@@ -60,12 +62,12 @@ fun AchievementCelebration(
         onDismissRequest = onDismiss,
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Nice")
+                Text(stringResource(R.string.achievement_nice))
             }
         },
         title = {
             Text(
-                "Achievement unlocked",
+                stringResource(R.string.achievement_unlocked_title),
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth(),

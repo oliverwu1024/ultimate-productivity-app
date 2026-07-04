@@ -5,6 +5,7 @@ import android.provider.Settings
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.ultiq.app.R
 import com.ultiq.app.data.achievements.AchievementId
 import com.ultiq.app.data.local.AppDatabase
 import com.ultiq.app.data.local.entity.CalendarEventEntity
@@ -338,14 +339,16 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                 )
             } catch (e: retrofit2.HttpException) {
                 val msg = when (e.code()) {
-                    401 -> "Sign in to see your weekly insight"
-                    429 -> "Daily AI limit reached — back tomorrow"
-                    else -> "Couldn't load your weekly insight"
+                    401 -> getApplication<Application>().getString(R.string.dashboard_insight_error_signin)
+                    429 -> getApplication<Application>().getString(R.string.dashboard_insight_error_limit)
+                    else -> getApplication<Application>().getString(R.string.dashboard_insight_error_generic)
                 }
                 _uiState.value = _uiState.value.copy(weeklyInsight = WeeklyInsightState.Error(msg))
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
-                    weeklyInsight = WeeklyInsightState.Error("Couldn't load your weekly insight")
+                    weeklyInsight = WeeklyInsightState.Error(
+                        getApplication<Application>().getString(R.string.dashboard_insight_error_generic)
+                    )
                 )
             }
         }
@@ -589,12 +592,13 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         val snore = runCatching { dao.countByType(recordId, "snore") }.getOrDefault(0)
         val cough = runCatching { dao.countByType(recordId, "cough") }.getOrDefault(0)
         val talk = runCatching { dao.countByType(recordId, "sleep_talk") }.getOrDefault(0)
+        val res = getApplication<Application>().resources
         val parts = mutableListOf<String>()
-        if (snore > 0) parts += "$snore snore"
-        if (cough > 0) parts += "$cough cough"
-        if (talk > 0) parts += "$talk sleep-talk"
+        if (snore > 0) parts += res.getQuantityString(R.plurals.dashboard_sound_snore, snore, snore)
+        if (cough > 0) parts += res.getQuantityString(R.plurals.dashboard_sound_cough, cough, cough)
+        if (talk > 0) parts += res.getQuantityString(R.plurals.dashboard_sound_talk, talk, talk)
         if (parts.isNotEmpty()) return parts.joinToString(" · ")
-        return if (audioOn || talkOn) "Quiet night" else null
+        return if (audioOn || talkOn) getApplication<Application>().getString(R.string.dashboard_quiet_night) else null
     }
 
     private suspend fun loadFocusSummary() {
