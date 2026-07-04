@@ -258,4 +258,85 @@
         <item quantity="one">%1$d मिनट</item>
         <item quantity="other">%1$d मिनट</item>
     </plurals>
+
+    <!-- ══════════════════ §13.1 Android sweep — calendar ══════════════════ -->
+
+    <!-- Shared actions / fields -->
+    <string name="action_ok">ठीक है</string>
+    <string name="action_add_event">इवेंट जोड़ें</string>
+    <string name="action_discard">छोड़ें</string>
+    <string name="field_category">श्रेणी</string>
+    <string name="field_reminders">रिमाइंडर</string>
+    <string name="field_color">रंग</string>
+    <string name="priority_medium">मध्यम</string>
+    <string name="reminder_none">कोई नहीं</string>
+
+    <!-- Event categories (display; stored values stay study/project/…) -->
+    <string name="category_study">पढ़ाई</string>
+    <string name="category_project">प्रोजेक्ट</string>
+    <string name="category_exercise">व्यायाम</string>
+    <string name="category_personal">व्यक्तिगत</string>
+    <string name="category_other">अन्य</string>
+
+    <!-- Recurrence frequency (display; stored values stay DAILY/WEEKLY/MONTHLY) -->
+    <string name="freq_daily">दैनिक</string>
+    <string name="freq_weekly">साप्ताहिक</string>
+    <string name="freq_monthly">मासिक</string>
+
+    <!-- Calendar -->
+    <string name="calendar_title">कैलेंडर</string>
+    <string name="calendar_prev_month_cd">पिछला महीना</string>
+    <string name="calendar_next_month_cd">अगला महीना</string>
+    <string name="calendar_delete_event_title">इवेंट हटाएं?</string>
+    <string name="calendar_delete_event_body">\'%1$s\' आपके कैलेंडर से हटा दिया जाएगा।</string>
+    <string name="calendar_recurring_delete_title">नियमित इवेंट हटाएं?</string>
+    <string name="calendar_recurring_delete_body">\'%1$s\' दोहराता है। आप क्या हटाना चाहेंगे?</string>
+    <string name="calendar_recurring_edit_title">नियमित इवेंट संपादित करें?</string>
+    <string name="calendar_recurring_edit_body">\'%1$s\' दोहराता है। बदलाव लागू करें:</string>
+    <string name="calendar_scope_just_this">सिर्फ यह एक</string>
+    <string name="calendar_scope_this_following">यह और इसके बाद के</string>
+    <string name="calendar_scope_all">सभी</string>
+    <string name="calendar_scope_action_line">%1$s: %2$s</string>
+    <string name="calendar_time_range">%1$s – %2$s</string>
+    <string name="calendar_multiday_start">%1$s → समाप्त %2$s %3$s</string>
+    <string name="calendar_multiday_end">समाप्त %1$s · शुरू %2$s %3$s</string>
+    <string name="calendar_multiday_middle">पूरा दिन · शुरू %1$s %2$s</string>
+
+    <!-- Add / edit event dialog -->
+    <string name="calendar_new_event">नया इवेंट</string>
+    <string name="calendar_edit_event">इवेंट संपादित करें</string>
+    <string name="calendar_discard_changes_title">बदलाव छोड़ें?</string>
+    <string name="calendar_discard_event_title">इवेंट छोड़ें?</string>
+    <string name="calendar_discard_body">आपने जो लिखा है वह मिट जाएगा।</string>
+    <string name="calendar_keep_editing">संपादन जारी रखें</string>
+    <string name="calendar_all_day">पूरा दिन</string>
+    <string name="field_start_date">शुरुआत की तारीख</string>
+    <string name="field_start_time">शुरुआत का समय</string>
+    <string name="field_end_date">समाप्ति की तारीख</string>
+    <string name="field_end_time">समाप्ति का समय</string>
+    <string name="calendar_conflict_line">• %1$s (%2$s–%3$s)</string>
+    <string name="calendar_recurring">नियमित</string>
+    <string name="calendar_day_of_month">महीने का दिन (1–31)</string>
+    <string name="calendar_select_time">समय चुनें</string>
+    <string name="calendar_err_title_required">शीर्षक जरूरी है</string>
+    <string name="calendar_err_start_before_end">शुरुआत, समाप्ति से पहले होनी चाहिए</string>
+    <string name="calendar_err_select_day">कम से कम एक दिन चुनें</string>
+    <string name="calendar_err_valid_day">मान्य दिन दर्ज करें (1–31)</string>
+
+    <plurals name="calendar_conflicts_with">
+        <item quantity="one">%1$d इवेंट से टकराव:</item>
+        <item quantity="other">%1$d इवेंट से टकराव:</item>
+    </plurals>
+    <plurals name="reminder_hr">
+        <item quantity="one">%1$d घंटा</item>
+        <item quantity="other">%1$d घंटे</item>
+    </plurals>
+    <plurals name="reminder_day">
+        <item quantity="one">%1$d दिन</item>
+        <item quantity="other">%1$d दिन</item>
+    </plurals>
+    <plurals name="reminder_week">
+        <item quantity="one">%1$d सप्ताह</item>
+        <item quantity="other">%1$d सप्ताह</item>
+    </plurals>
 </resources>

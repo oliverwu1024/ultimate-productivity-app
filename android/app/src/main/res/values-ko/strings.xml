@@ -248,4 +248,81 @@
     <plurals name="estimate_minutes">
         <item quantity="other">%1$d분</item>
     </plurals>
+
+    <!-- ══════════════════ §13.1 Android sweep — calendar ══════════════════ -->
+
+    <!-- Shared actions / fields -->
+    <string name="action_ok">확인</string>
+    <string name="action_add_event">일정 추가</string>
+    <string name="action_discard">취소</string>
+    <string name="field_category">카테고리</string>
+    <string name="field_reminders">알림</string>
+    <string name="field_color">색상</string>
+    <string name="priority_medium">보통</string>
+    <string name="reminder_none">없음</string>
+
+    <!-- Event categories (display; stored values stay study/project/…) -->
+    <string name="category_study">공부</string>
+    <string name="category_project">프로젝트</string>
+    <string name="category_exercise">운동</string>
+    <string name="category_personal">개인</string>
+    <string name="category_other">기타</string>
+
+    <!-- Recurrence frequency (display; stored values stay DAILY/WEEKLY/MONTHLY) -->
+    <string name="freq_daily">매일</string>
+    <string name="freq_weekly">매주</string>
+    <string name="freq_monthly">매월</string>
+
+    <!-- Calendar -->
+    <string name="calendar_title">캘린더</string>
+    <string name="calendar_prev_month_cd">이전 달</string>
+    <string name="calendar_next_month_cd">다음 달</string>
+    <string name="calendar_delete_event_title">일정을 삭제할까요?</string>
+    <string name="calendar_delete_event_body">\'%1$s\'이(가) 캘린더에서 제거됩니다.</string>
+    <string name="calendar_recurring_delete_title">반복 일정을 삭제할까요?</string>
+    <string name="calendar_recurring_delete_body">\'%1$s\'은(는) 반복 일정입니다. 무엇을 삭제하시겠어요?</string>
+    <string name="calendar_recurring_edit_title">반복 일정을 수정할까요?</string>
+    <string name="calendar_recurring_edit_body">\'%1$s\'은(는) 반복 일정입니다. 변경 사항 적용 범위:</string>
+    <string name="calendar_scope_just_this">이 일정만</string>
+    <string name="calendar_scope_this_following">이 일정 이후 모두</string>
+    <string name="calendar_scope_all">모든 반복 일정</string>
+    <string name="calendar_scope_action_line">%1$s: %2$s</string>
+    <string name="calendar_time_range">%1$s – %2$s</string>
+    <string name="calendar_multiday_start">%1$s → %2$s %3$s 종료</string>
+    <string name="calendar_multiday_end">%1$s 종료 · %2$s %3$s 시작</string>
+    <string name="calendar_multiday_middle">하루 종일 · %1$s %2$s 시작</string>
+
+    <!-- Add / edit event dialog -->
+    <string name="calendar_new_event">새 일정</string>
+    <string name="calendar_edit_event">일정 수정</string>
+    <string name="calendar_discard_changes_title">변경 사항을 취소할까요?</string>
+    <string name="calendar_discard_event_title">일정을 취소할까요?</string>
+    <string name="calendar_discard_body">입력한 내용이 사라집니다.</string>
+    <string name="calendar_keep_editing">계속 수정</string>
+    <string name="calendar_all_day">하루 종일</string>
+    <string name="field_start_date">시작 날짜</string>
+    <string name="field_start_time">시작 시간</string>
+    <string name="field_end_date">종료 날짜</string>
+    <string name="field_end_time">종료 시간</string>
+    <string name="calendar_conflict_line">• %1$s (%2$s–%3$s)</string>
+    <string name="calendar_recurring">반복</string>
+    <string name="calendar_day_of_month">날짜 (1–31)</string>
+    <string name="calendar_select_time">시간 선택</string>
+    <string name="calendar_err_title_required">제목을 입력해 주세요</string>
+    <string name="calendar_err_start_before_end">시작 시간은 종료 시간 이전이어야 합니다</string>
+    <string name="calendar_err_select_day">요일을 하나 이상 선택해 주세요</string>
+    <string name="calendar_err_valid_day">유효한 날짜를 입력하세요 (1–31)</string>
+
+    <plurals name="calendar_conflicts_with">
+        <item quantity="other">%1$d개의 일정과 충돌합니다:</item>
+    </plurals>
+    <plurals name="reminder_hr">
+        <item quantity="other">%1$d시간</item>
+    </plurals>
+    <plurals name="reminder_day">
+        <item quantity="other">%1$d일</item>
+    </plurals>
+    <plurals name="reminder_week">
+        <item quantity="other">%1$d주</item>
+    </plurals>
 </resources>

@@ -56,10 +56,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.ultiq.app.R
 import com.ultiq.app.data.local.entity.CalendarEventEntity
 import com.ultiq.app.data.remote.dto.CreateCalendarEventDto
 import com.ultiq.app.util.AlarmScheduler
+import com.ultiq.app.util.LocaleManager
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -74,17 +78,9 @@ private val priorities = listOf("high", "medium", "low")
 // ("1 day before AND 1 hour before AND 5 min before"). Keep the values
 // aligned with AlarmScheduler.KNOWN_REMINDER_OFFSETS — that constant is
 // what cancellation walks to clear every PendingIntent for an event.
-private val reminderOffsetOptions: List<Pair<Int, String>> = listOf(
-    5 to "5 min",
-    15 to "15 min",
-    30 to "30 min",
-    60 to "1 hr",
-    120 to "2 hr",
-    240 to "4 hr",
-    1440 to "1 day",
-    2880 to "2 days",
-    10080 to "1 week",
-)
+// §13.1 — minutes-before-start; the display label is derived per-locale via
+// reminderOffsetLabel() (min / hr / day / week plurals) at render time.
+private val reminderOffsetOptions: List<Int> = listOf(5, 15, 30, 60, 120, 240, 1440, 2880, 10080)
 private val colorOptions = listOf(
     "#4A90D9", "#E67E22", "#2ECC71", "#9B59B6", "#95A5A6",
     "#E74C3C", "#F1C40F", "#1ABC9C"
@@ -236,8 +232,8 @@ fun AddEventDialog(
     var showStartTimePicker by remember { mutableStateOf(false) }
     var showEndTimePicker by remember { mutableStateOf(false) }
 
-    val timeFormat = DateTimeFormatter.ofPattern("hh:mm a")
-    val dateFormat = DateTimeFormatter.ofPattern("MMM dd, yyyy")
+    val timeFormat = DateTimeFormatter.ofPattern("hh:mm a", LocaleManager.currentLocale())
+    val dateFormat = DateTimeFormatter.ofPattern("MMM dd, yyyy", LocaleManager.currentLocale())
 
     // v2.12.1 — Dirty = user has put any non-trivial effort into the form
     // (typed a title, typed a description, or — when editing — touched any
@@ -265,17 +261,17 @@ fun AddEventDialog(
     if (showDiscardConfirm) {
         AlertDialog(
             onDismissRequest = { showDiscardConfirm = false },
-            title = { Text(if (editingEvent != null) "Discard changes?" else "Discard event?") },
-            text = { Text("You'll lose what you've typed.") },
+            title = { Text(if (editingEvent != null) stringResource(R.string.calendar_discard_changes_title) else stringResource(R.string.calendar_discard_event_title)) },
+            text = { Text(stringResource(R.string.calendar_discard_body)) },
             confirmButton = {
                 TextButton(onClick = {
                     showDiscardConfirm = false
                     onDismiss()
-                }) { Text("Discard") }
+                }) { Text(stringResource(R.string.action_discard)) }
             },
             dismissButton = {
                 TextButton(onClick = { showDiscardConfirm = false }) {
-                    Text("Keep editing")
+                    Text(stringResource(R.string.calendar_keep_editing))
                 }
             },
         )
@@ -296,7 +292,7 @@ fun AddEventDialog(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                if (editingEvent != null) "Edit Event" else "New Event",
+                if (editingEvent != null) stringResource(R.string.calendar_edit_event) else stringResource(R.string.calendar_new_event),
                 style = MaterialTheme.typography.headlineSmall
             )
 
@@ -304,7 +300,7 @@ fun AddEventDialog(
             OutlinedTextField(
                 value = title,
                 onValueChange = { title = it },
-                label = { Text("Title") },
+                label = { Text(stringResource(R.string.field_title)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -313,7 +309,7 @@ fun AddEventDialog(
             OutlinedTextField(
                 value = description,
                 onValueChange = { description = it },
-                label = { Text("Description (optional)") },
+                label = { Text(stringResource(R.string.field_description_optional)) },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 2,
                 maxLines = 4
@@ -326,7 +322,7 @@ fun AddEventDialog(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("All day", style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.calendar_all_day), style = MaterialTheme.typography.labelLarge)
                 Switch(
                     checked = isAllDay,
                     onCheckedChange = { newValue ->
@@ -347,14 +343,14 @@ fun AddEventDialog(
             // Start date (+ time when not all-day)
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 ClickableField(
-                    label = "Start Date",
+                    label = stringResource(R.string.field_start_date),
                     value = startDate.format(dateFormat),
                     onClick = { showStartDatePicker = true },
                     modifier = Modifier.weight(1f)
                 )
                 if (!isAllDay) {
                     ClickableField(
-                        label = "Start Time",
+                        label = stringResource(R.string.field_start_time),
                         value = startTime.format(timeFormat),
                         onClick = { showStartTimePicker = true },
                         modifier = Modifier.weight(1f)
@@ -365,14 +361,14 @@ fun AddEventDialog(
             // End date (+ time when not all-day)
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 ClickableField(
-                    label = "End Date",
+                    label = stringResource(R.string.field_end_date),
                     value = endDate.format(dateFormat),
                     onClick = { showEndDatePicker = true },
                     modifier = Modifier.weight(1f)
                 )
                 if (!isAllDay) {
                     ClickableField(
-                        label = "End Time",
+                        label = stringResource(R.string.field_end_time),
                         value = endTime.format(timeFormat),
                         onClick = { showEndTimePicker = true },
                         modifier = Modifier.weight(1f)
@@ -402,14 +398,15 @@ fun AddEventDialog(
                 }
             }
             if (conflicts.isNotEmpty()) {
-                val timeFmt = DateTimeFormatter.ofPattern("h:mm a")
+                val timeFmt = DateTimeFormatter.ofPattern("h:mm a", LocaleManager.currentLocale())
                 val shown = conflicts.take(3)
                 val extra = conflicts.size - shown.size
-                val lines = shown.joinToString(separator = "\n") { c ->
+                val moreLine = if (extra > 0) "\n" + pluralStringResource(R.plurals.dashboard_more_items, extra, extra) else ""
+                val lines = shown.map { c ->
                     val s = Instant.ofEpochMilli(c.startTime).atZone(zone).format(timeFmt)
                     val e = Instant.ofEpochMilli(c.endTime).atZone(zone).format(timeFmt)
-                    "• ${c.title} ($s–$e)"
-                } + if (extra > 0) "\n+ $extra more" else ""
+                    stringResource(R.string.calendar_conflict_line, c.title, s, e)
+                }.joinToString("\n") + moreLine
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -421,7 +418,7 @@ fun AddEventDialog(
                     verticalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
                     Text(
-                        "Conflicts with " + (if (conflicts.size == 1) "1 event" else "${conflicts.size} events") + ":",
+                        pluralStringResource(R.plurals.calendar_conflicts_with, conflicts.size, conflicts.size),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onTertiaryContainer,
                     )
@@ -434,25 +431,25 @@ fun AddEventDialog(
             }
 
             // Category
-            Text("Category", style = MaterialTheme.typography.labelLarge)
+            Text(stringResource(R.string.field_category), style = MaterialTheme.typography.labelLarge)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 categories.forEach { cat ->
                     FilterChip(
                         selected = category == cat,
                         onClick = { category = cat },
-                        label = { Text(cat.replaceFirstChar { it.uppercase() }) }
+                        label = { Text(categoryLabel(cat)) }
                     )
                 }
             }
 
             // Priority
-            Text("Priority", style = MaterialTheme.typography.labelLarge)
+            Text(stringResource(R.string.field_priority), style = MaterialTheme.typography.labelLarge)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 priorities.forEach { p ->
                     FilterChip(
                         selected = priority == p,
                         onClick = { priority = p },
-                        label = { Text(p.replaceFirstChar { it.uppercase() }) }
+                        label = { Text(priorityChipLabel(p)) }
                     )
                 }
             }
@@ -462,16 +459,16 @@ fun AddEventDialog(
             //   • One or more offset chips → reminderMinutes = listOf(...)
             //     in chip-row order. Selecting an offset clears None;
             //     selecting None clears the offsets.
-            Text("Reminders", style = MaterialTheme.typography.labelLarge)
+            Text(stringResource(R.string.field_reminders), style = MaterialTheme.typography.labelLarge)
             val currentList = reminderMinutes
             val isNone = currentList.isEmpty()
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 FilterChip(
                     selected = isNone,
                     onClick = { reminderMinutes = emptyList() },
-                    label = { Text("None") }
+                    label = { Text(stringResource(R.string.reminder_none)) }
                 )
-                reminderOffsetOptions.forEach { (mins, label) ->
+                reminderOffsetOptions.forEach { mins ->
                     val checked = currentList.contains(mins)
                     FilterChip(
                         selected = checked,
@@ -485,13 +482,13 @@ fun AddEventDialog(
                             }
                             reminderMinutes = base
                         },
-                        label = { Text(label) }
+                        label = { Text(reminderOffsetLabel(mins)) }
                     )
                 }
             }
 
             // Color
-            Text("Color", style = MaterialTheme.typography.labelLarge)
+            Text(stringResource(R.string.field_color), style = MaterialTheme.typography.labelLarge)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 colorOptions.forEach { hex ->
                     val color = parseHexColor(hex)
@@ -525,7 +522,7 @@ fun AddEventDialog(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Recurring", style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.calendar_recurring), style = MaterialTheme.typography.labelLarge)
                 Switch(checked = isRecurring, onCheckedChange = { isRecurring = it })
             }
 
@@ -536,7 +533,7 @@ fun AddEventDialog(
                         FilterChip(
                             selected = frequency == f,
                             onClick = { frequency = f },
-                            label = { Text(f.lowercase().replaceFirstChar { it.uppercase() }) }
+                            label = { Text(frequencyLabel(f)) }
                         )
                     }
                 }
@@ -549,7 +546,7 @@ fun AddEventDialog(
                                 onClick = {
                                     weeklyDays = if (day in weeklyDays) weeklyDays - day else weeklyDays + day
                                 },
-                                label = { Text(day) }
+                                label = { Text(weekdayShortLabel(day, LocaleManager.currentLocale())) }
                             )
                         }
                     }
@@ -559,7 +556,7 @@ fun AddEventDialog(
                     OutlinedTextField(
                         value = monthlyDay,
                         onValueChange = { monthlyDay = it.filter { c -> c.isDigit() }.take(2) },
-                        label = { Text("Day of month (1-31)") },
+                        label = { Text(stringResource(R.string.calendar_day_of_month)) },
                         singleLine = true,
                         modifier = Modifier.width(160.dp)
                     )
@@ -590,22 +587,26 @@ fun AddEventDialog(
                     ) {
                         Icon(Icons.Default.Delete, null, Modifier.size(18.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text("Delete")
+                        Text(stringResource(R.string.action_delete))
                     }
                     Spacer(Modifier.weight(1f))
                 }
-                OutlinedButton(onClick = onDismiss) { Text("Cancel") }
+                OutlinedButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+                val errTitleRequired = stringResource(R.string.calendar_err_title_required)
+                val errStartBeforeEnd = stringResource(R.string.calendar_err_start_before_end)
+                val errSelectDay = stringResource(R.string.calendar_err_select_day)
+                val errValidDay = stringResource(R.string.calendar_err_valid_day)
                 Button(onClick = {
                     val startDt = LocalDateTime.of(startDate, startTime)
                     val endDt = LocalDateTime.of(endDate, endTime)
 
                     when {
-                        title.isBlank() -> validationError = "Title is required"
-                        !startDt.isBefore(endDt) -> validationError = "Start must be before end"
+                        title.isBlank() -> validationError = errTitleRequired
+                        !startDt.isBefore(endDt) -> validationError = errStartBeforeEnd
                         isRecurring && frequency == "WEEKLY" && weeklyDays.isEmpty() ->
-                            validationError = "Select at least one day"
+                            validationError = errSelectDay
                         isRecurring && frequency == "MONTHLY" && (monthlyDay.toIntOrNull() ?: 0) !in 1..31 ->
-                            validationError = "Enter a valid day (1-31)"
+                            validationError = errValidDay
                         else -> {
                             val rule = if (isRecurring) {
                                 when (frequency) {
@@ -635,7 +636,7 @@ fun AddEventDialog(
                             )
                         }
                     }
-                }) { Text("Save") }
+                }) { Text(stringResource(R.string.action_save)) }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -712,10 +713,10 @@ private fun M3DatePickerDialog(
                     val date = Instant.ofEpochMilli(ms).atZone(ZoneOffset.UTC).toLocalDate()
                     onConfirm(date)
                 } ?: onDismiss()
-            }) { Text("OK") }
+            }) { Text(stringResource(R.string.action_ok)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
         },
     ) {
         DatePicker(state = state, showModeToggle = false)
@@ -737,13 +738,13 @@ private fun M3TimePickerDialog(
     )
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Select time") },
+        title = { Text(stringResource(R.string.calendar_select_time)) },
         text = { TimePicker(state = state) },
         confirmButton = {
-            TextButton(onClick = { onConfirm(state.hour, state.minute) }) { Text("OK") }
+            TextButton(onClick = { onConfirm(state.hour, state.minute) }) { Text(stringResource(R.string.action_ok)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
         },
     )
 }

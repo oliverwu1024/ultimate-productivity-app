@@ -3,6 +3,7 @@ package com.ultiq.app.ui.calendar
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.ultiq.app.R
 import com.ultiq.app.data.local.AppDatabase
 import com.ultiq.app.data.local.entity.CalendarEventEntity
 import com.ultiq.app.data.remote.RetrofitClient
@@ -159,7 +160,7 @@ class CalendarViewModel(application: Application) : AndroidViewModel(application
                 if (cal == null) {
                     _uiState.value = _uiState.value.copy(
                         aiLoading = false,
-                        aiError = "Couldn't parse that — try rephrasing.",
+                        aiError = getApplication<Application>().getString(R.string.ai_err_parse),
                     )
                     return@onSuccess
                 }
