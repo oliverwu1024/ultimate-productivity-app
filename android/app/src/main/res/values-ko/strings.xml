@@ -1,0 +1,21 @@
+<resources>
+    <string name="auth_email">이메일</string>
+    <string name="auth_password">비밀번호</string>
+    <string name="auth_show_password">비밀번호 표시</string>
+    <string name="auth_hide_password">비밀번호 숨기기</string>
+
+    <string name="login_title">다시 오신 것을 환영합니다</string>
+    <string name="login_button">로그인</string>
+    <string name="login_forgot_password">비밀번호를 잊으셨나요?</string>
+    <string name="login_register_prompt">계정이 없으신가요? 회원가입</string>
+
+    <string name="register_title">계정 만들기</string>
+    <string name="register_confirm_password">비밀번호 확인</string>
+    <string name="register_passwords_mismatch">비밀번호가 일치하지 않습니다</string>
+    <string name="register_button">회원가입</string>
+    <string name="register_login_prompt">이미 계정이 있으신가요? 로그인</string>
+
+    <string name="settings_language">언어</string>
+    <string name="settings_language_system">시스템 기본값</string>
+    <string name="common_close">닫기</string>
+</resources>

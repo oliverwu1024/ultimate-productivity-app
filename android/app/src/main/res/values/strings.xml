@@ -1,14 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Ultiq</string>
+    <!-- Brand + home-screen widget strings — not translated yet (brand-prefixed;
+         localized in the §13.1 widgets sweep). translatable="false" keeps Lint's
+         MissingTranslation quiet now that locale files exist. -->
+    <string name="app_name" translatable="false">Ultiq</string>
+    <string name="widget_checklist_label" translatable="false">Ultiq Checklist</string>
+    <string name="widget_checklist_desc" translatable="false">Today\'s tasks — tick them off from the home screen</string>
+    <string name="widget_focus_label" translatable="false">Ultiq Focus</string>
+    <string name="widget_focus_desc" translatable="false">Start a focus session and watch the timer</string>
+    <string name="widget_calendar_label" translatable="false">Ultiq Calendar</string>
+    <string name="widget_calendar_desc" translatable="false">Your next events today</string>
+    <string name="widget_sleep_alarm_label" translatable="false">Ultiq Sleep &amp; Alarm</string>
+    <string name="widget_sleep_alarm_desc" translatable="false">Next alarm and last night\'s sleep</string>
 
-    <!-- Home-screen widgets -->
-    <string name="widget_checklist_label">Ultiq Checklist</string>
-    <string name="widget_checklist_desc">Today\'s tasks — tick them off from the home screen</string>
-    <string name="widget_focus_label">Ultiq Focus</string>
-    <string name="widget_focus_desc">Start a focus session and watch the timer</string>
-    <string name="widget_calendar_label">Ultiq Calendar</string>
-    <string name="widget_calendar_desc">Your next events today</string>
-    <string name="widget_sleep_alarm_label">Ultiq Sleep &amp; Alarm</string>
-    <string name="widget_sleep_alarm_desc">Next alarm and last night\'s sleep</string>
+    <!-- §13 (i18n) — auth flow -->
+    <string name="auth_email">Email</string>
+    <string name="auth_password">Password</string>
+    <string name="auth_show_password">Show password</string>
+    <string name="auth_hide_password">Hide password</string>
+
+    <string name="login_title">Welcome Back</string>
+    <string name="login_button">Login</string>
+    <string name="login_forgot_password">Forgot password?</string>
+    <string name="login_register_prompt">Don\'t have an account? Register</string>
+
+    <string name="register_title">Create Account</string>
+    <string name="register_confirm_password">Confirm Password</string>
+    <string name="register_passwords_mismatch">Passwords do not match</string>
+    <string name="register_button">Register</string>
+    <string name="register_login_prompt">Already have an account? Login</string>
+
+    <!-- §13 (i18n) — settings language picker -->
+    <string name="settings_language">Language</string>
+    <string name="settings_language_system">System default</string>
+    <string name="common_close">Close</string>
 </resources>

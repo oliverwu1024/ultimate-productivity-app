@@ -1,0 +1,21 @@
+<resources>
+    <string name="auth_email">Email</string>
+    <string name="auth_password">Mật khẩu</string>
+    <string name="auth_show_password">Hiện mật khẩu</string>
+    <string name="auth_hide_password">Ẩn mật khẩu</string>
+
+    <string name="login_title">Chào mừng trở lại</string>
+    <string name="login_button">Đăng nhập</string>
+    <string name="login_forgot_password">Quên mật khẩu?</string>
+    <string name="login_register_prompt">Chưa có tài khoản? Đăng ký</string>
+
+    <string name="register_title">Tạo tài khoản</string>
+    <string name="register_confirm_password">Xác nhận mật khẩu</string>
+    <string name="register_passwords_mismatch">Mật khẩu không khớp</string>
+    <string name="register_button">Đăng ký</string>
+    <string name="register_login_prompt">Đã có tài khoản? Đăng nhập</string>
+
+    <string name="settings_language">Ngôn ngữ</string>
+    <string name="settings_language_system">Mặc định hệ thống</string>
+    <string name="common_close">Đóng</string>
+</resources>

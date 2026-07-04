@@ -1,0 +1,21 @@
+<resources>
+    <string name="auth_email">E-mail</string>
+    <string name="auth_password">Mot de passe</string>
+    <string name="auth_show_password">Afficher le mot de passe</string>
+    <string name="auth_hide_password">Masquer le mot de passe</string>
+
+    <string name="login_title">Bon retour</string>
+    <string name="login_button">Se connecter</string>
+    <string name="login_forgot_password">Mot de passe oublié ?</string>
+    <string name="login_register_prompt">Pas encore de compte ? Inscrivez-vous</string>
+
+    <string name="register_title">Créer un compte</string>
+    <string name="register_confirm_password">Confirmer le mot de passe</string>
+    <string name="register_passwords_mismatch">Les mots de passe ne correspondent pas</string>
+    <string name="register_button">S\'inscrire</string>
+    <string name="register_login_prompt">Vous avez déjà un compte ? Se connecter</string>
+
+    <string name="settings_language">Langue</string>
+    <string name="settings_language_system">Par défaut du système</string>
+    <string name="common_close">Fermer</string>
+</resources>

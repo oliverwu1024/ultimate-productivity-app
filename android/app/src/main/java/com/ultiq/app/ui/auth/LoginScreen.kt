@@ -29,7 +29,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.ultiq.app.R
 import com.ultiq.app.util.SecureWindow
 
 @Composable
@@ -52,7 +54,7 @@ fun LoginScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "Welcome Back",
+            text = stringResource(R.string.login_title),
             style = MaterialTheme.typography.headlineLarge
         )
 
@@ -61,7 +63,7 @@ fun LoginScreen(
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
-            label = { Text("Email") },
+            label = { Text(stringResource(R.string.auth_email)) },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
@@ -72,14 +74,14 @@ fun LoginScreen(
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
-            label = { Text("Password") },
+            label = { Text(stringResource(R.string.auth_password)) },
             singleLine = true,
             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
                     Icon(
                         imageVector = if (passwordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                        contentDescription = if (passwordVisible) "Hide password" else "Show password"
+                        contentDescription = if (passwordVisible) stringResource(R.string.auth_hide_password) else stringResource(R.string.auth_show_password)
                     )
                 }
             },
@@ -109,18 +111,18 @@ fun LoginScreen(
                     color = MaterialTheme.colorScheme.onPrimary
                 )
             } else {
-                Text("Login")
+                Text(stringResource(R.string.login_button))
             }
         }
 
         TextButton(onClick = onNavigateToForgotPassword) {
-            Text("Forgot password?")
+            Text(stringResource(R.string.login_forgot_password))
         }
 
         Spacer(modifier = Modifier.height(4.dp))
 
         TextButton(onClick = onNavigateToRegister) {
-            Text("Don't have an account? Register")
+            Text(stringResource(R.string.login_register_prompt))
         }
     }
 }

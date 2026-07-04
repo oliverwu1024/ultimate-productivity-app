@@ -35,6 +35,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.ui.res.stringResource
+import com.ultiq.app.R
 import com.ultiq.app.util.PasswordStrength
 import com.ultiq.app.util.SecureWindow
 
@@ -59,7 +61,7 @@ fun RegisterScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "Create Account",
+            text = stringResource(R.string.register_title),
             style = MaterialTheme.typography.headlineLarge
         )
 
@@ -68,7 +70,7 @@ fun RegisterScreen(
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
-            label = { Text("Email") },
+            label = { Text(stringResource(R.string.auth_email)) },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
@@ -82,14 +84,14 @@ fun RegisterScreen(
                 password = it
                 passwordMismatch = false
             },
-            label = { Text("Password") },
+            label = { Text(stringResource(R.string.auth_password)) },
             singleLine = true,
             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
                     Icon(
                         imageVector = if (passwordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                        contentDescription = if (passwordVisible) "Hide password" else "Show password"
+                        contentDescription = if (passwordVisible) stringResource(R.string.auth_hide_password) else stringResource(R.string.auth_show_password)
                     )
                 }
             },
@@ -110,12 +112,12 @@ fun RegisterScreen(
                 confirmPassword = it
                 passwordMismatch = false
             },
-            label = { Text("Confirm Password") },
+            label = { Text(stringResource(R.string.register_confirm_password)) },
             singleLine = true,
             visualTransformation = PasswordVisualTransformation(),
             isError = passwordMismatch,
             supportingText = if (passwordMismatch) {
-                { Text("Passwords do not match") }
+                { Text(stringResource(R.string.register_passwords_mismatch)) }
             } else null,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
             modifier = Modifier.fillMaxWidth()
@@ -152,14 +154,14 @@ fun RegisterScreen(
                     color = MaterialTheme.colorScheme.onPrimary
                 )
             } else {
-                Text("Register")
+                Text(stringResource(R.string.register_button))
             }
         }
 
         Spacer(modifier = Modifier.height(12.dp))
 
         TextButton(onClick = onNavigateToLogin) {
-            Text("Already have an account? Login")
+            Text(stringResource(R.string.register_login_prompt))
         }
     }
 }

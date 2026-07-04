@@ -122,4 +122,23 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun setThemeMode(mode: ThemeMode) = viewModelScope.launch {
         themePreference.setThemeMode(mode)
     }
+
+    /** §13 (i18n) — apply + persist + sync the chosen language. setLanguage
+     *  recreates the activity so the whole UI re-resolves in the new locale;
+     *  Compose Navigation restores the back stack, so the user stays put. */
+    fun setAppLanguage(tag: String) {
+        com.ultiq.app.util.LocaleManager.setLanguage(tag)
+        viewModelScope.launch {
+            userPreferences.setAppLanguage(tag)
+            runCatching {
+                api.updateProfile(
+                    com.ultiq.app.data.remote.dto.UpdateProfileRequest(
+                        preferences = com.google.gson.JsonObject().apply {
+                            addProperty("app_language", tag)
+                        },
+                    ),
+                )
+            }
+        }
+    }
 }

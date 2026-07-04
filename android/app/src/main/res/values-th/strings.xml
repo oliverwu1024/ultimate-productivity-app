@@ -1,0 +1,21 @@
+<resources>
+    <string name="auth_email">อีเมล</string>
+    <string name="auth_password">รหัสผ่าน</string>
+    <string name="auth_show_password">แสดงรหัสผ่าน</string>
+    <string name="auth_hide_password">ซ่อนรหัสผ่าน</string>
+
+    <string name="login_title">ยินดีต้อนรับกลับ</string>
+    <string name="login_button">เข้าสู่ระบบ</string>
+    <string name="login_forgot_password">ลืมรหัสผ่าน?</string>
+    <string name="login_register_prompt">ยังไม่มีบัญชี? ลงทะเบียน</string>
+
+    <string name="register_title">สร้างบัญชี</string>
+    <string name="register_confirm_password">ยืนยันรหัสผ่าน</string>
+    <string name="register_passwords_mismatch">รหัสผ่านไม่ตรงกัน</string>
+    <string name="register_button">ลงทะเบียน</string>
+    <string name="register_login_prompt">มีบัญชีอยู่แล้ว? เข้าสู่ระบบ</string>
+
+    <string name="settings_language">ภาษา</string>
+    <string name="settings_language_system">ค่าเริ่มต้นของระบบ</string>
+    <string name="common_close">ปิด</string>
+</resources>
