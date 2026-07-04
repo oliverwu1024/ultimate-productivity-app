@@ -248,4 +248,81 @@
     <plurals name="estimate_minutes">
         <item quantity="other">%1$d phút</item>
     </plurals>
+
+    <!-- ══════════════════ §13.1 Android sweep — calendar ══════════════════ -->
+
+    <!-- Shared actions / fields -->
+    <string name="action_ok">OK</string>
+    <string name="action_add_event">Thêm sự kiện</string>
+    <string name="action_discard">Hủy</string>
+    <string name="field_category">Danh mục</string>
+    <string name="field_reminders">Nhắc nhở</string>
+    <string name="field_color">Màu sắc</string>
+    <string name="priority_medium">Trung bình</string>
+    <string name="reminder_none">Không có</string>
+
+    <!-- Event categories (display; stored values stay study/project/…) -->
+    <string name="category_study">Học tập</string>
+    <string name="category_project">Dự án</string>
+    <string name="category_exercise">Tập luyện</string>
+    <string name="category_personal">Cá nhân</string>
+    <string name="category_other">Khác</string>
+
+    <!-- Recurrence frequency (display; stored values stay DAILY/WEEKLY/MONTHLY) -->
+    <string name="freq_daily">Hàng ngày</string>
+    <string name="freq_weekly">Hàng tuần</string>
+    <string name="freq_monthly">Hàng tháng</string>
+
+    <!-- Calendar -->
+    <string name="calendar_title">Lịch</string>
+    <string name="calendar_prev_month_cd">Tháng trước</string>
+    <string name="calendar_next_month_cd">Tháng sau</string>
+    <string name="calendar_delete_event_title">Xóa sự kiện?</string>
+    <string name="calendar_delete_event_body">\'%1$s\' sẽ bị xóa khỏi lịch của bạn.</string>
+    <string name="calendar_recurring_delete_title">Xóa sự kiện lặp lại?</string>
+    <string name="calendar_recurring_delete_body">\'%1$s\' là sự kiện lặp lại. Bạn muốn xóa phần nào?</string>
+    <string name="calendar_recurring_edit_title">Chỉnh sửa sự kiện lặp lại?</string>
+    <string name="calendar_recurring_edit_body">\'%1$s\' là sự kiện lặp lại. Áp dụng thay đổi cho:</string>
+    <string name="calendar_scope_just_this">Chỉ lần này</string>
+    <string name="calendar_scope_this_following">Lần này và các lần sau</string>
+    <string name="calendar_scope_all">Tất cả lần lặp</string>
+    <string name="calendar_scope_action_line">%1$s: %2$s</string>
+    <string name="calendar_time_range">%1$s – %2$s</string>
+    <string name="calendar_multiday_start">%1$s → kết thúc %2$s %3$s</string>
+    <string name="calendar_multiday_end">Kết thúc %1$s · bắt đầu %2$s %3$s</string>
+    <string name="calendar_multiday_middle">Cả ngày · bắt đầu %1$s %2$s</string>
+
+    <!-- Add / edit event dialog -->
+    <string name="calendar_new_event">Sự kiện mới</string>
+    <string name="calendar_edit_event">Chỉnh sửa sự kiện</string>
+    <string name="calendar_discard_changes_title">Hủy thay đổi?</string>
+    <string name="calendar_discard_event_title">Hủy sự kiện?</string>
+    <string name="calendar_discard_body">Bạn sẽ mất những gì đã nhập.</string>
+    <string name="calendar_keep_editing">Tiếp tục chỉnh sửa</string>
+    <string name="calendar_all_day">Cả ngày</string>
+    <string name="field_start_date">Ngày bắt đầu</string>
+    <string name="field_start_time">Giờ bắt đầu</string>
+    <string name="field_end_date">Ngày kết thúc</string>
+    <string name="field_end_time">Giờ kết thúc</string>
+    <string name="calendar_conflict_line">• %1$s (%2$s–%3$s)</string>
+    <string name="calendar_recurring">Lặp lại</string>
+    <string name="calendar_day_of_month">Ngày trong tháng (1–31)</string>
+    <string name="calendar_select_time">Chọn giờ</string>
+    <string name="calendar_err_title_required">Tiêu đề là bắt buộc</string>
+    <string name="calendar_err_start_before_end">Bắt đầu phải trước kết thúc</string>
+    <string name="calendar_err_select_day">Chọn ít nhất một ngày</string>
+    <string name="calendar_err_valid_day">Nhập ngày hợp lệ (1–31)</string>
+
+    <plurals name="calendar_conflicts_with">
+        <item quantity="other">Xung đột với %1$d sự kiện:</item>
+    </plurals>
+    <plurals name="reminder_hr">
+        <item quantity="other">%1$d giờ</item>
+    </plurals>
+    <plurals name="reminder_day">
+        <item quantity="other">%1$d ngày</item>
+    </plurals>
+    <plurals name="reminder_week">
+        <item quantity="other">%1$d tuần</item>
+    </plurals>
 </resources>

@@ -298,4 +298,101 @@
         <item quantity="many">%1$d دقيقة</item>
         <item quantity="other">%1$d دقيقة</item>
     </plurals>
+
+    <!-- ══════════════════ §13.1 Android sweep — calendar ══════════════════ -->
+
+    <!-- Shared actions / fields -->
+    <string name="action_ok">موافق</string>
+    <string name="action_add_event">إضافة حدث</string>
+    <string name="action_discard">تجاهل</string>
+    <string name="field_category">الفئة</string>
+    <string name="field_reminders">التذكيرات</string>
+    <string name="field_color">اللون</string>
+    <string name="priority_medium">متوسط</string>
+    <string name="reminder_none">لا شيء</string>
+
+    <!-- Event categories (display; stored values stay study/project/…) -->
+    <string name="category_study">دراسة</string>
+    <string name="category_project">مشروع</string>
+    <string name="category_exercise">تمارين</string>
+    <string name="category_personal">شخصي</string>
+    <string name="category_other">أخرى</string>
+
+    <!-- Recurrence frequency (display; stored values stay DAILY/WEEKLY/MONTHLY) -->
+    <string name="freq_daily">يوميًا</string>
+    <string name="freq_weekly">أسبوعيًا</string>
+    <string name="freq_monthly">شهريًا</string>
+
+    <!-- Calendar -->
+    <string name="calendar_title">التقويم</string>
+    <string name="calendar_prev_month_cd">الشهر السابق</string>
+    <string name="calendar_next_month_cd">الشهر التالي</string>
+    <string name="calendar_delete_event_title">حذف الحدث؟</string>
+    <string name="calendar_delete_event_body">سيتم إزالة \'%1$s\' من تقويمك.</string>
+    <string name="calendar_recurring_delete_title">حذف الحدث المتكرر؟</string>
+    <string name="calendar_recurring_delete_body">\'%1$s\' يتكرر. ماذا تريد حذفه؟</string>
+    <string name="calendar_recurring_edit_title">تعديل الحدث المتكرر؟</string>
+    <string name="calendar_recurring_edit_body">\'%1$s\' يتكرر. تطبيق التغييرات على:</string>
+    <string name="calendar_scope_just_this">هذا الحدث فقط</string>
+    <string name="calendar_scope_this_following">هذا وما يليه</string>
+    <string name="calendar_scope_all">جميع التكرارات</string>
+    <string name="calendar_scope_action_line">%1$s: %2$s</string>
+    <string name="calendar_time_range">%1$s – %2$s</string>
+    <string name="calendar_multiday_start">%1$s → ينتهي %2$s %3$s</string>
+    <string name="calendar_multiday_end">ينتهي %1$s · بدأ %2$s %3$s</string>
+    <string name="calendar_multiday_middle">طوال اليوم · بدأ %1$s %2$s</string>
+
+    <!-- Add / edit event dialog -->
+    <string name="calendar_new_event">حدث جديد</string>
+    <string name="calendar_edit_event">تعديل الحدث</string>
+    <string name="calendar_discard_changes_title">تجاهل التغييرات؟</string>
+    <string name="calendar_discard_event_title">تجاهل الحدث؟</string>
+    <string name="calendar_discard_body">ستفقد ما كتبته.</string>
+    <string name="calendar_keep_editing">متابعة التعديل</string>
+    <string name="calendar_all_day">طوال اليوم</string>
+    <string name="field_start_date">تاريخ البداية</string>
+    <string name="field_start_time">وقت البداية</string>
+    <string name="field_end_date">تاريخ النهاية</string>
+    <string name="field_end_time">وقت النهاية</string>
+    <string name="calendar_conflict_line">• %1$s (%2$s–%3$s)</string>
+    <string name="calendar_recurring">متكرر</string>
+    <string name="calendar_day_of_month">يوم من الشهر (1–31)</string>
+    <string name="calendar_select_time">اختر الوقت</string>
+    <string name="calendar_err_title_required">العنوان مطلوب</string>
+    <string name="calendar_err_start_before_end">يجب أن تكون البداية قبل النهاية</string>
+    <string name="calendar_err_select_day">اختر يومًا واحدًا على الأقل</string>
+    <string name="calendar_err_valid_day">أدخل يومًا صحيحًا (1–31)</string>
+
+    <plurals name="calendar_conflicts_with">
+        <item quantity="zero">لا تعارض مع أي حدث</item>
+        <item quantity="one">تعارض مع %1$d حدث:</item>
+        <item quantity="two">تعارض مع %1$d حدثين:</item>
+        <item quantity="few">تعارض مع %1$d أحداث:</item>
+        <item quantity="many">تعارض مع %1$d حدثًا:</item>
+        <item quantity="other">تعارض مع %1$d حدث:</item>
+    </plurals>
+    <plurals name="reminder_hr">
+        <item quantity="zero">%1$d ساعة</item>
+        <item quantity="one">%1$d ساعة</item>
+        <item quantity="two">%1$d ساعتان</item>
+        <item quantity="few">%1$d ساعات</item>
+        <item quantity="many">%1$d ساعة</item>
+        <item quantity="other">%1$d ساعة</item>
+    </plurals>
+    <plurals name="reminder_day">
+        <item quantity="zero">%1$d يوم</item>
+        <item quantity="one">%1$d يوم</item>
+        <item quantity="two">%1$d يومان</item>
+        <item quantity="few">%1$d أيام</item>
+        <item quantity="many">%1$d يومًا</item>
+        <item quantity="other">%1$d يوم</item>
+    </plurals>
+    <plurals name="reminder_week">
+        <item quantity="zero">%1$d أسبوع</item>
+        <item quantity="one">%1$d أسبوع</item>
+        <item quantity="two">%1$d أسبوعان</item>
+        <item quantity="few">%1$d أسابيع</item>
+        <item quantity="many">%1$d أسبوعًا</item>
+        <item quantity="other">%1$d أسبوع</item>
+    </plurals>
 </resources>

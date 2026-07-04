@@ -268,4 +268,89 @@
         <item quantity="many">%1$d min</item>
         <item quantity="other">%1$d min</item>
     </plurals>
+
+    <!-- ══════════════════ §13.1 Android sweep — calendar ══════════════════ -->
+
+    <!-- Shared actions / fields -->
+    <string name="action_ok">OK</string>
+    <string name="action_add_event">Ajouter un événement</string>
+    <string name="action_discard">Abandonner</string>
+    <string name="field_category">Catégorie</string>
+    <string name="field_reminders">Rappels</string>
+    <string name="field_color">Couleur</string>
+    <string name="priority_medium">Moyen</string>
+    <string name="reminder_none">Aucun</string>
+
+    <!-- Event categories (display; stored values stay study/project/…) -->
+    <string name="category_study">Études</string>
+    <string name="category_project">Projet</string>
+    <string name="category_exercise">Exercice</string>
+    <string name="category_personal">Personnel</string>
+    <string name="category_other">Autre</string>
+
+    <!-- Recurrence frequency (display; stored values stay DAILY/WEEKLY/MONTHLY) -->
+    <string name="freq_daily">Quotidien</string>
+    <string name="freq_weekly">Hebdomadaire</string>
+    <string name="freq_monthly">Mensuel</string>
+
+    <!-- Calendar -->
+    <string name="calendar_title">Calendrier</string>
+    <string name="calendar_prev_month_cd">Mois précédent</string>
+    <string name="calendar_next_month_cd">Mois suivant</string>
+    <string name="calendar_delete_event_title">Supprimer l\'événement ?</string>
+    <string name="calendar_delete_event_body">\'%1$s\' sera supprimé de votre calendrier.</string>
+    <string name="calendar_recurring_delete_title">Supprimer l\'événement récurrent ?</string>
+    <string name="calendar_recurring_delete_body">\'%1$s\' se répète. Que souhaitez-vous supprimer ?</string>
+    <string name="calendar_recurring_edit_title">Modifier l\'événement récurrent ?</string>
+    <string name="calendar_recurring_edit_body">\'%1$s\' se répète. Appliquer les modifications à :</string>
+    <string name="calendar_scope_just_this">Cet événement seulement</string>
+    <string name="calendar_scope_this_following">Cet événement et les suivants</string>
+    <string name="calendar_scope_all">Toutes les occurrences</string>
+    <string name="calendar_scope_action_line">%1$s : %2$s</string>
+    <string name="calendar_time_range">%1$s – %2$s</string>
+    <string name="calendar_multiday_start">%1$s → se termine %2$s %3$s</string>
+    <string name="calendar_multiday_end">Se termine %1$s · commencé %2$s %3$s</string>
+    <string name="calendar_multiday_middle">Toute la journée · commencé %1$s %2$s</string>
+
+    <!-- Add / edit event dialog -->
+    <string name="calendar_new_event">Nouvel événement</string>
+    <string name="calendar_edit_event">Modifier l\'événement</string>
+    <string name="calendar_discard_changes_title">Abandonner les modifications ?</string>
+    <string name="calendar_discard_event_title">Abandonner l\'événement ?</string>
+    <string name="calendar_discard_body">Vous perdrez ce que vous avez saisi.</string>
+    <string name="calendar_keep_editing">Continuer à modifier</string>
+    <string name="calendar_all_day">Toute la journée</string>
+    <string name="field_start_date">Date de début</string>
+    <string name="field_start_time">Heure de début</string>
+    <string name="field_end_date">Date de fin</string>
+    <string name="field_end_time">Heure de fin</string>
+    <string name="calendar_conflict_line">• %1$s (%2$s–%3$s)</string>
+    <string name="calendar_recurring">Récurrent</string>
+    <string name="calendar_day_of_month">Jour du mois (1–31)</string>
+    <string name="calendar_select_time">Choisir l\'heure</string>
+    <string name="calendar_err_title_required">Un titre est requis</string>
+    <string name="calendar_err_start_before_end">Le début doit être avant la fin</string>
+    <string name="calendar_err_select_day">Sélectionnez au moins un jour</string>
+    <string name="calendar_err_valid_day">Saisissez un jour valide (1–31)</string>
+
+    <plurals name="calendar_conflicts_with">
+        <item quantity="one">Conflit avec %1$d événement :</item>
+        <item quantity="many">Conflit avec %1$d événements :</item>
+        <item quantity="other">Conflit avec %1$d événements :</item>
+    </plurals>
+    <plurals name="reminder_hr">
+        <item quantity="one">%1$d h</item>
+        <item quantity="many">%1$d h</item>
+        <item quantity="other">%1$d h</item>
+    </plurals>
+    <plurals name="reminder_day">
+        <item quantity="one">%1$d jour</item>
+        <item quantity="many">%1$d jours</item>
+        <item quantity="other">%1$d jours</item>
+    </plurals>
+    <plurals name="reminder_week">
+        <item quantity="one">%1$d semaine</item>
+        <item quantity="many">%1$d semaines</item>
+        <item quantity="other">%1$d semaines</item>
+    </plurals>
 </resources>

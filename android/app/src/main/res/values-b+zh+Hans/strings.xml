@@ -248,4 +248,81 @@
     <plurals name="estimate_minutes">
         <item quantity="other">%1$d 分钟</item>
     </plurals>
+
+    <!-- ══════════════════ §13.1 Android sweep — calendar ══════════════════ -->
+
+    <!-- Shared actions / fields -->
+    <string name="action_ok">OK</string>
+    <string name="action_add_event">添加活动</string>
+    <string name="action_discard">放弃</string>
+    <string name="field_category">类别</string>
+    <string name="field_reminders">提醒</string>
+    <string name="field_color">颜色</string>
+    <string name="priority_medium">中</string>
+    <string name="reminder_none">无</string>
+
+    <!-- Event categories (display; stored values stay study/project/…) -->
+    <string name="category_study">学习</string>
+    <string name="category_project">项目</string>
+    <string name="category_exercise">运动</string>
+    <string name="category_personal">个人</string>
+    <string name="category_other">其他</string>
+
+    <!-- Recurrence frequency (display; stored values stay DAILY/WEEKLY/MONTHLY) -->
+    <string name="freq_daily">每天</string>
+    <string name="freq_weekly">每周</string>
+    <string name="freq_monthly">每月</string>
+
+    <!-- Calendar -->
+    <string name="calendar_title">日历</string>
+    <string name="calendar_prev_month_cd">上个月</string>
+    <string name="calendar_next_month_cd">下个月</string>
+    <string name="calendar_delete_event_title">删除活动？</string>
+    <string name="calendar_delete_event_body">\'%1$s\' 将从您的日历中删除。</string>
+    <string name="calendar_recurring_delete_title">删除重复活动？</string>
+    <string name="calendar_recurring_delete_body">\'%1$s\' 是重复活动。您想删除哪些？</string>
+    <string name="calendar_recurring_edit_title">编辑重复活动？</string>
+    <string name="calendar_recurring_edit_body">\'%1$s\' 是重复活动。将更改应用于：</string>
+    <string name="calendar_scope_just_this">仅此一次</string>
+    <string name="calendar_scope_this_following">此活动及以后</string>
+    <string name="calendar_scope_all">所有重复活动</string>
+    <string name="calendar_scope_action_line">%1$s：%2$s</string>
+    <string name="calendar_time_range">%1$s – %2$s</string>
+    <string name="calendar_multiday_start">%1$s → 结束于 %2$s %3$s</string>
+    <string name="calendar_multiday_end">结束于 %1$s · 开始于 %2$s %3$s</string>
+    <string name="calendar_multiday_middle">全天 · 开始于 %1$s %2$s</string>
+
+    <!-- Add / edit event dialog -->
+    <string name="calendar_new_event">新建活动</string>
+    <string name="calendar_edit_event">编辑活动</string>
+    <string name="calendar_discard_changes_title">放弃更改？</string>
+    <string name="calendar_discard_event_title">放弃活动？</string>
+    <string name="calendar_discard_body">您输入的内容将丢失。</string>
+    <string name="calendar_keep_editing">继续编辑</string>
+    <string name="calendar_all_day">全天</string>
+    <string name="field_start_date">开始日期</string>
+    <string name="field_start_time">开始时间</string>
+    <string name="field_end_date">结束日期</string>
+    <string name="field_end_time">结束时间</string>
+    <string name="calendar_conflict_line">• %1$s（%2$s–%3$s）</string>
+    <string name="calendar_recurring">重复</string>
+    <string name="calendar_day_of_month">每月的第几天（1–31）</string>
+    <string name="calendar_select_time">选择时间</string>
+    <string name="calendar_err_title_required">标题不能为空</string>
+    <string name="calendar_err_start_before_end">开始时间必须早于结束时间</string>
+    <string name="calendar_err_select_day">至少选择一天</string>
+    <string name="calendar_err_valid_day">请输入有效日期（1–31）</string>
+
+    <plurals name="calendar_conflicts_with">
+        <item quantity="other">与 %1$d 个活动冲突：</item>
+    </plurals>
+    <plurals name="reminder_hr">
+        <item quantity="other">%1$d 小时</item>
+    </plurals>
+    <plurals name="reminder_day">
+        <item quantity="other">%1$d 天</item>
+    </plurals>
+    <plurals name="reminder_week">
+        <item quantity="other">%1$d 周</item>
+    </plurals>
 </resources>

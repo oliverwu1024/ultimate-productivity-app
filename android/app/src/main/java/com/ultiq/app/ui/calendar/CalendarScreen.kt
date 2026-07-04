@@ -1,5 +1,6 @@
 package com.ultiq.app.ui.calendar
 
+import android.content.Context
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -59,6 +60,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -68,6 +71,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.material.icons.filled.EventAvailable
+import com.ultiq.app.R
 import com.ultiq.app.data.local.entity.CalendarEventEntity
 import com.ultiq.app.data.remote.dto.CreateCalendarEventDto
 import com.ultiq.app.data.repository.RecurringScope
@@ -76,6 +80,7 @@ import com.ultiq.app.ui.common.AiParseSurface
 import com.ultiq.app.ui.common.MascotEmptyState
 import com.ultiq.app.ui.common.SwipeToDeleteBox
 import com.ultiq.app.ui.copy.WarmCopy
+import com.ultiq.app.util.LocaleManager
 import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
@@ -123,7 +128,7 @@ fun CalendarScreen(viewModel: CalendarViewModel = viewModel()) {
     }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Calendar") }) },
+        topBar = { TopAppBar(title = { Text(stringResource(R.string.calendar_title)) }) },
         floatingActionButton = {
             // §9.5 — Small "AI" FAB stacked above the main "+" FAB. The small
             // size + accent tint distinguishes the AI quick-add affordance
@@ -136,10 +141,10 @@ fun CalendarScreen(viewModel: CalendarViewModel = viewModel()) {
                     onClick = { viewModel.showAiDialog() },
                     containerColor = MaterialTheme.colorScheme.secondaryContainer,
                 ) {
-                    Icon(Icons.Default.AutoAwesome, "Quick add with AI")
+                    Icon(Icons.Default.AutoAwesome, stringResource(R.string.ai_quick_add_cd))
                 }
                 FloatingActionButton(onClick = { viewModel.showAddDialog() }) {
-                    Icon(Icons.Default.Add, "Add Event")
+                    Icon(Icons.Default.Add, stringResource(R.string.action_add_event))
                 }
             }
         },
@@ -201,8 +206,8 @@ fun CalendarScreen(viewModel: CalendarViewModel = viewModel()) {
                     // SwipeToDeleteBox"). The Delete button inside
                     // AddEventDialog stays as the secondary path.
                     SwipeToDeleteBox(
-                        confirmTitle = "Delete event?",
-                        confirmBody = "'${event.title}' will be removed from your calendar.",
+                        confirmTitle = stringResource(R.string.calendar_delete_event_title),
+                        confirmBody = stringResource(R.string.calendar_delete_event_body, event.title),
                         onDelete = {
                             // v2.16.0 — For recurring events, intercept and
                             // ask the user which scope they want. For one-
@@ -312,8 +317,8 @@ fun CalendarScreen(viewModel: CalendarViewModel = viewModel()) {
     pendingDeleteId?.let { id ->
         AlertDialog(
             onDismissRequest = { pendingDeleteId = null },
-            title = { Text("Delete event?") },
-            text = { Text("'${pendingDeleteTitle}' will be removed from your calendar.") },
+            title = { Text(stringResource(R.string.calendar_delete_event_title)) },
+            text = { Text(stringResource(R.string.calendar_delete_event_body, pendingDeleteTitle)) },
             confirmButton = {
                 Button(
                     onClick = {
@@ -323,10 +328,10 @@ fun CalendarScreen(viewModel: CalendarViewModel = viewModel()) {
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.error,
                     ),
-                ) { Text("Delete") }
+                ) { Text(stringResource(R.string.action_delete)) }
             },
             dismissButton = {
-                TextButton(onClick = { pendingDeleteId = null }) { Text("Cancel") }
+                TextButton(onClick = { pendingDeleteId = null }) { Text(stringResource(R.string.action_cancel)) }
             },
         )
     }
@@ -337,9 +342,9 @@ fun CalendarScreen(viewModel: CalendarViewModel = viewModel()) {
     // with three).
     pendingRecurringDelete?.let { target ->
         RecurringScopeDialog(
-            title = "Delete recurring event?",
-            body = "'${target.title}' repeats. What would you like to delete?",
-            actionLabel = "Delete",
+            title = stringResource(R.string.calendar_recurring_delete_title),
+            body = stringResource(R.string.calendar_recurring_delete_body, target.title),
+            actionLabel = stringResource(R.string.action_delete),
             isDestructive = true,
             onDismiss = { pendingRecurringDelete = null },
             onPick = { scope ->
@@ -355,9 +360,9 @@ fun CalendarScreen(viewModel: CalendarViewModel = viewModel()) {
 
     pendingRecurringEdit?.let { target ->
         RecurringScopeDialog(
-            title = "Edit recurring event?",
-            body = "'${target.title}' repeats. Apply changes to:",
-            actionLabel = "Save",
+            title = stringResource(R.string.calendar_recurring_edit_title),
+            body = stringResource(R.string.calendar_recurring_edit_body, target.title),
+            actionLabel = stringResource(R.string.action_save),
             isDestructive = false,
             onDismiss = { pendingRecurringEdit = null },
             onPick = { scope ->
@@ -406,19 +411,19 @@ private fun RecurringScopeDialog(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(body)
                 ScopeOptionButton(
-                    label = "Just this one",
+                    label = stringResource(R.string.calendar_scope_just_this),
                     actionLabel = actionLabel,
                     isDestructive = isDestructive,
                     onClick = { onPick(RecurringScope.JUST_THIS) },
                 )
                 ScopeOptionButton(
-                    label = "This and following",
+                    label = stringResource(R.string.calendar_scope_this_following),
                     actionLabel = actionLabel,
                     isDestructive = isDestructive,
                     onClick = { onPick(RecurringScope.THIS_AND_FOLLOWING) },
                 )
                 ScopeOptionButton(
-                    label = "All occurrences",
+                    label = stringResource(R.string.calendar_scope_all),
                     actionLabel = actionLabel,
                     isDestructive = isDestructive,
                     onClick = { onPick(RecurringScope.ALL) },
@@ -427,7 +432,7 @@ private fun RecurringScopeDialog(
         },
         confirmButton = {},
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
         },
     )
 }
@@ -454,7 +459,7 @@ private fun ScopeOptionButton(
     ) {
         // actionLabel makes the dialog double as both delete + edit; the
         // body line ("Delete: Just this one") reads naturally for either.
-        Text("$actionLabel: $label")
+        Text(stringResource(R.string.calendar_scope_action_line, actionLabel, label))
     }
 }
 
@@ -476,11 +481,11 @@ private fun MonthHeader(
         verticalAlignment = Alignment.CenterVertically
     ) {
         IconButton(onClick = onPrevious) {
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, "Previous month")
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, stringResource(R.string.calendar_prev_month_cd))
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                yearMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
+                yearMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy", LocaleManager.currentLocale())),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
@@ -490,12 +495,12 @@ private fun MonthHeader(
             if (!isOnCurrentMonth) {
                 Spacer(modifier = Modifier.width(8.dp))
                 TextButton(onClick = onToday, contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)) {
-                    Text("Today", style = MaterialTheme.typography.labelMedium)
+                    Text(stringResource(R.string.date_today), style = MaterialTheme.typography.labelMedium)
                 }
             }
         }
         IconButton(onClick = onNext) {
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, "Next month")
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, stringResource(R.string.calendar_next_month_cd))
         }
     }
 }
@@ -511,7 +516,7 @@ private fun DayOfWeekHeader() {
     ) {
         java.time.DayOfWeek.entries.forEach { day ->
             Text(
-                text = day.getDisplayName(TextStyle.SHORT, Locale.getDefault()),
+                text = day.getDisplayName(TextStyle.SHORT, LocaleManager.currentLocale()),
                 modifier = Modifier.weight(1f),
                 textAlign = TextAlign.Center,
                 style = MaterialTheme.typography.labelSmall,
@@ -676,7 +681,7 @@ private fun DayCell(
 @Composable
 private fun SelectedDayHeader(date: LocalDate) {
     Text(
-        text = date.format(DateTimeFormatter.ofPattern("EEEE, MMMM d")),
+        text = date.format(DateTimeFormatter.ofPattern("EEEE, MMMM d", LocaleManager.currentLocale())),
         style = MaterialTheme.typography.titleMedium,
         fontWeight = FontWeight.Medium,
         modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
@@ -696,6 +701,7 @@ private fun EventItem(
     // user tick today's events the moment they show up — in progress or even
     // still upcoming — matching the dashboard "Today's calendar" card.
     // Future-day events stay clean / no checkbox.
+    val context = LocalContext.current
     val canMarkDone = !viewDate.isAfter(LocalDate.now())
     val isDone = event.isDone
     Card(
@@ -741,7 +747,7 @@ private fun EventItem(
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    formatTimeRange(event.startTime, event.endTime, viewDate),
+                    formatTimeRange(context, event.startTime, event.endTime, viewDate),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -774,7 +780,7 @@ private fun CategoryChip(category: String) {
             .padding(horizontal = 6.dp, vertical = 2.dp)
     ) {
         Text(
-            category.replaceFirstChar { it.uppercase() },
+            categoryLabel(category),
             style = MaterialTheme.typography.labelSmall,
             color = color
         )
@@ -785,9 +791,9 @@ private fun CategoryChip(category: String) {
 private fun PriorityIndicator(priority: String) {
     val color = com.ultiq.app.ui.theme.PriorityColors.forPriority(priority)
     val label = when (priority) {
-        "high" -> "High"
-        "low" -> "Low"
-        else -> "Med"
+        "high" -> stringResource(R.string.priority_high)
+        "low" -> stringResource(R.string.priority_low)
+        else -> stringResource(R.string.priority_med)
     }
     Text(label, style = MaterialTheme.typography.labelSmall, color = color)
 }
@@ -828,20 +834,21 @@ internal fun parseHexColor(hex: String): Color {
 ///   • End day:    "Ends 6:00 PM · started Mon 9:00 AM"
 /// so a user looking at "today" mid-event sees the right context without
 /// needing to tap into the event.
-private fun formatTimeRange(startMillis: Long, endMillis: Long, viewDate: LocalDate): String {
+private fun formatTimeRange(context: Context, startMillis: Long, endMillis: Long, viewDate: LocalDate): String {
     val zone = ZoneId.systemDefault()
-    val timeFmt = DateTimeFormatter.ofPattern("h:mm a")
-    val dayFmt = DateTimeFormatter.ofPattern("EEE")
+    val locale = LocaleManager.currentLocale()
+    val timeFmt = DateTimeFormatter.ofPattern("h:mm a", locale)
+    val dayFmt = DateTimeFormatter.ofPattern("EEE", locale)
     val startDt = Instant.ofEpochMilli(startMillis).atZone(zone)
     val endDt = Instant.ofEpochMilli(endMillis).atZone(zone)
     val startDate = startDt.toLocalDate()
     val endDate = endDt.toLocalDate()
     val startStr = startDt.format(timeFmt)
     val endStr = endDt.format(timeFmt)
-    if (startDate == endDate) return "$startStr – $endStr"
+    if (startDate == endDate) return context.getString(R.string.calendar_time_range, startStr, endStr)
     return when (viewDate) {
-        startDate -> "$startStr → ends ${endDate.format(dayFmt)} $endStr"
-        endDate -> "Ends $endStr · started ${startDate.format(dayFmt)} $startStr"
-        else -> "All day · started ${startDate.format(dayFmt)} $startStr"
+        startDate -> context.getString(R.string.calendar_multiday_start, startStr, endDate.format(dayFmt), endStr)
+        endDate -> context.getString(R.string.calendar_multiday_end, endStr, startDate.format(dayFmt), startStr)
+        else -> context.getString(R.string.calendar_multiday_middle, startDate.format(dayFmt), startStr)
     }
 }

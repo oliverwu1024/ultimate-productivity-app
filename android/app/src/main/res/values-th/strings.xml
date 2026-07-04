@@ -248,4 +248,81 @@
     <plurals name="estimate_minutes">
         <item quantity="other">%1$d นาที</item>
     </plurals>
+
+    <!-- ══════════════════ §13.1 Android sweep — calendar ══════════════════ -->
+
+    <!-- Shared actions / fields -->
+    <string name="action_ok">ตกลง</string>
+    <string name="action_add_event">เพิ่มกิจกรรม</string>
+    <string name="action_discard">ละทิ้ง</string>
+    <string name="field_category">หมวดหมู่</string>
+    <string name="field_reminders">การแจ้งเตือน</string>
+    <string name="field_color">สี</string>
+    <string name="priority_medium">ปานกลาง</string>
+    <string name="reminder_none">ไม่มี</string>
+
+    <!-- Event categories (display; stored values stay study/project/…) -->
+    <string name="category_study">การเรียน</string>
+    <string name="category_project">โปรเจกต์</string>
+    <string name="category_exercise">ออกกำลังกาย</string>
+    <string name="category_personal">ส่วนตัว</string>
+    <string name="category_other">อื่นๆ</string>
+
+    <!-- Recurrence frequency (display; stored values stay DAILY/WEEKLY/MONTHLY) -->
+    <string name="freq_daily">รายวัน</string>
+    <string name="freq_weekly">รายสัปดาห์</string>
+    <string name="freq_monthly">รายเดือน</string>
+
+    <!-- Calendar -->
+    <string name="calendar_title">ปฏิทิน</string>
+    <string name="calendar_prev_month_cd">เดือนก่อนหน้า</string>
+    <string name="calendar_next_month_cd">เดือนถัดไป</string>
+    <string name="calendar_delete_event_title">ลบกิจกรรม?</string>
+    <string name="calendar_delete_event_body">\'%1$s\' จะถูกลบออกจากปฏิทินของคุณ</string>
+    <string name="calendar_recurring_delete_title">ลบกิจกรรมที่เกิดซ้ำ?</string>
+    <string name="calendar_recurring_delete_body">\'%1$s\' เกิดซ้ำ คุณต้องการลบอะไร?</string>
+    <string name="calendar_recurring_edit_title">แก้ไขกิจกรรมที่เกิดซ้ำ?</string>
+    <string name="calendar_recurring_edit_body">\'%1$s\' เกิดซ้ำ ใช้การเปลี่ยนแปลงกับ:</string>
+    <string name="calendar_scope_just_this">เฉพาะครั้งนี้</string>
+    <string name="calendar_scope_this_following">ครั้งนี้และต่อไป</string>
+    <string name="calendar_scope_all">ทุกครั้ง</string>
+    <string name="calendar_scope_action_line">%1$s: %2$s</string>
+    <string name="calendar_time_range">%1$s – %2$s</string>
+    <string name="calendar_multiday_start">%1$s → สิ้นสุด %2$s %3$s</string>
+    <string name="calendar_multiday_end">สิ้นสุด %1$s · เริ่ม %2$s %3$s</string>
+    <string name="calendar_multiday_middle">ทั้งวัน · เริ่ม %1$s %2$s</string>
+
+    <!-- Add / edit event dialog -->
+    <string name="calendar_new_event">กิจกรรมใหม่</string>
+    <string name="calendar_edit_event">แก้ไขกิจกรรม</string>
+    <string name="calendar_discard_changes_title">ละทิ้งการเปลี่ยนแปลง?</string>
+    <string name="calendar_discard_event_title">ละทิ้งกิจกรรม?</string>
+    <string name="calendar_discard_body">ข้อความที่พิมพ์จะหายไป</string>
+    <string name="calendar_keep_editing">แก้ไขต่อ</string>
+    <string name="calendar_all_day">ทั้งวัน</string>
+    <string name="field_start_date">วันที่เริ่ม</string>
+    <string name="field_start_time">เวลาเริ่ม</string>
+    <string name="field_end_date">วันที่สิ้นสุด</string>
+    <string name="field_end_time">เวลาสิ้นสุด</string>
+    <string name="calendar_conflict_line">• %1$s (%2$s–%3$s)</string>
+    <string name="calendar_recurring">เกิดซ้ำ</string>
+    <string name="calendar_day_of_month">วันในเดือน (1–31)</string>
+    <string name="calendar_select_time">เลือกเวลา</string>
+    <string name="calendar_err_title_required">กรุณาระบุชื่อ</string>
+    <string name="calendar_err_start_before_end">เวลาเริ่มต้องก่อนเวลาสิ้นสุด</string>
+    <string name="calendar_err_select_day">เลือกอย่างน้อยหนึ่งวัน</string>
+    <string name="calendar_err_valid_day">ระบุวันที่ถูกต้อง (1–31)</string>
+
+    <plurals name="calendar_conflicts_with">
+        <item quantity="other">ขัดแย้งกับ %1$d กิจกรรม:</item>
+    </plurals>
+    <plurals name="reminder_hr">
+        <item quantity="other">%1$d ชม.</item>
+    </plurals>
+    <plurals name="reminder_day">
+        <item quantity="other">%1$d วัน</item>
+    </plurals>
+    <plurals name="reminder_week">
+        <item quantity="other">%1$d สัปดาห์</item>
+    </plurals>
 </resources>

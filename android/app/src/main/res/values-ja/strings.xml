@@ -248,4 +248,81 @@
     <plurals name="estimate_minutes">
         <item quantity="other">%1$d 分</item>
     </plurals>
+
+    <!-- ══════════════════ §13.1 Android sweep — calendar ══════════════════ -->
+
+    <!-- Shared actions / fields -->
+    <string name="action_ok">OK</string>
+    <string name="action_add_event">イベントを追加</string>
+    <string name="action_discard">破棄</string>
+    <string name="field_category">カテゴリ</string>
+    <string name="field_reminders">リマインダー</string>
+    <string name="field_color">カラー</string>
+    <string name="priority_medium">中</string>
+    <string name="reminder_none">なし</string>
+
+    <!-- Event categories (display; stored values stay study/project/…) -->
+    <string name="category_study">勉強</string>
+    <string name="category_project">プロジェクト</string>
+    <string name="category_exercise">運動</string>
+    <string name="category_personal">個人</string>
+    <string name="category_other">その他</string>
+
+    <!-- Recurrence frequency (display; stored values stay DAILY/WEEKLY/MONTHLY) -->
+    <string name="freq_daily">毎日</string>
+    <string name="freq_weekly">毎週</string>
+    <string name="freq_monthly">毎月</string>
+
+    <!-- Calendar -->
+    <string name="calendar_title">カレンダー</string>
+    <string name="calendar_prev_month_cd">前の月</string>
+    <string name="calendar_next_month_cd">次の月</string>
+    <string name="calendar_delete_event_title">イベントを削除しますか？</string>
+    <string name="calendar_delete_event_body">\'%1$s\'をカレンダーから削除します。</string>
+    <string name="calendar_recurring_delete_title">繰り返しイベントを削除しますか？</string>
+    <string name="calendar_recurring_delete_body">\'%1$s\'は繰り返しイベントです。どれを削除しますか？</string>
+    <string name="calendar_recurring_edit_title">繰り返しイベントを編集しますか？</string>
+    <string name="calendar_recurring_edit_body">\'%1$s\'は繰り返しイベントです。変更を適用する対象：</string>
+    <string name="calendar_scope_just_this">このイベントのみ</string>
+    <string name="calendar_scope_this_following">これ以降のイベント</string>
+    <string name="calendar_scope_all">すべての繰り返し</string>
+    <string name="calendar_scope_action_line">%1$s: %2$s</string>
+    <string name="calendar_time_range">%1$s – %2$s</string>
+    <string name="calendar_multiday_start">%1$s → %2$s %3$s 終了</string>
+    <string name="calendar_multiday_end">%1$s 終了 · %2$s %3$s 開始</string>
+    <string name="calendar_multiday_middle">終日 · %1$s %2$s 開始</string>
+
+    <!-- Add / edit event dialog -->
+    <string name="calendar_new_event">新しいイベント</string>
+    <string name="calendar_edit_event">イベントを編集</string>
+    <string name="calendar_discard_changes_title">変更を破棄しますか？</string>
+    <string name="calendar_discard_event_title">イベントを破棄しますか？</string>
+    <string name="calendar_discard_body">入力した内容が失われます。</string>
+    <string name="calendar_keep_editing">編集を続ける</string>
+    <string name="calendar_all_day">終日</string>
+    <string name="field_start_date">開始日</string>
+    <string name="field_start_time">開始時刻</string>
+    <string name="field_end_date">終了日</string>
+    <string name="field_end_time">終了時刻</string>
+    <string name="calendar_conflict_line">• %1$s (%2$s–%3$s)</string>
+    <string name="calendar_recurring">繰り返し</string>
+    <string name="calendar_day_of_month">日付（1〜31）</string>
+    <string name="calendar_select_time">時刻を選択</string>
+    <string name="calendar_err_title_required">タイトルを入力してください</string>
+    <string name="calendar_err_start_before_end">開始は終了より前にしてください</string>
+    <string name="calendar_err_select_day">曜日を1つ以上選択してください</string>
+    <string name="calendar_err_valid_day">有効な日付を入力してください（1〜31）</string>
+
+    <plurals name="calendar_conflicts_with">
+        <item quantity="other">%1$d件のイベントと重複：</item>
+    </plurals>
+    <plurals name="reminder_hr">
+        <item quantity="other">%1$d 時間</item>
+    </plurals>
+    <plurals name="reminder_day">
+        <item quantity="other">%1$d 日</item>
+    </plurals>
+    <plurals name="reminder_week">
+        <item quantity="other">%1$d 週</item>
+    </plurals>
 </resources>
