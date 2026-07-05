@@ -561,4 +561,81 @@
     <string name="settings_consent_p4">आप इसे कभी भी बंद कर सकते हैं, या प्लेबैक सूची से व्यक्तिगत क्लिप हटा सकते हैं।</string>
     <string name="settings_turn_on">चालू करें</string>
     <string name="settings_last_audio">अंतिम ऑडियो प्रयास</string>
+
+    <!-- ══════════════════ §13.1 Android sweep — alarms ══════════════════ -->
+
+    <!-- Missions (shared: list badge + editor picker) -->
+    <string name="mission_tap">टैप</string>
+    <string name="mission_math">गणित</string>
+    <string name="mission_shake">शेक</string>
+    <string name="mission_photo">फ़ोटो</string>
+    <string name="mission_tap_dismiss">टैप करके बंद करें</string>
+
+    <!-- Difficulty / intensity levels (shared) -->
+    <string name="level_easy">आसान</string>
+    <string name="level_medium">मध्यम</string>
+    <string name="level_hard">कठिन</string>
+    <string name="level_low">कम</string>
+    <string name="level_high">अधिक</string>
+
+    <!-- Alarms list (Sleep tab) -->
+    <string name="alarms_header">वेक-अप अलार्म</string>
+    <string name="alarms_empty">अभी कोई अलार्म नहीं है। उठने का समय और बंद मिशन सेट करें ताकि आप वाकई बिस्तर से उठें।</string>
+    <string name="alarm_delete_title">अलार्म हटाएं?</string>
+    <string name="alarm_delete_body">यह अलार्म इस डिवाइस और आपके खाते से हटा दिया जाएगा। इसे वापस नहीं लाया जा सकता।</string>
+    <string name="alarm_default_label">अलार्म</string>
+    <string name="alarm_vibrate">कंपन</string>
+    <string name="alarm_one_shot">एक बार</string>
+    <string name="oem_title">इस %1$s पर अलार्म विश्वसनीय बनाएं</string>
+    <string name="oem_body">%1$s फ़ोन बैकग्राउंड ऐप्स को आक्रामक तरीके से बंद कर देते हैं, जिससे अलार्म नहीं बज सकते। Ultiq को बैटरी ऑप्टिमाइज़ेशन से बाहर रखने के लिए dontkillmyapp.com गाइड का पालन करें।</string>
+    <string name="oem_open_guide">सेटअप गाइड खोलें</string>
+    <string name="alarm_perms_title">अलार्म के लिए कुछ अनुमतियां चाहिए</string>
+    <string name="alarm_perms_body">इनके बिना, अलार्म समय पर नहीं बजेगा या स्क्रीन पर नहीं दिखेगा।</string>
+    <string name="alarm_allow_notifications">सूचनाओं की अनुमति दें</string>
+    <string name="alarm_allow_exact">सटीक अलार्म की अनुमति दें</string>
+    <string name="alarm_allow_fullscreen">फुल-स्क्रीन अलार्म की अनुमति दें (लॉक के ऊपर)</string>
+    <string name="alarm_debug_title">डीबग — अभी से 1–2 मिनट में एक बार का अलार्म शेड्यूल करें</string>
+
+    <!-- Alarm editor -->
+    <string name="alarm_new">नया अलार्म</string>
+    <string name="alarm_edit">अलार्म संपादित करें</string>
+    <string name="alarm_time">समय</string>
+    <string name="alarm_tap_to_change">बदलने के लिए टैप करें</string>
+    <string name="alarm_label">लेबल (वैकल्पिक)</string>
+    <string name="alarm_repeat">दोहराएं</string>
+    <string name="alarm_dismiss_mission">बंद मिशन</string>
+    <string name="alarm_math_mission">गणित मिशन</string>
+    <string name="alarm_photo_mission">फ़ोटो मिशन</string>
+    <string name="alarm_shake_mission">शेक मिशन</string>
+    <string name="alarm_shakes_required">आवश्यक शेक: %1$d</string>
+    <string name="alarm_sound_vibration">ध्वनि &amp; कंपन</string>
+    <string name="alarm_volume_ramps">वॉल्यूम धीरे-धीरे बढ़ता है</string>
+    <string name="alarm_volume_ramps_desc">धीरे शुरू होता है, 30 सेकंड में पूरी आवाज़ तक पहुंचता है</string>
+    <string name="alarm_max_volume">अधिकतम वॉल्यूम: %1$d%%</string>
+    <string name="alarm_snooze">स्नूज़</string>
+    <string name="alarm_snooze_duration">स्नूज़ अवधि (मिनट)</string>
+    <string name="alarm_snoozes_allowed">स्नूज़ की अनुमत संख्या</string>
+    <string name="alarm_tap_warning">टैप-टू-डिसमिस असल में कोई मिशन नहीं है — आप बस एक बटन टैप करके अलार्म बंद कर देंगे। बिस्तर से उठने के लिए गणित, शेक, या फ़ोटो चुनें।</string>
+    <string name="alarm_default_sound">डिफ़ॉल्ट अलार्म ध्वनि</string>
+    <string name="alarm_sound_picker_title">अलार्म ध्वनि</string>
+    <string name="alarm_sound">ध्वनि</string>
+    <string name="alarm_pick_sound">ध्वनि चुनें</string>
+    <string name="alarm_fires_once">अगली बार एक बार बजेगा, फिर अपने आप बंद हो जाएगा।</string>
+    <string name="diff_easy_desc">एकल-अंक जोड़ या घटाव</string>
+    <string name="diff_medium_desc">दो-अंक, दो-संक्रिया अंकगणित</string>
+    <string name="diff_hard_desc">तीन-अंक वाली संख्याओं के साथ क्रिया-क्रम</string>
+    <string name="alarm_problems_required">आवश्यक प्रश्न</string>
+    <string name="photo_instructions">एक स्थिर दृश्य की संदर्भ फ़ोटो लें (बाथरूम सिंक, डेस्क, केतली)। अलार्म बंद करने के लिए उसी दृश्य पर कैमरा लगाना होगा।</string>
+    <string name="photo_take">संदर्भ फ़ोटो लें</string>
+    <string name="photo_cd">संदर्भ फ़ोटो</string>
+    <string name="photo_saved">संदर्भ फ़ोटो सहेजी गई</string>
+    <string name="photo_local_only">केवल इस डिवाइस पर सहेजा गया — कभी अपलोड नहीं किया जाएगा।</string>
+    <string name="photo_retake">दोबारा लें</string>
+    <string name="intensity_low_desc">मज़बूत शेक (≈ 12 m/s²)</string>
+    <string name="intensity_medium_desc">तेज़ शेक (≈ 18 m/s²)</string>
+    <string name="intensity_high_desc">ज़ोरदार शेक (≈ 25 m/s²)</string>
+
+    <!-- Alarms ViewModel -->
+    <string name="alarm_test_label">टेस्ट अलार्म (%1$s)</string>
+    <string name="alarm_err_exact">शेड्यूल नहीं हो सका — सिस्टम सेटिंग में सटीक अलार्म की अनुमति दें</string>
 </resources>

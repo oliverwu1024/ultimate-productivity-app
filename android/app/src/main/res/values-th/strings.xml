@@ -538,4 +538,81 @@
     <string name="settings_consent_p4">คุณสามารถปิดได้ทุกเมื่อ หรือลบคลิปแต่ละรายการออกจากรายการเล่น</string>
     <string name="settings_turn_on">เปิดใช้งาน</string>
     <string name="settings_last_audio">การบันทึกเสียงล่าสุด</string>
+
+    <!-- ══════════════════ §13.1 Android sweep — alarms ══════════════════ -->
+
+    <!-- Missions (shared: list badge + editor picker) -->
+    <string name="mission_tap">แตะ</string>
+    <string name="mission_math">คณิตศาสตร์</string>
+    <string name="mission_shake">เขย่า</string>
+    <string name="mission_photo">รูปภาพ</string>
+    <string name="mission_tap_dismiss">แตะเพื่อปิด</string>
+
+    <!-- Difficulty / intensity levels (shared) -->
+    <string name="level_easy">ง่าย</string>
+    <string name="level_medium">ปานกลาง</string>
+    <string name="level_hard">ยาก</string>
+    <string name="level_low">ต่ำ</string>
+    <string name="level_high">สูง</string>
+
+    <!-- Alarms list (Sleep tab) -->
+    <string name="alarms_header">นาฬิกาปลุก</string>
+    <string name="alarms_empty">ยังไม่มีนาฬิกาปลุก ตั้งเวลาตื่นและภารกิจปลุกเพื่อให้คุณลุกออกจากเตียงได้จริงๆ</string>
+    <string name="alarm_delete_title">ลบนาฬิกาปลุก?</string>
+    <string name="alarm_delete_body">นาฬิกาปลุกนี้จะถูกลบออกจากอุปกรณ์และบัญชีของคุณ ไม่สามารถยกเลิกได้</string>
+    <string name="alarm_default_label">นาฬิกาปลุก</string>
+    <string name="alarm_vibrate">สั่น</string>
+    <string name="alarm_one_shot">ใช้ครั้งเดียว</string>
+    <string name="oem_title">ทำให้นาฬิกาปลุกน่าเชื่อถือบน %1$s ของคุณ</string>
+    <string name="oem_body">โทรศัพท์ %1$s จัดการพลังงานอย่างเข้มงวด ซึ่งอาจหยุดการทำงานของนาฬิกาปลุก ทำตามคู่มือ dontkillmyapp.com เพื่อยกเว้น Ultiq จากการเพิ่มประสิทธิภาพแบตเตอรี</string>
+    <string name="oem_open_guide">เปิดคู่มือการตั้งค่า</string>
+    <string name="alarm_perms_title">นาฬิกาปลุกต้องการสิทธิ์บางอย่าง</string>
+    <string name="alarm_perms_body">หากไม่มีสิ่งเหล่านี้ นาฬิกาปลุกอาจไม่ทำงานตามกำหนดหรือไม่แสดงบนหน้าจอ</string>
+    <string name="alarm_allow_notifications">อนุญาตการแจ้งเตือน</string>
+    <string name="alarm_allow_exact">อนุญาตการปลุกแบบแม่นยำ</string>
+    <string name="alarm_allow_fullscreen">อนุญาตนาฬิกาปลุกเต็มจอ (เหนือหน้าจอล็อก)</string>
+    <string name="alarm_debug_title">Debug — ตั้งปลุกครั้งเดียวในอีก 1–2 นาที</string>
+
+    <!-- Alarm editor -->
+    <string name="alarm_new">นาฬิกาปลุกใหม่</string>
+    <string name="alarm_edit">แก้ไขนาฬิกาปลุก</string>
+    <string name="alarm_time">เวลา</string>
+    <string name="alarm_tap_to_change">แตะเพื่อเปลี่ยน</string>
+    <string name="alarm_label">ชื่อ (ไม่บังคับ)</string>
+    <string name="alarm_repeat">ทำซ้ำ</string>
+    <string name="alarm_dismiss_mission">ภารกิจปิดปลุก</string>
+    <string name="alarm_math_mission">ภารกิจคณิตศาสตร์</string>
+    <string name="alarm_photo_mission">ภารกิจรูปภาพ</string>
+    <string name="alarm_shake_mission">ภารกิจเขย่า</string>
+    <string name="alarm_shakes_required">จำนวนครั้งที่ต้องเขย่า: %1$d</string>
+    <string name="alarm_sound_vibration">เสียง &amp; การสั่น</string>
+    <string name="alarm_volume_ramps">ระดับเสียงค่อยๆ เพิ่มขึ้น</string>
+    <string name="alarm_volume_ramps_desc">เริ่มเบา แล้วค่อยๆ ดังขึ้นจนเต็มระดับใน 30 วินาที</string>
+    <string name="alarm_max_volume">ระดับเสียงสูงสุด: %1$d%%</string>
+    <string name="alarm_snooze">เลื่อนปลุก</string>
+    <string name="alarm_snooze_duration">ระยะเวลาเลื่อนปลุก (นาที)</string>
+    <string name="alarm_snoozes_allowed">จำนวนครั้งที่เลื่อนปลุกได้</string>
+    <string name="alarm_tap_warning">การแตะเพื่อปิดไม่ใช่ภารกิจจริงๆ — คุณแค่แตะปุ่มเพื่อปิดเสียงปลุก เลือกคณิตศาสตร์ เขย่า หรือรูปภาพ เพื่อบังคับให้ตัวเองลุกออกจากเตียงจริงๆ</string>
+    <string name="alarm_default_sound">เสียงปลุกเริ่มต้น</string>
+    <string name="alarm_sound_picker_title">เสียงปลุก</string>
+    <string name="alarm_sound">เสียง</string>
+    <string name="alarm_pick_sound">เลือกเสียง</string>
+    <string name="alarm_fires_once">ปลุกครั้งเดียวในครั้งถัดไป แล้วปิดใช้งานตัวเอง</string>
+    <string name="diff_easy_desc">การบวกหรือลบเลขหลักเดียว</string>
+    <string name="diff_medium_desc">คณิตศาสตร์สองหลัก สองขั้นตอน</string>
+    <string name="diff_hard_desc">ลำดับการดำเนินการกับตัวเลขสามหลัก</string>
+    <string name="alarm_problems_required">จำนวนโจทย์ที่ต้องทำ</string>
+    <string name="photo_instructions">ถ่ายรูปอ้างอิงของฉากที่ตายตัว (อ่างล้างมือ โต๊ะ กาน้ำ) คุณจะต้องชี้กล้องไปที่ฉากเดิมเพื่อปิดนาฬิกาปลุก</string>
+    <string name="photo_take">ถ่ายรูปอ้างอิง</string>
+    <string name="photo_cd">รูปอ้างอิง</string>
+    <string name="photo_saved">บันทึกรูปอ้างอิงแล้ว</string>
+    <string name="photo_local_only">เก็บบนอุปกรณ์นี้เท่านั้น — ไม่มีการอัปโหลด</string>
+    <string name="photo_retake">ถ่ายใหม่</string>
+    <string name="intensity_low_desc">เขย่าเบาๆ (≈ 12 m/s²)</string>
+    <string name="intensity_medium_desc">เขย่าแรง (≈ 18 m/s²)</string>
+    <string name="intensity_high_desc">เขย่าแรงมาก (≈ 25 m/s²)</string>
+
+    <!-- Alarms ViewModel -->
+    <string name="alarm_test_label">นาฬิกาปลุกทดสอบ (%1$s)</string>
+    <string name="alarm_err_exact">ไม่สามารถตั้งเวลาได้ — โปรดให้สิทธิ์ Exact Alarm ในการตั้งค่าระบบ</string>
 </resources>

@@ -40,9 +40,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ultiq.app.BuildConfig
+import com.ultiq.app.R
 import com.ultiq.app.alarm.AlarmPermissionState
 import com.ultiq.app.alarm.openAppNotificationSettings
 import com.ultiq.app.alarm.openExactAlarmSettings
@@ -50,6 +52,7 @@ import com.ultiq.app.alarm.openFullScreenIntentSettings
 import com.ultiq.app.alarm.rememberAlarmPermissionState
 import com.ultiq.app.alarm.rememberBatteryOptimized
 import com.ultiq.app.data.local.entity.AlarmEntity
+import com.ultiq.app.util.LocaleManager
 import com.ultiq.app.util.OemBatteryGuidance
 
 /**
@@ -72,7 +75,7 @@ fun LazyListScope.sleepAlarmsSection(
 ) {
     item(key = "alarms-header") {
         Text(
-            text = "WAKE-UP ALARMS",
+            text = stringResource(R.string.alarms_header).uppercase(),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.primary,
             fontWeight = FontWeight.SemiBold,
@@ -108,8 +111,7 @@ fun LazyListScope.sleepAlarmsSection(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     Text(
-                        "No alarms yet. Set a wake-up time and a dismiss mission " +
-                            "so you actually get out of bed.",
+                        stringResource(R.string.alarms_empty),
                         style = MaterialTheme.typography.bodyMedium,
                     )
                     Button(
@@ -117,7 +119,7 @@ fun LazyListScope.sleepAlarmsSection(
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Icon(Icons.Default.Add, contentDescription = null)
-                        Text("  Add alarm")
+                        Text("  " + stringResource(R.string.sleep_add_alarm_cd))
                     }
                 }
             }
@@ -127,8 +129,8 @@ fun LazyListScope.sleepAlarmsSection(
             // §delete-consistency — swipe row to delete, mirrors Sleep
             // + Checklist. Tap still edits.
             com.ultiq.app.ui.common.SwipeToDeleteBox(
-                confirmTitle = "Delete alarm?",
-                confirmBody = "This alarm will be removed from this device and your account. This can't be undone.",
+                confirmTitle = stringResource(R.string.alarm_delete_title),
+                confirmBody = stringResource(R.string.alarm_delete_body),
                 onDelete = { onDelete(alarm) },
                 modifier = Modifier.padding(horizontal = 16.dp),
             ) {
@@ -185,12 +187,12 @@ internal fun DeleteAlarmDialog(
 ) {
     AlertDialog(
         onDismissRequest = onCancel,
-        title = { Text("Delete alarm?") },
+        title = { Text(stringResource(R.string.alarm_delete_title)) },
         text = {
-            Text("This alarm will be removed from this device and your account. This can't be undone.")
+            Text(stringResource(R.string.alarm_delete_body))
         },
-        confirmButton = { Button(onClick = onConfirm) { Text("Delete") } },
-        dismissButton = { TextButton(onClick = onCancel) { Text("Cancel") } },
+        confirmButton = { Button(onClick = onConfirm) { Text(stringResource(R.string.action_delete)) } },
+        dismissButton = { TextButton(onClick = onCancel) { Text(stringResource(R.string.action_cancel)) } },
     )
 }
 
@@ -224,7 +226,7 @@ private fun AlarmRow(
                         color = if (alarm.enabled) MaterialTheme.colorScheme.onSurface
                         else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    val label = alarm.label?.takeIf { it.isNotBlank() } ?: "Alarm"
+                    val label = alarm.label?.takeIf { it.isNotBlank() } ?: stringResource(R.string.alarm_default_label)
                     Text(label, style = MaterialTheme.typography.bodyMedium)
                 }
                 Switch(checked = alarm.enabled, onCheckedChange = onToggle)
@@ -237,7 +239,7 @@ private fun AlarmRow(
             ) {
                 MissionBadge(kind = alarm.missionKind)
                 if (alarm.vibration) {
-                    BadgeChip(icon = Icons.Default.Vibration, label = "Vibrate")
+                    BadgeChip(icon = Icons.Default.Vibration, label = stringResource(R.string.alarm_vibrate))
                 }
             }
         }
@@ -246,7 +248,12 @@ private fun AlarmRow(
 
 @Composable
 private fun DayOfWeekChips(mask: Int, dim: Boolean) {
-    val labels = listOf("S", "M", "T", "W", "T", "F", "S") // bit 0 = Sun
+    // §13.1 — localized narrow day letters, Sun-first (bit 0 = Sun).
+    val locale = LocaleManager.currentLocale()
+    val labels = (0..6).map { bit ->
+        val dow = if (bit == 0) java.time.DayOfWeek.SUNDAY else java.time.DayOfWeek.of(bit)
+        dow.getDisplayName(java.time.format.TextStyle.NARROW, locale)
+    }
     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         labels.forEachIndexed { bit, letter ->
             val on = (mask shr bit) and 1 == 1
@@ -277,7 +284,7 @@ private fun DayOfWeekChips(mask: Int, dim: Boolean) {
         }
         if (mask == 0) {
             Text(
-                text = "One-shot",
+                text = stringResource(R.string.alarm_one_shot),
                 style = MaterialTheme.typography.labelSmall,
                 modifier = Modifier.padding(start = 6.dp),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -289,10 +296,10 @@ private fun DayOfWeekChips(mask: Int, dim: Boolean) {
 @Composable
 private fun MissionBadge(kind: String) {
     val (icon, label) = when (kind) {
-        "math" -> Icons.Default.Calculate to "Math"
-        "shake" -> Icons.Default.Vibration to "Shake"
-        "photo" -> Icons.Default.Camera to "Photo"
-        else -> Icons.Default.Alarm to "Tap to dismiss"
+        "math" -> Icons.Default.Calculate to stringResource(R.string.mission_math)
+        "shake" -> Icons.Default.Vibration to stringResource(R.string.mission_shake)
+        "photo" -> Icons.Default.Camera to stringResource(R.string.mission_photo)
+        else -> Icons.Default.Alarm to stringResource(R.string.mission_tap_dismiss)
     }
     BadgeChip(icon = icon, label = label)
 }
@@ -338,7 +345,7 @@ private fun OemBatteryGuidanceCard(
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    "Make alarms reliable on this $manufacturer",
+                    stringResource(R.string.oem_title, manufacturer),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onTertiaryContainer,
@@ -350,15 +357,13 @@ private fun OemBatteryGuidanceCard(
                 ) {
                     Icon(
                         Icons.Default.Close,
-                        contentDescription = "Dismiss",
+                        contentDescription = stringResource(R.string.action_dismiss),
                         tint = MaterialTheme.colorScheme.onTertiaryContainer,
                     )
                 }
             }
             Text(
-                "$manufacturer phones aggressively kill background apps, which can " +
-                    "stop alarms from firing. Follow the dontkillmyapp.com guide to " +
-                    "exclude Ultiq from battery optimisation.",
+                stringResource(R.string.oem_body, manufacturer),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onTertiaryContainer,
             )
@@ -371,7 +376,7 @@ private fun OemBatteryGuidanceCard(
                     context.startActivity(intent)
                 },
                 modifier = Modifier.fillMaxWidth(),
-            ) { Text("Open setup guide") }
+            ) { Text(stringResource(R.string.oem_open_guide)) }
         }
     }
 }
@@ -388,14 +393,13 @@ private fun AlarmPermissionsCard(
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
-                "Alarms need a few permissions",
+                stringResource(R.string.alarm_perms_title),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onErrorContainer,
             )
             Text(
-                "Without these, alarms either won't fire on schedule or won't " +
-                    "show on screen when they do.",
+                stringResource(R.string.alarm_perms_body),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onErrorContainer,
             )
@@ -403,19 +407,19 @@ private fun AlarmPermissionsCard(
                 Button(
                     onClick = { openAppNotificationSettings(context) },
                     modifier = Modifier.fillMaxWidth(),
-                ) { Text("Allow notifications") }
+                ) { Text(stringResource(R.string.alarm_allow_notifications)) }
             }
             if (!state.hasExactAlarm) {
                 Button(
                     onClick = { openExactAlarmSettings(context) },
                     modifier = Modifier.fillMaxWidth(),
-                ) { Text("Allow exact alarms") }
+                ) { Text(stringResource(R.string.alarm_allow_exact)) }
             }
             if (!state.hasFullScreenIntent) {
                 Button(
                     onClick = { openFullScreenIntentSettings(context) },
                     modifier = Modifier.fillMaxWidth(),
-                ) { Text("Allow full-screen alarms (over lock)") }
+                ) { Text(stringResource(R.string.alarm_allow_fullscreen)) }
             }
         }
     }
@@ -432,7 +436,7 @@ private fun DebugTestAlarmCard(
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
-                "Debug — schedule a one-shot 1–2 min from now",
+                stringResource(R.string.alarm_debug_title),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -440,15 +444,15 @@ private fun DebugTestAlarmCard(
                 OutlinedButton(
                     onClick = { onTest("none") },
                     modifier = Modifier.weight(1f),
-                ) { Text("Tap") }
+                ) { Text(stringResource(R.string.mission_tap)) }
                 OutlinedButton(
                     onClick = { onTest("math") },
                     modifier = Modifier.weight(1f),
-                ) { Text("Math") }
+                ) { Text(stringResource(R.string.mission_math)) }
                 OutlinedButton(
                     onClick = { onTest("shake") },
                     modifier = Modifier.weight(1f),
-                ) { Text("Shake") }
+                ) { Text(stringResource(R.string.mission_shake)) }
             }
         }
     }

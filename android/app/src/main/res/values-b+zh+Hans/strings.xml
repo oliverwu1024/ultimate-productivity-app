@@ -538,4 +538,81 @@
     <string name="settings_consent_p4">您可以随时关闭此功能，或从回放列表中删除单个片段。</string>
     <string name="settings_turn_on">开启</string>
     <string name="settings_last_audio">上次音频尝试</string>
+
+    <!-- ══════════════════ §13.1 Android sweep — alarms ══════════════════ -->
+
+    <!-- Missions (shared: list badge + editor picker) -->
+    <string name="mission_tap">点击</string>
+    <string name="mission_math">数学</string>
+    <string name="mission_shake">摇动</string>
+    <string name="mission_photo">拍照</string>
+    <string name="mission_tap_dismiss">点击关闭</string>
+
+    <!-- Difficulty / intensity levels (shared) -->
+    <string name="level_easy">简单</string>
+    <string name="level_medium">中等</string>
+    <string name="level_hard">困难</string>
+    <string name="level_low">低</string>
+    <string name="level_high">高</string>
+
+    <!-- Alarms list (Sleep tab) -->
+    <string name="alarms_header">起床闹钟</string>
+    <string name="alarms_empty">还没有闹钟。设置起床时间和解除任务，帮你真正从床上爬起来。</string>
+    <string name="alarm_delete_title">删除闹钟？</string>
+    <string name="alarm_delete_body">此闹钟将从本设备和你的账户中删除，此操作无法撤销。</string>
+    <string name="alarm_default_label">闹钟</string>
+    <string name="alarm_vibrate">振动</string>
+    <string name="alarm_one_shot">单次</string>
+    <string name="oem_title">让你的 %1$s 上的闹钟更可靠</string>
+    <string name="oem_body">%1$s 手机会主动关闭后台应用，可能导致闹钟无法响起。请参阅 dontkillmyapp.com 指南，将 Ultiq 从电池优化中排除。</string>
+    <string name="oem_open_guide">打开设置指南</string>
+    <string name="alarm_perms_title">闹钟需要一些权限</string>
+    <string name="alarm_perms_body">缺少这些权限，闹钟可能无法按时响起，或响起时不显示在屏幕上。</string>
+    <string name="alarm_allow_notifications">允许通知</string>
+    <string name="alarm_allow_exact">允许精确闹钟</string>
+    <string name="alarm_allow_fullscreen">允许全屏闹钟（锁屏显示）</string>
+    <string name="alarm_debug_title">调试 — 安排1–2分钟后的单次闹钟</string>
+
+    <!-- Alarm editor -->
+    <string name="alarm_new">新建闹钟</string>
+    <string name="alarm_edit">编辑闹钟</string>
+    <string name="alarm_time">时间</string>
+    <string name="alarm_tap_to_change">点击更改</string>
+    <string name="alarm_label">标签（可选）</string>
+    <string name="alarm_repeat">重复</string>
+    <string name="alarm_dismiss_mission">解除任务</string>
+    <string name="alarm_math_mission">数学任务</string>
+    <string name="alarm_photo_mission">拍照任务</string>
+    <string name="alarm_shake_mission">摇动任务</string>
+    <string name="alarm_shakes_required">所需摇动次数：%1$d</string>
+    <string name="alarm_sound_vibration">声音与振动</string>
+    <string name="alarm_volume_ramps">音量渐强</string>
+    <string name="alarm_volume_ramps_desc">从低音量开始，30秒内逐渐增至最大音量</string>
+    <string name="alarm_max_volume">最大音量：%1$d%%</string>
+    <string name="alarm_snooze">贪睡</string>
+    <string name="alarm_snooze_duration">贪睡时长（分钟）</string>
+    <string name="alarm_snoozes_allowed">允许贪睡次数</string>
+    <string name="alarm_tap_warning">点击关闭并不是真正的任务——你只需按一下按钮就能关闭闹钟。选择数学、摇动或拍照，才能真正强迫自己起床。</string>
+    <string name="alarm_default_sound">默认闹钟声音</string>
+    <string name="alarm_sound_picker_title">闹钟声音</string>
+    <string name="alarm_sound">声音</string>
+    <string name="alarm_pick_sound">选择声音</string>
+    <string name="alarm_fires_once">在下一次触发时响一次，之后自动停用。</string>
+    <string name="diff_easy_desc">个位数加减法</string>
+    <string name="diff_medium_desc">两位数双步运算</string>
+    <string name="diff_hard_desc">三位数的运算顺序</string>
+    <string name="alarm_problems_required">所需题目数</string>
+    <string name="photo_instructions">拍摄一个固定场景的参考照片（浴室水槽、桌子、水壶）。关闭闹钟时需要对准同一场景拍照。</string>
+    <string name="photo_take">拍摄参考照片</string>
+    <string name="photo_cd">参考照片</string>
+    <string name="photo_saved">参考照片已保存</string>
+    <string name="photo_local_only">仅存储在本设备上——从不上传。</string>
+    <string name="photo_retake">重拍</string>
+    <string name="intensity_low_desc">轻力摇动（≈ 12 m/s²）</string>
+    <string name="intensity_medium_desc">用力摇动（≈ 18 m/s²）</string>
+    <string name="intensity_high_desc">大力摇动（≈ 25 m/s²）</string>
+
+    <!-- Alarms ViewModel -->
+    <string name="alarm_test_label">测试闹钟（%1$s）</string>
+    <string name="alarm_err_exact">无法安排闹钟——请在系统设置中授予精确闹钟权限</string>
 </resources>

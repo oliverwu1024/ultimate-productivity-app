@@ -8,6 +8,7 @@ import com.ultiq.app.alarm.WakeAlarmScheduler
 import com.ultiq.app.alarm.mission.MathDifficulty
 import com.ultiq.app.alarm.mission.MissionConfig
 import com.ultiq.app.alarm.mission.ShakeIntensity
+import com.ultiq.app.R
 import com.ultiq.app.data.local.AppDatabase
 import com.ultiq.app.data.local.entity.AlarmEntity
 import com.ultiq.app.data.remote.RetrofitClient
@@ -110,7 +111,7 @@ class AlarmsViewModel(application: Application) : AndroidViewModel(application) 
         val alarm = AlarmEntity(
             id = UUID.randomUUID().toString(),
             userId = userId,
-            label = "Test alarm ($missionKind)",
+            label = getApplication<Application>().getString(R.string.alarm_test_label, missionKind),
             triggerHour = triggerLocal.hour,
             triggerMinute = triggerLocal.minute,
             daysOfWeekMask = 0,
@@ -133,7 +134,7 @@ class AlarmsViewModel(application: Application) : AndroidViewModel(application) 
             "$missionKind alarm scheduled for " + triggerLocal.toLocalTime()
                 .format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))
         } else {
-            "Couldn't schedule — grant Exact Alarm permission in system settings"
+            getApplication<Application>().getString(R.string.alarm_err_exact)
         }
         Toast.makeText(app, message, Toast.LENGTH_LONG).show()
     }
