@@ -325,4 +325,178 @@
     <plurals name="reminder_week">
         <item quantity="other">%1$d주</item>
     </plurals>
+
+    <!-- ══════════════════ §13.1 Android sweep — sleep (tracking) ══════════════════ -->
+
+    <!-- Shared -->
+    <string name="action_keep">유지</string>
+    <string name="action_start">시작</string>
+    <string name="action_preferences">설정</string>
+    <string name="star_rating_cd">별점 %1$d</string>
+    <string name="notes_optional">메모 (선택 사항)</string>
+    <string name="nap_question">낮잠인가요?</string>
+    <string name="nap_subtitle">\"어젯밤\" 요약에서 제외됩니다</string>
+    <string name="range_week">주</string>
+    <string name="range_month">월</string>
+    <string name="period_this_month">이번 달</string>
+    <string name="period_last_month">지난 달</string>
+
+    <!-- Sleep tab / screen chrome -->
+    <string name="sleep_title">수면</string>
+    <string name="sleep_subtab_alarms">알람</string>
+    <string name="sleep_add_alarm_cd">알람 추가</string>
+    <string name="sleep_prefs_title">수면 설정</string>
+    <string name="sleep_prefs_hint_body">오른쪽 상단의 설정을 탭하여 취침 시간, 기상 시간, 수면 목표 및 잠금을 설정하세요. 기상 알람은 위의 알람 하위 탭에 있습니다.</string>
+    <string name="sleep_explainer_title">수면 추적 방식</string>
+    <string name="sleep_explainer_body">수면 시작을 탭하면 Ultiq가 백그라운드 서비스로 실행되어 화면이 잠긴 동안 야간 휴대폰 픽업을 감지합니다. 화면 상태만 확인하며 — 그 외 휴대폰 사용 내역은 확인하지 않습니다.</string>
+    <string name="sleep_got_it">확인</string>
+
+    <!-- Audio-sync banner -->
+    <string name="sleep_audio_sync_failed_title">어젯밤 소리가 동기화되지 않았습니다</string>
+    <string name="sleep_audio_syncing_title">어젯밤 소리를 동기화하는 중…</string>
+    <string name="sleep_retry_now">지금 다시 시도</string>
+
+    <!-- Mic-permission banner -->
+    <string name="sleep_mic_title">코골이 추적에 마이크 권한이 필요합니다</string>
+    <string name="sleep_mic_body">계정에 코골이 + 기침 감지가 활성화되어 있지만 이 기기에는 마이크 권한이 부여되지 않았습니다. 음성 분석은 기기에서만 이루어지며 — 업로드되지 않습니다.</string>
+    <string name="sleep_grant_permission">권한 허용</string>
+
+    <!-- No-alarm dialog -->
+    <string name="sleep_no_alarm_title">오늘 밤 알람 없음</string>
+    <string name="sleep_no_alarm_body">다음 24시간 내에 예약된 기상 알람이 없습니다. 침대에서 확실히 일어날 수 있도록 해제 미션이 있는 알람을 설정하시겠어요, 아니면 오늘 밤은 알람 없이 주무시겠어요?</string>
+    <string name="sleep_set_alarm">알람 설정</string>
+    <string name="sleep_sleep_without">알람 없이 자기</string>
+
+    <!-- Session control -->
+    <string name="sleep_sleeping">수면 중…</string>
+    <string name="sleep_elapsed">%1$dh %2$dm 경과</string>
+    <string name="sleep_started_at">%1$s에 시작</string>
+    <string name="sleep_end">수면 종료</string>
+    <string name="sleep_start">수면 시작</string>
+    <string name="sleep_log_past">이전 수면 기록</string>
+
+    <!-- Set-wake dialog -->
+    <string name="sleep_set_wake_title">기상 시간 설정</string>
+    <string name="sleep_set_wake_body">기상 시간을 선택하세요. 수면 부족은 이 목표 시간을 기준으로 측정됩니다.</string>
+    <string name="sleep_wake_at">%1$s에 기상</string>
+    <string name="sleep_target_duration">목표 수면 시간: %1$s</string>
+
+    <!-- Stats -->
+    <string name="sleep_stat_avg_duration">평균 수면 시간</string>
+    <string name="sleep_stat_avg_quality">평균 수면 질</string>
+    <string name="sleep_stat_avg_pickups">평균 픽업 횟수</string>
+    <string name="sleep_stat_naps">낮잠</string>
+    <string name="sleep_quality_value">%1$s / 5</string>
+    <string name="sleep_per_session">%1$s / 세션</string>
+
+    <!-- Chart legend -->
+    <string name="sleep_legend_night">밤</string>
+    <string name="sleep_legend_morning">아침</string>
+    <string name="sleep_legend_afternoon">오후</string>
+
+    <!-- Record item + expanded details -->
+    <string name="sleep_delete_record_title">수면 기록을 삭제할까요?</string>
+    <string name="sleep_delete_record_body">%1$s의 기록이 영구적으로 삭제됩니다.</string>
+    <string name="sleep_nap_badge">· 낮잠</string>
+    <string name="detail_notes">메모</string>
+    <string name="detail_target">목표</string>
+    <string name="detail_actual">실제</string>
+    <string name="detail_phone_time">휴대폰 사용 시간</string>
+    <string name="detail_label_prefix">%1$s: </string>
+    <string name="sleep_not_synced">동기화되지 않음</string>
+    <string name="sleep_detail_loading">세부 정보 로딩 중…</string>
+    <string name="sleep_phone_pickups_header">휴대폰 픽업</string>
+    <string name="sleep_pickup_indexed">#%1$d (%2$s)</string>
+
+    <!-- Audio event groups + playback -->
+    <string name="sleep_group_snoring">코골이</string>
+    <string name="sleep_group_coughing">기침</string>
+    <string name="sleep_group_sleeptalk">잠꼬대</string>
+    <string name="sleep_tap_to_play">" · ▶ 탭하여 재생"</string>
+    <string name="sleep_play_cd">재생</string>
+    <string name="sleep_stop_cd">중지</string>
+    <string name="sleep_clip_duration">%1$ds 클립 · </string>
+    <string name="sleep_playing">재생 중… (행을 다시 탭하면 중지)</string>
+    <string name="sleep_loading">로딩 중…</string>
+    <string name="sleep_confidence">신뢰도 %1$s%%</string>
+    <string name="sleep_delete_clip">클립 삭제</string>
+    <string name="sleep_delete_recording_title">이 녹음을 삭제할까요?</string>
+    <string name="sleep_delete_recording_body">감지 이벤트는 유지되고 — 오디오 클립만 삭제됩니다.</string>
+    <string name="sleep_load_clip_error">클립을 불러올 수 없습니다</string>
+    <string name="sleep_offline_clip">연결 없음 — 이 클립을 재생하려면 연결하세요</string>
+    <string name="sleep_playback_failed">재생 실패</string>
+
+    <!-- Tonight sounds card -->
+    <string name="sleep_last_night">어젯밤</string>
+    <string name="sleep_sounds_header">수면 소리 — %1$s</string>
+    <string name="sleep_sound_snoring">코골이</string>
+    <string name="sleep_sound_cough">기침</string>
+    <string name="sleep_sound_sleeptalk">잠꼬대</string>
+    <string name="sleep_quiet_body">수면 중 아무것도 감지되지 않았습니다.</string>
+
+    <!-- End-sleep dialog -->
+    <string name="end_sleep_good_morning">좋은 아침이에요!</string>
+    <string name="end_sleep_you_slept">%1$dh %2$dm 수면했습니다</string>
+    <string name="end_sleep_no_pickups">휴대폰 픽업 없음 — 잘하셨어요!</string>
+    <string name="end_sleep_sounds_header">수면 중 소리</string>
+    <string name="sleep_snore_indexed">코골이 #%1$d</string>
+    <string name="sleep_cough_indexed">기침 #%1$d</string>
+    <string name="sleep_talk_indexed">잠꼬대 #%1$d</string>
+    <string name="sleep_audio_row">%2$s에 %1$s</string>
+    <string name="end_sleep_how_slept">수면의 질이 어떠셨나요?</string>
+    <string name="end_sleep_rate_error">수면 질 평점을 선택해 주세요</string>
+    <string name="end_sleep_discard_title">수면 세션을 삭제할까요?</string>
+    <string name="end_sleep_discard_body">추적한 수면 시간과 픽업 데이터가 사라집니다. 이 작업은 취소할 수 없습니다.</string>
+
+    <!-- AI rating -->
+    <string name="ai_rating_loading">AI가 수면 질을 평가하는 중…</string>
+    <string name="ai_rating_suggests">AI 추천 %1$d/5</string>
+    <string name="ai_rating_re_rate">다시 평가</string>
+    <string name="ai_rating_use">이 평점 사용</string>
+    <string name="ai_rating_retry">AI 평가 다시 시도</string>
+    <string name="ai_rating_get">AI 평가 받기</string>
+
+    <!-- Add-sleep dialog -->
+    <string name="add_sleep_target_bedtime">목표 취침 시간</string>
+    <string name="add_sleep_target_wake">목표 기상 시간</string>
+    <string name="add_sleep_bed_date">취침 날짜</string>
+    <string name="add_sleep_bed_time">취침 시간</string>
+    <string name="add_sleep_wake_date">기상 날짜</string>
+    <string name="add_sleep_wake_time">기상 시간</string>
+    <string name="add_sleep_quality">수면 질 평점</string>
+    <string name="add_sleep_phone_pickups">휴대폰 픽업</string>
+    <string name="add_sleep_phone_minutes">총 휴대폰 사용 시간 (분, 선택 사항)</string>
+    <string name="add_sleep_err_bedtime">취침 시간은 기상 시간보다 이전이어야 합니다</string>
+    <string name="add_sleep_err_quality">수면 질 평점을 선택해 주세요</string>
+
+    <!-- Sleep ViewModel -->
+    <string name="sleep_err_end_focus">수면 추적을 시작하기 전에 집중 세션을 종료하세요</string>
+
+    <plurals name="sleep_audio_sync_failed_body">
+        <item quantity="other">%1$d개 이벤트가 로컬에 저장되어 있지만 아직 서버에 전송되지 않았습니다. 지금 업로드하려면 다시 시도를 탭하거나, 다음 신호가 있을 때 자동으로 재시도됩니다.</item>
+    </plurals>
+    <plurals name="sleep_audio_syncing_body">
+        <item quantity="other">%1$d개 이벤트가 업로드 대기 중입니다. 연결이 가능할 때 자동으로 전송됩니다.</item>
+    </plurals>
+    <plurals name="sleep_phone_pickups">
+        <item quantity="other">%1$d번 픽업</item>
+    </plurals>
+    <plurals name="sleep_group_episodes">
+        <item quantity="other">%2$s · %1$d회 (%3$ds)</item>
+    </plurals>
+    <plurals name="sleep_label_episodes">
+        <item quantity="other">%1$s회</item>
+    </plurals>
+    <plurals name="end_sleep_pickups_summary">
+        <item quantity="other">%1$d번 픽업 — 총 %2$s</item>
+    </plurals>
+    <plurals name="end_sleep_snore_summary">
+        <item quantity="other">%1$d회 코골이 — 총 %2$ds</item>
+    </plurals>
+    <plurals name="end_sleep_cough_summary">
+        <item quantity="other">%1$d회 기침 — 총 %2$ds</item>
+    </plurals>
+    <plurals name="end_sleep_talk_summary">
+        <item quantity="other">%1$d회 잠꼬대 — 총 %2$ds</item>
+    </plurals>
 </resources>

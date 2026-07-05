@@ -339,4 +339,187 @@
         <item quantity="one">%1$d सप्ताह</item>
         <item quantity="other">%1$d सप्ताह</item>
     </plurals>
+
+    <!-- ══════════════════ §13.1 Android sweep — sleep (tracking) ══════════════════ -->
+
+    <!-- Shared -->
+    <string name="action_keep">रखें</string>
+    <string name="action_start">शुरू करें</string>
+    <string name="action_preferences">प्राथमिकताएं</string>
+    <string name="star_rating_cd">स्टार %1$d</string>
+    <string name="notes_optional">नोट्स (वैकल्पिक)</string>
+    <string name="nap_question">दिन की झपकी?</string>
+    <string name="nap_subtitle">इसे आपकी \"कल रात\" की समरी से बाहर रखता है</string>
+    <string name="range_week">सप्ताह</string>
+    <string name="range_month">महीना</string>
+    <string name="period_this_month">इस महीने</string>
+    <string name="period_last_month">पिछले महीने</string>
+
+    <!-- Sleep tab / screen chrome -->
+    <string name="sleep_title">नींद</string>
+    <string name="sleep_subtab_alarms">अलार्म</string>
+    <string name="sleep_add_alarm_cd">अलार्म जोड़ें</string>
+    <string name="sleep_prefs_title">नींद की प्राथमिकताएं</string>
+    <string name="sleep_prefs_hint_body">बिस्तर का समय, उठने का समय, नींद लक्ष्य और लॉकआउट सेट करने के लिए ऊपर दाईं ओर प्राथमिकताएं टैप करें। जागने के अलार्म ऊपर अलार्म सब-टैब में हैं।</string>
+    <string name="sleep_explainer_title">नींद ट्रैकिंग कैसे काम करती है</string>
+    <string name="sleep_explainer_body">जब आप नींद शुरू करें टैप करते हैं, Ultiq एक बैकग्राउंड सेवा के रूप में चलता है ताकि रात भर स्क्रीन बंद रहने पर फोन उठाने का पता लगा सके। हम केवल स्क्रीन स्टेटस जांचते हैं — फोन पर आप क्या करते हैं, इसके बारे में नहीं।</string>
+    <string name="sleep_got_it">समझ गया</string>
+
+    <!-- Audio-sync banner -->
+    <string name="sleep_audio_sync_failed_title">कल रात की आवाजें सिंक नहीं हुईं</string>
+    <string name="sleep_audio_syncing_title">कल रात की आवाजें सिंक हो रही हैं…</string>
+    <string name="sleep_retry_now">अभी पुनः प्रयास करें</string>
+
+    <!-- Mic-permission banner -->
+    <string name="sleep_mic_title">खर्राटा ट्रैकिंग के लिए माइक अनुमति चाहिए</string>
+    <string name="sleep_mic_body">आपके खाते में खर्राटा + खांसी डिटेक्शन सक्षम है, लेकिन इस डिवाइस को माइक्रोफोन एक्सेस नहीं दी गई। ऑडियो विश्लेषण डिवाइस पर ही रहता है — कभी अपलोड नहीं होता।</string>
+    <string name="sleep_grant_permission">अनुमति दें</string>
+
+    <!-- No-alarm dialog -->
+    <string name="sleep_no_alarm_title">आज रात के लिए कोई अलार्म नहीं</string>
+    <string name="sleep_no_alarm_body">अगले 24 घंटों में कोई जागने का अलार्म नहीं है। क्या डिसमिस मिशन के साथ एक सेट करना चाहते हैं ताकि आप वास्तव में उठें, या आज रात बिना अलार्म के सोएं?</string>
+    <string name="sleep_set_alarm">अलार्म सेट करें</string>
+    <string name="sleep_sleep_without">बिना अलार्म के सोएं</string>
+
+    <!-- Session control -->
+    <string name="sleep_sleeping">सो रहे हैं…</string>
+    <string name="sleep_elapsed">%1$dघं %2$dमि बीते</string>
+    <string name="sleep_started_at">%1$s पर शुरू हुआ</string>
+    <string name="sleep_end">नींद समाप्त करें</string>
+    <string name="sleep_start">नींद शुरू करें</string>
+    <string name="sleep_log_past">पिछली नींद लॉग करें</string>
+
+    <!-- Set-wake dialog -->
+    <string name="sleep_set_wake_title">जागने का समय सेट करें</string>
+    <string name="sleep_set_wake_body">कब उठना चाहते हैं, चुनें। नींद का कर्ज इसी लक्ष्य के विरुद्ध मापा जाता है।</string>
+    <string name="sleep_wake_at">%1$s पर जागें</string>
+    <string name="sleep_target_duration">लक्ष्य अवधि: %1$s</string>
+
+    <!-- Stats -->
+    <string name="sleep_stat_avg_duration">औसत अवधि</string>
+    <string name="sleep_stat_avg_quality">औसत गुणवत्ता</string>
+    <string name="sleep_stat_avg_pickups">औसत पिकअप</string>
+    <string name="sleep_stat_naps">झपकियां</string>
+    <string name="sleep_quality_value">%1$s / 5</string>
+    <string name="sleep_per_session">%1$s / सत्र</string>
+
+    <!-- Chart legend -->
+    <string name="sleep_legend_night">रात</string>
+    <string name="sleep_legend_morning">सुबह</string>
+    <string name="sleep_legend_afternoon">दोपहर</string>
+
+    <!-- Record item + expanded details -->
+    <string name="sleep_delete_record_title">नींद रिकॉर्ड हटाएं?</string>
+    <string name="sleep_delete_record_body">यह %1$s का रिकॉर्ड स्थायी रूप से हटा देगा।</string>
+    <string name="sleep_nap_badge">· झपकी</string>
+    <string name="detail_notes">नोट्स</string>
+    <string name="detail_target">लक्ष्य</string>
+    <string name="detail_actual">वास्तविक</string>
+    <string name="detail_phone_time">फोन समय</string>
+    <string name="detail_label_prefix">%1$s: </string>
+    <string name="sleep_not_synced">सिंक नहीं हुआ</string>
+    <string name="sleep_detail_loading">विवरण लोड हो रहा है…</string>
+    <string name="sleep_phone_pickups_header">फोन पिकअप</string>
+    <string name="sleep_pickup_indexed">#%1$d %2$s पर</string>
+
+    <!-- Audio event groups + playback -->
+    <string name="sleep_group_snoring">खर्राटे</string>
+    <string name="sleep_group_coughing">खांसी</string>
+    <string name="sleep_group_sleeptalk">नींद में बात</string>
+    <string name="sleep_tap_to_play">" · ▶ दबाएं सुनने के लिए"</string>
+    <string name="sleep_play_cd">चलाएं</string>
+    <string name="sleep_stop_cd">रोकें</string>
+    <string name="sleep_clip_duration">%1$ds क्लिप · </string>
+    <string name="sleep_playing">चल रहा है… (रोकने के लिए पंक्ति फिर टैप करें)</string>
+    <string name="sleep_loading">लोड हो रहा है…</string>
+    <string name="sleep_confidence">विश्वास %1$s%%</string>
+    <string name="sleep_delete_clip">क्लिप हटाएं</string>
+    <string name="sleep_delete_recording_title">यह रिकॉर्डिंग हटाएं?</string>
+    <string name="sleep_delete_recording_body">डिटेक्शन इवेंट रहेगा — केवल ऑडियो क्लिप हटाई जाएगी।</string>
+    <string name="sleep_load_clip_error">क्लिप लोड नहीं हुई</string>
+    <string name="sleep_offline_clip">कोई कनेक्शन नहीं — यह क्लिप चलाने के लिए कनेक्ट करें</string>
+    <string name="sleep_playback_failed">प्लेबैक विफल हुआ</string>
+
+    <!-- Tonight sounds card -->
+    <string name="sleep_last_night">कल रात</string>
+    <string name="sleep_sounds_header">नींद की आवाजें — %1$s</string>
+    <string name="sleep_sound_snoring">खर्राटे</string>
+    <string name="sleep_sound_cough">खांसी</string>
+    <string name="sleep_sound_sleeptalk">नींद में बात</string>
+    <string name="sleep_quiet_body">नींद के दौरान कुछ नहीं पकड़ा गया।</string>
+
+    <!-- End-sleep dialog -->
+    <string name="end_sleep_good_morning">शुभ प्रभात!</string>
+    <string name="end_sleep_you_slept">आपने %1$dघं %2$dमि सोया</string>
+    <string name="end_sleep_no_pickups">कोई फोन पिकअप नहीं — बढ़िया!</string>
+    <string name="end_sleep_sounds_header">नींद के दौरान आवाजें</string>
+    <string name="sleep_snore_indexed">खर्राटा #%1$d</string>
+    <string name="sleep_cough_indexed">खांसी #%1$d</string>
+    <string name="sleep_talk_indexed">नींद में बात #%1$d</string>
+    <string name="sleep_audio_row">%1$s %2$s पर</string>
+    <string name="end_sleep_how_slept">आपकी नींद कैसी रही?</string>
+    <string name="end_sleep_rate_error">कृपया अपनी नींद की गुणवत्ता रेट करें</string>
+    <string name="end_sleep_discard_title">नींद सत्र छोड़ें?</string>
+    <string name="end_sleep_discard_body">हमने जो अवधि और पिकअप डेटा ट्रैक किया, वो खो जाएगा। यह पूर्ववत नहीं किया जा सकता।</string>
+
+    <!-- AI rating -->
+    <string name="ai_rating_loading">AI से आपकी नींद रेट करवा रहे हैं…</string>
+    <string name="ai_rating_suggests">AI सुझाता है %1$d/5</string>
+    <string name="ai_rating_re_rate">फिर रेट करें</string>
+    <string name="ai_rating_use">यह रेटिंग उपयोग करें</string>
+    <string name="ai_rating_retry">AI रेटिंग फिर से आज़माएं</string>
+    <string name="ai_rating_get">AI रेटिंग लें</string>
+
+    <!-- Add-sleep dialog -->
+    <string name="add_sleep_target_bedtime">लक्ष्य सोने का समय</string>
+    <string name="add_sleep_target_wake">लक्ष्य उठने का समय</string>
+    <string name="add_sleep_bed_date">सोने की तारीख</string>
+    <string name="add_sleep_bed_time">सोने का समय</string>
+    <string name="add_sleep_wake_date">उठने की तारीख</string>
+    <string name="add_sleep_wake_time">उठने का समय</string>
+    <string name="add_sleep_quality">गुणवत्ता रेटिंग</string>
+    <string name="add_sleep_phone_pickups">फोन पिकअप</string>
+    <string name="add_sleep_phone_minutes">कुल फोन मिनट (वैकल्पिक)</string>
+    <string name="add_sleep_err_bedtime">सोने का समय उठने के समय से पहले होना चाहिए</string>
+    <string name="add_sleep_err_quality">कृपया गुणवत्ता रेटिंग चुनें</string>
+
+    <!-- Sleep ViewModel -->
+    <string name="sleep_err_end_focus">नींद ट्रैकिंग शुरू करने से पहले अपना Focus सत्र समाप्त करें</string>
+
+    <plurals name="sleep_audio_sync_failed_body">
+        <item quantity="one">%1$d इवेंट स्थानीय रूप से संग्रहीत है लेकिन अभी सर्वर तक नहीं पहुंचा। अभी अपलोड करने के लिए Retry टैप करें, या सिग्नल मिलने पर यह अपने आप दोबारा कोशिश करेगा।</item>
+        <item quantity="other">%1$d इवेंट स्थानीय रूप से संग्रहीत हैं लेकिन अभी सर्वर तक नहीं पहुंचे। अभी अपलोड करने के लिए Retry टैप करें, या सिग्नल मिलने पर ये अपने आप दोबारा कोशिश करेंगे।</item>
+    </plurals>
+    <plurals name="sleep_audio_syncing_body">
+        <item quantity="one">%1$d इवेंट अपलोड की प्रतीक्षा में है। कनेक्शन उपलब्ध होने पर यह अपने आप भेजा जाएगा।</item>
+        <item quantity="other">%1$d इवेंट अपलोड की प्रतीक्षा में हैं। कनेक्शन उपलब्ध होने पर ये अपने आप भेजे जाएंगे।</item>
+    </plurals>
+    <plurals name="sleep_phone_pickups">
+        <item quantity="one">%1$d फोन पिकअप</item>
+        <item quantity="other">%1$d फोन पिकअप</item>
+    </plurals>
+    <plurals name="sleep_group_episodes">
+        <item quantity="one">%2$s · %1$d बार (%3$ds)</item>
+        <item quantity="other">%2$s · %1$d बार (%3$ds)</item>
+    </plurals>
+    <plurals name="sleep_label_episodes">
+        <item quantity="one">%1$s बार</item>
+        <item quantity="other">%1$s बार</item>
+    </plurals>
+    <plurals name="end_sleep_pickups_summary">
+        <item quantity="one">%1$d पिकअप — कुल %2$s</item>
+        <item quantity="other">%1$d पिकअप — कुल %2$s</item>
+    </plurals>
+    <plurals name="end_sleep_snore_summary">
+        <item quantity="one">%1$d बार खर्राटा — कुल %2$ds</item>
+        <item quantity="other">%1$d बार खर्राटे — कुल %2$ds</item>
+    </plurals>
+    <plurals name="end_sleep_cough_summary">
+        <item quantity="one">%1$d बार खांसी — कुल %2$ds</item>
+        <item quantity="other">%1$d बार खांसी — कुल %2$ds</item>
+    </plurals>
+    <plurals name="end_sleep_talk_summary">
+        <item quantity="one">%1$d बार नींद में बात — कुल %2$ds</item>
+        <item quantity="other">%1$d बार नींद में बात — कुल %2$ds</item>
+    </plurals>
 </resources>

@@ -325,4 +325,178 @@
     <plurals name="reminder_week">
         <item quantity="other">%1$d tuần</item>
     </plurals>
+
+    <!-- ══════════════════ §13.1 Android sweep — sleep (tracking) ══════════════════ -->
+
+    <!-- Shared -->
+    <string name="action_keep">Giữ lại</string>
+    <string name="action_start">Bắt đầu</string>
+    <string name="action_preferences">Tùy chọn</string>
+    <string name="star_rating_cd">Sao %1$d</string>
+    <string name="notes_optional">Ghi chú (tùy chọn)</string>
+    <string name="nap_question">Ngủ ngắn ban ngày?</string>
+    <string name="nap_subtitle">Loại khỏi tóm tắt \"tối qua\" của bạn</string>
+    <string name="range_week">Tuần</string>
+    <string name="range_month">Tháng</string>
+    <string name="period_this_month">Tháng này</string>
+    <string name="period_last_month">Tháng trước</string>
+
+    <!-- Sleep tab / screen chrome -->
+    <string name="sleep_title">Giấc ngủ</string>
+    <string name="sleep_subtab_alarms">Báo thức</string>
+    <string name="sleep_add_alarm_cd">Thêm báo thức</string>
+    <string name="sleep_prefs_title">Tùy chọn giấc ngủ</string>
+    <string name="sleep_prefs_hint_body">Nhấn Tùy chọn ở góc trên bên phải để đặt giờ ngủ, giờ thức, mục tiêu ngủ và khóa màn hình. Báo thức nằm trong tab Báo thức phía trên.</string>
+    <string name="sleep_explainer_title">Theo dõi giấc ngủ hoạt động thế nào</string>
+    <string name="sleep_explainer_body">Khi bạn nhấn Bắt đầu ngủ, Ultiq chạy dưới nền để phát hiện lần cầm điện thoại qua đêm khi màn hình khóa. Chúng tôi chỉ kiểm tra trạng thái màn hình — không theo dõi gì khác về việc bạn dùng điện thoại.</string>
+    <string name="sleep_got_it">Hiểu rồi</string>
+
+    <!-- Audio-sync banner -->
+    <string name="sleep_audio_sync_failed_title">Âm thanh tối qua chưa được đồng bộ</string>
+    <string name="sleep_audio_syncing_title">Đang đồng bộ âm thanh tối qua…</string>
+    <string name="sleep_retry_now">Thử lại ngay</string>
+
+    <!-- Mic-permission banner -->
+    <string name="sleep_mic_title">Theo dõi tiếng ngáy cần quyền micro</string>
+    <string name="sleep_mic_body">Tài khoản của bạn đã bật phát hiện tiếng ngáy + ho, nhưng thiết bị này chưa được cấp quyền micro. Phân tích âm thanh chỉ trên thiết bị — không bao giờ được tải lên.</string>
+    <string name="sleep_grant_permission">Cấp quyền</string>
+
+    <!-- No-alarm dialog -->
+    <string name="sleep_no_alarm_title">Không có báo thức tối nay</string>
+    <string name="sleep_no_alarm_body">Không có báo thức nào trong 24 giờ tới. Bạn muốn đặt một cái với nhiệm vụ tắt báo để thực sự rời khỏi giường, hay ngủ không có báo thức tối nay?</string>
+    <string name="sleep_set_alarm">Đặt báo thức</string>
+    <string name="sleep_sleep_without">Ngủ không báo thức</string>
+
+    <!-- Session control -->
+    <string name="sleep_sleeping">Đang ngủ…</string>
+    <string name="sleep_elapsed">%1$d giờ %2$d phút đã trôi qua</string>
+    <string name="sleep_started_at">Bắt đầu lúc %1$s</string>
+    <string name="sleep_end">Kết thúc ngủ</string>
+    <string name="sleep_start">Bắt đầu ngủ</string>
+    <string name="sleep_log_past">Ghi lại giấc ngủ trước</string>
+
+    <!-- Set-wake dialog -->
+    <string name="sleep_set_wake_title">Đặt giờ thức dậy</string>
+    <string name="sleep_set_wake_body">Chọn giờ bạn muốn thức dậy. Nợ ngủ được đo dựa trên mục tiêu này.</string>
+    <string name="sleep_wake_at">Thức lúc %1$s</string>
+    <string name="sleep_target_duration">Thời lượng mục tiêu: %1$s</string>
+
+    <!-- Stats -->
+    <string name="sleep_stat_avg_duration">Thời lượng TB</string>
+    <string name="sleep_stat_avg_quality">Chất lượng TB</string>
+    <string name="sleep_stat_avg_pickups">Cầm máy TB</string>
+    <string name="sleep_stat_naps">Ngủ ngắn</string>
+    <string name="sleep_quality_value">%1$s / 5</string>
+    <string name="sleep_per_session">%1$s / phiên</string>
+
+    <!-- Chart legend -->
+    <string name="sleep_legend_night">Đêm</string>
+    <string name="sleep_legend_morning">Sáng</string>
+    <string name="sleep_legend_afternoon">Chiều</string>
+
+    <!-- Record item + expanded details -->
+    <string name="sleep_delete_record_title">Xóa bản ghi giấc ngủ?</string>
+    <string name="sleep_delete_record_body">Thao tác này sẽ xóa vĩnh viễn bản ghi từ %1$s.</string>
+    <string name="sleep_nap_badge">· Ngủ ngắn</string>
+    <string name="detail_notes">Ghi chú</string>
+    <string name="detail_target">Mục tiêu</string>
+    <string name="detail_actual">Thực tế</string>
+    <string name="detail_phone_time">Thời gian dùng máy</string>
+    <string name="detail_label_prefix">%1$s: </string>
+    <string name="sleep_not_synced">Chưa đồng bộ</string>
+    <string name="sleep_detail_loading">Đang tải chi tiết…</string>
+    <string name="sleep_phone_pickups_header">Lần cầm điện thoại</string>
+    <string name="sleep_pickup_indexed">#%1$d lúc %2$s</string>
+
+    <!-- Audio event groups + playback -->
+    <string name="sleep_group_snoring">Ngáy</string>
+    <string name="sleep_group_coughing">Ho</string>
+    <string name="sleep_group_sleeptalk">Nói mê</string>
+    <string name="sleep_tap_to_play">" · nhấn ▶ để phát"</string>
+    <string name="sleep_play_cd">Phát</string>
+    <string name="sleep_stop_cd">Dừng</string>
+    <string name="sleep_clip_duration">Clip %1$ds · </string>
+    <string name="sleep_playing">Đang phát… (nhấn lại để dừng)</string>
+    <string name="sleep_loading">Đang tải…</string>
+    <string name="sleep_confidence">Độ tin cậy %1$s%%</string>
+    <string name="sleep_delete_clip">Xóa clip</string>
+    <string name="sleep_delete_recording_title">Xóa bản ghi âm này?</string>
+    <string name="sleep_delete_recording_body">Sự kiện phát hiện vẫn còn — chỉ xóa clip âm thanh.</string>
+    <string name="sleep_load_clip_error">Không thể tải clip</string>
+    <string name="sleep_offline_clip">Không có kết nối — kết nối để phát clip này</string>
+    <string name="sleep_playback_failed">Phát lại thất bại</string>
+
+    <!-- Tonight sounds card -->
+    <string name="sleep_last_night">Tối qua</string>
+    <string name="sleep_sounds_header">Âm thanh khi ngủ — %1$s</string>
+    <string name="sleep_sound_snoring">Ngáy</string>
+    <string name="sleep_sound_cough">Ho</string>
+    <string name="sleep_sound_sleeptalk">Nói mê</string>
+    <string name="sleep_quiet_body">Không ghi nhận gì khi bạn ngủ.</string>
+
+    <!-- End-sleep dialog -->
+    <string name="end_sleep_good_morning">Chào buổi sáng!</string>
+    <string name="end_sleep_you_slept">Bạn đã ngủ %1$d giờ %2$d phút</string>
+    <string name="end_sleep_no_pickups">Không cầm điện thoại — tuyệt vời!</string>
+    <string name="end_sleep_sounds_header">Âm thanh khi ngủ</string>
+    <string name="sleep_snore_indexed">Ngáy #%1$d</string>
+    <string name="sleep_cough_indexed">Ho #%1$d</string>
+    <string name="sleep_talk_indexed">Nói mê #%1$d</string>
+    <string name="sleep_audio_row">%1$s lúc %2$s</string>
+    <string name="end_sleep_how_slept">Bạn ngủ thế nào?</string>
+    <string name="end_sleep_rate_error">Vui lòng đánh giá chất lượng giấc ngủ</string>
+    <string name="end_sleep_discard_title">Hủy phiên ngủ?</string>
+    <string name="end_sleep_discard_body">Bạn sẽ mất dữ liệu thời lượng và lần cầm điện thoại đã theo dõi. Không thể hoàn tác.</string>
+
+    <!-- AI rating -->
+    <string name="ai_rating_loading">Đang nhờ AI đánh giá giấc ngủ của bạn…</string>
+    <string name="ai_rating_suggests">AI gợi ý %1$d/5</string>
+    <string name="ai_rating_re_rate">Đánh giá lại</string>
+    <string name="ai_rating_use">Dùng điểm này</string>
+    <string name="ai_rating_retry">Thử lại đánh giá AI</string>
+    <string name="ai_rating_get">Lấy đánh giá AI</string>
+
+    <!-- Add-sleep dialog -->
+    <string name="add_sleep_target_bedtime">Giờ ngủ mục tiêu</string>
+    <string name="add_sleep_target_wake">Giờ thức mục tiêu</string>
+    <string name="add_sleep_bed_date">Ngày đi ngủ</string>
+    <string name="add_sleep_bed_time">Giờ đi ngủ</string>
+    <string name="add_sleep_wake_date">Ngày thức dậy</string>
+    <string name="add_sleep_wake_time">Giờ thức dậy</string>
+    <string name="add_sleep_quality">Đánh giá chất lượng</string>
+    <string name="add_sleep_phone_pickups">Lần cầm điện thoại</string>
+    <string name="add_sleep_phone_minutes">Tổng phút dùng điện thoại (tùy chọn)</string>
+    <string name="add_sleep_err_bedtime">Giờ ngủ phải trước giờ thức dậy</string>
+    <string name="add_sleep_err_quality">Vui lòng chọn đánh giá chất lượng</string>
+
+    <!-- Sleep ViewModel -->
+    <string name="sleep_err_end_focus">Kết thúc phiên tập trung trước khi bắt đầu theo dõi giấc ngủ</string>
+
+    <plurals name="sleep_audio_sync_failed_body">
+        <item quantity="other">%1$d sự kiện được lưu cục bộ nhưng chưa đến máy chủ. Nhấn Thử lại để tải lên ngay, hoặc sẽ tự thử lại khi bạn có kết nối.</item>
+    </plurals>
+    <plurals name="sleep_audio_syncing_body">
+        <item quantity="other">%1$d sự kiện đang chờ tải lên. Sẽ tự động gửi khi kết nối của bạn khả dụng.</item>
+    </plurals>
+    <plurals name="sleep_phone_pickups">
+        <item quantity="other">%1$d lần cầm điện thoại</item>
+    </plurals>
+    <plurals name="sleep_group_episodes">
+        <item quantity="other">%2$s · %1$d lần (%3$ds)</item>
+    </plurals>
+    <plurals name="sleep_label_episodes">
+        <item quantity="other">%1$s lần</item>
+    </plurals>
+    <plurals name="end_sleep_pickups_summary">
+        <item quantity="other">%1$d lần cầm — %2$s tổng</item>
+    </plurals>
+    <plurals name="end_sleep_snore_summary">
+        <item quantity="other">%1$d lần ngáy — tổng %2$ds</item>
+    </plurals>
+    <plurals name="end_sleep_cough_summary">
+        <item quantity="other">%1$d lần ho — tổng %2$ds</item>
+    </plurals>
+    <plurals name="end_sleep_talk_summary">
+        <item quantity="other">%1$d lần nói mê — tổng %2$ds</item>
+    </plurals>
 </resources>

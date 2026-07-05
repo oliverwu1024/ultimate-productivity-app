@@ -395,4 +395,223 @@
         <item quantity="many">%1$d أسبوعًا</item>
         <item quantity="other">%1$d أسبوع</item>
     </plurals>
+
+    <!-- ══════════════════ §13.1 Android sweep — sleep (tracking) ══════════════════ -->
+
+    <!-- Shared -->
+    <string name="action_keep">احتفظ</string>
+    <string name="action_start">ابدأ</string>
+    <string name="action_preferences">التفضيلات</string>
+    <string name="star_rating_cd">نجمة %1$d</string>
+    <string name="notes_optional">ملاحظات (اختياري)</string>
+    <string name="nap_question">قيلولة نهارية؟</string>
+    <string name="nap_subtitle">يُبقيها خارج ملخص \"الليلة الماضية\"</string>
+    <string name="range_week">أسبوع</string>
+    <string name="range_month">شهر</string>
+    <string name="period_this_month">هذا الشهر</string>
+    <string name="period_last_month">الشهر الماضي</string>
+
+    <!-- Sleep tab / screen chrome -->
+    <string name="sleep_title">النوم</string>
+    <string name="sleep_subtab_alarms">المنبهات</string>
+    <string name="sleep_add_alarm_cd">إضافة منبه</string>
+    <string name="sleep_prefs_title">تفضيلات النوم</string>
+    <string name="sleep_prefs_hint_body">اضغط على التفضيلات في أعلى اليمين لضبط وقت النوم ووقت الاستيقاظ وهدف النوم والقفل. منبهات الاستيقاظ موجودة في علامة التبويب الفرعية أعلاه.</string>
+    <string name="sleep_explainer_title">كيف يعمل تتبع النوم</string>
+    <string name="sleep_explainer_body">عند الضغط على بدء النوم، يعمل Ultiq كخدمة خلفية لرصد مرات التقاط الهاتف طوال الليل أثناء قفل الشاشة. نتحقق من حالة الشاشة فقط — لا شيء آخر مما تفعله بالهاتف.</string>
+    <string name="sleep_got_it">فهمت</string>
+
+    <!-- Audio-sync banner -->
+    <string name="sleep_audio_sync_failed_title">لم تتزامن أصوات الليلة الماضية</string>
+    <string name="sleep_audio_syncing_title">جارٍ مزامنة أصوات الليلة الماضية…</string>
+    <string name="sleep_retry_now">أعد المحاولة الآن</string>
+
+    <!-- Mic-permission banner -->
+    <string name="sleep_mic_title">تتبع الشخير يحتاج إذن الميكروفون</string>
+    <string name="sleep_mic_body">حسابك مفعّل فيه كشف الشخير والسعال، لكن هذا الجهاز لم يُمنح صلاحية الميكروفون. يبقى تحليل الصوت على الجهاز — لا يُرفع أبداً.</string>
+    <string name="sleep_grant_permission">منح الإذن</string>
+
+    <!-- No-alarm dialog -->
+    <string name="sleep_no_alarm_title">لا يوجد منبه لهذه الليلة</string>
+    <string name="sleep_no_alarm_body">لا يوجد منبه استيقاظ مجدوَل في الـ24 ساعة القادمة. هل تريد ضبط منبه بمهمة إغلاق لتنهض فعلاً، أم تنام الليلة بدون منبه؟</string>
+    <string name="sleep_set_alarm">ضبط منبه</string>
+    <string name="sleep_sleep_without">النوم بدونه</string>
+
+    <!-- Session control -->
+    <string name="sleep_sleeping">نائم…</string>
+    <string name="sleep_elapsed">مضى %1$d س %2$d د</string>
+    <string name="sleep_started_at">بدأ في %1$s</string>
+    <string name="sleep_end">إنهاء النوم</string>
+    <string name="sleep_start">بدء النوم</string>
+    <string name="sleep_log_past">تسجيل نوم سابق</string>
+
+    <!-- Set-wake dialog -->
+    <string name="sleep_set_wake_title">ضبط وقت الاستيقاظ</string>
+    <string name="sleep_set_wake_body">اختر وقت الاستيقاظ المناسب. يُقاس دين النوم بالنسبة لهذا الهدف.</string>
+    <string name="sleep_wake_at">استيقاظ في %1$s</string>
+    <string name="sleep_target_duration">المدة المستهدفة: %1$s</string>
+
+    <!-- Stats -->
+    <string name="sleep_stat_avg_duration">متوسط المدة</string>
+    <string name="sleep_stat_avg_quality">متوسط الجودة</string>
+    <string name="sleep_stat_avg_pickups">متوسط الالتقاطات</string>
+    <string name="sleep_stat_naps">القيلولات</string>
+    <string name="sleep_quality_value">%1$s / 5</string>
+    <string name="sleep_per_session">%1$s / جلسة</string>
+
+    <!-- Chart legend -->
+    <string name="sleep_legend_night">ليل</string>
+    <string name="sleep_legend_morning">صباح</string>
+    <string name="sleep_legend_afternoon">مساء</string>
+
+    <!-- Record item + expanded details -->
+    <string name="sleep_delete_record_title">حذف سجل النوم؟</string>
+    <string name="sleep_delete_record_body">سيحذف هذا السجل نهائياً من %1$s.</string>
+    <string name="sleep_nap_badge">· قيلولة</string>
+    <string name="detail_notes">ملاحظات</string>
+    <string name="detail_target">الهدف</string>
+    <string name="detail_actual">الفعلي</string>
+    <string name="detail_phone_time">وقت الهاتف</string>
+    <string name="detail_label_prefix">%1$s: </string>
+    <string name="sleep_not_synced">غير متزامن</string>
+    <string name="sleep_detail_loading">جارٍ تحميل التفاصيل…</string>
+    <string name="sleep_phone_pickups_header">التقاطات الهاتف</string>
+    <string name="sleep_pickup_indexed">#%1$d في %2$s</string>
+
+    <!-- Audio event groups + playback -->
+    <string name="sleep_group_snoring">شخير</string>
+    <string name="sleep_group_coughing">سعال</string>
+    <string name="sleep_group_sleeptalk">كلام أثناء النوم</string>
+    <string name="sleep_tap_to_play">" · اضغط ▶ للتشغيل"</string>
+    <string name="sleep_play_cd">تشغيل</string>
+    <string name="sleep_stop_cd">إيقاف</string>
+    <string name="sleep_clip_duration">مقطع %1$d ث · </string>
+    <string name="sleep_playing">يُشغَّل… (اضغط مجدداً للإيقاف)</string>
+    <string name="sleep_loading">جارٍ التحميل…</string>
+    <string name="sleep_confidence">الثقة %1$s%%</string>
+    <string name="sleep_delete_clip">حذف المقطع</string>
+    <string name="sleep_delete_recording_title">حذف هذا التسجيل؟</string>
+    <string name="sleep_delete_recording_body">يبقى حدث الاكتشاف — يُحذف المقطع الصوتي فقط.</string>
+    <string name="sleep_load_clip_error">تعذّر تحميل المقطع</string>
+    <string name="sleep_offline_clip">لا يوجد اتصال — اتصل بالشبكة لتشغيل هذا المقطع</string>
+    <string name="sleep_playback_failed">فشل التشغيل</string>
+
+    <!-- Tonight sounds card -->
+    <string name="sleep_last_night">الليلة الماضية</string>
+    <string name="sleep_sounds_header">أصوات النوم — %1$s</string>
+    <string name="sleep_sound_snoring">شخير</string>
+    <string name="sleep_sound_cough">سعال</string>
+    <string name="sleep_sound_sleeptalk">كلام أثناء النوم</string>
+    <string name="sleep_quiet_body">لم يُرصد أي صوت أثناء نومك.</string>
+
+    <!-- End-sleep dialog -->
+    <string name="end_sleep_good_morning">صباح الخير!</string>
+    <string name="end_sleep_you_slept">نمت %1$d س %2$d د</string>
+    <string name="end_sleep_no_pickups">لا التقاطات للهاتف — ممتاز!</string>
+    <string name="end_sleep_sounds_header">الأصوات أثناء النوم</string>
+    <string name="sleep_snore_indexed">شخير #%1$d</string>
+    <string name="sleep_cough_indexed">سعال #%1$d</string>
+    <string name="sleep_talk_indexed">كلام نوم #%1$d</string>
+    <string name="sleep_audio_row">%1$s في %2$s</string>
+    <string name="end_sleep_how_slept">كيف كان نومك؟</string>
+    <string name="end_sleep_rate_error">يرجى تقييم جودة نومك</string>
+    <string name="end_sleep_discard_title">تجاهل جلسة النوم؟</string>
+    <string name="end_sleep_discard_body">ستفقد بيانات المدة والالتقاطات التي تتبعناها. لا يمكن التراجع عن هذا الإجراء.</string>
+
+    <!-- AI rating -->
+    <string name="ai_rating_loading">يستشير الذكاء الاصطناعي لتقييم نومك…</string>
+    <string name="ai_rating_suggests">الذكاء الاصطناعي يقترح %1$d/5</string>
+    <string name="ai_rating_re_rate">إعادة التقييم</string>
+    <string name="ai_rating_use">استخدم هذا التقييم</string>
+    <string name="ai_rating_retry">حاول تقييم الذكاء الاصطناعي مجدداً</string>
+    <string name="ai_rating_get">احصل على تقييم الذكاء الاصطناعي</string>
+
+    <!-- Add-sleep dialog -->
+    <string name="add_sleep_target_bedtime">وقت النوم المستهدف</string>
+    <string name="add_sleep_target_wake">وقت الاستيقاظ المستهدف</string>
+    <string name="add_sleep_bed_date">تاريخ النوم</string>
+    <string name="add_sleep_bed_time">وقت النوم</string>
+    <string name="add_sleep_wake_date">تاريخ الاستيقاظ</string>
+    <string name="add_sleep_wake_time">وقت الاستيقاظ</string>
+    <string name="add_sleep_quality">تقييم الجودة</string>
+    <string name="add_sleep_phone_pickups">التقاطات الهاتف</string>
+    <string name="add_sleep_phone_minutes">إجمالي دقائق الهاتف (اختياري)</string>
+    <string name="add_sleep_err_bedtime">يجب أن يكون وقت النوم قبل وقت الاستيقاظ</string>
+    <string name="add_sleep_err_quality">يرجى اختيار تقييم الجودة</string>
+
+    <!-- Sleep ViewModel -->
+    <string name="sleep_err_end_focus">أنهِ جلسة التركيز قبل بدء تتبع النوم</string>
+
+    <plurals name="sleep_audio_sync_failed_body">
+        <item quantity="zero">%1$d أحداث مخزّنة محلياً لم تصل إلى الخادم بعد. اضغط إعادة المحاولة للرفع الآن، أو ستتم المحاولة تلقائياً عند توفر الاتصال.</item>
+        <item quantity="one">%1$d حدث مخزّن محلياً لم يصل إلى الخادم بعد. اضغط إعادة المحاولة للرفع الآن، أو ستتم المحاولة تلقائياً عند توفر الاتصال.</item>
+        <item quantity="two">%1$d حدثان مخزّنان محلياً لم يصلا إلى الخادم بعد. اضغط إعادة المحاولة للرفع الآن، أو ستتم المحاولة تلقائياً عند توفر الاتصال.</item>
+        <item quantity="few">%1$d أحداث مخزّنة محلياً لم تصل إلى الخادم بعد. اضغط إعادة المحاولة للرفع الآن، أو ستتم المحاولة تلقائياً عند توفر الاتصال.</item>
+        <item quantity="many">%1$d حدثاً مخزّناً محلياً لم يصل إلى الخادم بعد. اضغط إعادة المحاولة للرفع الآن، أو ستتم المحاولة تلقائياً عند توفر الاتصال.</item>
+        <item quantity="other">%1$d حدث مخزّن محلياً لم يصل إلى الخادم بعد. اضغط إعادة المحاولة للرفع الآن، أو ستتم المحاولة تلقائياً عند توفر الاتصال.</item>
+    </plurals>
+    <plurals name="sleep_audio_syncing_body">
+        <item quantity="zero">%1$d أحداث في انتظار الرفع. ستُرسَل تلقائياً عند توفر الاتصال.</item>
+        <item quantity="one">%1$d حدث في انتظار الرفع. سيُرسَل تلقائياً عند توفر الاتصال.</item>
+        <item quantity="two">%1$d حدثان في انتظار الرفع. سيُرسَلان تلقائياً عند توفر الاتصال.</item>
+        <item quantity="few">%1$d أحداث في انتظار الرفع. ستُرسَل تلقائياً عند توفر الاتصال.</item>
+        <item quantity="many">%1$d حدثاً في انتظار الرفع. ستُرسَل تلقائياً عند توفر الاتصال.</item>
+        <item quantity="other">%1$d حدث في انتظار الرفع. سيُرسَل تلقائياً عند توفر الاتصال.</item>
+    </plurals>
+    <plurals name="sleep_phone_pickups">
+        <item quantity="zero">%1$d التقاط للهاتف</item>
+        <item quantity="one">%1$d التقاط للهاتف</item>
+        <item quantity="two">%1$d التقاطان للهاتف</item>
+        <item quantity="few">%1$d التقاطات للهاتف</item>
+        <item quantity="many">%1$d التقاطاً للهاتف</item>
+        <item quantity="other">%1$d التقاط للهاتف</item>
+    </plurals>
+    <plurals name="sleep_group_episodes">
+        <item quantity="zero">%2$s · %1$d حلقات (%3$d ث)</item>
+        <item quantity="one">%2$s · %1$d حلقة (%3$d ث)</item>
+        <item quantity="two">%2$s · %1$d حلقتان (%3$d ث)</item>
+        <item quantity="few">%2$s · %1$d حلقات (%3$d ث)</item>
+        <item quantity="many">%2$s · %1$d حلقةً (%3$d ث)</item>
+        <item quantity="other">%2$s · %1$d حلقة (%3$d ث)</item>
+    </plurals>
+    <plurals name="sleep_label_episodes">
+        <item quantity="zero">%1$s حلقات</item>
+        <item quantity="one">%1$s حلقة</item>
+        <item quantity="two">%1$s حلقتان</item>
+        <item quantity="few">%1$s حلقات</item>
+        <item quantity="many">%1$s حلقةً</item>
+        <item quantity="other">%1$s حلقة</item>
+    </plurals>
+    <plurals name="end_sleep_pickups_summary">
+        <item quantity="zero">%1$d التقاط — %2$s إجمالاً</item>
+        <item quantity="one">%1$d التقاط — %2$s إجمالاً</item>
+        <item quantity="two">%1$d التقاطان — %2$s إجمالاً</item>
+        <item quantity="few">%1$d التقاطات — %2$s إجمالاً</item>
+        <item quantity="many">%1$d التقاطاً — %2$s إجمالاً</item>
+        <item quantity="other">%1$d التقاط — %2$s إجمالاً</item>
+    </plurals>
+    <plurals name="end_sleep_snore_summary">
+        <item quantity="zero">%1$d حلقات شخير — %2$d ث إجمالاً</item>
+        <item quantity="one">%1$d حلقة شخير — %2$d ث إجمالاً</item>
+        <item quantity="two">%1$d حلقتا شخير — %2$d ث إجمالاً</item>
+        <item quantity="few">%1$d حلقات شخير — %2$d ث إجمالاً</item>
+        <item quantity="many">%1$d حلقةً من الشخير — %2$d ث إجمالاً</item>
+        <item quantity="other">%1$d حلقة شخير — %2$d ث إجمالاً</item>
+    </plurals>
+    <plurals name="end_sleep_cough_summary">
+        <item quantity="zero">%1$d حلقات سعال — %2$d ث إجمالاً</item>
+        <item quantity="one">%1$d حلقة سعال — %2$d ث إجمالاً</item>
+        <item quantity="two">%1$d حلقتا سعال — %2$d ث إجمالاً</item>
+        <item quantity="few">%1$d حلقات سعال — %2$d ث إجمالاً</item>
+        <item quantity="many">%1$d حلقةً من السعال — %2$d ث إجمالاً</item>
+        <item quantity="other">%1$d حلقة سعال — %2$d ث إجمالاً</item>
+    </plurals>
+    <plurals name="end_sleep_talk_summary">
+        <item quantity="zero">%1$d حلقات كلام نوم — %2$d ث إجمالاً</item>
+        <item quantity="one">%1$d حلقة كلام نوم — %2$d ث إجمالاً</item>
+        <item quantity="two">%1$d حلقتا كلام نوم — %2$d ث إجمالاً</item>
+        <item quantity="few">%1$d حلقات كلام نوم — %2$d ث إجمالاً</item>
+        <item quantity="many">%1$d حلقةً من الكلام أثناء النوم — %2$d ث إجمالاً</item>
+        <item quantity="other">%1$d حلقة كلام نوم — %2$d ث إجمالاً</item>
+    </plurals>
 </resources>

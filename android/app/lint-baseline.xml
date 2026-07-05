@@ -96,7 +96,7 @@
         errorLine2="                                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/ultiq/app/ui/sleep/AddSleepDialog.kt"
-            line="270"
+            line="275"
             column="50"/>
     </issue>
 
@@ -107,7 +107,7 @@
         errorLine2="                                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/ultiq/app/ui/sleep/AddSleepDialog.kt"
-            line="271"
+            line="276"
             column="52"/>
     </issue>
 
@@ -120,28 +120,6 @@
             file="src/main/java/com/ultiq/app/util/Comparisons.kt"
             line="39"
             column="19"/>
-    </issue>
-
-    <issue
-        id="DefaultLocale"
-        message="Implicitly using the default locale is a common source of bugs: Use `String.format(Locale, ...)` instead"
-        errorLine1="            StatCard(&quot;Avg Quality&quot;, String.format(&quot;%.1f / 5&quot;, stats.avgQuality))"
-        errorLine2="                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/ultiq/app/ui/sleep/SleepScreen.kt"
-            line="872"
-            column="37"/>
-    </issue>
-
-    <issue
-        id="DefaultLocale"
-        message="Implicitly using the default locale is a common source of bugs: Use `String.format(Locale, ...)` instead"
-        errorLine1="            StatCard(&quot;Avg Pickups&quot;, String.format(&quot;%.1f / session&quot;, stats.avgPhonePickups))"
-        errorLine2="                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/ultiq/app/ui/sleep/SleepScreen.kt"
-            line="893"
-            column="37"/>
     </issue>
 
     <issue
@@ -575,7 +553,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/ultiq/app/ui/sleep/SleepViewModel.kt"
-            line="530"
+            line="531"
             column="13"/>
     </issue>
 

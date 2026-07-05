@@ -8,6 +8,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.ultiq.app.data.local.entity.SleepRecordEntity
+import com.ultiq.app.util.LocaleManager
 import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
 import com.patrykandpatrick.vico.compose.cartesian.axis.rememberAxisLabelComponent
 import com.patrykandpatrick.vico.compose.cartesian.axis.rememberBottom
@@ -145,7 +146,7 @@ private fun processRecordsForChart(
     val zone = ZoneId.systemDefault()
     val today = LocalDate.now()
     val days = (6 downTo 0).map { today.minusDays(it.toLong()) }
-    val dayLabels = days.map { it.format(DateTimeFormatter.ofPattern("EEE")) }
+    val dayLabels = days.map { it.format(DateTimeFormatter.ofPattern("EEE", LocaleManager.currentLocale())) }
 
     // §sleep-day (v2.13.17) — Bars are sleep_day-bucketed. A Tue 02:00
     // bedtime stacks onto Monday's bar (Monday's night), not Tuesday's,

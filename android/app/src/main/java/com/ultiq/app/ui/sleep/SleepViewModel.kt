@@ -7,6 +7,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.gson.JsonObject
 import com.ultiq.app.alarm.WakeAlarmScheduler
+import com.ultiq.app.R
 import com.ultiq.app.data.local.AppDatabase
 import com.ultiq.app.data.local.entity.AlarmEntity
 import com.ultiq.app.data.local.entity.SleepAudioEventEntity
@@ -433,7 +434,7 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
     fun startSleepSession() {
         if (FocusTrackingService.isRunning.value) {
             _uiState.value = _uiState.value.copy(
-                error = "End your focus session before starting sleep tracking",
+                error = getApplication<Application>().getString(R.string.sleep_err_end_focus),
             )
             return
         }
