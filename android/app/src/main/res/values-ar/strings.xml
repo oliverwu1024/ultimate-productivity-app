@@ -614,4 +614,43 @@
         <item quantity="many">%1$d حلقةً من الكلام أثناء النوم — %2$d ث إجمالاً</item>
         <item quantity="other">%1$d حلقة كلام نوم — %2$d ث إجمالاً</item>
     </plurals>
+
+    <!-- ══════════════════ §13.1 Android sweep — sleep settings ══════════════════ -->
+
+    <string name="unit_min">دق</string>
+    <string name="pro_badge">Pro</string>
+
+    <string name="settings_optimal_sleep">النوم الليلي المثالي</string>
+    <string name="settings_optimal_sleep_desc">النقص يُراكم دَين النوم؛ الزيادة تُحسب راحةً إضافية</string>
+    <string name="settings_schedule">جدول النوم</string>
+    <string name="settings_duration_suffix">المدة: %1$s</string>
+    <string name="settings_target_bedtime">وقت النوم المستهدف</string>
+    <string name="settings_target_bedtime_desc">يُستخدم لحساب دَين النوم وجدولة تذكير وقت النوم</string>
+    <string name="settings_target_wake">وقت الاستيقاظ المستهدف</string>
+    <string name="settings_target_wake_desc">الوقت الذي تودّ الاستيقاظ فيه</string>
+    <string name="settings_lockout">القفل أثناء النوم</string>
+    <string name="settings_lockout_desc">مُعطَّل افتراضياً — النوم للنوم لا للعوائق</string>
+    <string name="settings_phone_break">مدة استراحة الهاتف أثناء النوم</string>
+    <string name="settings_phone_break_desc">فترة هدوء بعد النقر على «نعم، أحتاج هاتفي» خلال جلسة النوم</string>
+    <string name="settings_sleep_sounds">أصوات النوم</string>
+    <string name="settings_track_snore">تتبُّع الشخير والسعال أثناء النوم</string>
+    <string name="settings_track_snore_desc">الصوت يُحلَّل على الجهاز فقط — لا يُرفَع ولا يُخزَّن. يستهلك نحو 3–5% طاقةً إضافية ليلاً.</string>
+    <string name="settings_detect_talk">اكتشاف الكلام أثناء النوم</string>
+    <string name="settings_detect_talk_desc">يستمع للكلام أيضاً — مُعطَّل افتراضياً. معدل الإيجابيات الكاذبة أعلى من الشخير/السعال؛ يُفضَّل إبقاؤه مُعطَّلاً إن كنت تنام والتلفاز يعمل.</string>
+    <string name="settings_audio_recordings">التسجيلات الصوتية</string>
+    <string name="settings_record_snore">تسجيل أحداث الشخير</string>
+    <string name="settings_record_snore_desc">احفظ مقطعاً صوتياً لكل شخيرة مكتشَفة.</string>
+    <string name="settings_record_cough">تسجيل أحداث السعال</string>
+    <string name="settings_record_cough_desc">احفظ مقطعاً صوتياً لكل سعلة مكتشَفة.</string>
+    <string name="settings_record_talk">تسجيل أحداث الكلام أثناء النوم</string>
+    <string name="settings_record_talk_desc">احفظ مقطعاً صوتياً لكل كلام مكتشَف أثناء النوم.</string>
+    <string name="settings_record_events">تسجيل الأحداث</string>
+    <string name="settings_record_events_desc">يحفظ ~10 ث صوتاً لكل حدث مكتشَف لإعادة تشغيله. تُحذَف المقاطع تلقائياً بعد 30 يوماً. للنسخة Pro فقط.</string>
+    <string name="settings_consent_title">تسجيل صوت النوم؟</string>
+    <string name="settings_consent_p1">عند تفعيل هذا الخيار، ستحفظ Ultiq مقطعاً صوتياً بمدة ~10 ثوانٍ لكل حدث شخير أو سعال أو كلام نوم نكتشفه.</string>
+    <string name="settings_consent_p2">تُخزَّن المقاطع على خوادم Ultiq (مشفَّرة) وتُحذَف تلقائياً بعد 30 يوماً. أنت وحدك تستطيع تشغيلها.</string>
+    <string name="settings_consent_p3">يتطلب التشغيل اتصالاً بالإنترنت — تُبثّ المقاطع من خوادم Ultiq وليست مخزَّنة على هذا الهاتف.</string>
+    <string name="settings_consent_p4">يمكنك إيقاف هذا الخيار في أي وقت، أو حذف مقاطع بعينها من قائمة التشغيل.</string>
+    <string name="settings_turn_on">تشغيل</string>
+    <string name="settings_last_audio">آخر محاولة تسجيل صوتي</string>
 </resources>

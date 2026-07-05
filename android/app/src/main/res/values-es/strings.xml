@@ -545,4 +545,43 @@
         <item quantity="many">%1$d episodios de hablar dormido — %2$ds en total</item>
         <item quantity="other">%1$d episodios de hablar dormido — %2$ds en total</item>
     </plurals>
+
+    <!-- ══════════════════ §13.1 Android sweep — sleep settings ══════════════════ -->
+
+    <string name="unit_min">min</string>
+    <string name="pro_badge">Pro</string>
+
+    <string name="settings_optimal_sleep">Sueño nocturno óptimo</string>
+    <string name="settings_optimal_sleep_desc">Dormir menos aumenta la deuda de sueño; dormir más va a descanso extra</string>
+    <string name="settings_schedule">Horario de sueño</string>
+    <string name="settings_duration_suffix">Duración: %1$s</string>
+    <string name="settings_target_bedtime">Hora de acostarse objetivo</string>
+    <string name="settings_target_bedtime_desc">Sirve para calcular la deuda de sueño y programar el recordatorio de acostarse</string>
+    <string name="settings_target_wake">Hora de despertar objetivo</string>
+    <string name="settings_target_wake_desc">A qué hora te gustaría despertar idealmente</string>
+    <string name="settings_lockout">Bloqueo durante el sueño</string>
+    <string name="settings_lockout_desc">Desactivado por defecto — el sueño es para dormir, no para complicaciones</string>
+    <string name="settings_phone_break">Duración de la pausa para el teléfono</string>
+    <string name="settings_phone_break_desc">Ventana tranquila tras pulsar \'Sí, necesito el teléfono\' durante una sesión de sueño</string>
+    <string name="settings_sleep_sounds">Sonidos del sueño</string>
+    <string name="settings_track_snore">Detectar ronquidos &amp; tos durante el sueño</string>
+    <string name="settings_track_snore_desc">Audio analizado solo en el dispositivo — nunca se sube ni almacena. Usa alrededor de 3–5 por ciento más de batería durante la noche.</string>
+    <string name="settings_detect_talk">Detectar somniloquía</string>
+    <string name="settings_detect_talk_desc">También detecta el habla — desactivado por defecto. Mayor tasa de falsos positivos que para ronquidos/tos; considera dejarlo desactivado si duermes con la televisión encendida.</string>
+    <string name="settings_audio_recordings">Grabaciones de audio</string>
+    <string name="settings_record_snore">Grabar eventos de ronquido</string>
+    <string name="settings_record_snore_desc">Guarda un clip de audio por cada ronquido detectado.</string>
+    <string name="settings_record_cough">Grabar eventos de tos</string>
+    <string name="settings_record_cough_desc">Guarda un clip de audio por cada tos detectada.</string>
+    <string name="settings_record_talk">Grabar eventos de somniloquía</string>
+    <string name="settings_record_talk_desc">Guarda un clip de audio por cada somniloquía detectada.</string>
+    <string name="settings_record_events">Grabar eventos</string>
+    <string name="settings_record_events_desc">Almacena ~10 s de audio por evento detectado para que puedas reproducirlo. Los clips se eliminan automáticamente a los 30 días. Solo Pro.</string>
+    <string name="settings_consent_title">¿Grabar audio del sueño?</string>
+    <string name="settings_consent_p1">Al activar esto, Ultiq guardará un clip de audio de ~10 segundos por cada evento de ronquido, tos o somniloquía que detectemos.</string>
+    <string name="settings_consent_p2">Los clips se almacenan en los servidores de Ultiq (cifrados) y se eliminan automáticamente a los 30 días. Solo tú puedes reproducirlos.</string>
+    <string name="settings_consent_p3">La reproducción requiere conexión a internet — los clips se transmiten desde los servidores de Ultiq y no se almacenan en este teléfono.</string>
+    <string name="settings_consent_p4">Puedes desactivarlo en cualquier momento o eliminar clips individuales de la lista de reproducción.</string>
+    <string name="settings_turn_on">Activar</string>
+    <string name="settings_last_audio">Último intento de audio</string>
 </resources>

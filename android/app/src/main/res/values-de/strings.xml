@@ -522,4 +522,43 @@
         <item quantity="one">%1$d Schlaf-Rede-Episode – %2$ds gesamt</item>
         <item quantity="other">%1$d Schlaf-Rede-Episoden – %2$ds gesamt</item>
     </plurals>
+
+    <!-- ══════════════════ §13.1 Android sweep — sleep settings ══════════════════ -->
+
+    <string name="unit_min">min</string>
+    <string name="pro_badge">Pro</string>
+
+    <string name="settings_optimal_sleep">Optimaler Nachtschlaf</string>
+    <string name="settings_optimal_sleep_desc">Zu wenig schlafen erhöht das Schlafdefizit; mehr bringt Extra-Erholung</string>
+    <string name="settings_schedule">Schlafplan</string>
+    <string name="settings_duration_suffix">Dauer: %1$s</string>
+    <string name="settings_target_bedtime">Geplante Schlafenszeit</string>
+    <string name="settings_target_bedtime_desc">Berechnet das Schlafdefizit und plant die Schlafenszeit-Erinnerung</string>
+    <string name="settings_target_wake">Geplante Aufwachzeit</string>
+    <string name="settings_target_wake_desc">Wann du idealerweise aufwachst</string>
+    <string name="settings_lockout">Sperre beim Schlafen</string>
+    <string name="settings_lockout_desc">Standardmäßig aus — Schlaf ist zum Schlafen, nicht für Ablenkungen</string>
+    <string name="settings_phone_break">Handy-Pause beim Schlafen</string>
+    <string name="settings_phone_break_desc">Ruhefenster nach Tippen auf \'Ja, ich brauche mein Handy\' während einer Schlafsession</string>
+    <string name="settings_sleep_sounds">Schlafgeräusche</string>
+    <string name="settings_track_snore">Schnarchen &amp; Husten im Schlaf erfassen</string>
+    <string name="settings_track_snore_desc">Audio wird nur auf dem Gerät analysiert — nie hochgeladen oder gespeichert. Verbraucht etwa 3–5 Prozent mehr Akku über Nacht.</string>
+    <string name="settings_detect_talk">Schlafrede erkennen</string>
+    <string name="settings_detect_talk_desc">Lauscht auch auf Sprache — standardmäßig aus. Höhere Falschalarmrate als bei Schnarchen/Husten; besser deaktivieren, wenn du mit laufendem TV schläfst.</string>
+    <string name="settings_audio_recordings">Audioaufnahmen</string>
+    <string name="settings_record_snore">Schnarcher aufnehmen</string>
+    <string name="settings_record_snore_desc">Audioclip für jeden erkannten Schnarcher speichern.</string>
+    <string name="settings_record_cough">Husten aufnehmen</string>
+    <string name="settings_record_cough_desc">Audioclip für jedes erkannte Husten speichern.</string>
+    <string name="settings_record_talk">Schlafreden aufnehmen</string>
+    <string name="settings_record_talk_desc">Audioclip für jede erkannte Schlafrede speichern.</string>
+    <string name="settings_record_events">Ereignisse aufnehmen</string>
+    <string name="settings_record_events_desc">Speichert ~10 s Audio pro erkanntem Ereignis zur Wiedergabe. Clips werden nach 30 Tagen automatisch gelöscht. Nur Pro.</string>
+    <string name="settings_consent_title">Schlafaudio aufzeichnen?</string>
+    <string name="settings_consent_p1">Wenn du dies aktivierst, speichert Ultiq einen ~10-Sekunden-Audioclip für jedes erkannte Schnarchen-, Husten- oder Schlafreden-Ereignis.</string>
+    <string name="settings_consent_p2">Clips werden verschlüsselt auf Ultiqs Servern gespeichert und nach 30 Tagen automatisch gelöscht. Nur du kannst sie wiedergeben.</string>
+    <string name="settings_consent_p3">Zur Wiedergabe ist eine Internetverbindung erforderlich — Clips werden von Ultiqs Servern gestreamt und nicht auf diesem Gerät gespeichert.</string>
+    <string name="settings_consent_p4">Du kannst dies jederzeit deaktivieren oder einzelne Clips aus der Wiedergabeliste löschen.</string>
+    <string name="settings_turn_on">Aktivieren</string>
+    <string name="settings_last_audio">Letzter Audioversuch</string>
 </resources>

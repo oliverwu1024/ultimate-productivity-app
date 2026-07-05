@@ -499,4 +499,43 @@
     <plurals name="end_sleep_talk_summary">
         <item quantity="other">%1$d ครั้งที่พูดในหลับ — รวม %2$dวิ</item>
     </plurals>
+
+    <!-- ══════════════════ §13.1 Android sweep — sleep settings ══════════════════ -->
+
+    <string name="unit_min">นาที</string>
+    <string name="pro_badge">Pro</string>
+
+    <string name="settings_optimal_sleep">เวลานอนที่เหมาะสมต่อคืน</string>
+    <string name="settings_optimal_sleep_desc">นอนน้อยกว่าเป้าหมายสะสมหนี้การนอน นอนมากกว่าจะเป็นการพักผ่อนเพิ่ม</string>
+    <string name="settings_schedule">ตารางการนอน</string>
+    <string name="settings_duration_suffix">ระยะเวลา: %1$s</string>
+    <string name="settings_target_bedtime">เวลาเข้านอนเป้าหมาย</string>
+    <string name="settings_target_bedtime_desc">ใช้คำนวณหนี้การนอนและตั้งการแจ้งเตือนก่อนเข้านอน</string>
+    <string name="settings_target_wake">เวลาตื่นเป้าหมาย</string>
+    <string name="settings_target_wake_desc">เวลาที่คุณอยากตื่นในอุดมคติ</string>
+    <string name="settings_lockout">ล็อคหน้าจอระหว่างนอน</string>
+    <string name="settings_lockout_desc">ปิดตามค่าเริ่มต้น — การนอนมีไว้สำหรับพักผ่อน ไม่ใช่สร้างอุปสรรค</string>
+    <string name="settings_phone_break">ระยะเวลาพักใช้โทรศัพท์ระหว่างนอน</string>
+    <string name="settings_phone_break_desc">ช่วงเงียบหลังจากแตะ "ใช่ ฉันต้องการโทรศัพท์" ระหว่างเซสชันนอน</string>
+    <string name="settings_sleep_sounds">เสียงระหว่างนอน</string>
+    <string name="settings_track_snore">ติดตามการนอนกรนและไอระหว่างนอน</string>
+    <string name="settings_track_snore_desc">วิเคราะห์เสียงบนอุปกรณ์เท่านั้น — ไม่มีการอัปโหลดหรือบันทึก ใช้พลังงานแบตเตอรี่เพิ่มประมาณ 3–5 เปอร์เซ็นต์ตลอดคืน</string>
+    <string name="settings_detect_talk">ตรวจจับการพูดขณะหลับ</string>
+    <string name="settings_detect_talk_desc">ฟังการพูดด้วย — ปิดตามค่าเริ่มต้น อัตราผลบวกปลอมสูงกว่าการนอนกรน/ไอ แนะนำให้ปิดถ้าคุณนอนโดยเปิดทีวีทิ้งไว้</string>
+    <string name="settings_audio_recordings">การบันทึกเสียง</string>
+    <string name="settings_record_snore">บันทึกเหตุการณ์นอนกรน</string>
+    <string name="settings_record_snore_desc">บันทึกคลิปเสียงสำหรับการนอนกรนที่ตรวจพบแต่ละครั้ง</string>
+    <string name="settings_record_cough">บันทึกเหตุการณ์ไอ</string>
+    <string name="settings_record_cough_desc">บันทึกคลิปเสียงสำหรับการไอที่ตรวจพบแต่ละครั้ง</string>
+    <string name="settings_record_talk">บันทึกเหตุการณ์การพูดขณะหลับ</string>
+    <string name="settings_record_talk_desc">บันทึกคลิปเสียงสำหรับการพูดขณะหลับที่ตรวจพบแต่ละครั้ง</string>
+    <string name="settings_record_events">บันทึกเหตุการณ์</string>
+    <string name="settings_record_events_desc">บันทึกเสียงประมาณ 10 วินาทีต่อเหตุการณ์ที่ตรวจพบเพื่อเล่นย้อนหลัง คลิปจะถูกลบอัตโนมัติหลัง 30 วัน สำหรับ Pro เท่านั้น</string>
+    <string name="settings_consent_title">บันทึกเสียงขณะนอนหลับ?</string>
+    <string name="settings_consent_p1">เมื่อคุณเปิดใช้งาน Ultiq จะบันทึกคลิปเสียงประมาณ 10 วินาทีสำหรับแต่ละเหตุการณ์นอนกรน ไอ หรือพูดขณะหลับที่ตรวจพบ</string>
+    <string name="settings_consent_p2">คลิปถูกเก็บบนเซิร์ฟเวอร์ของ Ultiq (เข้ารหัสแล้ว) และจะถูกลบอัตโนมัติหลัง 30 วัน มีเพียงคุณเท่านั้นที่เล่นได้</string>
+    <string name="settings_consent_p3">การเล่นย้อนหลังต้องใช้การเชื่อมต่ออินเทอร์เน็ต — คลิปสตรีมจากเซิร์ฟเวอร์ของ Ultiq และไม่ได้เก็บไว้ในโทรศัพท์นี้</string>
+    <string name="settings_consent_p4">คุณสามารถปิดได้ทุกเมื่อ หรือลบคลิปแต่ละรายการออกจากรายการเล่น</string>
+    <string name="settings_turn_on">เปิดใช้งาน</string>
+    <string name="settings_last_audio">การบันทึกเสียงล่าสุด</string>
 </resources>

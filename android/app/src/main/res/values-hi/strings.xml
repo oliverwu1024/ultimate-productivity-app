@@ -522,4 +522,43 @@
         <item quantity="one">%1$d बार नींद में बात — कुल %2$ds</item>
         <item quantity="other">%1$d बार नींद में बात — कुल %2$ds</item>
     </plurals>
+
+    <!-- ══════════════════ §13.1 Android sweep — sleep settings ══════════════════ -->
+
+    <string name="unit_min">मि.</string>
+    <string name="pro_badge">Pro</string>
+
+    <string name="settings_optimal_sleep">आदर्श रात्रि नींद</string>
+    <string name="settings_optimal_sleep_desc">कम सोने से नींद का कर्ज़ बढ़ता है; ज़्यादा सोने से अतिरिक्त आराम मिलता है</string>
+    <string name="settings_schedule">नींद का शेड्यूल</string>
+    <string name="settings_duration_suffix">अवधि: %1$s</string>
+    <string name="settings_target_bedtime">लक्षित सोने का समय</string>
+    <string name="settings_target_bedtime_desc">नींद का कर्ज़ निकालने और सोने का रिमाइंडर सेट करने के लिए उपयोग होता है</string>
+    <string name="settings_target_wake">लक्षित जागने का समय</string>
+    <string name="settings_target_wake_desc">जब आप आदर्श रूप से जागना चाहते हों</string>
+    <string name="settings_lockout">नींद के दौरान लॉकआउट</string>
+    <string name="settings_lockout_desc">डिफ़ॉल्ट रूप से बंद — नींद आराम के लिए है, रुकावट के लिए नहीं</string>
+    <string name="settings_phone_break">नींद में फ़ोन-ब्रेक की अवधि</string>
+    <string name="settings_phone_break_desc">नींद के दौरान \'हाँ, मुझे फ़ोन चाहिए\' दबाने के बाद का शांत समय</string>
+    <string name="settings_sleep_sounds">नींद की आवाज़ें</string>
+    <string name="settings_track_snore">नींद के दौरान खर्राटे &amp; खाँसी ट्रैक करें</string>
+    <string name="settings_track_snore_desc">ऑडियो केवल डिवाइस पर विश्लेषित — कभी अपलोड या स्टोर नहीं। रात भर लगभग 3–5 प्रतिशत अतिरिक्त बैटरी उपयोग होती है।</string>
+    <string name="settings_detect_talk">नींद में बोलना पहचानें</string>
+    <string name="settings_detect_talk_desc">बोलने की भी निगरानी करता है — डिफ़ॉल्ट रूप से बंद। खर्राटे/खाँसी से अधिक गलत-सकारात्मक दर; अगर TV चालू हो तो बंद रखना बेहतर।</string>
+    <string name="settings_audio_recordings">ऑडियो रिकॉर्डिंग</string>
+    <string name="settings_record_snore">खर्राटे की घटनाएँ रिकॉर्ड करें</string>
+    <string name="settings_record_snore_desc">प्रत्येक पहचाने गए खर्राटे के लिए ऑडियो क्लिप सहेजें।</string>
+    <string name="settings_record_cough">खाँसी की घटनाएँ रिकॉर्ड करें</string>
+    <string name="settings_record_cough_desc">प्रत्येक पहचानी गई खाँसी के लिए ऑडियो क्लिप सहेजें।</string>
+    <string name="settings_record_talk">नींद में बोलने की घटनाएँ रिकॉर्ड करें</string>
+    <string name="settings_record_talk_desc">प्रत्येक पहचाने गए नींद में बोलने के लिए ऑडियो क्लिप सहेजें।</string>
+    <string name="settings_record_events">घटनाएँ रिकॉर्ड करें</string>
+    <string name="settings_record_events_desc">प्रत्येक पहचानी गई घटना के लिए ~10 सेकंड का ऑडियो संग्रहीत करता है, जिसे आप बाद में सुन सकते हैं। क्लिप 30 दिन बाद स्वतः हट जाती हैं। केवल Pro।</string>
+    <string name="settings_consent_title">नींद का ऑडियो रिकॉर्ड करें?</string>
+    <string name="settings_consent_p1">इसे चालू करने पर, Ultiq प्रत्येक पहचाने गए खर्राटे, खाँसी या नींद में बोलने की घटना के लिए ~10-सेकंड की ऑडियो क्लिप सहेजेगा।</string>
+    <string name="settings_consent_p2">क्लिप Ultiq के सर्वर पर (एन्क्रिप्टेड) संग्रहीत हैं और 30 दिन बाद स्वतः हट जाती हैं। केवल आप इन्हें सुन सकते हैं।</string>
+    <string name="settings_consent_p3">प्लेबैक के लिए इंटरनेट ज़रूरी है — क्लिप Ultiq के सर्वर से स्ट्रीम होती हैं और इस फ़ोन पर स्टोर नहीं होतीं।</string>
+    <string name="settings_consent_p4">आप इसे कभी भी बंद कर सकते हैं, या प्लेबैक सूची से व्यक्तिगत क्लिप हटा सकते हैं।</string>
+    <string name="settings_turn_on">चालू करें</string>
+    <string name="settings_last_audio">अंतिम ऑडियो प्रयास</string>
 </resources>

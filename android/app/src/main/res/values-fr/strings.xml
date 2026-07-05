@@ -545,4 +545,43 @@
         <item quantity="many">%1$d épisodes de somniloquie — %2$ds au total</item>
         <item quantity="other">%1$d épisodes de somniloquie — %2$ds au total</item>
     </plurals>
+
+    <!-- ══════════════════ §13.1 Android sweep — sleep settings ══════════════════ -->
+
+    <string name="unit_min">min</string>
+    <string name="pro_badge">Pro</string>
+
+    <string name="settings_optimal_sleep">Sommeil optimal par nuit</string>
+    <string name="settings_optimal_sleep_desc">Un manque s\'ajoute à la dette de sommeil ; dormir plus longtemps constitue un repos supplémentaire</string>
+    <string name="settings_schedule">Programme de sommeil</string>
+    <string name="settings_duration_suffix">Durée : %1$s</string>
+    <string name="settings_target_bedtime">Heure de coucher cible</string>
+    <string name="settings_target_bedtime_desc">Utilisée pour calculer la dette de sommeil et programmer le rappel de coucher</string>
+    <string name="settings_target_wake">Heure de réveil cible</string>
+    <string name="settings_target_wake_desc">L\'heure idéale pour votre réveil</string>
+    <string name="settings_lockout">Verrouillage pendant le sommeil</string>
+    <string name="settings_lockout_desc">Désactivé par défaut — le sommeil est fait pour dormir, pas pour contraindre</string>
+    <string name="settings_phone_break">Durée de pause téléphone pendant le sommeil</string>
+    <string name="settings_phone_break_desc">Fenêtre calme après avoir appuyé sur \'Oui, j\'ai besoin de mon téléphone\' pendant une session de sommeil</string>
+    <string name="settings_sleep_sounds">Sons de sommeil</string>
+    <string name="settings_track_snore">Détecter les ronflements &amp; la toux pendant le sommeil</string>
+    <string name="settings_track_snore_desc">Audio analysé uniquement sur l\'appareil — jamais uploadé ni stocké. Utilise environ 3–5 pour cent de batterie supplémentaire la nuit.</string>
+    <string name="settings_detect_talk">Détecter la somniloquie</string>
+    <string name="settings_detect_talk_desc">Détecte également la parole — désactivé par défaut. Taux de faux positifs plus élevé que pour les ronflements/toux ; envisagez de laisser désactivé si vous dormez avec la TV allumée.</string>
+    <string name="settings_audio_recordings">Enregistrements audio</string>
+    <string name="settings_record_snore">Enregistrer les ronflements</string>
+    <string name="settings_record_snore_desc">Sauvegarder un clip audio pour chaque ronflement détecté.</string>
+    <string name="settings_record_cough">Enregistrer les épisodes de toux</string>
+    <string name="settings_record_cough_desc">Sauvegarder un clip audio pour chaque toux détectée.</string>
+    <string name="settings_record_talk">Enregistrer les épisodes de somniloquie</string>
+    <string name="settings_record_talk_desc">Sauvegarder un clip audio pour chaque somniloquie détectée.</string>
+    <string name="settings_record_events">Enregistrer les événements</string>
+    <string name="settings_record_events_desc">Stocke environ 10 s d\'audio par événement détecté pour une écoute ultérieure. Les clips se suppriment automatiquement après 30 jours. Pro uniquement.</string>
+    <string name="settings_consent_title">Enregistrer l\'audio du sommeil ?</string>
+    <string name="settings_consent_p1">Lorsque vous activez cette option, Ultiq sauvegardera un clip audio d\'environ 10 secondes pour chaque ronflement, toux ou somniloquie détecté.</string>
+    <string name="settings_consent_p2">Les clips sont stockés sur les serveurs d\'Ultiq (chiffrés) et se suppriment automatiquement après 30 jours. Seul vous pouvez les écouter.</string>
+    <string name="settings_consent_p3">La lecture nécessite une connexion internet — les clips sont diffusés depuis les serveurs d\'Ultiq et ne sont pas stockés sur ce téléphone.</string>
+    <string name="settings_consent_p4">Vous pouvez désactiver cette option à tout moment, ou supprimer des clips individuels depuis la liste de lecture.</string>
+    <string name="settings_turn_on">Activer</string>
+    <string name="settings_last_audio">Dernière tentative audio</string>
 </resources>

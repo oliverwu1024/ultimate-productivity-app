@@ -499,4 +499,43 @@
     <plurals name="end_sleep_talk_summary">
         <item quantity="other">%1$d 次夢話 — 共 %2$d 秒</item>
     </plurals>
+
+    <!-- ══════════════════ §13.1 Android sweep — sleep settings ══════════════════ -->
+
+    <string name="unit_min">分</string>
+    <string name="pro_badge">Pro</string>
+
+    <string name="settings_optimal_sleep">最佳夜眠時長</string>
+    <string name="settings_optimal_sleep_desc">睡眠不足會累積睡眠債；超時則計為額外休息</string>
+    <string name="settings_schedule">睡眠時間表</string>
+    <string name="settings_duration_suffix">時長：%1$s</string>
+    <string name="settings_target_bedtime">目標就寢時間</string>
+    <string name="settings_target_bedtime_desc">用於計算睡眠債及排程就寢提醒</string>
+    <string name="settings_target_wake">目標起床時間</string>
+    <string name="settings_target_wake_desc">您理想中的起床時間</string>
+    <string name="settings_lockout">睡眠期間鎖定</string>
+    <string name="settings_lockout_desc">預設關閉 — 睡覺就是睡覺，不製造阻礙</string>
+    <string name="settings_phone_break">睡眠手機休息時長</string>
+    <string name="settings_phone_break_desc">在睡眠中點選「是，我需要手機」後的靜默時窗</string>
+    <string name="settings_sleep_sounds">睡眠聲音</string>
+    <string name="settings_track_snore">追蹤睡眠時的打鼾與咳嗽</string>
+    <string name="settings_track_snore_desc">音訊僅在裝置上分析 — 從不上傳或儲存。每晚約多消耗 3–5% 的電量。</string>
+    <string name="settings_detect_talk">偵測夢話</string>
+    <string name="settings_detect_talk_desc">同時監聽語音 — 預設關閉。誤判率高於打鼾／咳嗽；若睡眠時開著電視，建議保持關閉。</string>
+    <string name="settings_audio_recordings">音訊錄製</string>
+    <string name="settings_record_snore">錄製打鼾事件</string>
+    <string name="settings_record_snore_desc">為每次偵測到的打鼾儲存音訊片段。</string>
+    <string name="settings_record_cough">錄製咳嗽事件</string>
+    <string name="settings_record_cough_desc">為每次偵測到的咳嗽儲存音訊片段。</string>
+    <string name="settings_record_talk">錄製夢話事件</string>
+    <string name="settings_record_talk_desc">為每次偵測到的夢話儲存音訊片段。</string>
+    <string name="settings_record_events">錄製事件</string>
+    <string name="settings_record_events_desc">為每次偵測到的事件儲存約 10 秒音訊，方便回放。片段將於 30 天後自動刪除。僅限 Pro。</string>
+    <string name="settings_consent_title">錄製睡眠音訊？</string>
+    <string name="settings_consent_p1">開啟後，Ultiq 將為每次偵測到的打鼾、咳嗽或夢話事件儲存約 10 秒的音訊片段。</string>
+    <string name="settings_consent_p2">片段儲存於 Ultiq 伺服器（已加密），並於 30 天後自動刪除。只有您能播放這些片段。</string>
+    <string name="settings_consent_p3">播放需要網路連線 — 片段從 Ultiq 伺服器串流，不會儲存在此手機上。</string>
+    <string name="settings_consent_p4">您可隨時關閉此功能，或從播放清單中刪除個別片段。</string>
+    <string name="settings_turn_on">開啟</string>
+    <string name="settings_last_audio">上次音訊嘗試</string>
 </resources>

@@ -36,9 +36,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ultiq.app.R
 import com.ultiq.app.audio.AudioInitStatus
 import com.ultiq.app.ui.common.DurationStepperCard
 import com.ultiq.app.ui.common.SectionHeaderWithSuffix
@@ -75,10 +77,10 @@ fun SleepSettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Sleep preferences") },
+                title = { Text(stringResource(R.string.sleep_prefs_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back))
                     }
                 },
             )
@@ -93,8 +95,8 @@ fun SleepSettingsScreen(
             item {
                 DurationStepperCard(
                     icon = Icons.Default.Bedtime,
-                    title = "Optimal nightly sleep",
-                    description = "Falling short adds to sleep debt; sleeping longer goes into extra rest",
+                    title = stringResource(R.string.settings_optimal_sleep),
+                    description = stringResource(R.string.settings_optimal_sleep_desc),
                     valueMinutes = settings.sleepTargetMinutes,
                     stepMinutes = 15,
                     range = 300..720,
@@ -106,15 +108,15 @@ fun SleepSettingsScreen(
             item {
                 val durationMins = targetDurationMinutes(settings.targetBedtime, settings.targetWakeTime)
                 SectionHeaderWithSuffix(
-                    title = "Sleep schedule",
-                    suffix = "Duration: ${formatDuration(durationMins)}",
+                    title = stringResource(R.string.settings_schedule),
+                    suffix = stringResource(R.string.settings_duration_suffix, formatDuration(durationMins)),
                 )
             }
             item {
                 TimeSettingCard(
                     icon = Icons.Default.Bedtime,
-                    title = "Target bedtime",
-                    description = "Used to compute sleep debt and schedule the bedtime reminder",
+                    title = stringResource(R.string.settings_target_bedtime),
+                    description = stringResource(R.string.settings_target_bedtime_desc),
                     time = settings.targetBedtime,
                     onTimeChange = viewModel::setTargetBedtime,
                 )
@@ -122,8 +124,8 @@ fun SleepSettingsScreen(
             item {
                 TimeSettingCard(
                     icon = Icons.Default.WbSunny,
-                    title = "Target wake time",
-                    description = "When you'd ideally wake up",
+                    title = stringResource(R.string.settings_target_wake),
+                    description = stringResource(R.string.settings_target_wake_desc),
                     time = settings.targetWakeTime,
                     onTimeChange = viewModel::setTargetWakeTime,
                 )
@@ -131,8 +133,8 @@ fun SleepSettingsScreen(
             item {
                 SwitchCard(
                     icon = Icons.Default.Bedtime,
-                    title = "Lockout during sleep",
-                    description = "Off by default — sleep is for sleeping, not friction",
+                    title = stringResource(R.string.settings_lockout),
+                    description = stringResource(R.string.settings_lockout_desc),
                     checked = settings.lockoutForSleep,
                     onCheckedChange = viewModel::setLockoutForSleep,
                 )
@@ -140,10 +142,10 @@ fun SleepSettingsScreen(
             item {
                 StepperCard(
                     icon = Icons.Default.Bedtime,
-                    title = "Sleep phone-break duration",
-                    description = "Quiet window after tapping 'Yes, I need my phone' during a sleep session",
+                    title = stringResource(R.string.settings_phone_break),
+                    description = stringResource(R.string.settings_phone_break_desc),
                     value = settings.sleepLockoutGraceMinutes,
-                    suffix = "min",
+                    suffix = stringResource(R.string.unit_min),
                     step = 1,
                     range = 1..10,
                     onValueChange = viewModel::setSleepLockoutGraceMinutes,
@@ -151,7 +153,7 @@ fun SleepSettingsScreen(
             }
             item {
                 SectionHeaderWithSuffix(
-                    title = "Sleep sounds",
+                    title = stringResource(R.string.settings_sleep_sounds),
                     suffix = "",
                 )
             }
@@ -161,9 +163,8 @@ fun SleepSettingsScreen(
                 // RECORD_AUDIO at first flip; denial leaves the toggle off.
                 SwitchCard(
                     icon = Icons.Default.GraphicEq,
-                    title = "Track snoring & coughing during sleep",
-                    description = "Audio analysed on-device only — never uploaded or stored. " +
-                        "Uses ~3-5% extra overnight battery.",
+                    title = stringResource(R.string.settings_track_snore),
+                    description = stringResource(R.string.settings_track_snore_desc),
                     checked = settings.audioTrackingEnabled,
                     onCheckedChange = { wantOn ->
                         if (wantOn) {
@@ -191,10 +192,8 @@ fun SleepSettingsScreen(
                 // as false-positive events.
                 SwitchCard(
                     icon = Icons.Default.RecordVoiceOver,
-                    title = "Detect sleep-talk",
-                    description = "Also listens for speech — off by default. " +
-                        "Higher false-positive rate than snore/cough; consider " +
-                        "leaving off if you sleep with the TV on.",
+                    title = stringResource(R.string.settings_detect_talk),
+                    description = stringResource(R.string.settings_detect_talk_desc),
                     checked = settings.sleepTalkDetectionEnabled,
                     onCheckedChange = viewModel::setSleepTalkDetectionEnabled,
                     enabled = settings.audioTrackingEnabled,
@@ -202,8 +201,8 @@ fun SleepSettingsScreen(
             }
             item {
                 SectionHeaderWithSuffix(
-                    title = "Audio recordings",
-                    suffix = "Pro",
+                    title = stringResource(R.string.settings_audio_recordings),
+                    suffix = stringResource(R.string.pro_badge),
                 )
             }
             item {
@@ -226,8 +225,8 @@ fun SleepSettingsScreen(
                 item {
                     SwitchCard(
                         icon = Icons.Default.FiberManualRecord,
-                        title = "Record snore events",
-                        description = "Save an audio clip for each detected snore.",
+                        title = stringResource(R.string.settings_record_snore),
+                        description = stringResource(R.string.settings_record_snore_desc),
                         checked = settings.sleepAudioRecordSnore,
                         onCheckedChange = viewModel::setSleepAudioRecordSnore,
                     )
@@ -235,8 +234,8 @@ fun SleepSettingsScreen(
                 item {
                     SwitchCard(
                         icon = Icons.Default.FiberManualRecord,
-                        title = "Record cough events",
-                        description = "Save an audio clip for each detected cough.",
+                        title = stringResource(R.string.settings_record_cough),
+                        description = stringResource(R.string.settings_record_cough_desc),
                         checked = settings.sleepAudioRecordCough,
                         onCheckedChange = viewModel::setSleepAudioRecordCough,
                     )
@@ -244,8 +243,8 @@ fun SleepSettingsScreen(
                 item {
                     SwitchCard(
                         icon = Icons.Default.FiberManualRecord,
-                        title = "Record sleep-talk events",
-                        description = "Save an audio clip for each detected sleep-talk.",
+                        title = stringResource(R.string.settings_record_talk),
+                        description = stringResource(R.string.settings_record_talk_desc),
                         checked = settings.sleepAudioRecordSleepTalk,
                         onCheckedChange = viewModel::setSleepAudioRecordSleepTalk,
                         enabled = settings.sleepTalkDetectionEnabled,
@@ -285,9 +284,8 @@ private fun SleepAudioRecordingMasterToggle(
 
     SwitchCard(
         icon = Icons.Default.FiberManualRecord,
-        title = "Record events",
-        description = "Stores ~10 s audio per detected event so you can play it back. " +
-            "Clips auto-delete after 30 days. Pro only.",
+        title = stringResource(R.string.settings_record_events),
+        description = stringResource(R.string.settings_record_events_desc),
         checked = checked,
         onCheckedChange = { wantOn ->
             if (wantOn) {
@@ -302,29 +300,25 @@ private fun SleepAudioRecordingMasterToggle(
     if (showConsentDialog) {
         AlertDialog(
             onDismissRequest = { showConsentDialog = false },
-            title = { Text("Record sleep audio?") },
+            title = { Text(stringResource(R.string.settings_consent_title)) },
             text = {
                 Column {
                     Text(
-                        "When you turn this on, Ultiq will save a ~10-second audio clip " +
-                            "for each snore, cough, or sleep-talk event we detect.",
+                        stringResource(R.string.settings_consent_p1),
                         style = MaterialTheme.typography.bodyMedium,
                     )
                     Text(
-                        "Clips are stored on Ultiq's servers (encrypted) and auto-delete " +
-                            "after 30 days. Only you can play them back.",
+                        stringResource(R.string.settings_consent_p2),
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.padding(top = 12.dp),
                     )
                     Text(
-                        "Playback requires an internet connection — clips stream from " +
-                            "Ultiq's servers and aren't stored on this phone.",
+                        stringResource(R.string.settings_consent_p3),
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.padding(top = 12.dp),
                     )
                     Text(
-                        "You can turn this off any time, or delete individual clips from " +
-                            "the playback list.",
+                        stringResource(R.string.settings_consent_p4),
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.padding(top = 12.dp),
                     )
@@ -334,10 +328,10 @@ private fun SleepAudioRecordingMasterToggle(
                 TextButton(onClick = {
                     showConsentDialog = false
                     onConfirmEnable()
-                }) { Text("Turn on") }
+                }) { Text(stringResource(R.string.settings_turn_on)) }
             },
             dismissButton = {
-                TextButton(onClick = { showConsentDialog = false }) { Text("Cancel") }
+                TextButton(onClick = { showConsentDialog = false }) { Text(stringResource(R.string.action_cancel)) }
             },
         )
     }
@@ -360,7 +354,7 @@ private fun AudioInitStatusCard() {
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                "Last audio attempt",
+                stringResource(R.string.settings_last_audio),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
