@@ -807,4 +807,63 @@
     <string name="chat_err_create_alarm">알람을 생성할 수 없습니다. 다시 시도해 주세요.</string>
     <string name="chat_err_undo">실행 취소에 실패했습니다. 직접 삭제해야 할 수 있습니다.</string>
     <string name="chat_err_reset">대화를 초기화할 수 없습니다. 다시 시도해 주세요.</string>
+
+    <!-- §13.1 Android sweep — reports+lockout -->
+    <string name="reports_title">주간 리포트</string>
+    <string name="reports_prev_week">이전 주</string>
+    <string name="reports_next_week">다음 주</string>
+    <string name="reports_section_sleep">수면</string>
+    <string name="reports_section_focus">집중</string>
+    <string name="reports_section_calendar">캘린더</string>
+    <string name="reports_section_streaks">연속 기록</string>
+    <string name="reports_avg_duration">평균 시간</string>
+    <string name="reports_avg_quality">평균 품질</string>
+    <string name="reports_sleep_debt">수면 부족</string>
+    <string name="reports_extra_rest">추가 수면</string>
+    <string name="reports_best_night">최고 수면</string>
+    <string name="reports_worst_night">최저 수면</string>
+    <string name="reports_sleep_target_note">목표: %1$s/밤 · 부족 = 목표 미달 밤, 초과 = 목표 초과 밤</string>
+    <string name="reports_pickups_label">야간 픽업 횟수</string>
+    <string name="reports_total_focus">총 집중 시간</string>
+    <string name="reports_sessions">세션</string>
+    <string name="reports_pickups_total">총 픽업 횟수</string>
+    <string name="reports_avg_pickups_session">세션당 평균 픽업</string>
+    <string name="reports_top_tags">상위 태그</string>
+    <string name="reports_events">일정</string>
+    <string name="reports_busiest_day">가장 바쁜 날</string>
+    <string name="reports_by_category">카테고리별</string>
+    <string name="reports_streak_sleep_target">수면 목표</string>
+    <string name="reports_streak_zero_pickups">픽업 없음</string>
+    <string name="reports_stat_value">%1$s: %2$s</string>
+    <string name="reports_vs_lastweek">전주 대비 %1$s</string>
+    <string name="reports_untagged">태그 없음</string>
+    <string name="lockout_focus_active">집중 세션 진행 중</string>
+    <string name="lockout_sleep_active">수면 세션 진행 중</string>
+    <string name="lockout_overtime">초과</string>
+    <string name="lockout_overtime_sub">계획한 %1$dm보다 더 집중했습니다</string>
+    <string name="lockout_into_focus">집중 세션 중</string>
+    <string name="lockout_into_sleep">수면 세션 중</string>
+    <string name="lockout_focus_hint">계속 집중하거나, 정말 필요한 경우 확인하세요.</string>
+    <string name="lockout_sleep_hint">내려놓아 보세요. 정말 필요하다면 아래서 확인하세요.</string>
+    <string name="lockout_stay_locked">잠금 유지</string>
+    <string name="lockout_need_phone">네, 폰이 필요해요</string>
+    <string name="lockout_end_early">세션 일찍 종료</string>
+    <plurals name="lockout_unlocks">
+    <item quantity="other">%1$d 이번 세션 잠금 해제</item>
+</plurals>
+    <plurals name="reports_best_streak">
+    <item quantity="other">최고 방해 없는 연속: %1$d 세션</item>
+</plurals>
+    <plurals name="reports_tag_sessions">
+    <item quantity="other">%1$s · %2$d 세션</item>
+</plurals>
+    <plurals name="reports_unit_nights">
+    <item quantity="other">%1$d 밤</item>
+</plurals>
+    <plurals name="reports_unit_days">
+    <item quantity="other">%1$d 일</item>
+</plurals>
+    <plurals name="reports_unit_sessions">
+    <item quantity="other">%1$d 세션</item>
+</plurals>
 </resources>

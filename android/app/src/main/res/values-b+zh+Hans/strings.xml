@@ -807,4 +807,63 @@
     <string name="chat_err_create_alarm">无法创建闹钟，请重试。</string>
     <string name="chat_err_undo">撤销失败，您可能需要手动删除。</string>
     <string name="chat_err_reset">无法重置对话，请重试。</string>
+
+    <!-- §13.1 Android sweep — reports+lockout -->
+    <string name="reports_title">每周报告</string>
+    <string name="reports_prev_week">上一周</string>
+    <string name="reports_next_week">下一周</string>
+    <string name="reports_section_sleep">睡眠</string>
+    <string name="reports_section_focus">专注</string>
+    <string name="reports_section_calendar">日历</string>
+    <string name="reports_section_streaks">连续记录</string>
+    <string name="reports_avg_duration">平均时长</string>
+    <string name="reports_avg_quality">平均质量</string>
+    <string name="reports_sleep_debt">睡眠债</string>
+    <string name="reports_extra_rest">额外休息</string>
+    <string name="reports_best_night">最佳夜晚</string>
+    <string name="reports_worst_night">最差夜晚</string>
+    <string name="reports_sleep_target_note">目标：%1$s/晚 · 睡眠债 = 低于目标的晚数，额外 = 超出目标的晚数</string>
+    <string name="reports_pickups_label">每晚拿起手机次数</string>
+    <string name="reports_total_focus">总专注时长</string>
+    <string name="reports_sessions">专注次数</string>
+    <string name="reports_pickups_total">拿起手机总次数</string>
+    <string name="reports_avg_pickups_session">每次专注平均拿起次数</string>
+    <string name="reports_top_tags">热门标签</string>
+    <string name="reports_events">事件</string>
+    <string name="reports_busiest_day">最忙碌的一天</string>
+    <string name="reports_by_category">按分类</string>
+    <string name="reports_streak_sleep_target">睡眠目标</string>
+    <string name="reports_streak_zero_pickups">零拿机</string>
+    <string name="reports_stat_value">%1$s：%2$s</string>
+    <string name="reports_vs_lastweek">%1$s 对比上周</string>
+    <string name="reports_untagged">未标记</string>
+    <string name="lockout_focus_active">专注中</string>
+    <string name="lockout_sleep_active">睡眠中</string>
+    <string name="lockout_overtime">超时</string>
+    <string name="lockout_overtime_sub">你已超出计划专注时长 %1$dm</string>
+    <string name="lockout_into_focus">进入专注</string>
+    <string name="lockout_into_sleep">进入睡眠</string>
+    <string name="lockout_focus_hint">保持专注，或确认你确实需要手机。</string>
+    <string name="lockout_sleep_hint">试着放下手机。如果确实需要，请在下方确认。</string>
+    <string name="lockout_stay_locked">保持锁定</string>
+    <string name="lockout_need_phone">我需要手机</string>
+    <string name="lockout_end_early">提前结束</string>
+    <plurals name="lockout_unlocks">
+        <item quantity="other">%1$d 次解锁</item>
+    </plurals>
+    <plurals name="reports_best_streak">
+        <item quantity="other">最佳无干扰连续记录：%1$d 次专注</item>
+    </plurals>
+    <plurals name="reports_tag_sessions">
+        <item quantity="other">%1$s · %2$d 次专注</item>
+    </plurals>
+    <plurals name="reports_unit_nights">
+        <item quantity="other">%1$d 晚</item>
+    </plurals>
+    <plurals name="reports_unit_days">
+        <item quantity="other">%1$d 天</item>
+    </plurals>
+    <plurals name="reports_unit_sessions">
+        <item quantity="other">%1$d 次</item>
+    </plurals>
 </resources>

@@ -3,6 +3,7 @@ package com.ultiq.app.ui.reports
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.ultiq.app.R
 import com.ultiq.app.data.achievements.AchievementId
 import com.ultiq.app.data.local.AppDatabase
 import com.ultiq.app.data.local.entity.AchievementEntity
@@ -144,7 +145,7 @@ class WeeklyReportViewModel(application: Application) : AndroidViewModel(applica
             val sleepByDay = buildSleepByDay(start, weekSleep)
             val focusByDay = buildFocusByDay(start, weekSessions)
             val topTags = weekSessions
-                .groupBy { it.tag.ifBlank { "Untagged" } }
+                .groupBy { it.tag.ifBlank { getApplication<Application>().getString(R.string.reports_untagged) } }
                 .map { (tag, list) ->
                     TagStat(tag, list.sumOf { it.durationMinutes }, list.size)
                 }

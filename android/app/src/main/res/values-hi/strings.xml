@@ -830,4 +830,69 @@
     <string name="chat_err_create_alarm">अलार्म नहीं बनाया जा सका। पुनः प्रयास करें।</string>
     <string name="chat_err_undo">पूर्ववत करना विफल हुआ। आपको इसे मैन्युअल रूप से हटाना पड़ सकता है।</string>
     <string name="chat_err_reset">चैट रीसेट नहीं हो सकी। पुनः प्रयास करें।</string>
+
+    <!-- §13.1 Android sweep — reports+lockout -->
+    <string name="reports_title">साप्ताहिक रिपोर्ट</string>
+    <string name="reports_prev_week">पिछला सप्ताह</string>
+    <string name="reports_next_week">अगला सप्ताह</string>
+    <string name="reports_section_sleep">नींद</string>
+    <string name="reports_section_focus">फ़ोकस</string>
+    <string name="reports_section_calendar">कैलेंडर</string>
+    <string name="reports_section_streaks">स्ट्रीक्स</string>
+    <string name="reports_avg_duration">औसत अवधि</string>
+    <string name="reports_avg_quality">औसत गुणवत्ता</string>
+    <string name="reports_sleep_debt">नींद की कमी</string>
+    <string name="reports_extra_rest">अतिरिक्त आराम</string>
+    <string name="reports_best_night">सर्वश्रेष्ठ रात</string>
+    <string name="reports_worst_night">सबसे खराब रात</string>
+    <string name="reports_sleep_target_note">लक्ष्य: %1$s/रात · कमी = नीचे की रातें, अतिरिक्त = ऊपर की रातें</string>
+    <string name="reports_pickups_label">फ़ोन उठाना / रात</string>
+    <string name="reports_total_focus">कुल फ़ोकस</string>
+    <string name="reports_sessions">सत्र</string>
+    <string name="reports_pickups_total">कुल उठाना</string>
+    <string name="reports_avg_pickups_session">औसत उठाना/सत्र</string>
+    <string name="reports_top_tags">शीर्ष टैग</string>
+    <string name="reports_events">कार्यक्रम</string>
+    <string name="reports_busiest_day">सबसे व्यस्त दिन</string>
+    <string name="reports_by_category">श्रेणी अनुसार</string>
+    <string name="reports_streak_sleep_target">नींद का लक्ष्य</string>
+    <string name="reports_streak_zero_pickups">शून्य उठाना</string>
+    <string name="reports_stat_value">%1$s: %2$s</string>
+    <string name="reports_vs_lastweek">%1$s बनाम पिछला सप्ताह</string>
+    <string name="reports_untagged">बिना टैग</string>
+    <string name="lockout_focus_active">फ़ोकस सत्र सक्रिय</string>
+    <string name="lockout_sleep_active">नींद सत्र सक्रिय</string>
+    <string name="lockout_overtime">ओवरटाइम</string>
+    <string name="lockout_overtime_sub">आपने अपने नियोजित %1$dm से अधिक फ़ोकस किया</string>
+    <string name="lockout_into_focus">आपके फ़ोकस सत्र में</string>
+    <string name="lockout_into_sleep">आपके नींद सत्र में</string>
+    <string name="lockout_focus_hint">फ़ोकस में रहें, या पुष्टि करें कि आपको वाकई फ़ोन की ज़रूरत है।</string>
+    <string name="lockout_sleep_hint">इसे रखने की कोशिश करें। अगर आपको वाकई ज़रूरत है, तो नीचे पुष्टि करें।</string>
+    <string name="lockout_stay_locked">बंद रहें</string>
+    <string name="lockout_need_phone">हाँ, मुझे फ़ोन चाहिए</string>
+    <string name="lockout_end_early">सत्र जल्दी समाप्त करें</string>
+    <plurals name="lockout_unlocks">
+        <item quantity="one">%1$d इस सत्र में अनलॉक</item>
+        <item quantity="other">%1$d इस सत्र में अनलॉक</item>
+    </plurals>
+    <plurals name="reports_best_streak">
+        <item quantity="one">सर्वश्रेष्ठ बाधा-मुक्त स्ट्रीक: %1$d सत्र</item>
+        <item quantity="other">सर्वश्रेष्ठ बाधा-मुक्त स्ट्रीक: %1$d सत्र</item>
+    </plurals>
+    <plurals name="reports_tag_sessions">
+        <item quantity="one">%1$s · %2$d सत्र</item>
+        <item quantity="other">%1$s · %2$d सत्र</item>
+    </plurals>
+    <plurals name="reports_unit_nights">
+        <item quantity="one">%1$d रात</item>
+        <item quantity="other">%1$d रातें</item>
+    </plurals>
+    <plurals name="reports_unit_days">
+        <item quantity="one">%1$d दिन</item>
+        <item quantity="other">%1$d दिन</item>
+    </plurals>
+    <plurals name="reports_unit_sessions">
+        <item quantity="one">%1$d सत्र</item>
+        <item quantity="other">%1$d सत्र</item>
+    </plurals>
 </resources>

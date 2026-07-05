@@ -853,4 +853,75 @@
     <string name="chat_err_create_alarm">No se pudo crear la alarma. Inténtalo de nuevo.</string>
     <string name="chat_err_undo">Error al deshacer. Es posible que debas eliminarlo manualmente.</string>
     <string name="chat_err_reset">No se pudo reiniciar el chat. Inténtalo de nuevo.</string>
+
+    <!-- §13.1 Android sweep — reports+lockout -->
+    <string name="reports_title">Informe semanal</string>
+    <string name="reports_prev_week">Semana anterior</string>
+    <string name="reports_next_week">Semana siguiente</string>
+    <string name="reports_section_sleep">Sueño</string>
+    <string name="reports_section_focus">Enfoque</string>
+    <string name="reports_section_calendar">Calendario</string>
+    <string name="reports_section_streaks">Rachas</string>
+    <string name="reports_avg_duration">Duración media</string>
+    <string name="reports_avg_quality">Calidad media</string>
+    <string name="reports_sleep_debt">Deuda de sueño</string>
+    <string name="reports_extra_rest">Descanso extra</string>
+    <string name="reports_best_night">Mejor noche</string>
+    <string name="reports_worst_night">Peor noche</string>
+    <string name="reports_sleep_target_note">Objetivo: %1$s/noche · deuda = noches por debajo, extra = noches por encima</string>
+    <string name="reports_pickups_label">Usos del móvil / noche</string>
+    <string name="reports_total_focus">Enfoque total</string>
+    <string name="reports_sessions">Sesiones</string>
+    <string name="reports_pickups_total">Total de usos</string>
+    <string name="reports_avg_pickups_session">Usos medios/sesión</string>
+    <string name="reports_top_tags">Etiquetas principales</string>
+    <string name="reports_events">Eventos</string>
+    <string name="reports_busiest_day">Día más ocupado</string>
+    <string name="reports_by_category">Por categoría</string>
+    <string name="reports_streak_sleep_target">Objetivo de sueño</string>
+    <string name="reports_streak_zero_pickups">Sin usos del móvil</string>
+    <string name="reports_stat_value">%1$s: %2$s</string>
+    <string name="reports_vs_lastweek">%1$s vs semana anterior</string>
+    <string name="reports_untagged">Sin etiqueta</string>
+    <string name="lockout_focus_active">Sesión de enfoque activa</string>
+    <string name="lockout_sleep_active">Sesión de sueño activa</string>
+    <string name="lockout_overtime">TIEMPO EXTRA</string>
+    <string name="lockout_overtime_sub">te has enfocado más de tus %1$dm planificados</string>
+    <string name="lockout_into_focus">en tu sesión de enfoque</string>
+    <string name="lockout_into_sleep">en tu sesión de sueño</string>
+    <string name="lockout_focus_hint">Mantén el enfoque, o confirma que realmente necesitas el teléfono.</string>
+    <string name="lockout_sleep_hint">Intenta dejarlo. Si realmente lo necesitas, confirma a continuación.</string>
+    <string name="lockout_stay_locked">Seguir bloqueado</string>
+    <string name="lockout_need_phone">Sí, necesito el teléfono</string>
+    <string name="lockout_end_early">Terminar sesión antes</string>
+    <plurals name="lockout_unlocks">
+        <item quantity="one">%1$d desbloqueo en esta sesión</item>
+        <item quantity="many">%1$d desbloqueos en esta sesión</item>
+        <item quantity="other">%1$d desbloqueos en esta sesión</item>
+    </plurals>
+    <plurals name="reports_best_streak">
+        <item quantity="one">Mejor racha sin distracciones: %1$d sesión</item>
+        <item quantity="many">Mejor racha sin distracciones: %1$d sesiones</item>
+        <item quantity="other">Mejor racha sin distracciones: %1$d sesiones</item>
+    </plurals>
+    <plurals name="reports_tag_sessions">
+        <item quantity="one">%1$s · %2$d sesión</item>
+        <item quantity="many">%1$s · %2$d sesiones</item>
+        <item quantity="other">%1$s · %2$d sesiones</item>
+    </plurals>
+    <plurals name="reports_unit_nights">
+        <item quantity="one">%1$d noche</item>
+        <item quantity="many">%1$d noches</item>
+        <item quantity="other">%1$d noches</item>
+    </plurals>
+    <plurals name="reports_unit_days">
+        <item quantity="one">%1$d día</item>
+        <item quantity="many">%1$d días</item>
+        <item quantity="other">%1$d días</item>
+    </plurals>
+    <plurals name="reports_unit_sessions">
+        <item quantity="one">%1$d sesión</item>
+        <item quantity="many">%1$d sesiones</item>
+        <item quantity="other">%1$d sesiones</item>
+    </plurals>
 </resources>
