@@ -325,4 +325,178 @@
     <plurals name="reminder_week">
         <item quantity="other">%1$d 週</item>
     </plurals>
+
+    <!-- ══════════════════ §13.1 Android sweep — sleep (tracking) ══════════════════ -->
+
+    <!-- Shared -->
+    <string name="action_keep">保存</string>
+    <string name="action_start">開始</string>
+    <string name="action_preferences">設定</string>
+    <string name="star_rating_cd">星%1$d</string>
+    <string name="notes_optional">メモ（任意）</string>
+    <string name="nap_question">昼寝ですか？</string>
+    <string name="nap_subtitle">「昨夜」のサマリーから除外されます</string>
+    <string name="range_week">週</string>
+    <string name="range_month">月</string>
+    <string name="period_this_month">今月</string>
+    <string name="period_last_month">先月</string>
+
+    <!-- Sleep tab / screen chrome -->
+    <string name="sleep_title">睡眠</string>
+    <string name="sleep_subtab_alarms">アラーム</string>
+    <string name="sleep_add_alarm_cd">アラームを追加</string>
+    <string name="sleep_prefs_title">睡眠設定</string>
+    <string name="sleep_prefs_hint_body">右上の「設定」から就寝時間・起床時間・睡眠目標・ロックアウトを設定できます。起床アラームは上の「アラーム」サブタブにあります。</string>
+    <string name="sleep_explainer_title">睡眠トラッキングの仕組み</string>
+    <string name="sleep_explainer_body">「睡眠開始」をタップすると、Ultiqがバックグラウンドサービスで起動し、画面ロック中の夜間スマホ手持ちを検出します。確認するのは画面の状態のみで、その他の操作は一切見ません。</string>
+    <string name="sleep_got_it">わかった</string>
+
+    <!-- Audio-sync banner -->
+    <string name="sleep_audio_sync_failed_title">昨夜のサウンドが同期されていません</string>
+    <string name="sleep_audio_syncing_title">昨夜のサウンドを同期中…</string>
+    <string name="sleep_retry_now">今すぐ再試行</string>
+
+    <!-- Mic-permission banner -->
+    <string name="sleep_mic_title">いびきのトラッキングにマイクの許可が必要です</string>
+    <string name="sleep_mic_body">アカウントでいびきと咳の検出が有効ですが、このデバイスにマイクのアクセス権がありません。音声解析はデバイス上で行われ、アップロードされません。</string>
+    <string name="sleep_grant_permission">許可する</string>
+
+    <!-- No-alarm dialog -->
+    <string name="sleep_no_alarm_title">今夜のアラームがありません</string>
+    <string name="sleep_no_alarm_body">今後24時間に設定された起床アラームがありません。ミッション付きアラームを設定しますか？それとも今夜はアラームなしで眠りますか？</string>
+    <string name="sleep_set_alarm">アラームを設定</string>
+    <string name="sleep_sleep_without">アラームなしで眠る</string>
+
+    <!-- Session control -->
+    <string name="sleep_sleeping">睡眠中…</string>
+    <string name="sleep_elapsed">%1$d時間%2$d分経過</string>
+    <string name="sleep_started_at">%1$s開始</string>
+    <string name="sleep_end">睡眠終了</string>
+    <string name="sleep_start">睡眠開始</string>
+    <string name="sleep_log_past">過去の睡眠を記録</string>
+
+    <!-- Set-wake dialog -->
+    <string name="sleep_set_wake_title">起床時間を設定</string>
+    <string name="sleep_set_wake_body">起床したい時間を選んでください。睡眠負債はこの目標に基づいて計算されます。</string>
+    <string name="sleep_wake_at">%1$sに起床</string>
+    <string name="sleep_target_duration">目標時間：%1$s</string>
+
+    <!-- Stats -->
+    <string name="sleep_stat_avg_duration">平均睡眠時間</string>
+    <string name="sleep_stat_avg_quality">平均品質</string>
+    <string name="sleep_stat_avg_pickups">平均手持ち回数</string>
+    <string name="sleep_stat_naps">昼寝</string>
+    <string name="sleep_quality_value">%1$s / 5</string>
+    <string name="sleep_per_session">%1$s / セッション</string>
+
+    <!-- Chart legend -->
+    <string name="sleep_legend_night">夜</string>
+    <string name="sleep_legend_morning">朝</string>
+    <string name="sleep_legend_afternoon">午後</string>
+
+    <!-- Record item + expanded details -->
+    <string name="sleep_delete_record_title">睡眠記録を削除しますか？</string>
+    <string name="sleep_delete_record_body">%1$sの記録を完全に削除します。</string>
+    <string name="sleep_nap_badge">· 昼寝</string>
+    <string name="detail_notes">メモ</string>
+    <string name="detail_target">目標</string>
+    <string name="detail_actual">実際</string>
+    <string name="detail_phone_time">スマホ時間</string>
+    <string name="detail_label_prefix">%1$s：</string>
+    <string name="sleep_not_synced">未同期</string>
+    <string name="sleep_detail_loading">詳細を読み込み中…</string>
+    <string name="sleep_phone_pickups_header">スマホ手持ち</string>
+    <string name="sleep_pickup_indexed">#%1$d（%2$s）</string>
+
+    <!-- Audio event groups + playback -->
+    <string name="sleep_group_snoring">いびき</string>
+    <string name="sleep_group_coughing">咳</string>
+    <string name="sleep_group_sleeptalk">寝言</string>
+    <string name="sleep_tap_to_play">" · タップ▶して再生"</string>
+    <string name="sleep_play_cd">再生</string>
+    <string name="sleep_stop_cd">停止</string>
+    <string name="sleep_clip_duration">%1$ds クリップ · </string>
+    <string name="sleep_playing">再生中…（もう一度タップして停止）</string>
+    <string name="sleep_loading">読み込み中…</string>
+    <string name="sleep_confidence">信頼度 %1$s%%</string>
+    <string name="sleep_delete_clip">クリップを削除</string>
+    <string name="sleep_delete_recording_title">この録音を削除しますか？</string>
+    <string name="sleep_delete_recording_body">検出イベントは残ります。音声クリップのみ削除されます。</string>
+    <string name="sleep_load_clip_error">クリップを読み込めません</string>
+    <string name="sleep_offline_clip">オフライン — クリップを再生するには接続してください</string>
+    <string name="sleep_playback_failed">再生に失敗しました</string>
+
+    <!-- Tonight sounds card -->
+    <string name="sleep_last_night">昨夜</string>
+    <string name="sleep_sounds_header">睡眠サウンド — %1$s</string>
+    <string name="sleep_sound_snoring">いびき</string>
+    <string name="sleep_sound_cough">咳</string>
+    <string name="sleep_sound_sleeptalk">寝言</string>
+    <string name="sleep_quiet_body">睡眠中に何も検出されませんでした。</string>
+
+    <!-- End-sleep dialog -->
+    <string name="end_sleep_good_morning">おはようございます！</string>
+    <string name="end_sleep_you_slept">%1$d時間%2$d分眠りました</string>
+    <string name="end_sleep_no_pickups">スマホ手持ちなし — 素晴らしい！</string>
+    <string name="end_sleep_sounds_header">睡眠中の音</string>
+    <string name="sleep_snore_indexed">いびき #%1$d</string>
+    <string name="sleep_cough_indexed">咳 #%1$d</string>
+    <string name="sleep_talk_indexed">寝言 #%1$d</string>
+    <string name="sleep_audio_row">%2$sに%1$s</string>
+    <string name="end_sleep_how_slept">睡眠はいかがでしたか？</string>
+    <string name="end_sleep_rate_error">睡眠品質を評価してください</string>
+    <string name="end_sleep_discard_title">睡眠セッションを破棄しますか？</string>
+    <string name="end_sleep_discard_body">記録した睡眠時間と手持ちデータが失われます。この操作は元に戻せません。</string>
+
+    <!-- AI rating -->
+    <string name="ai_rating_loading">AIが睡眠を評価中…</string>
+    <string name="ai_rating_suggests">AI評価：%1$d/5</string>
+    <string name="ai_rating_re_rate">再評価</string>
+    <string name="ai_rating_use">この評価を使用</string>
+    <string name="ai_rating_retry">AIによる評価を再試行</string>
+    <string name="ai_rating_get">AI評価を取得</string>
+
+    <!-- Add-sleep dialog -->
+    <string name="add_sleep_target_bedtime">目標就寝時間</string>
+    <string name="add_sleep_target_wake">目標起床時間</string>
+    <string name="add_sleep_bed_date">就寝日</string>
+    <string name="add_sleep_bed_time">就寝時刻</string>
+    <string name="add_sleep_wake_date">起床日</string>
+    <string name="add_sleep_wake_time">起床時刻</string>
+    <string name="add_sleep_quality">品質評価</string>
+    <string name="add_sleep_phone_pickups">スマホ手持ち回数</string>
+    <string name="add_sleep_phone_minutes">合計スマホ使用時間（分）（任意）</string>
+    <string name="add_sleep_err_bedtime">就寝時刻は起床時刻より前にしてください</string>
+    <string name="add_sleep_err_quality">品質評価を選択してください</string>
+
+    <!-- Sleep ViewModel -->
+    <string name="sleep_err_end_focus">睡眠トラッキングを開始する前に集中セッションを終了してください</string>
+
+    <plurals name="sleep_audio_sync_failed_body">
+        <item quantity="other">%1$d件のイベントがローカルに保存されていますが、まだサーバーに届いていません。「再試行」をタップして今すぐアップロードするか、次回接続時に自動的に再試行されます。</item>
+    </plurals>
+    <plurals name="sleep_audio_syncing_body">
+        <item quantity="other">%1$d件のイベントがアップロード待ちです。接続が回復すると自動的に送信されます。</item>
+    </plurals>
+    <plurals name="sleep_phone_pickups">
+        <item quantity="other">スマホ手持ち%1$d回</item>
+    </plurals>
+    <plurals name="sleep_group_episodes">
+        <item quantity="other">%2$s · %1$d回（%3$ds）</item>
+    </plurals>
+    <plurals name="sleep_label_episodes">
+        <item quantity="other">%1$s回</item>
+    </plurals>
+    <plurals name="end_sleep_pickups_summary">
+        <item quantity="other">%1$d回手持ち — 合計%2$s</item>
+    </plurals>
+    <plurals name="end_sleep_snore_summary">
+        <item quantity="other">いびき%1$d回 — 合計%2$ds</item>
+    </plurals>
+    <plurals name="end_sleep_cough_summary">
+        <item quantity="other">咳%1$d回 — 合計%2$ds</item>
+    </plurals>
+    <plurals name="end_sleep_talk_summary">
+        <item quantity="other">寝言%1$d回 — 合計%2$ds</item>
+    </plurals>
 </resources>

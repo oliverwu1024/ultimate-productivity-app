@@ -44,10 +44,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.ultiq.app.R
 import com.ultiq.app.data.local.entity.SleepAudioEventEntity
 import com.ultiq.app.service.PickupEvent
+import com.ultiq.app.util.LocaleManager
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -80,7 +84,7 @@ fun EndSleepDialog(
     val mins = durationMinutes % 60
     val totalPhoneSeconds = pickupEvents.sumOf { it.durationSeconds }
     val totalPhoneMinutes = totalPhoneSeconds / 60
-    val timeFormat = DateTimeFormatter.ofPattern("hh:mm a")
+    val timeFormat = DateTimeFormatter.ofPattern("hh:mm a", LocaleManager.currentLocale())
     val zone = ZoneId.systemDefault()
 
     // §last-night — pre-select Nap when the just-ended session looks like a
@@ -106,11 +110,11 @@ fun EndSleepDialog(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text("Good morning!", style = MaterialTheme.typography.headlineSmall)
+            Text(stringResource(R.string.end_sleep_good_morning), style = MaterialTheme.typography.headlineSmall)
 
             // Summary
             Text(
-                "You slept ${hours}h ${mins}m",
+                stringResource(R.string.end_sleep_you_slept, hours, mins),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
@@ -124,9 +128,9 @@ fun EndSleepDialog(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Daytime nap?", style = MaterialTheme.typography.titleSmall)
+                    Text(stringResource(R.string.nap_question), style = MaterialTheme.typography.titleSmall)
                     Text(
-                        "Keeps it out of your \"last night\" summary",
+                        stringResource(R.string.nap_subtitle),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -136,13 +140,18 @@ fun EndSleepDialog(
 
             if (pickupEvents.isEmpty()) {
                 Text(
-                    "No phone pickups — nice!",
+                    stringResource(R.string.end_sleep_no_pickups),
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color(0xFF4CAF50)
                 )
             } else {
                 Text(
-                    "${pickupEvents.size} pickup${if (pickupEvents.size != 1) "s" else ""} — ${totalPhoneMinutes}m ${totalPhoneSeconds % 60}s total",
+                    pluralStringResource(
+                        R.plurals.end_sleep_pickups_summary,
+                        pickupEvents.size,
+                        pickupEvents.size,
+                        "${totalPhoneMinutes}m ${totalPhoneSeconds % 60}s",
+                    ),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -170,7 +179,7 @@ fun EndSleepDialog(
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
-                                "  #${index + 1} at $time",
+                                "  " + stringResource(R.string.sleep_pickup_indexed, index + 1, time),
                                 style = MaterialTheme.typography.bodySmall
                             )
                         }
@@ -205,19 +214,19 @@ fun EndSleepDialog(
                         tint = MaterialTheme.colorScheme.primary,
                     )
                     Spacer(Modifier.size(8.dp))
-                    Text("Sounds during sleep", style = MaterialTheme.typography.labelLarge)
+                    Text(stringResource(R.string.end_sleep_sounds_header), style = MaterialTheme.typography.labelLarge)
                 }
                 if (snoreEvents.isNotEmpty()) {
                     val totalSnoreSecs =
                         snoreEvents.sumOf { (it.endedAt - it.startedAt) / 1000L }
                     Text(
-                        "${snoreEvents.size} snoring episode${if (snoreEvents.size != 1) "s" else ""} — ${totalSnoreSecs}s total",
+                        pluralStringResource(R.plurals.end_sleep_snore_summary, snoreEvents.size, snoreEvents.size, totalSnoreSecs),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     snoreEvents.forEachIndexed { index, event ->
                         AudioEventRow(
-                            label = "Snore #${index + 1}",
+                            label = stringResource(R.string.sleep_snore_indexed, index + 1),
                             startedAt = event.startedAt,
                             durationSec = ((event.endedAt - event.startedAt) / 1000L).coerceAtLeast(1L),
                             zone = zone,
@@ -229,13 +238,13 @@ fun EndSleepDialog(
                     val totalCoughSecs =
                         coughEvents.sumOf { (it.endedAt - it.startedAt) / 1000L }
                     Text(
-                        "${coughEvents.size} coughing episode${if (coughEvents.size != 1) "s" else ""} — ${totalCoughSecs}s total",
+                        pluralStringResource(R.plurals.end_sleep_cough_summary, coughEvents.size, coughEvents.size, totalCoughSecs),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     coughEvents.forEachIndexed { index, event ->
                         AudioEventRow(
-                            label = "Cough #${index + 1}",
+                            label = stringResource(R.string.sleep_cough_indexed, index + 1),
                             startedAt = event.startedAt,
                             durationSec = ((event.endedAt - event.startedAt) / 1000L).coerceAtLeast(1L),
                             zone = zone,
@@ -247,13 +256,13 @@ fun EndSleepDialog(
                     val totalTalkSecs =
                         sleepTalkEvents.sumOf { (it.endedAt - it.startedAt) / 1000L }
                     Text(
-                        "${sleepTalkEvents.size} sleep-talk episode${if (sleepTalkEvents.size != 1) "s" else ""} — ${totalTalkSecs}s total",
+                        pluralStringResource(R.plurals.end_sleep_talk_summary, sleepTalkEvents.size, sleepTalkEvents.size, totalTalkSecs),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     sleepTalkEvents.forEachIndexed { index, event ->
                         AudioEventRow(
-                            label = "Sleep-talk #${index + 1}",
+                            label = stringResource(R.string.sleep_talk_indexed, index + 1),
                             startedAt = event.startedAt,
                             durationSec = ((event.endedAt - event.startedAt) / 1000L).coerceAtLeast(1L),
                             zone = zone,
@@ -276,13 +285,13 @@ fun EndSleepDialog(
             )
 
             // Quality rating
-            Text("How did you sleep?", style = MaterialTheme.typography.labelLarge)
+            Text(stringResource(R.string.end_sleep_how_slept), style = MaterialTheme.typography.labelLarge)
             Row {
                 (1..5).forEach { star ->
                     IconButton(onClick = { qualityRating = star }) {
                         Icon(
                             imageVector = if (star <= qualityRating) Icons.Filled.Star else Icons.Outlined.StarBorder,
-                            contentDescription = "Star $star",
+                            contentDescription = stringResource(R.string.star_rating_cd, star),
                             tint = if (star <= qualityRating) com.ultiq.app.ui.theme.QualityStar else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(36.dp)
                         )
@@ -294,7 +303,7 @@ fun EndSleepDialog(
             OutlinedTextField(
                 value = notes,
                 onValueChange = { notes = it },
-                label = { Text("Notes (optional)") },
+                label = { Text(stringResource(R.string.notes_optional)) },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 2,
                 maxLines = 4
@@ -308,14 +317,15 @@ fun EndSleepDialog(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End)
             ) {
-                OutlinedButton(onClick = { showDiscardConfirm = true }) { Text("Cancel") }
+                OutlinedButton(onClick = { showDiscardConfirm = true }) { Text(stringResource(R.string.action_cancel)) }
+                val rateError = stringResource(R.string.end_sleep_rate_error)
                 Button(onClick = {
                     if (qualityRating < 1) {
-                        error = "Please rate your sleep quality"
+                        error = rateError
                     } else {
                         onSave(qualityRating, notes.ifBlank { null }, isNap)
                     }
-                }) { Text("Save") }
+                }) { Text(stringResource(R.string.action_save)) }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -325,18 +335,18 @@ fun EndSleepDialog(
     if (showDiscardConfirm) {
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { showDiscardConfirm = false },
-            title = { Text("Discard sleep session?") },
+            title = { Text(stringResource(R.string.end_sleep_discard_title)) },
             text = {
-                Text("You'll lose the duration and pickup data we tracked. This can't be undone.")
+                Text(stringResource(R.string.end_sleep_discard_body))
             },
             confirmButton = {
                 Button(onClick = {
                     showDiscardConfirm = false
                     onDismiss()
-                }) { Text("Discard") }
+                }) { Text(stringResource(R.string.action_discard)) }
             },
             dismissButton = {
-                OutlinedButton(onClick = { showDiscardConfirm = false }) { Text("Keep") }
+                OutlinedButton(onClick = { showDiscardConfirm = false }) { Text(stringResource(R.string.action_keep)) }
             },
         )
     }
@@ -371,7 +381,7 @@ private fun AudioEventRow(
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
-                "  $label at $time",
+                "  " + stringResource(R.string.sleep_audio_row, label, time),
                 style = MaterialTheme.typography.bodySmall,
             )
         }
@@ -412,7 +422,7 @@ private fun AiRatingSection(
                     strokeWidth = 2.dp,
                 )
                 Text(
-                    "Asking AI to rate your sleep…",
+                    stringResource(R.string.ai_rating_loading),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -436,7 +446,7 @@ private fun AiRatingSection(
                         )
                         Spacer(Modifier.size(8.dp))
                         Text(
-                            "AI suggests ${result.rating}/5",
+                            stringResource(R.string.ai_rating_suggests, result.rating),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.primary,
@@ -451,9 +461,9 @@ private fun AiRatingSection(
                     Spacer(Modifier.height(8.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                         Box(modifier = Modifier.weight(1f))
-                        TextButton(onClick = onRequest) { Text("Re-rate") }
+                        TextButton(onClick = onRequest) { Text(stringResource(R.string.ai_rating_re_rate)) }
                         Button(onClick = { onAccept(result.rating) }) {
-                            Text("Use this rating")
+                            Text(stringResource(R.string.ai_rating_use))
                         }
                     }
                 }
@@ -469,7 +479,7 @@ private fun AiRatingSection(
                 OutlinedButton(onClick = onRequest) {
                     Icon(Icons.Default.AutoAwesome, null, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.size(8.dp))
-                    Text("Try AI rating again")
+                    Text(stringResource(R.string.ai_rating_retry))
                 }
             }
         }
@@ -477,7 +487,7 @@ private fun AiRatingSection(
             OutlinedButton(onClick = onRequest, modifier = Modifier.fillMaxWidth()) {
                 Icon(Icons.Default.AutoAwesome, null, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.size(8.dp))
-                Text("Get AI rating")
+                Text(stringResource(R.string.ai_rating_get))
             }
         }
     }

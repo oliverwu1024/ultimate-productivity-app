@@ -40,8 +40,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.ultiq.app.R
 import com.ultiq.app.data.remote.dto.CreateSleepRecordDto
+import com.ultiq.app.util.LocaleManager
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -80,8 +83,8 @@ fun AddSleepDialog(
     )
     val isNap = napOverride ?: napLikely
 
-    val timeFormat = DateTimeFormatter.ofPattern("hh:mm a")
-    val dateFormat = DateTimeFormatter.ofPattern("MMM dd, yyyy")
+    val timeFormat = DateTimeFormatter.ofPattern("hh:mm a", LocaleManager.currentLocale())
+    val dateFormat = DateTimeFormatter.ofPattern("MMM dd, yyyy", LocaleManager.currentLocale())
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -95,11 +98,11 @@ fun AddSleepDialog(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text("Log Sleep", style = MaterialTheme.typography.headlineSmall)
+            Text(stringResource(R.string.dashboard_quick_sleep), style = MaterialTheme.typography.headlineSmall)
 
             // Target bedtime
             ClickableField(
-                label = "Target Bedtime",
+                label = stringResource(R.string.add_sleep_target_bedtime),
                 value = targetBedtime.format(timeFormat),
                 onClick = {
                     TimePickerDialog(context, { _, h, m ->
@@ -110,7 +113,7 @@ fun AddSleepDialog(
 
             // Target wake time
             ClickableField(
-                label = "Target Wake Time",
+                label = stringResource(R.string.add_sleep_target_wake),
                 value = targetWakeTime.format(timeFormat),
                 onClick = {
                     TimePickerDialog(context, { _, h, m ->
@@ -122,7 +125,7 @@ fun AddSleepDialog(
             // Actual bedtime
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 ClickableField(
-                    label = "Bed Date",
+                    label = stringResource(R.string.add_sleep_bed_date),
                     value = actualBedDate.format(dateFormat),
                     onClick = {
                         DatePickerDialog(context, { _, y, m, d ->
@@ -132,7 +135,7 @@ fun AddSleepDialog(
                     modifier = Modifier.weight(1f)
                 )
                 ClickableField(
-                    label = "Bed Time",
+                    label = stringResource(R.string.add_sleep_bed_time),
                     value = actualBedTime.format(timeFormat),
                     onClick = {
                         TimePickerDialog(context, { _, h, m ->
@@ -146,7 +149,7 @@ fun AddSleepDialog(
             // Actual wake time
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 ClickableField(
-                    label = "Wake Date",
+                    label = stringResource(R.string.add_sleep_wake_date),
                     value = actualWakeDate.format(dateFormat),
                     onClick = {
                         DatePickerDialog(context, { _, y, m, d ->
@@ -156,7 +159,7 @@ fun AddSleepDialog(
                     modifier = Modifier.weight(1f)
                 )
                 ClickableField(
-                    label = "Wake Time",
+                    label = stringResource(R.string.add_sleep_wake_time),
                     value = actualWakeTime.format(timeFormat),
                     onClick = {
                         TimePickerDialog(context, { _, h, m ->
@@ -168,13 +171,13 @@ fun AddSleepDialog(
             }
 
             // Quality rating
-            Text("Quality Rating", style = MaterialTheme.typography.labelLarge)
+            Text(stringResource(R.string.add_sleep_quality), style = MaterialTheme.typography.labelLarge)
             Row {
                 (1..5).forEach { star ->
                     IconButton(onClick = { qualityRating = star }) {
                         Icon(
                             imageVector = if (star <= qualityRating) Icons.Filled.Star else Icons.Outlined.StarBorder,
-                            contentDescription = "Star $star",
+                            contentDescription = stringResource(R.string.star_rating_cd, star),
                             tint = if (star <= qualityRating) com.ultiq.app.ui.theme.QualityStar else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(32.dp)
                         )
@@ -189,9 +192,9 @@ fun AddSleepDialog(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Daytime nap?", style = MaterialTheme.typography.labelLarge)
+                    Text(stringResource(R.string.nap_question), style = MaterialTheme.typography.labelLarge)
                     Text(
-                        "Keeps it out of your \"last night\" summary",
+                        stringResource(R.string.nap_subtitle),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -200,10 +203,10 @@ fun AddSleepDialog(
             }
 
             // Phone pickups stepper
-            Text("Phone Pickups", style = MaterialTheme.typography.labelLarge)
+            Text(stringResource(R.string.add_sleep_phone_pickups), style = MaterialTheme.typography.labelLarge)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = { if (phonePickups > 0) phonePickups-- }) {
-                    Icon(Icons.Default.Remove, "Decrease")
+                    Icon(Icons.Default.Remove, stringResource(R.string.action_decrease))
                 }
                 Text(
                     "$phonePickups",
@@ -212,7 +215,7 @@ fun AddSleepDialog(
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
                 IconButton(onClick = { phonePickups++ }) {
-                    Icon(Icons.Default.Add, "Increase")
+                    Icon(Icons.Default.Add, stringResource(R.string.action_increase))
                 }
             }
 
@@ -220,7 +223,7 @@ fun AddSleepDialog(
             OutlinedTextField(
                 value = totalPhoneMinutes,
                 onValueChange = { totalPhoneMinutes = it.filter { c -> c.isDigit() } },
-                label = { Text("Total Phone Minutes (optional)") },
+                label = { Text(stringResource(R.string.add_sleep_phone_minutes)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
@@ -229,7 +232,7 @@ fun AddSleepDialog(
             OutlinedTextField(
                 value = notes,
                 onValueChange = { notes = it },
-                label = { Text("Notes (optional)") },
+                label = { Text(stringResource(R.string.notes_optional)) },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 2,
                 maxLines = 4
@@ -245,21 +248,23 @@ fun AddSleepDialog(
             }
 
             // Buttons
+            val errBedtime = stringResource(R.string.add_sleep_err_bedtime)
+            val errQuality = stringResource(R.string.add_sleep_err_quality)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End)
             ) {
-                OutlinedButton(onClick = onDismiss) { Text("Cancel") }
+                OutlinedButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
                 Button(onClick = {
                     val actualBed = LocalDateTime.of(actualBedDate, actualBedTime)
                     val actualWake = LocalDateTime.of(actualWakeDate, actualWakeTime)
 
                     when {
                         actualBed >= actualWake -> {
-                            validationError = "Bedtime must be before wake time"
+                            validationError = errBedtime
                         }
                         qualityRating < 1 -> {
-                            validationError = "Please select a quality rating"
+                            validationError = errQuality
                         }
                         else -> {
                             val zone = ZoneId.systemDefault()
@@ -280,7 +285,7 @@ fun AddSleepDialog(
                             onSave(dto)
                         }
                     }
-                }) { Text("Save") }
+                }) { Text(stringResource(R.string.action_save)) }
             }
 
             Spacer(modifier = Modifier.height(16.dp))

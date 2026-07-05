@@ -325,4 +325,178 @@
     <plurals name="reminder_week">
         <item quantity="other">%1$d สัปดาห์</item>
     </plurals>
+
+    <!-- ══════════════════ §13.1 Android sweep — sleep (tracking) ══════════════════ -->
+
+    <!-- Shared -->
+    <string name="action_keep">เก็บไว้</string>
+    <string name="action_start">เริ่ม</string>
+    <string name="action_preferences">การตั้งค่า</string>
+    <string name="star_rating_cd">ดาว %1$d</string>
+    <string name="notes_optional">บันทึก (ไม่บังคับ)</string>
+    <string name="nap_question">งีบกลางวันใช่ไหม?</string>
+    <string name="nap_subtitle">จะไม่นับรวมใน \"เมื่อคืน\" ของคุณ</string>
+    <string name="range_week">สัปดาห์</string>
+    <string name="range_month">เดือน</string>
+    <string name="period_this_month">เดือนนี้</string>
+    <string name="period_last_month">เดือนที่แล้ว</string>
+
+    <!-- Sleep tab / screen chrome -->
+    <string name="sleep_title">การนอน</string>
+    <string name="sleep_subtab_alarms">นาฬิกาปลุก</string>
+    <string name="sleep_add_alarm_cd">เพิ่มนาฬิกาปลุก</string>
+    <string name="sleep_prefs_title">การตั้งค่าการนอน</string>
+    <string name="sleep_prefs_hint_body">แตะ การตั้งค่า ที่มุมขวาบนเพื่อตั้งเวลาเข้านอน เวลาตื่น เป้าหมาย และล็อคหน้าจอ นาฬิกาปลุกอยู่ในแท็บย่อย นาฬิกาปลุก ด้านบน</string>
+    <string name="sleep_explainer_title">การติดตามการนอนทำงานอย่างไร</string>
+    <string name="sleep_explainer_body">เมื่อแตะ เริ่มนอน Ultiq จะทำงานเป็นบริการเบื้องหลังเพื่อตรวจจับการหยิบโทรศัพท์ตลอดคืนขณะหน้าจอล็อค เราตรวจสอบเฉพาะสถานะหน้าจอ — ไม่ติดตามสิ่งอื่น</string>
+    <string name="sleep_got_it">เข้าใจแล้ว</string>
+
+    <!-- Audio-sync banner -->
+    <string name="sleep_audio_sync_failed_title">เสียงเมื่อคืนยังไม่ซิงค์</string>
+    <string name="sleep_audio_syncing_title">กำลังซิงค์เสียงเมื่อคืน…</string>
+    <string name="sleep_retry_now">ลองใหม่</string>
+
+    <!-- Mic-permission banner -->
+    <string name="sleep_mic_title">การติดตามเสียงกรนต้องการสิทธิ์ไมค์</string>
+    <string name="sleep_mic_body">บัญชีของคุณเปิดใช้การตรวจจับเสียงกรน + ไอ แต่อุปกรณ์นี้ยังไม่ได้รับสิทธิ์ไมโครโฟน การวิเคราะห์เสียงทำบนอุปกรณ์ — ไม่อัปโหลดออก</string>
+    <string name="sleep_grant_permission">อนุญาต</string>
+
+    <!-- No-alarm dialog -->
+    <string name="sleep_no_alarm_title">ไม่มีนาฬิกาปลุกคืนนี้</string>
+    <string name="sleep_no_alarm_body">ไม่มีนาฬิกาปลุกใน 24 ชั่วโมงข้างหน้า ต้องการตั้งพร้อมภารกิจปิดปลุก หรือนอนโดยไม่มีปลุกคืนนี้?</string>
+    <string name="sleep_set_alarm">ตั้งนาฬิกาปลุก</string>
+    <string name="sleep_sleep_without">นอนโดยไม่ตั้งปลุก</string>
+
+    <!-- Session control -->
+    <string name="sleep_sleeping">กำลังนอน…</string>
+    <string name="sleep_elapsed">ผ่านมา %1$d ชม. %2$d นาที</string>
+    <string name="sleep_started_at">เริ่มเมื่อ %1$s</string>
+    <string name="sleep_end">จบการนอน</string>
+    <string name="sleep_start">เริ่มนอน</string>
+    <string name="sleep_log_past">บันทึกการนอนที่ผ่านมา</string>
+
+    <!-- Set-wake dialog -->
+    <string name="sleep_set_wake_title">ตั้งเวลาตื่น</string>
+    <string name="sleep_set_wake_body">เลือกเวลาที่ต้องการตื่น หนี้การนอนจะวัดเทียบกับเป้าหมายนี้</string>
+    <string name="sleep_wake_at">ตื่นเวลา %1$s</string>
+    <string name="sleep_target_duration">เป้าหมาย: %1$s</string>
+
+    <!-- Stats -->
+    <string name="sleep_stat_avg_duration">ระยะเวลาเฉลี่ย</string>
+    <string name="sleep_stat_avg_quality">คุณภาพเฉลี่ย</string>
+    <string name="sleep_stat_avg_pickups">การหยิบโทรศัพท์เฉลี่ย</string>
+    <string name="sleep_stat_naps">การงีบ</string>
+    <string name="sleep_quality_value">%1$s / 5</string>
+    <string name="sleep_per_session">%1$s / ครั้ง</string>
+
+    <!-- Chart legend -->
+    <string name="sleep_legend_night">กลางคืน</string>
+    <string name="sleep_legend_morning">เช้า</string>
+    <string name="sleep_legend_afternoon">บ่าย</string>
+
+    <!-- Record item + expanded details -->
+    <string name="sleep_delete_record_title">ลบบันทึกการนอน?</string>
+    <string name="sleep_delete_record_body">บันทึกจาก %1$s จะถูกลบออกถาวร</string>
+    <string name="sleep_nap_badge">· งีบ</string>
+    <string name="detail_notes">บันทึก</string>
+    <string name="detail_target">เป้าหมาย</string>
+    <string name="detail_actual">จริง</string>
+    <string name="detail_phone_time">เวลาโทรศัพท์</string>
+    <string name="detail_label_prefix">%1$s: </string>
+    <string name="sleep_not_synced">ยังไม่ซิงค์</string>
+    <string name="sleep_detail_loading">กำลังโหลดรายละเอียด…</string>
+    <string name="sleep_phone_pickups_header">การหยิบโทรศัพท์</string>
+    <string name="sleep_pickup_indexed">#%1$d เมื่อ %2$s</string>
+
+    <!-- Audio event groups + playback -->
+    <string name="sleep_group_snoring">กรน</string>
+    <string name="sleep_group_coughing">ไอ</string>
+    <string name="sleep_group_sleeptalk">พูดในหลับ</string>
+    <string name="sleep_tap_to_play">" · แตะ ▶ เพื่อเล่น"</string>
+    <string name="sleep_play_cd">เล่น</string>
+    <string name="sleep_stop_cd">หยุด</string>
+    <string name="sleep_clip_duration">%1$dวิ คลิป · </string>
+    <string name="sleep_playing">กำลังเล่น… (แตะอีกครั้งเพื่อหยุด)</string>
+    <string name="sleep_loading">กำลังโหลด…</string>
+    <string name="sleep_confidence">ความมั่นใจ %1$s%%</string>
+    <string name="sleep_delete_clip">ลบคลิป</string>
+    <string name="sleep_delete_recording_title">ลบการบันทึกนี้?</string>
+    <string name="sleep_delete_recording_body">เหตุการณ์ตรวจจับยังอยู่ — ลบเฉพาะคลิปเสียง</string>
+    <string name="sleep_load_clip_error">โหลดคลิปไม่ได้</string>
+    <string name="sleep_offline_clip">ไม่มีการเชื่อมต่อ — เชื่อมต่อเพื่อเล่นคลิปนี้</string>
+    <string name="sleep_playback_failed">เล่นไม่สำเร็จ</string>
+
+    <!-- Tonight sounds card -->
+    <string name="sleep_last_night">เมื่อคืน</string>
+    <string name="sleep_sounds_header">เสียงขณะนอน — %1$s</string>
+    <string name="sleep_sound_snoring">กรน</string>
+    <string name="sleep_sound_cough">ไอ</string>
+    <string name="sleep_sound_sleeptalk">พูดในหลับ</string>
+    <string name="sleep_quiet_body">ไม่มีเสียงที่ตรวจพบขณะนอน</string>
+
+    <!-- End-sleep dialog -->
+    <string name="end_sleep_good_morning">อรุณสวัสดิ์!</string>
+    <string name="end_sleep_you_slept">คุณนอน %1$d ชม. %2$d นาที</string>
+    <string name="end_sleep_no_pickups">ไม่หยิบโทรศัพท์เลย — เยี่ยมมาก!</string>
+    <string name="end_sleep_sounds_header">เสียงระหว่างนอน</string>
+    <string name="sleep_snore_indexed">กรน #%1$d</string>
+    <string name="sleep_cough_indexed">ไอ #%1$d</string>
+    <string name="sleep_talk_indexed">พูดในหลับ #%1$d</string>
+    <string name="sleep_audio_row">%1$s เวลา %2$s</string>
+    <string name="end_sleep_how_slept">คืนนี้นอนหลับเป็นอย่างไร?</string>
+    <string name="end_sleep_rate_error">กรุณาให้คะแนนคุณภาพการนอน</string>
+    <string name="end_sleep_discard_title">ยกเลิกข้อมูลการนอน?</string>
+    <string name="end_sleep_discard_body">คุณจะสูญเสียข้อมูลระยะเวลาและการหยิบโทรศัพท์ที่ติดตามไว้ ไม่สามารถย้อนกลับได้</string>
+
+    <!-- AI rating -->
+    <string name="ai_rating_loading">กำลังให้ AI ประเมินการนอนของคุณ…</string>
+    <string name="ai_rating_suggests">AI แนะนำ %1$d/5</string>
+    <string name="ai_rating_re_rate">ให้คะแนนใหม่</string>
+    <string name="ai_rating_use">ใช้คะแนนนี้</string>
+    <string name="ai_rating_retry">ลองให้ AI ประเมินอีกครั้ง</string>
+    <string name="ai_rating_get">ขอคะแนนจาก AI</string>
+
+    <!-- Add-sleep dialog -->
+    <string name="add_sleep_target_bedtime">เวลาเข้านอนเป้าหมาย</string>
+    <string name="add_sleep_target_wake">เวลาตื่นเป้าหมาย</string>
+    <string name="add_sleep_bed_date">วันที่เข้านอน</string>
+    <string name="add_sleep_bed_time">เวลาเข้านอน</string>
+    <string name="add_sleep_wake_date">วันที่ตื่น</string>
+    <string name="add_sleep_wake_time">เวลาตื่น</string>
+    <string name="add_sleep_quality">ระดับคุณภาพ</string>
+    <string name="add_sleep_phone_pickups">การหยิบโทรศัพท์</string>
+    <string name="add_sleep_phone_minutes">เวลาโทรศัพท์รวม (ไม่บังคับ)</string>
+    <string name="add_sleep_err_bedtime">เวลาเข้านอนต้องก่อนเวลาตื่น</string>
+    <string name="add_sleep_err_quality">กรุณาเลือกระดับคุณภาพ</string>
+
+    <!-- Sleep ViewModel -->
+    <string name="sleep_err_end_focus">สิ้นสุดเซสชันโฟกัสก่อนเริ่มติดตามการนอน</string>
+
+    <plurals name="sleep_audio_sync_failed_body">
+        <item quantity="other">%1$d เหตุการณ์ถูกเก็บในอุปกรณ์แต่ยังไม่ถึงเซิร์ฟเวอร์ แตะ ลองใหม่ เพื่ออัปโหลดตอนนี้ หรือจะลองใหม่อัตโนมัติเมื่อมีสัญญาณ</item>
+    </plurals>
+    <plurals name="sleep_audio_syncing_body">
+        <item quantity="other">%1$d เหตุการณ์รอการอัปโหลด จะส่งอัตโนมัติเมื่อเชื่อมต่อได้</item>
+    </plurals>
+    <plurals name="sleep_phone_pickups">
+        <item quantity="other">%1$d ครั้งที่หยิบโทรศัพท์</item>
+    </plurals>
+    <plurals name="sleep_group_episodes">
+        <item quantity="other">%2$s · %1$d ครั้ง (%3$dวิ)</item>
+    </plurals>
+    <plurals name="sleep_label_episodes">
+        <item quantity="other">%1$s ครั้ง</item>
+    </plurals>
+    <plurals name="end_sleep_pickups_summary">
+        <item quantity="other">%1$d ครั้งที่หยิบ — รวม %2$s</item>
+    </plurals>
+    <plurals name="end_sleep_snore_summary">
+        <item quantity="other">%1$d ครั้งที่กรน — รวม %2$dวิ</item>
+    </plurals>
+    <plurals name="end_sleep_cough_summary">
+        <item quantity="other">%1$d ครั้งที่ไอ — รวม %2$dวิ</item>
+    </plurals>
+    <plurals name="end_sleep_talk_summary">
+        <item quantity="other">%1$d ครั้งที่พูดในหลับ — รวม %2$dวิ</item>
+    </plurals>
 </resources>

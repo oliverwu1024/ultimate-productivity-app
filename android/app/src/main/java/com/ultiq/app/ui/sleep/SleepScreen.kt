@@ -76,6 +76,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -84,6 +86,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ultiq.app.R
 import com.ultiq.app.data.local.entity.AlarmEntity
 import com.ultiq.app.data.local.entity.SleepRecordEntity
 import com.ultiq.app.data.remote.dto.SleepStats
@@ -99,6 +102,7 @@ import com.ultiq.app.ui.common.formatDuration
 import com.ultiq.app.ui.common.targetDurationMinutes
 import com.ultiq.app.ui.common.MascotEmptyState
 import com.ultiq.app.ui.copy.WarmCopy
+import com.ultiq.app.util.LocaleManager
 import com.ultiq.app.ui.theme.AnimatedAppear
 import com.ultiq.app.ui.theme.QualityStar
 import kotlinx.coroutines.delay
@@ -153,10 +157,10 @@ fun SleepScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Sleep") },
+                title = { Text(stringResource(R.string.sleep_title)) },
                 actions = {
                     TextButton(onClick = onOpenSleepSettings) {
-                        Text("Preferences")
+                        Text(stringResource(R.string.action_preferences))
                     }
                 },
             )
@@ -169,7 +173,7 @@ fun SleepScreen(
         floatingActionButton = {
             if (subTab == 1) {
                 FloatingActionButton(onClick = onCreateAlarm) {
-                    Icon(Icons.Default.Add, contentDescription = "Add alarm")
+                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.sleep_add_alarm_cd))
                 }
             }
         },
@@ -184,12 +188,12 @@ fun SleepScreen(
                 Tab(
                     selected = subTab == 0,
                     onClick = { subTab = 0 },
-                    text = { Text("Sleep") },
+                    text = { Text(stringResource(R.string.sleep_title)) },
                 )
                 Tab(
                     selected = subTab == 1,
                     onClick = { subTab = 1 },
-                    text = { Text("Alarms") },
+                    text = { Text(stringResource(R.string.sleep_subtab_alarms)) },
                 )
             }
 
@@ -274,17 +278,14 @@ private fun UnsyncedAudioBanner(
     // a stronger title; otherwise it's the steady-state "still syncing"
     // message that the WorkManager will resolve in the background.
     val title = if (failedThisSession) {
-        "Last night's sounds didn't sync"
+        stringResource(R.string.sleep_audio_sync_failed_title)
     } else {
-        "Syncing last night's sounds…"
+        stringResource(R.string.sleep_audio_syncing_title)
     }
     val body = if (failedThisSession) {
-        "$count event${if (count == 1) "" else "s"} are stored locally but " +
-            "haven't reached the server yet. Tap Retry to upload now, or " +
-            "they'll retry automatically when you next have signal."
+        pluralStringResource(R.plurals.sleep_audio_sync_failed_body, count, count)
     } else {
-        "$count event${if (count == 1) "" else "s"} waiting to upload. " +
-            "They'll send automatically when your connection is available."
+        pluralStringResource(R.plurals.sleep_audio_syncing_body, count, count)
     }
     Card(
         modifier = Modifier
@@ -326,7 +327,7 @@ private fun UnsyncedAudioBanner(
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                 ) {
                     Text(
-                        text = "Retry now",
+                        text = stringResource(R.string.sleep_retry_now),
                         color = MaterialTheme.colorScheme.onTertiaryContainer,
                         fontWeight = FontWeight.SemiBold,
                     )
@@ -363,16 +364,14 @@ private fun MicPermissionBanner(
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Snore tracking needs mic permission",
+                    text = stringResource(R.string.sleep_mic_title),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onErrorContainer,
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = "Your account has snore + cough detection enabled, " +
-                        "but this device hasn't been granted microphone access. " +
-                        "Audio analysis stays on-device — never uploaded.",
+                    text = stringResource(R.string.sleep_mic_body),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onErrorContainer,
                 )
@@ -384,7 +383,7 @@ private fun MicPermissionBanner(
                         contentColor = MaterialTheme.colorScheme.errorContainer,
                     ),
                 ) {
-                    Text("Grant permission")
+                    Text(stringResource(R.string.sleep_grant_permission))
                 }
             }
         }
@@ -399,19 +398,15 @@ private fun NoAlarmDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("No alarm for tonight") },
+        title = { Text(stringResource(R.string.sleep_no_alarm_title)) },
         text = {
-            Text(
-                "There's no wake-up alarm scheduled in the next 24 hours. Want " +
-                    "to set one with a dismiss mission so you actually get out " +
-                    "of bed, or sleep without one tonight?",
-            )
+            Text(stringResource(R.string.sleep_no_alarm_body))
         },
         confirmButton = {
-            Button(onClick = onSetAlarm) { Text("Set alarm") }
+            Button(onClick = onSetAlarm) { Text(stringResource(R.string.sleep_set_alarm)) }
         },
         dismissButton = {
-            TextButton(onClick = onSleepAnyway) { Text("Sleep without one") }
+            TextButton(onClick = onSleepAnyway) { Text(stringResource(R.string.sleep_sleep_without)) }
         },
     )
 }
@@ -471,10 +466,8 @@ private fun SleepSubTab(
         if (uiState.settings?.sleepPrefsHintSeen == false) {
             item(key = "sleep-prefs-hint") {
                 ConfigureHintCard(
-                    title = "Sleep preferences",
-                    body = "Tap Preferences in the top right to set bedtime, " +
-                        "wake time, sleep goal, and lockout. Wake-up alarms " +
-                        "live in the Alarms sub-tab above.",
+                    title = stringResource(R.string.sleep_prefs_title),
+                    body = stringResource(R.string.sleep_prefs_hint_body),
                     onDismiss = { viewModel.dismissSleepPrefsHint() },
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                 )
@@ -575,12 +568,12 @@ private fun SleepSubTab(
                 Tab(
                     selected = selectedTab == 0,
                     onClick = { viewModel.setTimeRange(TimeRange.WEEK) },
-                    text = { Text("Week") },
+                    text = { Text(stringResource(R.string.range_week)) },
                 )
                 Tab(
                     selected = selectedTab == 1,
                     onClick = { viewModel.setTimeRange(TimeRange.MONTH) },
-                    text = { Text("Month") },
+                    text = { Text(stringResource(R.string.range_month)) },
                 )
             }
         }
@@ -599,7 +592,7 @@ private fun SleepSubTab(
             sections.forEach { (header, recs) ->
                 item(key = "sec-$header") {
                     Text(
-                        header,
+                        stringResource(header),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.padding(start = 20.dp, top = 16.dp, bottom = 4.dp),
@@ -639,7 +632,7 @@ private fun SleepSubTab(
 private fun groupRecordsByPeriod(
     records: List<SleepRecordEntity>,
     range: TimeRange,
-): List<Pair<String, List<SleepRecordEntity>>> {
+): List<Pair<Int, List<SleepRecordEntity>>> {
     val zone = ZoneId.systemDefault()
     val today = java.time.LocalDate.now(zone)
     // §sleep-day (v2.13.17) — Group by sleep_day so a Tue 02:00 bedtime
@@ -657,8 +650,8 @@ private fun groupRecordsByPeriod(
             val thisWeek = records.filter { val d = dayOf(it); !d.isBefore(mondayOfThisWeek) && !d.isAfter(today) }
             val lastWeek = records.filter { val d = dayOf(it); !d.isBefore(mondayOfLastWeek) && !d.isAfter(sundayOfLastWeek) }
             listOfNotNull(
-                "This week".takeIf { thisWeek.isNotEmpty() }?.let { it to thisWeek },
-                "Last week".takeIf { lastWeek.isNotEmpty() }?.let { it to lastWeek },
+                R.string.dashboard_this_week.takeIf { thisWeek.isNotEmpty() }?.let { it to thisWeek },
+                R.string.dashboard_last_week.takeIf { lastWeek.isNotEmpty() }?.let { it to lastWeek },
             )
         }
         TimeRange.MONTH -> {
@@ -668,8 +661,8 @@ private fun groupRecordsByPeriod(
             val thisMonth = records.filter { val d = dayOf(it); !d.isBefore(firstOfThisMonth) && !d.isAfter(today) }
             val lastMonth = records.filter { val d = dayOf(it); !d.isBefore(firstOfLastMonth) && !d.isAfter(lastOfLastMonth) }
             listOfNotNull(
-                "This month".takeIf { thisMonth.isNotEmpty() }?.let { it to thisMonth },
-                "Last month".takeIf { lastMonth.isNotEmpty() }?.let { it to lastMonth },
+                R.string.period_this_month.takeIf { thisMonth.isNotEmpty() }?.let { it to thisMonth },
+                R.string.period_last_month.takeIf { lastMonth.isNotEmpty() }?.let { it to lastMonth },
             )
         }
     }
@@ -722,7 +715,7 @@ private fun SleepExplainerCard(onDismiss: () -> Unit) {
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    "How sleep tracking works",
+                    stringResource(R.string.sleep_explainer_title),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -730,7 +723,7 @@ private fun SleepExplainerCard(onDismiss: () -> Unit) {
                 )
             }
             Text(
-                "When you tap Start Sleep, Ultiq runs as a background service so it can detect phone pickups overnight while your screen is locked. We only check screen state — nothing else about what you do on the phone.",
+                stringResource(R.string.sleep_explainer_body),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
             )
@@ -739,7 +732,7 @@ private fun SleepExplainerCard(onDismiss: () -> Unit) {
                 horizontalArrangement = Arrangement.End,
             ) {
                 TextButton(onClick = onDismiss) {
-                    Text("Got it")
+                    Text(stringResource(R.string.sleep_got_it))
                 }
             }
         }
@@ -783,7 +776,7 @@ private fun SessionControl(
                 )
 
                 Text(
-                    "Sleeping...",
+                    stringResource(R.string.sleep_sleeping),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -801,14 +794,14 @@ private fun SessionControl(
                 val h = elapsed / 60
                 val m = elapsed % 60
                 Text(
-                    "${h}h ${m}m elapsed",
+                    stringResource(R.string.sleep_elapsed, h, m),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
 
                 if (pickupEvents.isNotEmpty()) {
                     Text(
-                        "${pickupEvents.size} phone pickup${if (pickupEvents.size != 1) "s" else ""}",
+                        pluralStringResource(R.plurals.sleep_phone_pickups, pickupEvents.size, pickupEvents.size),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                     )
@@ -816,9 +809,9 @@ private fun SessionControl(
 
                 val startTime = Instant.ofEpochMilli(sessionStartTime)
                     .atZone(ZoneId.systemDefault())
-                    .format(DateTimeFormatter.ofPattern("hh:mm a"))
+                    .format(DateTimeFormatter.ofPattern("hh:mm a", LocaleManager.currentLocale()))
                 Text(
-                    "Started $startTime",
+                    stringResource(R.string.sleep_started_at, startTime),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.5f)
                 )
@@ -831,7 +824,7 @@ private fun SessionControl(
                 ) {
                     Icon(Icons.Default.WbSunny, null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("End Sleep")
+                    Text(stringResource(R.string.sleep_end))
                 }
             } else {
                 // No active session
@@ -846,11 +839,11 @@ private fun SessionControl(
                     onClick = onStartSleep,
                     modifier = Modifier.fillMaxWidth(0.7f)
                 ) {
-                    Text("Start Sleep")
+                    Text(stringResource(R.string.sleep_start))
                 }
 
                 TextButton(onClick = onManualLog) {
-                    Text("Log past sleep", style = MaterialTheme.typography.bodySmall)
+                    Text(stringResource(R.string.sleep_log_past), style = MaterialTheme.typography.bodySmall)
                 }
             }
         }
@@ -866,16 +859,19 @@ private fun StatsRow(stats: SleepStats) {
         item {
             val hours = (stats.avgDurationMinutes / 60).toInt()
             val mins = (stats.avgDurationMinutes % 60).toInt()
-            StatCard("Avg Duration", "${hours}h ${mins}m")
+            StatCard(stringResource(R.string.sleep_stat_avg_duration), "${hours}h ${mins}m")
         }
         item {
-            StatCard("Avg Quality", String.format("%.1f / 5", stats.avgQuality))
+            StatCard(
+                stringResource(R.string.sleep_stat_avg_quality),
+                stringResource(R.string.sleep_quality_value, String.format(LocaleManager.currentLocale(), "%.1f", stats.avgQuality)),
+            )
         }
         item {
             val debtH = (stats.debtMinutes / 60).toInt()
             val debtM = (stats.debtMinutes % 60).toInt()
             StatCard(
-                "Sleep debt",
+                stringResource(R.string.dashboard_sleep_debt),
                 if (stats.debtMinutes > 0) "${debtH}h ${debtM}m" else "0h 0m",
                 valueColor = if (stats.debtMinutes > 0) MaterialTheme.colorScheme.error else Color(0xFF4CAF50)
             )
@@ -884,19 +880,22 @@ private fun StatsRow(stats: SleepStats) {
             val extraH = (stats.extraMinutes / 60).toInt()
             val extraM = (stats.extraMinutes % 60).toInt()
             StatCard(
-                "Extra rest",
+                stringResource(R.string.dashboard_extra_rest),
                 if (stats.extraMinutes > 0) "${extraH}h ${extraM}m" else "0h 0m",
                 valueColor = Color(0xFF4CAF50)
             )
         }
         item {
-            StatCard("Avg Pickups", String.format("%.1f / session", stats.avgPhonePickups))
+            StatCard(
+                stringResource(R.string.sleep_stat_avg_pickups),
+                stringResource(R.string.sleep_per_session, String.format(LocaleManager.currentLocale(), "%.1f", stats.avgPhonePickups)),
+            )
         }
         // §last-night — naps are excluded from the averages above; surface the
         // count so they're visible without skewing the numbers.
         if (stats.napCount > 0) {
             item {
-                StatCard("Naps", stats.napCount.toString())
+                StatCard(stringResource(R.string.sleep_stat_naps), stats.napCount.toString())
             }
         }
     }
@@ -911,9 +910,9 @@ private fun ChartLegend() {
         horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        LegendDot(Color(0xFF3F51B5), "Night")
-        LegendDot(Color(0xFF26C6DA), "Morning")
-        LegendDot(Color(0xFFFFA726), "Afternoon")
+        LegendDot(Color(0xFF3F51B5), stringResource(R.string.sleep_legend_night))
+        LegendDot(Color(0xFF26C6DA), stringResource(R.string.sleep_legend_morning))
+        LegendDot(Color(0xFFFFA726), stringResource(R.string.sleep_legend_afternoon))
     }
 }
 
@@ -966,11 +965,11 @@ private fun SleepRecordItem(
     var expanded by remember { mutableStateOf(false) }
     val zone = ZoneId.systemDefault()
     val dateStr = Instant.ofEpochMilli(record.actualBedtime).atZone(zone)
-        .format(DateTimeFormatter.ofPattern("EEE, MMM dd"))
+        .format(DateTimeFormatter.ofPattern("EEE, MMM dd", LocaleManager.currentLocale()))
 
     com.ultiq.app.ui.common.SwipeToDeleteBox(
-        confirmTitle = "Delete sleep record?",
-        confirmBody = "This will permanently remove the record from $dateStr.",
+        confirmTitle = stringResource(R.string.sleep_delete_record_title),
+        confirmBody = stringResource(R.string.sleep_delete_record_body, dateStr),
         onDelete = onDelete,
         modifier = modifier,
     ) {
@@ -994,7 +993,7 @@ private fun SleepRecordItem(
                 val zone = record.recordedTz?.let { runCatching { ZoneId.of(it) }.getOrNull() }
                     ?: ZoneId.systemDefault()
                 val bedInstant = Instant.ofEpochMilli(record.actualBedtime).atZone(zone)
-                val dateStr = bedInstant.format(DateTimeFormatter.ofPattern("EEE, MMM dd"))
+                val dateStr = bedInstant.format(DateTimeFormatter.ofPattern("EEE, MMM dd", LocaleManager.currentLocale()))
                 val durationMins = ((record.actualWakeTime - record.actualBedtime) / 60_000).toInt()
                 val hours = durationMins / 60
                 val mins = durationMins % 60
@@ -1010,7 +1009,7 @@ private fun SleepRecordItem(
                             if (record.isNap) {
                                 Spacer(Modifier.width(6.dp))
                                 Text(
-                                    "· Nap",
+                                    stringResource(R.string.sleep_nap_badge),
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.primary,
                                 )
@@ -1033,7 +1032,7 @@ private fun SleepRecordItem(
                 AnimatedVisibility(visible = expanded) {
                     Column(modifier = Modifier.padding(top = 12.dp)) {
                         val wakeInstant = Instant.ofEpochMilli(record.actualWakeTime).atZone(zone)
-                        val timeFormat = DateTimeFormatter.ofPattern("hh:mm a")
+                        val timeFormat = DateTimeFormatter.ofPattern("hh:mm a", LocaleManager.currentLocale())
 
                         // §fix-target-time-format — server stores TIME as
                         // "HH:MM:SS" 24h strings; re-parse to LocalTime and
@@ -1051,15 +1050,18 @@ private fun SleepRecordItem(
                         // here, so users glancing at a past record see their
                         // own words first, then the derived stats.
                         if (!record.notes.isNullOrBlank()) {
-                            DetailRow("Notes", record.notes)
+                            DetailRow(stringResource(R.string.detail_notes), record.notes)
                         }
-                        DetailRow("Target", targetStr)
-                        DetailRow("Actual", "${bedInstant.format(timeFormat)} - ${wakeInstant.format(timeFormat)}")
+                        DetailRow(stringResource(R.string.detail_target), targetStr)
+                        DetailRow(stringResource(R.string.detail_actual), "${bedInstant.format(timeFormat)} - ${wakeInstant.format(timeFormat)}")
                         if (record.totalPhoneMinutes != null) {
-                            DetailRow("Phone Time", "${record.totalPhoneMinutes} min")
+                            DetailRow(
+                                stringResource(R.string.detail_phone_time),
+                                pluralStringResource(R.plurals.estimate_minutes, record.totalPhoneMinutes, record.totalPhoneMinutes),
+                            )
                         }
                         if (!record.isSynced) {
-                            Text("Not synced", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 4.dp))
+                            Text(stringResource(R.string.sleep_not_synced), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 4.dp))
                         }
                         // §10 — Lazy-loaded detail: pickup timeline + snore /
                         // cough event list. The ViewModel fetches pickups from
@@ -1083,7 +1085,7 @@ private fun SleepRecordItem(
 @Composable
 private fun DetailRow(label: String, value: String) {
     Row(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
-        Text("$label: ", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(stringResource(R.string.detail_label_prefix, label), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(value, style = MaterialTheme.typography.bodySmall)
     }
 }
@@ -1104,7 +1106,7 @@ private fun RecordDetailSection(
     if (details == null) return
     if (details.loading) {
         Text(
-            "Loading details…",
+            stringResource(R.string.sleep_detail_loading),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 8.dp),
@@ -1123,7 +1125,7 @@ private fun RecordDetailSection(
 
     if (pickups.isNotEmpty()) {
         Text(
-            "Phone pickups",
+            stringResource(R.string.sleep_phone_pickups_header),
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1135,7 +1137,7 @@ private fun RecordDetailSection(
             val durText = if (durMins > 0) "${durMins}m ${durSecs}s" else "${durSecs}s"
             DetailEventRow(
                 icon = Icons.Default.PhoneAndroid,
-                label = "#${index + 1} at $time",
+                label = stringResource(R.string.sleep_pickup_indexed, index + 1, time),
                 trailing = durText,
             )
         }
@@ -1147,7 +1149,7 @@ private fun RecordDetailSection(
     if (snores.isNotEmpty()) {
         if (pickups.isNotEmpty()) Spacer(Modifier.height(8.dp))
         SleepAudioEventGroup(
-            title = "Snoring",
+            title = stringResource(R.string.sleep_group_snoring),
             events = snores,
             sleepRecordId = sleepRecordId,
             onFetchClipUrl = onFetchClipUrl,
@@ -1160,7 +1162,7 @@ private fun RecordDetailSection(
     if (coughs.isNotEmpty()) {
         if (snores.isNotEmpty() || pickups.isNotEmpty()) Spacer(Modifier.height(8.dp))
         SleepAudioEventGroup(
-            title = "Coughing",
+            title = stringResource(R.string.sleep_group_coughing),
             events = coughs,
             sleepRecordId = sleepRecordId,
             onFetchClipUrl = onFetchClipUrl,
@@ -1175,7 +1177,7 @@ private fun RecordDetailSection(
             Spacer(Modifier.height(8.dp))
         }
         SleepAudioEventGroup(
-            title = "Sleep-talk",
+            title = stringResource(R.string.sleep_group_sleeptalk),
             events = sleepTalks,
             sleepRecordId = sleepRecordId,
             onFetchClipUrl = onFetchClipUrl,
@@ -1220,8 +1222,8 @@ private fun SleepAudioEventGroup(
     val anyClips = events.any { it.hasClip }
 
     Text(
-        "$title · ${events.size} episode${if (events.size != 1) "s" else ""} (${totalSecs}s)" +
-            if (anyClips) " · tap ▶ to play" else "",
+        pluralStringResource(R.plurals.sleep_group_episodes, events.size, events.size, title, totalSecs) +
+            if (anyClips) stringResource(R.string.sleep_tap_to_play) else "",
         style = MaterialTheme.typography.labelMedium,
         fontWeight = FontWeight.SemiBold,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1236,7 +1238,7 @@ private fun SleepAudioEventGroup(
             EventPlaybackRow(
                 event = e,
                 index = index,
-                label = "#${index + 1} at $time",
+                label = stringResource(R.string.sleep_pickup_indexed, index + 1, time),
                 durationText = "${durSec}s",
                 isExpanded = playingId == e.id,
                 onToggle = { playingId = if (playingId == e.id) null else e.id },
@@ -1255,7 +1257,7 @@ private fun SleepAudioEventGroup(
         } else {
             DetailEventRow(
                 icon = Icons.Default.GraphicEq,
-                label = "#${index + 1} at $time",
+                label = stringResource(R.string.sleep_pickup_indexed, index + 1, time),
                 trailing = "${durSec}s",
             )
         }
@@ -1289,6 +1291,9 @@ private fun EventPlaybackRow(
     var confirmingDelete by remember { mutableStateOf(false) }
     var loadingUrl by remember { mutableStateOf(false) }
     var loadError by remember { mutableStateOf<String?>(null) }
+    val errLoadClip = stringResource(R.string.sleep_load_clip_error)
+    val errOffline = stringResource(R.string.sleep_offline_clip)
+    val errPlayback = stringResource(R.string.sleep_playback_failed)
 
     Row(
         modifier = Modifier
@@ -1301,7 +1306,7 @@ private fun EventPlaybackRow(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 if (isExpanded) Icons.Default.Pause else Icons.Default.PlayArrow,
-                contentDescription = if (isExpanded) "Stop" else "Play",
+                contentDescription = if (isExpanded) stringResource(R.string.sleep_stop_cd) else stringResource(R.string.sleep_play_cd),
                 modifier = Modifier.size(16.dp),
                 tint = MaterialTheme.colorScheme.primary,
             )
@@ -1313,7 +1318,7 @@ private fun EventPlaybackRow(
         Row(verticalAlignment = Alignment.CenterVertically) {
             event.clipDurationMs?.let { ms ->
                 Text(
-                    "${(ms + 500) / 1000}s clip · ",
+                    stringResource(R.string.sleep_clip_duration, (ms + 500) / 1000),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -1345,11 +1350,7 @@ private fun EventPlaybackRow(
                     // deletion on upload). Detect the offline case explicitly
                     // so the user gets a useful message instead of the
                     // catch-all "Couldn't load clip".
-                    loadError = if (isOnline(context)) {
-                        "Couldn't load clip"
-                    } else {
-                        "No connection — connect to play this clip"
-                    }
+                    loadError = if (isOnline(context)) errLoadClip else errOffline
                     return@launch
                 }
                 try {
@@ -1366,20 +1367,12 @@ private fun EventPlaybackRow(
                     player.setOnErrorListener { _, _, _ ->
                         // MediaPlayer streams from S3, so a mid-playback
                         // connectivity loss surfaces here too.
-                        loadError = if (isOnline(context)) {
-                            "Playback failed"
-                        } else {
-                            "No connection — connect to play this clip"
-                        }
+                        loadError = if (isOnline(context)) errPlayback else errOffline
                         true
                     }
                     player.prepareAsync()
                 } catch (e: Throwable) {
-                    loadError = if (isOnline(context)) {
-                        "Playback failed"
-                    } else {
-                        "No connection — connect to play this clip"
-                    }
+                    loadError = if (isOnline(context)) errPlayback else errOffline
                 }
             }
             onDispose {
@@ -1396,7 +1389,7 @@ private fun EventPlaybackRow(
         ) {
             when {
                 loadingUrl -> Text(
-                    "Loading…",
+                    stringResource(R.string.sleep_loading),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -1406,7 +1399,7 @@ private fun EventPlaybackRow(
                     color = MaterialTheme.colorScheme.error,
                 )
                 else -> Text(
-                    "Playing… (tap row again to stop)",
+                    stringResource(R.string.sleep_playing),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary,
                 )
@@ -1417,12 +1410,12 @@ private fun EventPlaybackRow(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    "Confidence ${"%.0f".format(event.peakConfidence * 100)}%",
+                    stringResource(R.string.sleep_confidence, String.format(LocaleManager.currentLocale(), "%.0f", event.peakConfidence * 100)),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 TextButton(onClick = { confirmingDelete = true }) {
-                    Text("Delete clip", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.sleep_delete_clip), color = MaterialTheme.colorScheme.error)
                 }
             }
         }
@@ -1431,16 +1424,16 @@ private fun EventPlaybackRow(
     if (confirmingDelete) {
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { confirmingDelete = false },
-            title = { Text("Delete this recording?") },
-            text = { Text("The detection event stays — only the audio clip is removed.") },
+            title = { Text(stringResource(R.string.sleep_delete_recording_title)) },
+            text = { Text(stringResource(R.string.sleep_delete_recording_body)) },
             confirmButton = {
                 TextButton(onClick = {
                     confirmingDelete = false
                     onConfirmDelete()
-                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+                }) { Text(stringResource(R.string.action_delete), color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = {
-                TextButton(onClick = { confirmingDelete = false }) { Text("Cancel") }
+                TextButton(onClick = { confirmingDelete = false }) { Text(stringResource(R.string.action_cancel)) }
             },
         )
     }
@@ -1501,11 +1494,11 @@ private fun SetSessionTargetDialog(
 
     androidx.compose.material3.AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Set wake time") },
+        title = { Text(stringResource(R.string.sleep_set_wake_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    "Pick when you'd like to wake up. Sleep debt is measured against this target.",
+                    stringResource(R.string.sleep_set_wake_body),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -1517,20 +1510,20 @@ private fun SetSessionTargetDialog(
                     },
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text("Wake at ${wakeTime.format(timeFormat)}")
+                    Text(stringResource(R.string.sleep_wake_at, wakeTime.format(timeFormat)))
                 }
                 Text(
-                    "Target duration: $durationLabel",
+                    stringResource(R.string.sleep_target_duration, durationLabel),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
                 )
             }
         },
         confirmButton = {
-            Button(onClick = { onConfirm(wakeTime) }) { Text("Start") }
+            Button(onClick = { onConfirm(wakeTime) }) { Text(stringResource(R.string.action_start)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
         },
     )
 }
@@ -1557,9 +1550,9 @@ private fun TonightSoundsCard(
     // sleep period. Older records show the date so the user can tell which
     // night they're looking at.
     val label = if (date >= today.minusDays(1)) {
-        "Last night"
+        stringResource(R.string.sleep_last_night)
     } else {
-        date.format(java.time.format.DateTimeFormatter.ofPattern("EEE, MMM d"))
+        date.format(java.time.format.DateTimeFormatter.ofPattern("EEE, MMM d", LocaleManager.currentLocale()))
     }
 
     Card(
@@ -1581,7 +1574,7 @@ private fun TonightSoundsCard(
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    "Sleep sounds — $label",
+                    stringResource(R.string.sleep_sounds_header, label),
                     style = MaterialTheme.typography.titleMedium,
                 )
             }
@@ -1592,27 +1585,27 @@ private fun TonightSoundsCard(
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     if (snoreCount > 0) {
-                        SoundCountTile("Snoring", snoreCount, Modifier.weight(1f))
+                        SoundCountTile(stringResource(R.string.sleep_sound_snoring), snoreCount, Modifier.weight(1f))
                     }
                     if (coughCount > 0) {
-                        SoundCountTile("Cough", coughCount, Modifier.weight(1f))
+                        SoundCountTile(stringResource(R.string.sleep_sound_cough), coughCount, Modifier.weight(1f))
                     }
                     if (sleepTalkCount > 0) {
-                        SoundCountTile("Sleep-talk", sleepTalkCount, Modifier.weight(1f))
+                        SoundCountTile(stringResource(R.string.sleep_sound_sleeptalk), sleepTalkCount, Modifier.weight(1f))
                     }
                 }
             } else {
                 // Monitoring was on but nothing fired — reassure rather than
                 // hide, mirroring the Dashboard card's "Quiet night" line.
                 Text(
-                    "Quiet night",
+                    stringResource(R.string.dashboard_quiet_night),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.primary,
                 )
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    "Nothing picked up while you slept.",
+                    stringResource(R.string.sleep_quiet_body),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -1631,7 +1624,7 @@ private fun SoundCountTile(label: String, count: Int, modifier: Modifier = Modif
             color = MaterialTheme.colorScheme.primary,
         )
         Text(
-            "$label ${if (count == 1) "episode" else "episodes"}",
+            pluralStringResource(R.plurals.sleep_label_episodes, count, label),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

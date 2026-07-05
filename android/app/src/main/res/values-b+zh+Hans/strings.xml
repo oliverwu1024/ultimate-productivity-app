@@ -325,4 +325,178 @@
     <plurals name="reminder_week">
         <item quantity="other">%1$d 周</item>
     </plurals>
+
+    <!-- ══════════════════ §13.1 Android sweep — sleep (tracking) ══════════════════ -->
+
+    <!-- Shared -->
+    <string name="action_keep">保留</string>
+    <string name="action_start">开始</string>
+    <string name="action_preferences">偏好设置</string>
+    <string name="star_rating_cd">第%1$d颗星</string>
+    <string name="notes_optional">备注（可选）</string>
+    <string name="nap_question">白天小睡？</string>
+    <string name="nap_subtitle">不计入昨晚的睡眠摘要</string>
+    <string name="range_week">周</string>
+    <string name="range_month">月</string>
+    <string name="period_this_month">本月</string>
+    <string name="period_last_month">上月</string>
+
+    <!-- Sleep tab / screen chrome -->
+    <string name="sleep_title">睡眠</string>
+    <string name="sleep_subtab_alarms">闹钟</string>
+    <string name="sleep_add_alarm_cd">添加闹钟</string>
+    <string name="sleep_prefs_title">睡眠偏好设置</string>
+    <string name="sleep_prefs_hint_body">点击右上角"偏好设置"，设置就寝时间、起床时间、睡眠目标和锁定。起床闹钟在上方的"闹钟"子选项卡中。</string>
+    <string name="sleep_explainer_title">睡眠追踪原理</string>
+    <string name="sleep_explainer_body">点击"开始睡眠"后，Ultiq 将作为后台服务运行，以便在屏幕锁定的夜间检测手机拿起次数。我们只检测屏幕状态，不收集任何其他手机使用数据。</string>
+    <string name="sleep_got_it">知道了</string>
+
+    <!-- Audio-sync banner -->
+    <string name="sleep_audio_sync_failed_title">昨晚的声音未同步</string>
+    <string name="sleep_audio_syncing_title">正在同步昨晚的声音…</string>
+    <string name="sleep_retry_now">立即重试</string>
+
+    <!-- Mic-permission banner -->
+    <string name="sleep_mic_title">打鼾追踪需要麦克风权限</string>
+    <string name="sleep_mic_body">您的账户已启用打鼾+咳嗽检测，但此设备尚未获得麦克风权限。音频分析在设备本地进行，不会上传。</string>
+    <string name="sleep_grant_permission">授予权限</string>
+
+    <!-- No-alarm dialog -->
+    <string name="sleep_no_alarm_title">今晚未设置闹钟</string>
+    <string name="sleep_no_alarm_body">未来 24 小时内没有起床闹钟。要设置一个带解除任务的闹钟，还是今晚不用闹钟？</string>
+    <string name="sleep_set_alarm">设置闹钟</string>
+    <string name="sleep_sleep_without">不用闹钟</string>
+
+    <!-- Session control -->
+    <string name="sleep_sleeping">睡眠中…</string>
+    <string name="sleep_elapsed">已过 %1$d 小时 %2$d 分钟</string>
+    <string name="sleep_started_at">%1$s 开始</string>
+    <string name="sleep_end">结束睡眠</string>
+    <string name="sleep_start">开始睡眠</string>
+    <string name="sleep_log_past">记录过去的睡眠</string>
+
+    <!-- Set-wake dialog -->
+    <string name="sleep_set_wake_title">设置起床时间</string>
+    <string name="sleep_set_wake_body">选择您想要的起床时间。睡眠债将以此为目标进行计算。</string>
+    <string name="sleep_wake_at">%1$s 起床</string>
+    <string name="sleep_target_duration">目标时长：%1$s</string>
+
+    <!-- Stats -->
+    <string name="sleep_stat_avg_duration">平均时长</string>
+    <string name="sleep_stat_avg_quality">平均质量</string>
+    <string name="sleep_stat_avg_pickups">平均拿起次数</string>
+    <string name="sleep_stat_naps">小睡</string>
+    <string name="sleep_quality_value">%1$s / 5</string>
+    <string name="sleep_per_session">%1$s / 次</string>
+
+    <!-- Chart legend -->
+    <string name="sleep_legend_night">夜间</string>
+    <string name="sleep_legend_morning">早晨</string>
+    <string name="sleep_legend_afternoon">下午</string>
+
+    <!-- Record item + expanded details -->
+    <string name="sleep_delete_record_title">删除睡眠记录？</string>
+    <string name="sleep_delete_record_body">这将永久删除 %1$s 的记录。</string>
+    <string name="sleep_nap_badge">· 小睡</string>
+    <string name="detail_notes">备注</string>
+    <string name="detail_target">目标</string>
+    <string name="detail_actual">实际</string>
+    <string name="detail_phone_time">手机使用时间</string>
+    <string name="detail_label_prefix">%1$s：</string>
+    <string name="sleep_not_synced">未同步</string>
+    <string name="sleep_detail_loading">正在加载详情…</string>
+    <string name="sleep_phone_pickups_header">手机拿起</string>
+    <string name="sleep_pickup_indexed">第%1$d次 %2$s</string>
+
+    <!-- Audio event groups + playback -->
+    <string name="sleep_group_snoring">打鼾</string>
+    <string name="sleep_group_coughing">咳嗽</string>
+    <string name="sleep_group_sleeptalk">说梦话</string>
+    <string name="sleep_tap_to_play">" · 点击 ▶ 播放"</string>
+    <string name="sleep_play_cd">播放</string>
+    <string name="sleep_stop_cd">停止</string>
+    <string name="sleep_clip_duration">%1$d 秒片段 · </string>
+    <string name="sleep_playing">播放中…（再次点击停止）</string>
+    <string name="sleep_loading">加载中…</string>
+    <string name="sleep_confidence">置信度 %1$s%%</string>
+    <string name="sleep_delete_clip">删除片段</string>
+    <string name="sleep_delete_recording_title">删除此录音？</string>
+    <string name="sleep_delete_recording_body">检测事件保留，仅删除音频片段。</string>
+    <string name="sleep_load_clip_error">无法加载片段</string>
+    <string name="sleep_offline_clip">无网络连接，联网后播放此片段</string>
+    <string name="sleep_playback_failed">播放失败</string>
+
+    <!-- Tonight sounds card -->
+    <string name="sleep_last_night">昨晚</string>
+    <string name="sleep_sounds_header">睡眠声音 — %1$s</string>
+    <string name="sleep_sound_snoring">打鼾</string>
+    <string name="sleep_sound_cough">咳嗽</string>
+    <string name="sleep_sound_sleeptalk">说梦话</string>
+    <string name="sleep_quiet_body">昨晚没有检测到异常声音。</string>
+
+    <!-- End-sleep dialog -->
+    <string name="end_sleep_good_morning">早上好！</string>
+    <string name="end_sleep_you_slept">您睡了 %1$d 小时 %2$d 分钟</string>
+    <string name="end_sleep_no_pickups">没有拿起手机——太棒了！</string>
+    <string name="end_sleep_sounds_header">睡眠期间的声音</string>
+    <string name="sleep_snore_indexed">打鼾第%1$d次</string>
+    <string name="sleep_cough_indexed">咳嗽第%1$d次</string>
+    <string name="sleep_talk_indexed">说梦话第%1$d次</string>
+    <string name="sleep_audio_row">%2$s %1$s</string>
+    <string name="end_sleep_how_slept">今晚睡得怎么样？</string>
+    <string name="end_sleep_rate_error">请为您的睡眠质量评分</string>
+    <string name="end_sleep_discard_title">丢弃睡眠记录？</string>
+    <string name="end_sleep_discard_body">您将失去我们追踪的时长和拿起次数数据，此操作无法撤销。</string>
+
+    <!-- AI rating -->
+    <string name="ai_rating_loading">AI 正在为您的睡眠评分…</string>
+    <string name="ai_rating_suggests">AI 建议评分 %1$d/5</string>
+    <string name="ai_rating_re_rate">重新评分</string>
+    <string name="ai_rating_use">使用此评分</string>
+    <string name="ai_rating_retry">重试 AI 评分</string>
+    <string name="ai_rating_get">获取 AI 评分</string>
+
+    <!-- Add-sleep dialog -->
+    <string name="add_sleep_target_bedtime">目标就寝时间</string>
+    <string name="add_sleep_target_wake">目标起床时间</string>
+    <string name="add_sleep_bed_date">就寝日期</string>
+    <string name="add_sleep_bed_time">就寝时间</string>
+    <string name="add_sleep_wake_date">起床日期</string>
+    <string name="add_sleep_wake_time">起床时间</string>
+    <string name="add_sleep_quality">质量评分</string>
+    <string name="add_sleep_phone_pickups">手机拿起次数</string>
+    <string name="add_sleep_phone_minutes">手机使用总时间（可选）</string>
+    <string name="add_sleep_err_bedtime">就寝时间必须早于起床时间</string>
+    <string name="add_sleep_err_quality">请选择质量评分</string>
+
+    <!-- Sleep ViewModel -->
+    <string name="sleep_err_end_focus">请先结束专注会话，再开始睡眠追踪</string>
+
+    <plurals name="sleep_audio_sync_failed_body">
+        <item quantity="other">%1$d 个事件已存储在本地，尚未同步到服务器。点击"重试"立即上传，或在下次有网络时自动重试。</item>
+    </plurals>
+    <plurals name="sleep_audio_syncing_body">
+        <item quantity="other">%1$d 个事件等待上传，有网络时将自动发送。</item>
+    </plurals>
+    <plurals name="sleep_phone_pickups">
+        <item quantity="other">%1$d 次手机拿起</item>
+    </plurals>
+    <plurals name="sleep_group_episodes">
+        <item quantity="other">%2$s · %1$d 次（%3$d 秒）</item>
+    </plurals>
+    <plurals name="sleep_label_episodes">
+        <item quantity="other">%1$s 次</item>
+    </plurals>
+    <plurals name="end_sleep_pickups_summary">
+        <item quantity="other">%1$d 次拿起，共 %2$s</item>
+    </plurals>
+    <plurals name="end_sleep_snore_summary">
+        <item quantity="other">%1$d 次打鼾，共 %2$d 秒</item>
+    </plurals>
+    <plurals name="end_sleep_cough_summary">
+        <item quantity="other">%1$d 次咳嗽，共 %2$d 秒</item>
+    </plurals>
+    <plurals name="end_sleep_talk_summary">
+        <item quantity="other">%1$d 次说梦话，共 %2$d 秒</item>
+    </plurals>
 </resources>

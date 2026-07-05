@@ -353,4 +353,196 @@
         <item quantity="many">%1$d semanas</item>
         <item quantity="other">%1$d semanas</item>
     </plurals>
+
+    <!-- ══════════════════ §13.1 Android sweep — sleep (tracking) ══════════════════ -->
+
+    <!-- Shared -->
+    <string name="action_keep">Mantener</string>
+    <string name="action_start">Iniciar</string>
+    <string name="action_preferences">Preferencias</string>
+    <string name="star_rating_cd">Estrella %1$d</string>
+    <string name="notes_optional">Notas (opcional)</string>
+    <string name="nap_question">¿Siesta diurna?</string>
+    <string name="nap_subtitle">Lo excluye de tu resumen de \"anoche\"</string>
+    <string name="range_week">Semana</string>
+    <string name="range_month">Mes</string>
+    <string name="period_this_month">Este mes</string>
+    <string name="period_last_month">Mes pasado</string>
+
+    <!-- Sleep tab / screen chrome -->
+    <string name="sleep_title">Sueño</string>
+    <string name="sleep_subtab_alarms">Alarmas</string>
+    <string name="sleep_add_alarm_cd">Añadir alarma</string>
+    <string name="sleep_prefs_title">Preferencias de sueño</string>
+    <string name="sleep_prefs_hint_body">Toca Preferencias arriba a la derecha para configurar la hora de acostarte, despertar, objetivo de sueño y bloqueo. Las alarmas de despertar están en la pestaña Alarmas.</string>
+    <string name="sleep_explainer_title">Cómo funciona el registro de sueño</string>
+    <string name="sleep_explainer_body">Al tocar Iniciar sueño, Ultiq se ejecuta como servicio en segundo plano para detectar cuando coges el móvil de noche con la pantalla bloqueada. Solo comprobamos el estado de la pantalla — nada más de lo que haces con el móvil.</string>
+    <string name="sleep_got_it">Entendido</string>
+
+    <!-- Audio-sync banner -->
+    <string name="sleep_audio_sync_failed_title">Los sonidos de anoche no se sincronizaron</string>
+    <string name="sleep_audio_syncing_title">Sincronizando los sonidos de anoche…</string>
+    <string name="sleep_retry_now">Reintentar ahora</string>
+
+    <!-- Mic-permission banner -->
+    <string name="sleep_mic_title">El registro de ronquidos necesita permiso del micrófono</string>
+    <string name="sleep_mic_body">Tu cuenta tiene activa la detección de ronquidos y tos, pero este dispositivo no tiene acceso al micrófono. El análisis de audio se hace en el dispositivo — nunca se sube.</string>
+    <string name="sleep_grant_permission">Conceder permiso</string>
+
+    <!-- No-alarm dialog -->
+    <string name="sleep_no_alarm_title">Sin alarma para esta noche</string>
+    <string name="sleep_no_alarm_body">No hay alarma programada en las próximas 24 horas. ¿Quieres configurar una con una misión de desactivación para levantarte de verdad, o dormir sin alarma esta noche?</string>
+    <string name="sleep_set_alarm">Configurar alarma</string>
+    <string name="sleep_sleep_without">Dormir sin alarma</string>
+
+    <!-- Session control -->
+    <string name="sleep_sleeping">Durmiendo…</string>
+    <string name="sleep_elapsed">%1$dh %2$dm transcurridos</string>
+    <string name="sleep_started_at">Iniciado %1$s</string>
+    <string name="sleep_end">Finalizar sueño</string>
+    <string name="sleep_start">Iniciar sueño</string>
+    <string name="sleep_log_past">Registrar sueño pasado</string>
+
+    <!-- Set-wake dialog -->
+    <string name="sleep_set_wake_title">Configurar hora de despertar</string>
+    <string name="sleep_set_wake_body">Elige cuándo quieres despertar. La deuda de sueño se calcula respecto a este objetivo.</string>
+    <string name="sleep_wake_at">Despertar a las %1$s</string>
+    <string name="sleep_target_duration">Duración objetivo: %1$s</string>
+
+    <!-- Stats -->
+    <string name="sleep_stat_avg_duration">Duración media</string>
+    <string name="sleep_stat_avg_quality">Calidad media</string>
+    <string name="sleep_stat_avg_pickups">Capturas medias</string>
+    <string name="sleep_stat_naps">Siestas</string>
+    <string name="sleep_quality_value">%1$s / 5</string>
+    <string name="sleep_per_session">%1$s / sesión</string>
+
+    <!-- Chart legend -->
+    <string name="sleep_legend_night">Noche</string>
+    <string name="sleep_legend_morning">Mañana</string>
+    <string name="sleep_legend_afternoon">Tarde</string>
+
+    <!-- Record item + expanded details -->
+    <string name="sleep_delete_record_title">¿Eliminar registro de sueño?</string>
+    <string name="sleep_delete_record_body">Esto eliminará permanentemente el registro del %1$s.</string>
+    <string name="sleep_nap_badge">· Siesta</string>
+    <string name="detail_notes">Notas</string>
+    <string name="detail_target">Objetivo</string>
+    <string name="detail_actual">Real</string>
+    <string name="detail_phone_time">Tiempo de móvil</string>
+    <string name="detail_label_prefix">%1$s: </string>
+    <string name="sleep_not_synced">No sincronizado</string>
+    <string name="sleep_detail_loading">Cargando detalles…</string>
+    <string name="sleep_phone_pickups_header">Capturas de móvil</string>
+    <string name="sleep_pickup_indexed">#%1$d a las %2$s</string>
+
+    <!-- Audio event groups + playback -->
+    <string name="sleep_group_snoring">Ronquidos</string>
+    <string name="sleep_group_coughing">Tos</string>
+    <string name="sleep_group_sleeptalk">Hablar dormido</string>
+    <string name="sleep_tap_to_play">" · toca ▶ para reproducir"</string>
+    <string name="sleep_play_cd">Reproducir</string>
+    <string name="sleep_stop_cd">Detener</string>
+    <string name="sleep_clip_duration">Clip de %1$ds · </string>
+    <string name="sleep_playing">Reproduciendo… (toca de nuevo para detener)</string>
+    <string name="sleep_loading">Cargando…</string>
+    <string name="sleep_confidence">Confianza %1$s%%</string>
+    <string name="sleep_delete_clip">Eliminar clip</string>
+    <string name="sleep_delete_recording_title">¿Eliminar esta grabación?</string>
+    <string name="sleep_delete_recording_body">El evento de detección se conserva — solo se elimina el clip de audio.</string>
+    <string name="sleep_load_clip_error">No se pudo cargar el clip</string>
+    <string name="sleep_offline_clip">Sin conexión — conéctate para reproducir este clip</string>
+    <string name="sleep_playback_failed">Error al reproducir</string>
+
+    <!-- Tonight sounds card -->
+    <string name="sleep_last_night">Anoche</string>
+    <string name="sleep_sounds_header">Sonidos de sueño — %1$s</string>
+    <string name="sleep_sound_snoring">Ronquidos</string>
+    <string name="sleep_sound_cough">Tos</string>
+    <string name="sleep_sound_sleeptalk">Hablar dormido</string>
+    <string name="sleep_quiet_body">Nada detectado mientras dormías.</string>
+
+    <!-- End-sleep dialog -->
+    <string name="end_sleep_good_morning">¡Buenos días!</string>
+    <string name="end_sleep_you_slept">Has dormido %1$dh %2$dm</string>
+    <string name="end_sleep_no_pickups">Sin capturas de móvil — ¡genial!</string>
+    <string name="end_sleep_sounds_header">Sonidos durante el sueño</string>
+    <string name="sleep_snore_indexed">Ronquido #%1$d</string>
+    <string name="sleep_cough_indexed">Tos #%1$d</string>
+    <string name="sleep_talk_indexed">Hablar dormido #%1$d</string>
+    <string name="sleep_audio_row">%1$s a las %2$s</string>
+    <string name="end_sleep_how_slept">¿Cómo has dormido?</string>
+    <string name="end_sleep_rate_error">Por favor, valora la calidad de tu sueño</string>
+    <string name="end_sleep_discard_title">¿Descartar sesión de sueño?</string>
+    <string name="end_sleep_discard_body">Perderás la duración y los datos de capturas registrados. Esta acción no se puede deshacer.</string>
+
+    <!-- AI rating -->
+    <string name="ai_rating_loading">Pidiendo a la AI que valore tu sueño…</string>
+    <string name="ai_rating_suggests">AI sugiere %1$d/5</string>
+    <string name="ai_rating_re_rate">Volver a valorar</string>
+    <string name="ai_rating_use">Usar esta valoración</string>
+    <string name="ai_rating_retry">Reintentar valoración AI</string>
+    <string name="ai_rating_get">Obtener valoración AI</string>
+
+    <!-- Add-sleep dialog -->
+    <string name="add_sleep_target_bedtime">Hora de dormir objetivo</string>
+    <string name="add_sleep_target_wake">Hora de despertar objetivo</string>
+    <string name="add_sleep_bed_date">Fecha de acostarse</string>
+    <string name="add_sleep_bed_time">Hora de acostarse</string>
+    <string name="add_sleep_wake_date">Fecha de despertar</string>
+    <string name="add_sleep_wake_time">Hora de despertar</string>
+    <string name="add_sleep_quality">Valoración de calidad</string>
+    <string name="add_sleep_phone_pickups">Capturas de móvil</string>
+    <string name="add_sleep_phone_minutes">Minutos totales de móvil (opcional)</string>
+    <string name="add_sleep_err_bedtime">La hora de dormir debe ser antes de la hora de despertar</string>
+    <string name="add_sleep_err_quality">Por favor, selecciona una valoración de calidad</string>
+
+    <!-- Sleep ViewModel -->
+    <string name="sleep_err_end_focus">Finaliza tu sesión de enfoque antes de iniciar el registro de sueño</string>
+
+    <plurals name="sleep_audio_sync_failed_body">
+        <item quantity="one">%1$d evento almacenado localmente no ha llegado al servidor aún. Toca Reintentar para subir ahora, o lo reintentará automáticamente cuando tengas señal.</item>
+        <item quantity="many">%1$d eventos almacenados localmente no han llegado al servidor aún. Toca Reintentar para subir ahora, o los reintentará automáticamente cuando tengas señal.</item>
+        <item quantity="other">%1$d eventos almacenados localmente no han llegado al servidor aún. Toca Reintentar para subir ahora, o los reintentará automáticamente cuando tengas señal.</item>
+    </plurals>
+    <plurals name="sleep_audio_syncing_body">
+        <item quantity="one">%1$d evento esperando subirse. Se enviará automáticamente cuando tengas conexión.</item>
+        <item quantity="many">%1$d eventos esperando subirse. Se enviarán automáticamente cuando tengas conexión.</item>
+        <item quantity="other">%1$d eventos esperando subirse. Se enviarán automáticamente cuando tengas conexión.</item>
+    </plurals>
+    <plurals name="sleep_phone_pickups">
+        <item quantity="one">%1$d captura de móvil</item>
+        <item quantity="many">%1$d capturas de móvil</item>
+        <item quantity="other">%1$d capturas de móvil</item>
+    </plurals>
+    <plurals name="sleep_group_episodes">
+        <item quantity="one">%2$s · %1$d episodio (%3$ds)</item>
+        <item quantity="many">%2$s · %1$d episodios (%3$ds)</item>
+        <item quantity="other">%2$s · %1$d episodios (%3$ds)</item>
+    </plurals>
+    <plurals name="sleep_label_episodes">
+        <item quantity="one">%1$s episodio</item>
+        <item quantity="many">%1$s episodios</item>
+        <item quantity="other">%1$s episodios</item>
+    </plurals>
+    <plurals name="end_sleep_pickups_summary">
+        <item quantity="one">%1$d captura — %2$s en total</item>
+        <item quantity="many">%1$d capturas — %2$s en total</item>
+        <item quantity="other">%1$d capturas — %2$s en total</item>
+    </plurals>
+    <plurals name="end_sleep_snore_summary">
+        <item quantity="one">%1$d episodio de ronquido — %2$ds en total</item>
+        <item quantity="many">%1$d episodios de ronquido — %2$ds en total</item>
+        <item quantity="other">%1$d episodios de ronquido — %2$ds en total</item>
+    </plurals>
+    <plurals name="end_sleep_cough_summary">
+        <item quantity="one">%1$d episodio de tos — %2$ds en total</item>
+        <item quantity="many">%1$d episodios de tos — %2$ds en total</item>
+        <item quantity="other">%1$d episodios de tos — %2$ds en total</item>
+    </plurals>
+    <plurals name="end_sleep_talk_summary">
+        <item quantity="one">%1$d episodio de hablar dormido — %2$ds en total</item>
+        <item quantity="many">%1$d episodios de hablar dormido — %2$ds en total</item>
+        <item quantity="other">%1$d episodios de hablar dormido — %2$ds en total</item>
+    </plurals>
 </resources>

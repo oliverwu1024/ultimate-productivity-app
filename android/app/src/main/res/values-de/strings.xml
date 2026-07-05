@@ -339,4 +339,187 @@
         <item quantity="one">%1$d Woche</item>
         <item quantity="other">%1$d Wochen</item>
     </plurals>
+
+    <!-- ══════════════════ §13.1 Android sweep — sleep (tracking) ══════════════════ -->
+
+    <!-- Shared -->
+    <string name="action_keep">Behalten</string>
+    <string name="action_start">Starten</string>
+    <string name="action_preferences">Einstellungen</string>
+    <string name="star_rating_cd">Stern %1$d</string>
+    <string name="notes_optional">Notizen (optional)</string>
+    <string name="nap_question">Tagschlaf?</string>
+    <string name="nap_subtitle">Bleibt aus deiner \"Letzte Nacht\"-Zusammenfassung</string>
+    <string name="range_week">Woche</string>
+    <string name="range_month">Monat</string>
+    <string name="period_this_month">Diesen Monat</string>
+    <string name="period_last_month">Letzten Monat</string>
+
+    <!-- Sleep tab / screen chrome -->
+    <string name="sleep_title">Schlaf</string>
+    <string name="sleep_subtab_alarms">Wecker</string>
+    <string name="sleep_add_alarm_cd">Wecker hinzufügen</string>
+    <string name="sleep_prefs_title">Schlaf-Einstellungen</string>
+    <string name="sleep_prefs_hint_body">Tippe oben rechts auf Einstellungen, um Schlafenszeit, Aufwachzeit, Schlafziel und Sperrung festzulegen. Wecker findest du im Unter-Tab Wecker oben.</string>
+    <string name="sleep_explainer_title">Wie Schlafverfolgung funktioniert</string>
+    <string name="sleep_explainer_body">Wenn du Schlaf starten tippst, läuft Ultiq als Hintergrunddienst, um nächtliche Handy-Aktivierungen bei gesperrtem Bildschirm zu erkennen. Es wird nur der Bildschirmzustand geprüft – sonst nichts.</string>
+    <string name="sleep_got_it">Verstanden</string>
+
+    <!-- Audio-sync banner -->
+    <string name="sleep_audio_sync_failed_title">Töne der letzten Nacht nicht synchronisiert</string>
+    <string name="sleep_audio_syncing_title">Töne der letzten Nacht werden synchronisiert…</string>
+    <string name="sleep_retry_now">Jetzt wiederholen</string>
+
+    <!-- Mic-permission banner -->
+    <string name="sleep_mic_title">Schnarchen-Tracking benötigt Mikrofonzugang</string>
+    <string name="sleep_mic_body">Dein Konto hat Schnarchen- und Hustenerkennung aktiviert, aber diesem Gerät wurde noch kein Mikrofonzugang gewährt. Die Audioanalyse bleibt auf dem Gerät – nie hochgeladen.</string>
+    <string name="sleep_grant_permission">Zugang gewähren</string>
+
+    <!-- No-alarm dialog -->
+    <string name="sleep_no_alarm_title">Kein Wecker für heute Nacht</string>
+    <string name="sleep_no_alarm_body">In den nächsten 24 Stunden ist kein Wecker geplant. Möchtest du einen mit Dismiss-Mission stellen – damit du wirklich aufstehst – oder heute Nacht ohne schlafen?</string>
+    <string name="sleep_set_alarm">Wecker stellen</string>
+    <string name="sleep_sleep_without">Ohne Wecker schlafen</string>
+
+    <!-- Session control -->
+    <string name="sleep_sleeping">Schlafe…</string>
+    <string name="sleep_elapsed">%1$dh %2$dm vergangen</string>
+    <string name="sleep_started_at">Gestartet %1$s</string>
+    <string name="sleep_end">Schlaf beenden</string>
+    <string name="sleep_start">Schlaf starten</string>
+    <string name="sleep_log_past">Vergangenen Schlaf eintragen</string>
+
+    <!-- Set-wake dialog -->
+    <string name="sleep_set_wake_title">Aufwachzeit festlegen</string>
+    <string name="sleep_set_wake_body">Wähle, wann du aufwachen möchtest. Das Schlafdefizit wird gegen dieses Ziel gemessen.</string>
+    <string name="sleep_wake_at">Aufwachen um %1$s</string>
+    <string name="sleep_target_duration">Zieldauer: %1$s</string>
+
+    <!-- Stats -->
+    <string name="sleep_stat_avg_duration">Ø Dauer</string>
+    <string name="sleep_stat_avg_quality">Ø Qualität</string>
+    <string name="sleep_stat_avg_pickups">Ø Aktivierungen</string>
+    <string name="sleep_stat_naps">Nickerchen</string>
+    <string name="sleep_quality_value">%1$s / 5</string>
+    <string name="sleep_per_session">%1$s / Sitzung</string>
+
+    <!-- Chart legend -->
+    <string name="sleep_legend_night">Nacht</string>
+    <string name="sleep_legend_morning">Morgen</string>
+    <string name="sleep_legend_afternoon">Nachmittag</string>
+
+    <!-- Record item + expanded details -->
+    <string name="sleep_delete_record_title">Schlaf-Eintrag löschen?</string>
+    <string name="sleep_delete_record_body">Dadurch wird der Eintrag vom %1$s dauerhaft entfernt.</string>
+    <string name="sleep_nap_badge">· Nickerchen</string>
+    <string name="detail_notes">Notizen</string>
+    <string name="detail_target">Ziel</string>
+    <string name="detail_actual">Tatsächlich</string>
+    <string name="detail_phone_time">Handy-Zeit</string>
+    <string name="detail_label_prefix">%1$s: </string>
+    <string name="sleep_not_synced">Nicht synchronisiert</string>
+    <string name="sleep_detail_loading">Details werden geladen…</string>
+    <string name="sleep_phone_pickups_header">Handy-Aktivierungen</string>
+    <string name="sleep_pickup_indexed">#%1$d um %2$s</string>
+
+    <!-- Audio event groups + playback -->
+    <string name="sleep_group_snoring">Schnarchen</string>
+    <string name="sleep_group_coughing">Husten</string>
+    <string name="sleep_group_sleeptalk">Schlaf-Reden</string>
+    <string name="sleep_tap_to_play">" · tippe ▶ zum Abspielen"</string>
+    <string name="sleep_play_cd">Abspielen</string>
+    <string name="sleep_stop_cd">Stoppen</string>
+    <string name="sleep_clip_duration">%1$ds Clip · </string>
+    <string name="sleep_playing">Wird abgespielt… (erneut tippen zum Stoppen)</string>
+    <string name="sleep_loading">Laden…</string>
+    <string name="sleep_confidence">Konfidenz %1$s%%</string>
+    <string name="sleep_delete_clip">Clip löschen</string>
+    <string name="sleep_delete_recording_title">Diese Aufnahme löschen?</string>
+    <string name="sleep_delete_recording_body">Das Erkennungsereignis bleibt bestehen – nur der Audio-Clip wird entfernt.</string>
+    <string name="sleep_load_clip_error">Clip konnte nicht geladen werden</string>
+    <string name="sleep_offline_clip">Keine Verbindung – verbinde dich, um diesen Clip abzuspielen</string>
+    <string name="sleep_playback_failed">Wiedergabe fehlgeschlagen</string>
+
+    <!-- Tonight sounds card -->
+    <string name="sleep_last_night">Letzte Nacht</string>
+    <string name="sleep_sounds_header">Schlafgeräusche – %1$s</string>
+    <string name="sleep_sound_snoring">Schnarchen</string>
+    <string name="sleep_sound_cough">Husten</string>
+    <string name="sleep_sound_sleeptalk">Schlaf-Reden</string>
+    <string name="sleep_quiet_body">Während du schliefst wurde nichts aufgezeichnet.</string>
+
+    <!-- End-sleep dialog -->
+    <string name="end_sleep_good_morning">Guten Morgen!</string>
+    <string name="end_sleep_you_slept">Du hast %1$dh %2$dm geschlafen</string>
+    <string name="end_sleep_no_pickups">Keine Handy-Aktivierungen – super!</string>
+    <string name="end_sleep_sounds_header">Geräusche während des Schlafs</string>
+    <string name="sleep_snore_indexed">Schnarchen #%1$d</string>
+    <string name="sleep_cough_indexed">Husten #%1$d</string>
+    <string name="sleep_talk_indexed">Schlaf-Reden #%1$d</string>
+    <string name="sleep_audio_row">%1$s um %2$s</string>
+    <string name="end_sleep_how_slept">Wie hast du geschlafen?</string>
+    <string name="end_sleep_rate_error">Bitte bewerte deine Schlafqualität</string>
+    <string name="end_sleep_discard_title">Schlaf-Sitzung verwerfen?</string>
+    <string name="end_sleep_discard_body">Du verlierst die erfasste Dauer und Aktivierungs-Daten. Dies kann nicht rückgängig gemacht werden.</string>
+
+    <!-- AI rating -->
+    <string name="ai_rating_loading">AI bewertet deinen Schlaf…</string>
+    <string name="ai_rating_suggests">AI schlägt %1$d/5 vor</string>
+    <string name="ai_rating_re_rate">Neu bewerten</string>
+    <string name="ai_rating_use">Bewertung übernehmen</string>
+    <string name="ai_rating_retry">AI-Bewertung erneut versuchen</string>
+    <string name="ai_rating_get">AI-Bewertung holen</string>
+
+    <!-- Add-sleep dialog -->
+    <string name="add_sleep_target_bedtime">Ziel-Schlafenszeit</string>
+    <string name="add_sleep_target_wake">Ziel-Aufwachzeit</string>
+    <string name="add_sleep_bed_date">Datum (Bett)</string>
+    <string name="add_sleep_bed_time">Schlafenszeit</string>
+    <string name="add_sleep_wake_date">Datum (Aufwachen)</string>
+    <string name="add_sleep_wake_time">Aufwachzeit</string>
+    <string name="add_sleep_quality">Qualitätsbewertung</string>
+    <string name="add_sleep_phone_pickups">Handy-Aktivierungen</string>
+    <string name="add_sleep_phone_minutes">Handy-Minuten gesamt (optional)</string>
+    <string name="add_sleep_err_bedtime">Schlafenszeit muss vor der Aufwachzeit liegen</string>
+    <string name="add_sleep_err_quality">Bitte wähle eine Qualitätsbewertung</string>
+
+    <!-- Sleep ViewModel -->
+    <string name="sleep_err_end_focus">Beende deine Fokus-Sitzung, bevor du das Schlaf-Tracking startest</string>
+
+    <plurals name="sleep_audio_sync_failed_body">
+        <item quantity="one">%1$d Ereignis ist lokal gespeichert, aber noch nicht auf dem Server. Tippe auf Wiederholen zum Hochladen, oder es wird automatisch wiederholt, wenn du wieder online bist.</item>
+        <item quantity="other">%1$d Ereignisse sind lokal gespeichert, aber noch nicht auf dem Server. Tippe auf Wiederholen zum Hochladen, oder sie werden automatisch wiederholt, wenn du wieder online bist.</item>
+    </plurals>
+    <plurals name="sleep_audio_syncing_body">
+        <item quantity="one">%1$d Ereignis wartet auf den Upload. Es wird automatisch gesendet, wenn deine Verbindung verfügbar ist.</item>
+        <item quantity="other">%1$d Ereignisse warten auf den Upload. Sie werden automatisch gesendet, wenn deine Verbindung verfügbar ist.</item>
+    </plurals>
+    <plurals name="sleep_phone_pickups">
+        <item quantity="one">%1$d Handy-Aktivierung</item>
+        <item quantity="other">%1$d Handy-Aktivierungen</item>
+    </plurals>
+    <plurals name="sleep_group_episodes">
+        <item quantity="one">%2$s · %1$d Episode (%3$ds)</item>
+        <item quantity="other">%2$s · %1$d Episoden (%3$ds)</item>
+    </plurals>
+    <plurals name="sleep_label_episodes">
+        <item quantity="one">%1$s Episode</item>
+        <item quantity="other">%1$s Episoden</item>
+    </plurals>
+    <plurals name="end_sleep_pickups_summary">
+        <item quantity="one">%1$d Aktivierung – %2$s gesamt</item>
+        <item quantity="other">%1$d Aktivierungen – %2$s gesamt</item>
+    </plurals>
+    <plurals name="end_sleep_snore_summary">
+        <item quantity="one">%1$d Schnarch-Episode – %2$ds gesamt</item>
+        <item quantity="other">%1$d Schnarch-Episoden – %2$ds gesamt</item>
+    </plurals>
+    <plurals name="end_sleep_cough_summary">
+        <item quantity="one">%1$d Hust-Episode – %2$ds gesamt</item>
+        <item quantity="other">%1$d Hust-Episoden – %2$ds gesamt</item>
+    </plurals>
+    <plurals name="end_sleep_talk_summary">
+        <item quantity="one">%1$d Schlaf-Rede-Episode – %2$ds gesamt</item>
+        <item quantity="other">%1$d Schlaf-Rede-Episoden – %2$ds gesamt</item>
+    </plurals>
 </resources>

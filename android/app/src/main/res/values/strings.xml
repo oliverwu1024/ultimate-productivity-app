@@ -355,4 +355,187 @@
         <item quantity="one">%1$d week</item>
         <item quantity="other">%1$d weeks</item>
     </plurals>
+
+    <!-- ══════════════════ §13.1 Android sweep — sleep (tracking) ══════════════════ -->
+
+    <!-- Shared -->
+    <string name="action_keep">Keep</string>
+    <string name="action_start">Start</string>
+    <string name="action_preferences">Preferences</string>
+    <string name="star_rating_cd">Star %1$d</string>
+    <string name="notes_optional">Notes (optional)</string>
+    <string name="nap_question">Daytime nap?</string>
+    <string name="nap_subtitle">Keeps it out of your \"last night\" summary</string>
+    <string name="range_week">Week</string>
+    <string name="range_month">Month</string>
+    <string name="period_this_month">This month</string>
+    <string name="period_last_month">Last month</string>
+
+    <!-- Sleep tab / screen chrome -->
+    <string name="sleep_title">Sleep</string>
+    <string name="sleep_subtab_alarms">Alarms</string>
+    <string name="sleep_add_alarm_cd">Add alarm</string>
+    <string name="sleep_prefs_title">Sleep preferences</string>
+    <string name="sleep_prefs_hint_body">Tap Preferences in the top right to set bedtime, wake time, sleep goal, and lockout. Wake-up alarms live in the Alarms sub-tab above.</string>
+    <string name="sleep_explainer_title">How sleep tracking works</string>
+    <string name="sleep_explainer_body">When you tap Start Sleep, Ultiq runs as a background service so it can detect phone pickups overnight while your screen is locked. We only check screen state — nothing else about what you do on the phone.</string>
+    <string name="sleep_got_it">Got it</string>
+
+    <!-- Audio-sync banner -->
+    <string name="sleep_audio_sync_failed_title">Last night\'s sounds didn\'t sync</string>
+    <string name="sleep_audio_syncing_title">Syncing last night\'s sounds…</string>
+    <string name="sleep_retry_now">Retry now</string>
+
+    <!-- Mic-permission banner -->
+    <string name="sleep_mic_title">Snore tracking needs mic permission</string>
+    <string name="sleep_mic_body">Your account has snore + cough detection enabled, but this device hasn\'t been granted microphone access. Audio analysis stays on-device — never uploaded.</string>
+    <string name="sleep_grant_permission">Grant permission</string>
+
+    <!-- No-alarm dialog -->
+    <string name="sleep_no_alarm_title">No alarm for tonight</string>
+    <string name="sleep_no_alarm_body">There\'s no wake-up alarm scheduled in the next 24 hours. Want to set one with a dismiss mission so you actually get out of bed, or sleep without one tonight?</string>
+    <string name="sleep_set_alarm">Set alarm</string>
+    <string name="sleep_sleep_without">Sleep without one</string>
+
+    <!-- Session control -->
+    <string name="sleep_sleeping">Sleeping…</string>
+    <string name="sleep_elapsed">%1$dh %2$dm elapsed</string>
+    <string name="sleep_started_at">Started %1$s</string>
+    <string name="sleep_end">End Sleep</string>
+    <string name="sleep_start">Start Sleep</string>
+    <string name="sleep_log_past">Log past sleep</string>
+
+    <!-- Set-wake dialog -->
+    <string name="sleep_set_wake_title">Set wake time</string>
+    <string name="sleep_set_wake_body">Pick when you\'d like to wake up. Sleep debt is measured against this target.</string>
+    <string name="sleep_wake_at">Wake at %1$s</string>
+    <string name="sleep_target_duration">Target duration: %1$s</string>
+
+    <!-- Stats -->
+    <string name="sleep_stat_avg_duration">Avg Duration</string>
+    <string name="sleep_stat_avg_quality">Avg Quality</string>
+    <string name="sleep_stat_avg_pickups">Avg Pickups</string>
+    <string name="sleep_stat_naps">Naps</string>
+    <string name="sleep_quality_value">%1$s / 5</string>
+    <string name="sleep_per_session">%1$s / session</string>
+
+    <!-- Chart legend -->
+    <string name="sleep_legend_night">Night</string>
+    <string name="sleep_legend_morning">Morning</string>
+    <string name="sleep_legend_afternoon">Afternoon</string>
+
+    <!-- Record item + expanded details -->
+    <string name="sleep_delete_record_title">Delete sleep record?</string>
+    <string name="sleep_delete_record_body">This will permanently remove the record from %1$s.</string>
+    <string name="sleep_nap_badge">· Nap</string>
+    <string name="detail_notes">Notes</string>
+    <string name="detail_target">Target</string>
+    <string name="detail_actual">Actual</string>
+    <string name="detail_phone_time">Phone Time</string>
+    <string name="detail_label_prefix">%1$s: </string>
+    <string name="sleep_not_synced">Not synced</string>
+    <string name="sleep_detail_loading">Loading details…</string>
+    <string name="sleep_phone_pickups_header">Phone pickups</string>
+    <string name="sleep_pickup_indexed">#%1$d at %2$s</string>
+
+    <!-- Audio event groups + playback -->
+    <string name="sleep_group_snoring">Snoring</string>
+    <string name="sleep_group_coughing">Coughing</string>
+    <string name="sleep_group_sleeptalk">Sleep-talk</string>
+    <string name="sleep_tap_to_play">" · tap ▶ to play"</string>
+    <string name="sleep_play_cd">Play</string>
+    <string name="sleep_stop_cd">Stop</string>
+    <string name="sleep_clip_duration">%1$ds clip · </string>
+    <string name="sleep_playing">Playing… (tap row again to stop)</string>
+    <string name="sleep_loading">Loading…</string>
+    <string name="sleep_confidence">Confidence %1$s%%</string>
+    <string name="sleep_delete_clip">Delete clip</string>
+    <string name="sleep_delete_recording_title">Delete this recording?</string>
+    <string name="sleep_delete_recording_body">The detection event stays — only the audio clip is removed.</string>
+    <string name="sleep_load_clip_error">Couldn\'t load clip</string>
+    <string name="sleep_offline_clip">No connection — connect to play this clip</string>
+    <string name="sleep_playback_failed">Playback failed</string>
+
+    <!-- Tonight sounds card -->
+    <string name="sleep_last_night">Last night</string>
+    <string name="sleep_sounds_header">Sleep sounds — %1$s</string>
+    <string name="sleep_sound_snoring">Snoring</string>
+    <string name="sleep_sound_cough">Cough</string>
+    <string name="sleep_sound_sleeptalk">Sleep-talk</string>
+    <string name="sleep_quiet_body">Nothing picked up while you slept.</string>
+
+    <!-- End-sleep dialog -->
+    <string name="end_sleep_good_morning">Good morning!</string>
+    <string name="end_sleep_you_slept">You slept %1$dh %2$dm</string>
+    <string name="end_sleep_no_pickups">No phone pickups — nice!</string>
+    <string name="end_sleep_sounds_header">Sounds during sleep</string>
+    <string name="sleep_snore_indexed">Snore #%1$d</string>
+    <string name="sleep_cough_indexed">Cough #%1$d</string>
+    <string name="sleep_talk_indexed">Sleep-talk #%1$d</string>
+    <string name="sleep_audio_row">%1$s at %2$s</string>
+    <string name="end_sleep_how_slept">How did you sleep?</string>
+    <string name="end_sleep_rate_error">Please rate your sleep quality</string>
+    <string name="end_sleep_discard_title">Discard sleep session?</string>
+    <string name="end_sleep_discard_body">You\'ll lose the duration and pickup data we tracked. This can\'t be undone.</string>
+
+    <!-- AI rating -->
+    <string name="ai_rating_loading">Asking AI to rate your sleep…</string>
+    <string name="ai_rating_suggests">AI suggests %1$d/5</string>
+    <string name="ai_rating_re_rate">Re-rate</string>
+    <string name="ai_rating_use">Use this rating</string>
+    <string name="ai_rating_retry">Try AI rating again</string>
+    <string name="ai_rating_get">Get AI rating</string>
+
+    <!-- Add-sleep dialog -->
+    <string name="add_sleep_target_bedtime">Target Bedtime</string>
+    <string name="add_sleep_target_wake">Target Wake Time</string>
+    <string name="add_sleep_bed_date">Bed Date</string>
+    <string name="add_sleep_bed_time">Bed Time</string>
+    <string name="add_sleep_wake_date">Wake Date</string>
+    <string name="add_sleep_wake_time">Wake Time</string>
+    <string name="add_sleep_quality">Quality Rating</string>
+    <string name="add_sleep_phone_pickups">Phone Pickups</string>
+    <string name="add_sleep_phone_minutes">Total Phone Minutes (optional)</string>
+    <string name="add_sleep_err_bedtime">Bedtime must be before wake time</string>
+    <string name="add_sleep_err_quality">Please select a quality rating</string>
+
+    <!-- Sleep ViewModel -->
+    <string name="sleep_err_end_focus">End your focus session before starting sleep tracking</string>
+
+    <plurals name="sleep_audio_sync_failed_body">
+        <item quantity="one">%1$d event is stored locally but hasn\'t reached the server yet. Tap Retry to upload now, or it\'ll retry automatically when you next have signal.</item>
+        <item quantity="other">%1$d events are stored locally but haven\'t reached the server yet. Tap Retry to upload now, or they\'ll retry automatically when you next have signal.</item>
+    </plurals>
+    <plurals name="sleep_audio_syncing_body">
+        <item quantity="one">%1$d event waiting to upload. It\'ll send automatically when your connection is available.</item>
+        <item quantity="other">%1$d events waiting to upload. They\'ll send automatically when your connection is available.</item>
+    </plurals>
+    <plurals name="sleep_phone_pickups">
+        <item quantity="one">%1$d phone pickup</item>
+        <item quantity="other">%1$d phone pickups</item>
+    </plurals>
+    <plurals name="sleep_group_episodes">
+        <item quantity="one">%2$s · %1$d episode (%3$ds)</item>
+        <item quantity="other">%2$s · %1$d episodes (%3$ds)</item>
+    </plurals>
+    <plurals name="sleep_label_episodes">
+        <item quantity="one">%1$s episode</item>
+        <item quantity="other">%1$s episodes</item>
+    </plurals>
+    <plurals name="end_sleep_pickups_summary">
+        <item quantity="one">%1$d pickup — %2$s total</item>
+        <item quantity="other">%1$d pickups — %2$s total</item>
+    </plurals>
+    <plurals name="end_sleep_snore_summary">
+        <item quantity="one">%1$d snoring episode — %2$ds total</item>
+        <item quantity="other">%1$d snoring episodes — %2$ds total</item>
+    </plurals>
+    <plurals name="end_sleep_cough_summary">
+        <item quantity="one">%1$d coughing episode — %2$ds total</item>
+        <item quantity="other">%1$d coughing episodes — %2$ds total</item>
+    </plurals>
+    <plurals name="end_sleep_talk_summary">
+        <item quantity="one">%1$d sleep-talk episode — %2$ds total</item>
+        <item quantity="other">%1$d sleep-talk episodes — %2$ds total</item>
+    </plurals>
 </resources>
