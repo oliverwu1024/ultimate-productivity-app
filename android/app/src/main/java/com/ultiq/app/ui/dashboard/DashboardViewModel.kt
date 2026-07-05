@@ -462,7 +462,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                     val def = byId[entity.id] ?: return@mapNotNull null
                     AchievementBadge(
                         id = entity.id,
-                        name = def.displayName,
+                        name = getApplication<Application>().getString(def.displayNameRes),
                         icon = def.icon,
                         earnedAt = entity.earnedAt,
                     )

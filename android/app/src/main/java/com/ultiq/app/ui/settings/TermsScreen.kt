@@ -1,5 +1,6 @@
 package com.ultiq.app.ui.settings
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -19,8 +20,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.ultiq.app.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,10 +31,10 @@ fun TermsScreen(onBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Terms & conditions") },
+                title = { Text(stringResource(R.string.terms_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back))
                     }
                 },
             )
@@ -46,63 +49,45 @@ fun TermsScreen(onBack: () -> Unit) {
         ) {
             item {
                 Text(
-                    "Last updated: April 30, 2026",
+                    stringResource(R.string.terms_last_updated),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             item {
                 Text(
-                    "Ultiq is a personal productivity app built by a single developer. By using this app, you agree to the terms below.",
+                    stringResource(R.string.terms_intro),
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
 
-            section(
-                heading = "1. What you give us",
-                body = "We collect the records you create in the app: sleep sessions, focus sessions, calendar events, checklist items, and any targets or preferences you set. We also store basic account info — your email address and a hashed password.",
-            )
-            section(
-                heading = "2. What we do with it",
-                body = "Your data is yours. We store it on our backend so it syncs between your phone and the web dashboard. We do not sell, share, or analyze your data for advertising. The only things we use it for are the features inside the app.",
-            )
-            section(
-                heading = "3. Phone activity",
-                body = "Sleep and focus sessions check whether your screen is on or off so we can count phone pickups. We don't read what apps you use, what you type, or anything else you do on the phone.",
-            )
-            section(
-                heading = "4. Your account",
-                body = "You can sign out, reset all your data, or delete your account anytime from Settings. Deleting an account wipes every record tied to it from our servers.",
-            )
-            section(
-                heading = "5. As-is",
-                body = "Ultiq is provided \"as is\", without warranty. We try our best, but the developer isn't liable for data loss, missed reminders, or anything else that may happen while using the app. Don't rely on it for anything safety-critical.",
-            )
-            section(
-                heading = "6. Contact",
-                body = "Questions, bugs, or feedback? Reach us at support@ultiqapp.com.",
-            )
-            section(
-                heading = "7. Changes",
-                body = "These terms may change as the app evolves. We'll update the date at the top when they do.",
-            )
+            section(R.string.terms_s1_heading, R.string.terms_s1_body)
+            section(R.string.terms_s2_heading, R.string.terms_s2_body)
+            section(R.string.terms_s3_heading, R.string.terms_s3_body)
+            section(R.string.terms_s4_heading, R.string.terms_s4_body)
+            section(R.string.terms_s5_heading, R.string.terms_s5_body)
+            section(R.string.terms_s6_heading, R.string.terms_s6_body)
+            section(R.string.terms_s7_heading, R.string.terms_s7_body)
 
             item { Spacer(Modifier.height(32.dp)) }
         }
     }
 }
 
-private fun androidx.compose.foundation.lazy.LazyListScope.section(heading: String, body: String) {
+private fun androidx.compose.foundation.lazy.LazyListScope.section(
+    @StringRes headingRes: Int,
+    @StringRes bodyRes: Int,
+) {
     item {
         Text(
-            heading,
+            stringResource(headingRes),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
         )
     }
     item {
         Text(
-            body,
+            stringResource(bodyRes),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

@@ -5,6 +5,7 @@ import android.provider.Settings
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.ultiq.app.BuildConfig
+import com.ultiq.app.R
 import com.ultiq.app.data.remote.RetrofitClient
 import com.ultiq.app.ui.lockout.LockoutAdmin
 import com.ultiq.app.ui.theme.ThemeMode
@@ -89,14 +90,16 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 .onSuccess {
                     _uiState.value = _uiState.value.copy(
                         resendingVerification = false,
-                        verificationFeedback = "Verification email sent — check your inbox.",
+                        verificationFeedback = getApplication<Application>()
+                            .getString(R.string.settings_verification_sent),
                     )
                 }
                 .onFailure { e ->
                     _uiState.value = _uiState.value.copy(
                         resendingVerification = false,
                         verificationFeedback = e.toUserMessage(
-                            "Couldn't send a new verification email. Try again."
+                            getApplication<Application>()
+                                .getString(R.string.settings_verification_error)
                         ),
                     )
                 }

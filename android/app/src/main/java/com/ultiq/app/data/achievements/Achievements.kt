@@ -1,5 +1,6 @@
 package com.ultiq.app.data.achievements
 
+import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.DirectionsRun
 import androidx.compose.material.icons.filled.Bedtime
@@ -10,50 +11,51 @@ import androidx.compose.material.icons.filled.SelfImprovement
 import androidx.compose.material.icons.filled.Stars
 import androidx.compose.material.icons.filled.WbTwilight
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.ultiq.app.R
 
 enum class AchievementId(
-    val displayName: String,
-    val description: String,
+    @StringRes val displayNameRes: Int,
+    @StringRes val descriptionRes: Int,
     val icon: ImageVector,
 ) {
     EARLY_BIRD(
-        "Early Bird",
-        "7 consecutive days hitting your target wake time",
+        R.string.achv_early_bird_name,
+        R.string.achv_early_bird_desc,
         Icons.Default.WbTwilight,
     ),
     NIGHT_OWL_NO_MORE(
-        "Night Owl No More",
-        "7 consecutive days hitting your target bedtime",
+        R.string.achv_night_owl_name,
+        R.string.achv_night_owl_desc,
         Icons.Default.Bedtime,
     ),
     FOCUS_MASTER(
-        "Focus Master",
-        "50 total focus hours",
+        R.string.achv_focus_master_name,
+        R.string.achv_focus_master_desc,
         Icons.Default.SelfImprovement,
     ),
     CENTURY(
-        "Century",
-        "100 completed sessions",
+        R.string.achv_century_name,
+        R.string.achv_century_desc,
         Icons.Default.EmojiEvents,
     ),
     ZEN_MODE(
-        "Zen Mode",
-        "5 sessions with zero phone pickups",
+        R.string.achv_zen_mode_name,
+        R.string.achv_zen_mode_desc,
         Icons.Default.DoNotDisturb,
     ),
     IRON_STREAK(
-        "Iron Streak",
-        "30-day focus streak",
+        R.string.achv_iron_streak_name,
+        R.string.achv_iron_streak_desc,
         Icons.Default.LocalFireDepartment,
     ),
     SLEEP_CHAMPION(
-        "Sleep Champion",
-        "14-day sleep target streak",
+        R.string.achv_sleep_champion_name,
+        R.string.achv_sleep_champion_desc,
         Icons.Default.Stars,
     ),
     MARATHON(
-        "Marathon",
-        "4+ hours of focus in a single day",
+        R.string.achv_marathon_name,
+        R.string.achv_marathon_desc,
         Icons.AutoMirrored.Filled.DirectionsRun,
     );
 }

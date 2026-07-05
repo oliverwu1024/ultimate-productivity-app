@@ -35,13 +35,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ultiq.app.R
 import com.ultiq.app.data.achievements.AchievementId
 import com.ultiq.app.data.local.AppDatabase
+import com.ultiq.app.util.LocaleManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -89,10 +92,10 @@ fun AchievementsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Achievements") },
+                title = { Text(stringResource(R.string.achievements_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back))
                     }
                 },
             )
@@ -104,7 +107,7 @@ fun AchievementsScreen(
                 .padding(padding),
         ) {
             Text(
-                "$unlocked of $total unlocked",
+                stringResource(R.string.achievements_unlocked_count, unlocked, total),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
@@ -158,23 +161,23 @@ private fun AchievementRow(id: AchievementId, earnedAt: Long?) {
             Spacer(modifier = Modifier.size(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    id.displayName,
+                    stringResource(id.displayNameRes),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Medium,
                     color = titleColor,
                 )
                 Text(
-                    id.description,
+                    stringResource(id.descriptionRes),
                     style = MaterialTheme.typography.bodySmall,
                     color = subtitleColor,
                 )
                 if (earnedAt != null) {
                     val date = Instant.ofEpochMilli(earnedAt)
                         .atZone(ZoneId.systemDefault())
-                        .format(DateTimeFormatter.ofPattern("MMM d, yyyy"))
+                        .format(DateTimeFormatter.ofPattern("MMM d, yyyy", LocaleManager.currentLocale()))
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        "Earned $date",
+                        stringResource(R.string.achievements_earned_date, date),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary,
                     )

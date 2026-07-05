@@ -39,6 +39,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -46,6 +47,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.runtime.DisposableEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ultiq.app.R
+import com.ultiq.app.util.LocaleManager
 import com.ultiq.app.util.ReminderSettings
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -73,10 +76,10 @@ fun RemindersScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Reminders") },
+                title = { Text(stringResource(R.string.reminders_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back))
                     }
                 }
             )
@@ -90,7 +93,7 @@ fun RemindersScreen(
                     .padding(padding),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
-            ) { Text("Loading...") }
+            ) { Text(stringResource(R.string.common_loading)) }
             return@Scaffold
         }
 
@@ -104,9 +107,9 @@ fun RemindersScreen(
             if (!uiState.notificationsEnabled) {
                 item {
                     PermissionCard(
-                        title = "Notifications are off",
-                        body = "Reminders won't appear until you enable notifications for this app.",
-                        actionLabel = "Open settings",
+                        title = stringResource(R.string.reminders_notifs_off_title),
+                        body = stringResource(R.string.reminders_notifs_off_body),
+                        actionLabel = stringResource(R.string.reminders_open_settings),
                         onAction = {
                             val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
                                 putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
@@ -119,9 +122,9 @@ fun RemindersScreen(
             if (!uiState.canScheduleExact) {
                 item {
                     PermissionCard(
-                        title = "Exact alarms are restricted",
-                        body = "Without exact alarm permission, reminders may fire a few minutes late.",
-                        actionLabel = "Allow exact alarms",
+                        title = stringResource(R.string.reminders_exact_off_title),
+                        body = stringResource(R.string.reminders_exact_off_body),
+                        actionLabel = stringResource(R.string.reminders_allow_exact),
                         onAction = {
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                                 val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
@@ -143,8 +146,8 @@ fun RemindersScreen(
             item {
                 ReminderRow(
                     icon = Icons.Default.Timer,
-                    title = "Focus time",
-                    description = "Daily nudge to start a focus session",
+                    title = stringResource(R.string.reminders_focus_title),
+                    description = stringResource(R.string.reminders_focus_desc),
                     enabled = settings.focusEnabled,
                     time = settings.focusTime,
                     onToggle = { viewModel.setFocusEnabled(it) },
@@ -155,8 +158,8 @@ fun RemindersScreen(
             item {
                 ReminderRow(
                     icon = Icons.Default.WbSunny,
-                    title = "Morning summary",
-                    description = "Last night's sleep + today's events",
+                    title = stringResource(R.string.reminders_morning_title),
+                    description = stringResource(R.string.reminders_morning_desc),
                     enabled = settings.morningSummaryEnabled,
                     time = settings.morningSummaryTime,
                     onToggle = { viewModel.setMorningSummaryEnabled(it) },
@@ -167,7 +170,7 @@ fun RemindersScreen(
             item {
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "Calendar events automatically trigger a reminder 15 minutes before they start.",
+                    stringResource(R.string.reminders_calendar_note),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -186,7 +189,7 @@ private fun BedtimeReminderRow(
     targetBedtime: LocalTime,
     onToggle: (Boolean) -> Unit,
 ) {
-    val timeFormat = DateTimeFormatter.ofPattern("h:mm a")
+    val timeFormat = DateTimeFormatter.ofPattern("h:mm a", LocaleManager.currentLocale())
     val leadMinutes = ReminderSettings.BEDTIME_LEAD_MINUTES
     val triggerTime = targetBedtime.minusMinutes(leadMinutes.toLong()).format(timeFormat)
     val bedtimeText = targetBedtime.format(timeFormat)
@@ -200,9 +203,9 @@ private fun BedtimeReminderRow(
             ) {
                 Icon(Icons.Default.Bedtime, null, tint = MaterialTheme.colorScheme.primary)
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Bedtime", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
+                    Text(stringResource(R.string.reminders_bedtime), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
                     Text(
-                        "Notifies at $triggerTime ($leadMinutes min before your $bedtimeText target)",
+                        stringResource(R.string.reminders_bedtime_desc, triggerTime, leadMinutes, bedtimeText),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -210,7 +213,7 @@ private fun BedtimeReminderRow(
                 Switch(checked = enabled, onCheckedChange = onToggle)
             }
             Text(
-                "Time is set in Sleep settings → Target bedtime.",
+                stringResource(R.string.reminders_bedtime_time_hint),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -229,7 +232,7 @@ private fun ReminderRow(
     onTimeChange: (LocalTime) -> Unit,
 ) {
     val context = LocalContext.current
-    val timeFormat = DateTimeFormatter.ofPattern("h:mm a")
+    val timeFormat = DateTimeFormatter.ofPattern("h:mm a", LocaleManager.currentLocale())
 
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -263,7 +266,7 @@ private fun ReminderRow(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Icon(Icons.Default.Notifications, null, modifier = Modifier.padding(end = 8.dp))
-                Text("Time: ${time.format(timeFormat)}")
+                Text(stringResource(R.string.reminders_time_label, time.format(timeFormat)))
             }
         }
     }
