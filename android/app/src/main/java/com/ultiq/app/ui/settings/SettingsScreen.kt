@@ -74,10 +74,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ultiq.app.R
 import com.ultiq.app.ui.common.SectionHeader
 import com.ultiq.app.ui.lockout.LockoutAdmin
 import com.ultiq.app.ui.theme.ThemeMode
@@ -103,6 +105,11 @@ fun SettingsScreen(
     val context = LocalContext.current
     var showReleaseNotes by remember { mutableStateOf(false) }
 
+    // Pre-resolved for use inside non-composable lambdas below (dodges
+    // LocalContextGetResourceValueCall).
+    val strictLockExplanation = stringResource(R.string.settings_strict_lock_admin_explanation)
+    val supportSubject = stringResource(R.string.settings_support_email_subject)
+
     if (showReleaseNotes) {
         ReleaseNotesDialog(onDismiss = { showReleaseNotes = false })
     }
@@ -124,10 +131,10 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Settings") },
+                title = { Text(stringResource(R.string.settings_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back))
                     }
                 }
             )
@@ -141,7 +148,7 @@ fun SettingsScreen(
                     .padding(padding),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
-            ) { Text("Loading...") }
+            ) { Text(stringResource(R.string.common_loading)) }
             return@Scaffold
         }
 
@@ -152,7 +159,7 @@ fun SettingsScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            item { SectionHeader("Appearance") }
+            item { SectionHeader(stringResource(R.string.settings_section_appearance)) }
             item { ThemeCard(current = uiState.themeMode, onSelect = viewModel::setThemeMode) }
             item {
                 LanguageCard(
@@ -166,7 +173,7 @@ fun SettingsScreen(
             // (closer to where they're used). Settings keeps only system-level
             // permissions and cross-cutting account / appearance / notifications.
 
-            item { SectionHeader("Lock & overlay") }
+            item { SectionHeader(stringResource(R.string.settings_section_lock_overlay)) }
             item {
                 OverlayPermissionCard(
                     granted = uiState.canDrawOverlays,
@@ -185,9 +192,7 @@ fun SettingsScreen(
                     onEnable = {
                         val intent = LockoutAdmin.buildEnableIntent(
                             context,
-                            "When you tap 'Stay locked' during a focus or sleep session, this " +
-                                "lets the app lock the screen. Unlocking re-shows the lockout " +
-                                "overlay, so you stay in a hard focus loop until the session ends.",
+                            strictLockExplanation,
                         )
                         context.startActivity(intent)
                     },
@@ -195,12 +200,12 @@ fun SettingsScreen(
                 )
             }
 
-            item { SectionHeader("Notifications") }
+            item { SectionHeader(stringResource(R.string.settings_section_notifications)) }
             item {
                 LinkRow(
                     icon = Icons.Default.Notifications,
-                    title = "Reminders",
-                    description = "Bedtime, focus, morning summary",
+                    title = stringResource(R.string.reminders_title),
+                    description = stringResource(R.string.settings_reminders_desc),
                     onClick = onNavigateToReminders,
                 )
             }
@@ -211,31 +216,31 @@ fun SettingsScreen(
             // system settings and log out + back in. A future iteration
             // could add an in-app override + an explicit "Resync to
             // server" button, but most users won't need either.
-            item { SectionHeader("Region") }
+            item { SectionHeader(stringResource(R.string.settings_section_region)) }
             item { TimezoneInfoCard() }
 
-            item { SectionHeader("Insights") }
+            item { SectionHeader(stringResource(R.string.settings_section_insights)) }
             item {
                 LinkRow(
                     icon = Icons.Default.Insights,
-                    title = "Weekly report",
-                    description = "Sleep, focus, and achievements",
+                    title = stringResource(R.string.settings_weekly_report_title),
+                    description = stringResource(R.string.settings_weekly_report_desc),
                     onClick = onNavigateToReports,
                 )
             }
             item {
                 LinkRow(
                     icon = androidx.compose.material.icons.Icons.Default.EmojiEvents,
-                    title = "Achievements",
-                    description = "What you've unlocked",
+                    title = stringResource(R.string.achievements_title),
+                    description = stringResource(R.string.settings_achievements_desc),
                     onClick = onNavigateToAchievements,
                 )
             }
             item {
                 LinkRow(
                     icon = Icons.Default.Public,
-                    title = "Web dashboard",
-                    description = "Open app.ultiqapp.com — full analytics, correlations, reports",
+                    title = stringResource(R.string.settings_web_dashboard_title),
+                    description = stringResource(R.string.settings_web_dashboard_desc),
                     onClick = {
                         val intent = android.content.Intent(
                             android.content.Intent.ACTION_VIEW,
@@ -246,7 +251,7 @@ fun SettingsScreen(
                 )
             }
 
-            item { SectionHeader("Account") }
+            item { SectionHeader(stringResource(R.string.settings_section_account)) }
             item {
                 var showResetDialog by remember { mutableStateOf(false) }
                 var showDeleteDialog by remember { mutableStateOf(false) }
@@ -256,12 +261,13 @@ fun SettingsScreen(
                             Icon(Icons.Default.Email, null, tint = MaterialTheme.colorScheme.primary)
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    uiState.email ?: "Signed in",
+                                    uiState.email ?: stringResource(R.string.settings_signed_in),
                                     style = MaterialTheme.typography.bodyLarge,
                                     fontWeight = FontWeight.Medium,
                                 )
                                 Text(
-                                    if (uiState.emailVerified) "Email verified" else "Email not verified",
+                                    if (uiState.emailVerified) stringResource(R.string.settings_email_verified)
+                                    else stringResource(R.string.settings_email_not_verified),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = if (uiState.emailVerified) {
                                         MaterialTheme.colorScheme.onSurfaceVariant
@@ -277,8 +283,8 @@ fun SettingsScreen(
                                 enabled = !uiState.resendingVerification,
                             ) {
                                 Text(
-                                    if (uiState.resendingVerification) "Sending…"
-                                    else "Resend verification email"
+                                    if (uiState.resendingVerification) stringResource(R.string.settings_sending)
+                                    else stringResource(R.string.settings_resend_verification)
                                 )
                             }
                             uiState.verificationFeedback?.let { msg ->
@@ -292,15 +298,15 @@ fun SettingsScreen(
                         OutlinedButton(onClick = onNavigateToChangePassword) {
                             Icon(Icons.Default.Lock, null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(8.dp))
-                            Text("Change password")
+                            Text(stringResource(R.string.change_password))
                         }
                         OutlinedButton(onClick = onLogout) {
                             Icon(Icons.AutoMirrored.Filled.Logout, null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(8.dp))
-                            Text("Log out")
+                            Text(stringResource(R.string.settings_log_out))
                         }
                         OutlinedButton(onClick = { showResetDialog = true }) {
-                            Text("Reset all data")
+                            Text(stringResource(R.string.settings_reset_all_data))
                         }
                         OutlinedButton(
                             onClick = { showDeleteDialog = true },
@@ -308,7 +314,7 @@ fun SettingsScreen(
                                 contentColor = MaterialTheme.colorScheme.error,
                             ),
                         ) {
-                            Text("Delete account")
+                            Text(stringResource(R.string.settings_delete_account))
                         }
                     }
                 }
@@ -316,13 +322,9 @@ fun SettingsScreen(
                 if (showResetDialog) {
                     AlertDialog(
                         onDismissRequest = { showResetDialog = false },
-                        title = { Text("Reset all data?") },
+                        title = { Text(stringResource(R.string.settings_reset_dialog_title)) },
                         text = {
-                            Text(
-                                "Permanently deletes every sleep record, focus session, " +
-                                    "checklist item, and calendar event tied to your account. " +
-                                    "Your login stays — you can start fresh.",
-                            )
+                            Text(stringResource(R.string.settings_reset_dialog_body))
                         },
                         confirmButton = {
                             Button(
@@ -333,10 +335,10 @@ fun SettingsScreen(
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = MaterialTheme.colorScheme.error,
                                 ),
-                            ) { Text("Reset") }
+                            ) { Text(stringResource(R.string.settings_reset_confirm)) }
                         },
                         dismissButton = {
-                            TextButton(onClick = { showResetDialog = false }) { Text("Cancel") }
+                            TextButton(onClick = { showResetDialog = false }) { Text(stringResource(R.string.action_cancel)) }
                         },
                     )
                 }
@@ -344,12 +346,9 @@ fun SettingsScreen(
                 if (showDeleteDialog) {
                     AlertDialog(
                         onDismissRequest = { showDeleteDialog = false },
-                        title = { Text("Delete account?") },
+                        title = { Text(stringResource(R.string.settings_delete_dialog_title)) },
                         text = {
-                            Text(
-                                "Permanently deletes your account and every record on it. " +
-                                    "You'll be logged out and the app will reset to onboarding.",
-                            )
+                            Text(stringResource(R.string.settings_delete_dialog_body))
                         },
                         confirmButton = {
                             Button(
@@ -360,16 +359,16 @@ fun SettingsScreen(
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = MaterialTheme.colorScheme.error,
                                 ),
-                            ) { Text("Delete") }
+                            ) { Text(stringResource(R.string.action_delete)) }
                         },
                         dismissButton = {
-                            TextButton(onClick = { showDeleteDialog = false }) { Text("Cancel") }
+                            TextButton(onClick = { showDeleteDialog = false }) { Text(stringResource(R.string.action_cancel)) }
                         },
                     )
                 }
             }
 
-            item { SectionHeader("About") }
+            item { SectionHeader(stringResource(R.string.settings_section_about)) }
             item {
                 Card(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
@@ -383,17 +382,21 @@ fun SettingsScreen(
                         Icon(Icons.Default.Info, null, tint = MaterialTheme.colorScheme.primary)
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                "Ultiq",
+                                stringResource(R.string.app_name),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Medium,
                             )
                             Text(
-                                "Your daily productivity companion",
+                                stringResource(R.string.settings_app_tagline),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                             Text(
-                                "Version ${uiState.versionName} (${uiState.versionCode}) · tap for what's new",
+                                stringResource(
+                                    R.string.settings_version_line,
+                                    uiState.versionName,
+                                    uiState.versionCode,
+                                ),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -409,8 +412,8 @@ fun SettingsScreen(
             item {
                 LinkRow(
                     icon = Icons.Default.Info,
-                    title = "Terms & conditions",
-                    description = "What we collect, how we use it",
+                    title = stringResource(R.string.terms_title),
+                    description = stringResource(R.string.settings_terms_desc),
                     onClick = onNavigateToTerms,
                 )
             }
@@ -437,15 +440,12 @@ fun SettingsScreen(
                         )
                         Column {
                             Text(
-                                "Working offline",
+                                stringResource(R.string.settings_offline_title),
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Medium,
                             )
                             Text(
-                                "Day-to-day tracking — sleep, focus, checklist, alarms — works " +
-                                    "without a connection. A few features need internet: " +
-                                    "cross-device sync, AI insights, weekly summaries, and audio " +
-                                    "clip playback.",
+                                stringResource(R.string.settings_offline_body),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(top = 4.dp),
@@ -457,12 +457,12 @@ fun SettingsScreen(
             item {
                 LinkRow(
                     icon = Icons.Default.Email,
-                    title = "Contact support",
+                    title = stringResource(R.string.settings_contact_support_title),
                     description = supportEmail,
                     onClick = {
                         val intent = Intent(Intent.ACTION_SENDTO).apply {
                             data = Uri.parse("mailto:$supportEmail")
-                            putExtra(Intent.EXTRA_SUBJECT, "Ultiq support")
+                            putExtra(Intent.EXTRA_SUBJECT, supportSubject)
                         }
                         runCatching { context.startActivity(intent) }
                     },
@@ -479,11 +479,11 @@ fun SettingsScreen(
 private fun ThemeCard(current: ThemeMode, onSelect: (ThemeMode) -> Unit) {
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("Theme", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
+            Text(stringResource(R.string.settings_theme), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
             val options = listOf(
-                ThemeMode.LIGHT to ("Light" to Icons.Default.LightMode),
-                ThemeMode.SYSTEM to ("System" to Icons.Default.SettingsBrightness),
-                ThemeMode.DARK to ("Dark" to Icons.Default.DarkMode),
+                ThemeMode.LIGHT to (stringResource(R.string.theme_light) to Icons.Default.LightMode),
+                ThemeMode.SYSTEM to (stringResource(R.string.theme_system) to Icons.Default.SettingsBrightness),
+                ThemeMode.DARK to (stringResource(R.string.theme_dark) to Icons.Default.DarkMode),
             )
             SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                 options.forEachIndexed { index, (mode, labelAndIcon) ->
@@ -533,15 +533,15 @@ private fun OverlayPermissionCard(
                 )
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        "Display over other apps",
+                        stringResource(R.string.settings_overlay_title),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Medium,
                     )
                     Text(
                         if (granted) {
-                            "Granted — lockout will take over the screen"
+                            stringResource(R.string.settings_overlay_granted)
                         } else {
-                            "Required so the lockout can take over the screen on unlock"
+                            stringResource(R.string.settings_overlay_required)
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = if (granted) {
@@ -557,11 +557,10 @@ private fun OverlayPermissionCard(
                     onClick = onGrant,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text("Grant permission")
+                    Text(stringResource(R.string.settings_grant_permission))
                 }
                 Text(
-                    "If the toggle is grayed out (\"Restricted setting\"), tap the ⋮ menu " +
-                        "in App info → Allow restricted settings → come back and turn it on.",
+                    stringResource(R.string.settings_overlay_restricted_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.85f),
                 )
@@ -592,15 +591,15 @@ private fun StrictLockCard(
                 Icon(Icons.Default.Lock, null, tint = MaterialTheme.colorScheme.primary)
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        "Strict lock (Device Admin)",
+                        stringResource(R.string.settings_strict_lock_title),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Medium,
                     )
                     Text(
                         if (enabled) {
-                            "Enabled — 'Stay locked' will lock the screen during sessions"
+                            stringResource(R.string.settings_strict_lock_on)
                         } else {
-                            "Off — 'Stay locked' just dismisses the overlay. Enable to lock the screen instead."
+                            stringResource(R.string.settings_strict_lock_off)
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -611,7 +610,10 @@ private fun StrictLockCard(
                 onClick = if (enabled) onDisable else onEnable,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text(if (enabled) "Disable strict lock" else "Enable strict lock")
+                Text(
+                    if (enabled) stringResource(R.string.settings_strict_lock_disable)
+                    else stringResource(R.string.settings_strict_lock_enable)
+                )
             }
         }
     }
@@ -638,7 +640,7 @@ private fun LinkRow(
                 Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             IconButton(onClick = onClick) {
-                Icon(Icons.Default.ChevronRight, "Open")
+                Icon(Icons.Default.ChevronRight, stringResource(R.string.action_open))
             }
         }
         HorizontalDivider(thickness = 0.dp)
@@ -671,7 +673,7 @@ private fun TimezoneInfoCard() {
                     fontWeight = FontWeight.Medium,
                 )
                 Text(
-                    "Detected from your device. Your daily stats and the morning anomaly check use this timezone.",
+                    stringResource(R.string.settings_timezone_desc),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -684,7 +686,7 @@ private fun TimezoneInfoCard() {
 private fun ReleaseNotesDialog(onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("What's new") },
+        title = { Text(stringResource(R.string.settings_whats_new)) },
         text = {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 items(ReleaseNotes.history.size) { index ->
@@ -697,7 +699,7 @@ private fun ReleaseNotesDialog(onDismiss: () -> Unit) {
                             color = MaterialTheme.colorScheme.primary,
                         )
                         Text(
-                            note.summary,
+                            stringResource(note.summaryRes),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface,
                         )
@@ -706,7 +708,7 @@ private fun ReleaseNotesDialog(onDismiss: () -> Unit) {
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("Close") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_close)) }
         },
     )
 }

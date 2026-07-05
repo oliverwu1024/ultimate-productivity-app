@@ -3,6 +3,7 @@ package com.ultiq.app.ui.settings
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.ultiq.app.R
 import com.ultiq.app.data.remote.RetrofitClient
 import com.ultiq.app.data.remote.dto.ChangePasswordRequest
 import com.ultiq.app.util.TokenManager
@@ -33,7 +34,7 @@ class ChangePasswordViewModel(application: Application) : AndroidViewModel(appli
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    error = e.toUserMessage("Couldn't change password. Try again."),
+                    error = e.toUserMessage(getApplication<Application>().getString(R.string.change_password_error)),
                 )
             }
         }

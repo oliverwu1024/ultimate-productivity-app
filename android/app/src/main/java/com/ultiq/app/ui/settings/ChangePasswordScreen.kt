@@ -34,11 +34,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ultiq.app.R
 import com.ultiq.app.ui.auth.PasswordStrengthChecklist
 import com.ultiq.app.util.PasswordStrength
 import com.ultiq.app.util.SecureWindow
@@ -60,6 +62,8 @@ fun ChangePasswordScreen(
     var newVisible by remember { mutableStateOf(false) }
     var confirmMismatch by remember { mutableStateOf(false) }
 
+    val passwordUpdatedMsg = stringResource(R.string.change_password_updated)
+
     LaunchedEffect(uiState.error) {
         uiState.error?.let {
             snackbarHostState.showSnackbar(it)
@@ -68,7 +72,7 @@ fun ChangePasswordScreen(
     }
     LaunchedEffect(uiState.isSuccess) {
         if (uiState.isSuccess) {
-            snackbarHostState.showSnackbar("Password updated")
+            snackbarHostState.showSnackbar(passwordUpdatedMsg)
             viewModel.consumeSuccess()
             onBack()
         }
@@ -77,10 +81,10 @@ fun ChangePasswordScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Change password") },
+                title = { Text(stringResource(R.string.change_password)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back))
                     }
                 },
             )
@@ -98,7 +102,7 @@ fun ChangePasswordScreen(
                 OutlinedTextField(
                     value = current,
                     onValueChange = { current = it },
-                    label = { Text("Current password") },
+                    label = { Text(stringResource(R.string.change_password_current)) },
                     singleLine = true,
                     visualTransformation = if (currentVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
@@ -121,7 +125,7 @@ fun ChangePasswordScreen(
                         newPassword = it
                         confirmMismatch = false
                     },
-                    label = { Text("New password") },
+                    label = { Text(stringResource(R.string.change_password_new)) },
                     singleLine = true,
                     visualTransformation = if (newVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
@@ -148,12 +152,12 @@ fun ChangePasswordScreen(
                         confirm = it
                         confirmMismatch = false
                     },
-                    label = { Text("Confirm new password") },
+                    label = { Text(stringResource(R.string.change_password_confirm)) },
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
                     isError = confirmMismatch,
                     supportingText = if (confirmMismatch) {
-                        { Text("Passwords do not match") }
+                        { Text(stringResource(R.string.change_password_mismatch)) }
                     } else null,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                     modifier = Modifier.fillMaxWidth(),
@@ -182,7 +186,7 @@ fun ChangePasswordScreen(
                             color = MaterialTheme.colorScheme.onPrimary,
                         )
                     } else {
-                        Text("Update password")
+                        Text(stringResource(R.string.change_password_update))
                     }
                 }
             }
