@@ -3,6 +3,7 @@ package com.ultiq.app.ui.chat
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.ultiq.app.R
 import com.ultiq.app.data.local.AppDatabase
 import com.ultiq.app.data.remote.RetrofitClient
 import com.ultiq.app.data.remote.dto.ChatMessageDto
@@ -175,14 +176,16 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 .onSuccess {
                     _uiState.value = _uiState.value.copy(
                         resendingVerification = false,
-                        error = "Verification email sent — check your inbox.",
+                        error = getApplication<Application>()
+                            .getString(R.string.settings_verification_sent),
                     )
                 }
                 .onFailure { e ->
                     _uiState.value = _uiState.value.copy(
                         resendingVerification = false,
                         error = e.toUserMessage(
-                            "Couldn't send a new verification email. Try again."
+                            getApplication<Application>()
+                                .getString(R.string.settings_verification_error)
                         ),
                     )
                 }
@@ -205,7 +208,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 .onFailure { e ->
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        error = e.toUserMessage("Couldn't load your chat history."),
+                        error = e.toUserMessage(getApplication<Application>().getString(R.string.chat_err_history)),
                     )
                 }
         }
@@ -293,7 +296,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     _uiState.value = _uiState.value.copy(
                         turns = rolled,
                         isSending = false,
-                        error = e.toUserMessage("Couldn't reach the coach. Try again."),
+                        error = e.toUserMessage(getApplication<Application>().getString(R.string.chat_err_send)),
                     )
                 }
         }
@@ -351,7 +354,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     }
                     _uiState.value = _uiState.value.copy(
                         turns = turns,
-                        error = e.toUserMessage("Couldn't create the event. Try again."),
+                        error = e.toUserMessage(getApplication<Application>().getString(R.string.chat_err_create_event)),
                     )
                 }
         }
@@ -383,7 +386,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }.onFailure { e ->
                 _uiState.value = _uiState.value.copy(
-                    error = e.toUserMessage("Undo failed. You may need to delete it manually.")
+                    error = e.toUserMessage(getApplication<Application>().getString(R.string.chat_err_undo))
                 )
             }
         }
@@ -432,7 +435,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     }
                     _uiState.value = _uiState.value.copy(
                         turns = turns,
-                        error = e.toUserMessage("Couldn't create the alarm. Try again."),
+                        error = e.toUserMessage(getApplication<Application>().getString(R.string.chat_err_create_alarm)),
                     )
                 }
         }
@@ -463,7 +466,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 .onFailure { e ->
                     _uiState.value = _uiState.value.copy(
                         isSending = false,
-                        error = e.toUserMessage("Couldn't reset the chat. Try again."),
+                        error = e.toUserMessage(getApplication<Application>().getString(R.string.chat_err_reset)),
                     )
                 }
         }

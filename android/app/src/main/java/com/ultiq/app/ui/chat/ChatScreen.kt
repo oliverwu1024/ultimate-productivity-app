@@ -1,5 +1,6 @@
 package com.ultiq.app.ui.chat
 
+import android.content.Context
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -63,6 +64,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -72,6 +75,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ultiq.app.R
+import com.ultiq.app.util.LocaleManager
 import com.ultiq.app.data.remote.dto.ChatMessageDto
 import com.ultiq.app.data.remote.dto.ParsedCalendarFieldsDto
 import com.ultiq.app.data.remote.dto.ProposedAlarmFieldsDto
@@ -88,6 +93,7 @@ fun ChatScreen(
     val snackbarHost = remember { SnackbarHostState() }
     val listState = rememberLazyListState()
     var showResetDialog by remember { mutableStateOf(false) }
+    val undoLabel = stringResource(R.string.action_undo)
 
     // Re-sync the cached verification flag every time the screen mounts.
     // Catches the "verified in Gmail → Chrome → bounce back to Ultiq" path
@@ -113,7 +119,7 @@ fun ChatScreen(
         viewModel.undoCues.collect { cue ->
             val result = snackbarHost.showSnackbar(
                 message = cue.message,
-                actionLabel = "Undo",
+                actionLabel = undoLabel,
                 duration = SnackbarDuration.Long,
                 withDismissAction = true,
             )
@@ -126,10 +132,10 @@ fun ChatScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Coach") },
+                title = { Text(stringResource(R.string.chat_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
                     }
                 },
                 actions = {
@@ -137,7 +143,7 @@ fun ChatScreen(
                         onClick = { showResetDialog = true },
                         enabled = !state.isSending && state.turns.isNotEmpty(),
                     ) {
-                        Icon(Icons.Default.RestartAlt, contentDescription = "Start a new chat")
+                        Icon(Icons.Default.RestartAlt, contentDescription = stringResource(R.string.chat_new_cd))
                     }
                 },
             )
@@ -225,21 +231,18 @@ fun ChatScreen(
     if (showResetDialog) {
         AlertDialog(
             onDismissRequest = { showResetDialog = false },
-            title = { Text("Start a new chat?") },
+            title = { Text(stringResource(R.string.chat_reset_title)) },
             text = {
-                Text(
-                    "Your current conversation will be archived (we keep it for your " +
-                        "records but the coach won't see it from here on).",
-                )
+                Text(stringResource(R.string.chat_reset_body))
             },
             confirmButton = {
                 TextButton(onClick = {
                     showResetDialog = false
                     viewModel.resetConversation()
-                }) { Text("Start fresh") }
+                }) { Text(stringResource(R.string.chat_reset_confirm)) }
             },
             dismissButton = {
-                TextButton(onClick = { showResetDialog = false }) { Text("Cancel") }
+                TextButton(onClick = { showResetDialog = false }) { Text(stringResource(R.string.action_cancel)) }
             },
         )
     }
@@ -483,7 +486,7 @@ private fun CalendarProposalCard(
                     )
                     Spacer(Modifier.width(6.dp))
                     Text(
-                        "Proposed event",
+                        stringResource(R.string.chat_proposed_event),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.SemiBold,
@@ -512,9 +515,9 @@ private fun CalendarProposalCard(
                 when (state) {
                     ProposalState.Pending -> Row(horizontalArrangement = Arrangement.End) {
                         Spacer(Modifier.weight(1f))
-                        OutlinedButton(onClick = onCancel) { Text("Cancel") }
+                        OutlinedButton(onClick = onCancel) { Text(stringResource(R.string.action_cancel)) }
                         Spacer(Modifier.width(8.dp))
-                        Button(onClick = onCreate) { Text("Create") }
+                        Button(onClick = onCreate) { Text(stringResource(R.string.chat_create)) }
                     }
                     ProposalState.Creating -> Row(verticalAlignment = Alignment.CenterVertically) {
                         CircularProgressIndicator(
@@ -522,15 +525,15 @@ private fun CalendarProposalCard(
                             strokeWidth = 1.5.dp,
                         )
                         Spacer(Modifier.width(8.dp))
-                        Text("Creating…", style = MaterialTheme.typography.bodySmall)
+                        Text(stringResource(R.string.chat_creating), style = MaterialTheme.typography.bodySmall)
                     }
                     ProposalState.Created -> Text(
-                        "✓ Added to your calendar",
+                        stringResource(R.string.chat_added_calendar),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.primary,
                     )
                     ProposalState.Cancelled -> Text(
-                        "Cancelled",
+                        stringResource(R.string.chat_cancelled),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -551,6 +554,7 @@ private fun AlarmProposalCard(
     onCancel: () -> Unit,
 ) {
     val alarm = invocation.proposed_alarm ?: return
+    val context = LocalContext.current
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.Start,
@@ -577,7 +581,7 @@ private fun AlarmProposalCard(
                     )
                     Spacer(Modifier.width(6.dp))
                     Text(
-                        "Proposed alarm",
+                        stringResource(R.string.chat_proposed_alarm),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.SemiBold,
@@ -590,7 +594,7 @@ private fun AlarmProposalCard(
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    formatAlarmSubline(alarm),
+                    formatAlarmSubline(context, alarm),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -606,9 +610,9 @@ private fun AlarmProposalCard(
                 when (state) {
                     ProposalState.Pending -> Row(horizontalArrangement = Arrangement.End) {
                         Spacer(Modifier.weight(1f))
-                        OutlinedButton(onClick = onCancel) { Text("Cancel") }
+                        OutlinedButton(onClick = onCancel) { Text(stringResource(R.string.action_cancel)) }
                         Spacer(Modifier.width(8.dp))
-                        Button(onClick = onCreate) { Text("Create") }
+                        Button(onClick = onCreate) { Text(stringResource(R.string.chat_create)) }
                     }
                     ProposalState.Creating -> Row(verticalAlignment = Alignment.CenterVertically) {
                         CircularProgressIndicator(
@@ -616,15 +620,15 @@ private fun AlarmProposalCard(
                             strokeWidth = 1.5.dp,
                         )
                         Spacer(Modifier.width(8.dp))
-                        Text("Creating…", style = MaterialTheme.typography.bodySmall)
+                        Text(stringResource(R.string.chat_creating), style = MaterialTheme.typography.bodySmall)
                     }
                     ProposalState.Created -> Text(
-                        "✓ Alarm set",
+                        stringResource(R.string.chat_alarm_set),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.primary,
                     )
                     ProposalState.Cancelled -> Text(
-                        "Cancelled",
+                        stringResource(R.string.chat_cancelled),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -634,26 +638,32 @@ private fun AlarmProposalCard(
     }
 }
 
-private fun formatAlarmSubline(alarm: ProposedAlarmFieldsDto): String {
+private fun formatAlarmSubline(context: Context, alarm: ProposedAlarmFieldsDto): String {
     // Bit 0 = Sun … bit 6 = Sat. Decode into a human-friendly recurrence
-    // string ("Mon-Fri", "Daily", "Sat/Sun", or "One-shot").
+    // string (localized "Mon–Fri", "Daily", short day names, or "One-shot").
     val mask = alarm.days_of_week.toInt() and 0x7F
-    val labels = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
     val days = (0..6).filter { (mask shr it) and 1 == 1 }
     val cadence = when {
-        days.isEmpty() -> "One-shot"
-        days.size == 7 -> "Daily"
-        days == listOf(1, 2, 3, 4, 5) -> "Mon-Fri"
-        days == listOf(0, 6) -> "Weekends"
-        else -> days.joinToString("/") { labels[it] }
+        days.isEmpty() -> context.getString(R.string.chat_cadence_oneshot)
+        days.size == 7 -> context.getString(R.string.chat_cadence_daily)
+        days == listOf(1, 2, 3, 4, 5) -> context.getString(R.string.chat_cadence_weekdays)
+        days == listOf(0, 6) -> context.getString(R.string.chat_cadence_weekends)
+        else -> {
+            val locale = LocaleManager.currentLocale()
+            days.joinToString("/") {
+                // bit 0 = Sunday; java.time DayOfWeek is MON(1)…SUN(7).
+                val dow = if (it == 0) java.time.DayOfWeek.SUNDAY else java.time.DayOfWeek.of(it)
+                dow.getDisplayName(java.time.format.TextStyle.SHORT, locale)
+            }
+        }
     }
     val mission = when (alarm.mission_kind) {
-        "math" -> "math mission"
-        "shake" -> "shake mission"
-        "photo" -> "photo mission"
-        else -> "no mission"
+        "math" -> context.getString(R.string.chat_mission_math)
+        "shake" -> context.getString(R.string.chat_mission_shake)
+        "photo" -> context.getString(R.string.chat_mission_photo)
+        else -> context.getString(R.string.chat_mission_none)
     }
-    return "$cadence · $mission"
+    return context.getString(R.string.chat_alarm_subline, cadence, mission)
 }
 
 private fun formatTimeRange(fields: ParsedCalendarFieldsDto): String {
@@ -663,8 +673,9 @@ private fun formatTimeRange(fields: ParsedCalendarFieldsDto): String {
         val end = OffsetDateTime.parse(fields.end_time)
             .atZoneSameInstant(java.time.ZoneId.systemDefault())
         val sameDay = start.toLocalDate() == end.toLocalDate()
-        val dateFmt = java.time.format.DateTimeFormatter.ofPattern("EEE d MMM")
-        val timeFmt = java.time.format.DateTimeFormatter.ofPattern("HH:mm")
+        val locale = LocaleManager.currentLocale()
+        val dateFmt = java.time.format.DateTimeFormatter.ofPattern("EEE d MMM", locale)
+        val timeFmt = java.time.format.DateTimeFormatter.ofPattern("HH:mm", locale)
         if (sameDay) {
             "${start.format(dateFmt)} · ${start.format(timeFmt)} – ${end.format(timeFmt)}"
         } else {
@@ -695,7 +706,7 @@ private fun TypingIndicator() {
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    "thinking…",
+                    stringResource(R.string.chat_thinking),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -717,14 +728,12 @@ private fun EmptyState() {
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    "Talk to your coach",
+                    stringResource(R.string.chat_empty_title),
                     style = MaterialTheme.typography.titleMedium,
                 )
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    "Ask about sleep, focus blocks, or weekly planning. The coach can " +
-                        "look at your data, add checklist items for you, and draft " +
-                        "calendar events you confirm before they land.",
+                    stringResource(R.string.chat_empty_body),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -754,7 +763,7 @@ private fun ChatComposer(
                 value = input,
                 onValueChange = { input = it },
                 modifier = Modifier.weight(1f),
-                placeholder = { Text("Message your coach…") },
+                placeholder = { Text(stringResource(R.string.chat_composer_placeholder)) },
                 maxLines = 4,
                 enabled = !isSending,
             )
@@ -775,7 +784,7 @@ private fun ChatComposer(
             ) {
                 Icon(
                     Icons.AutoMirrored.Filled.Send,
-                    contentDescription = "Send",
+                    contentDescription = stringResource(R.string.action_send),
                     tint = if (canSend) {
                         MaterialTheme.colorScheme.onPrimary
                     } else {
@@ -805,12 +814,12 @@ private fun EmailVerificationBanner(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Verify your email",
+                    text = stringResource(R.string.chat_verify_title),
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onTertiaryContainer,
                 )
                 Text(
-                    text = "Coach stays locked until you confirm the address.",
+                    text = stringResource(R.string.chat_verify_body),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onTertiaryContainer,
                 )
@@ -820,7 +829,7 @@ private fun EmailVerificationBanner(
                 onClick = onResend,
                 enabled = !sending,
             ) {
-                Text(if (sending) "Sending…" else "Resend")
+                Text(if (sending) stringResource(R.string.chat_sending) else stringResource(R.string.chat_resend))
             }
         }
     }

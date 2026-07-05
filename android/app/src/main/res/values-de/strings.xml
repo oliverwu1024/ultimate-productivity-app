@@ -791,4 +791,43 @@
     <string name="relnote_1_13">Der Fokus-Reiter zeigt jetzt deine laufende Sitzung, wenn du die App erneut öffnest. Überstunden sind im Sperr-Popup mit einer auffälligen ÜBERSTUNDEN-Pille deutlich markiert, sobald du deine geplante Fokuszeit überschreitest.</string>
     <string name="relnote_1_12">Die Fokussitzungsdauer bleibt genau, wenn die App im Hintergrund läuft. Die Pausen-/Ruhephase wurde zugunsten eines einzelnen Fokusblocks mit einem Überstunden-Indikator entfernt, der über deine geplante Zeit hinaus hochzählt.</string>
     <string name="relnote_1_10">Tippe auf eine aktuelle Fokussitzung, um Details zu erweitern. Das Checklisten-Übertragungs-Banner bringt unerledigte Einträge von gestern vorwärts. Vergangene Kalenderereignisse als erledigt markieren.</string>
+
+    <!-- §13.1 Android sweep — chat -->
+    <string name="chat_title">Coach</string>
+    <string name="chat_new_cd">Neues Gespräch starten</string>
+    <string name="action_undo">Rückgängig</string>
+    <string name="action_send">Senden</string>
+    <string name="chat_reset_title">Neues Gespräch starten?</string>
+    <string name="chat_reset_body">Dein aktuelles Gespräch wird archiviert (wir behalten es für deine Unterlagen, aber der Coach sieht es von nun an nicht mehr).</string>
+    <string name="chat_reset_confirm">Neu starten</string>
+    <string name="chat_proposed_event">Vorgeschlagenes Ereignis</string>
+    <string name="chat_proposed_alarm">Vorgeschlagener Wecker</string>
+    <string name="chat_create">Erstellen</string>
+    <string name="chat_creating">Wird erstellt…</string>
+    <string name="chat_added_calendar">✓ Zum Kalender hinzugefügt</string>
+    <string name="chat_alarm_set">✓ Wecker gestellt</string>
+    <string name="chat_cancelled">Abgebrochen</string>
+    <string name="chat_thinking">denkt nach…</string>
+    <string name="chat_empty_title">Sprich mit deinem Coach</string>
+    <string name="chat_empty_body">Frag nach Schlaf, Fokusblöcken oder Wochenplanung. Der Coach kann deine Daten einsehen, Checklistenpunkte für dich hinzufügen und Kalendereinträge vorschlagen, die du vor dem Speichern bestätigst.</string>
+    <string name="chat_composer_placeholder">Nachricht an deinen Coach…</string>
+    <string name="chat_verify_title">E-Mail bestätigen</string>
+    <string name="chat_verify_body">Der Coach bleibt gesperrt, bis du die Adresse bestätigst.</string>
+    <string name="chat_sending">Wird gesendet…</string>
+    <string name="chat_resend">Erneut senden</string>
+    <string name="chat_cadence_oneshot">Einmalig</string>
+    <string name="chat_cadence_daily">Täglich</string>
+    <string name="chat_cadence_weekdays">Mo–Fr</string>
+    <string name="chat_cadence_weekends">Wochenende</string>
+    <string name="chat_mission_math">Rechenaufgabe</string>
+    <string name="chat_mission_shake">Schüttelaufgabe</string>
+    <string name="chat_mission_photo">Fotoaufgabe</string>
+    <string name="chat_mission_none">keine Aufgabe</string>
+    <string name="chat_alarm_subline">%1$s · %2$s</string>
+    <string name="chat_err_history">Chatverlauf konnte nicht geladen werden.</string>
+    <string name="chat_err_send">Coach nicht erreichbar. Erneut versuchen.</string>
+    <string name="chat_err_create_event">Ereignis konnte nicht erstellt werden. Erneut versuchen.</string>
+    <string name="chat_err_create_alarm">Wecker konnte nicht erstellt werden. Erneut versuchen.</string>
+    <string name="chat_err_undo">Rückgängig fehlgeschlagen. Möglicherweise muss es manuell gelöscht werden.</string>
+    <string name="chat_err_reset">Gespräch konnte nicht zurückgesetzt werden. Erneut versuchen.</string>
 </resources>

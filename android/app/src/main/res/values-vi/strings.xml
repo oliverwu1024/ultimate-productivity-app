@@ -768,4 +768,43 @@
     <string name="relnote_1_13">Tab Tập trung nay hiển thị phiên đang chạy khi bạn mở lại ứng dụng. Giờ làm thêm được đánh dấu rõ ràng trên popup chặn với nhãn OVERTIME nổi bật khi bạn vượt qua thời gian tập trung đã lên kế hoạch.</string>
     <string name="relnote_1_12">Thời lượng phiên tập trung luôn chính xác khi ứng dụng chạy nền. Đã xóa giai đoạn nghỉ/giải lao để thay bằng một khối tập trung duy nhất với chỉ báo Giờ làm thêm đếm lên vượt qua thời gian đã lên kế hoạch.</string>
     <string name="relnote_1_10">Nhấn phiên tập trung gần đây để mở rộng chi tiết. Băng mang tiếp danh sách kiểm tra đưa các mục chưa hoàn thành từ hôm qua vào. Đánh dấu hoàn thành các sự kiện lịch cũ.</string>
+
+    <!-- §13.1 Android sweep — chat -->
+    <string name="chat_title">Coach</string>
+    <string name="chat_new_cd">Bắt đầu cuộc trò chuyện mới</string>
+    <string name="action_undo">Hoàn tác</string>
+    <string name="action_send">Gửi</string>
+    <string name="chat_reset_title">Bắt đầu cuộc trò chuyện mới?</string>
+    <string name="chat_reset_body">Cuộc trò chuyện hiện tại sẽ được lưu trữ (chúng tôi giữ lại để bạn tham khảo nhưng coach sẽ không xem từ đây nữa).</string>
+    <string name="chat_reset_confirm">Bắt đầu lại</string>
+    <string name="chat_proposed_event">Sự kiện đề xuất</string>
+    <string name="chat_proposed_alarm">Báo thức đề xuất</string>
+    <string name="chat_create">Tạo</string>
+    <string name="chat_creating">Đang tạo…</string>
+    <string name="chat_added_calendar">✓ Đã thêm vào lịch</string>
+    <string name="chat_alarm_set">✓ Đã đặt báo thức</string>
+    <string name="chat_cancelled">Đã hủy</string>
+    <string name="chat_thinking">đang suy nghĩ…</string>
+    <string name="chat_empty_title">Trò chuyện với coach</string>
+    <string name="chat_empty_body">Hỏi về giấc ngủ, khối tập trung, hoặc kế hoạch tuần. Coach có thể xem dữ liệu của bạn, thêm mục checklist và soạn thảo sự kiện lịch để bạn xác nhận trước khi lưu.</string>
+    <string name="chat_composer_placeholder">Nhắn tin cho coach…</string>
+    <string name="chat_verify_title">Xác minh email</string>
+    <string name="chat_verify_body">Coach bị khóa cho đến khi bạn xác nhận địa chỉ email.</string>
+    <string name="chat_sending">Đang gửi…</string>
+    <string name="chat_resend">Gửi lại</string>
+    <string name="chat_cadence_oneshot">Một lần</string>
+    <string name="chat_cadence_daily">Hằng ngày</string>
+    <string name="chat_cadence_weekdays">T2–T6</string>
+    <string name="chat_cadence_weekends">Cuối tuần</string>
+    <string name="chat_mission_math">nhiệm vụ toán</string>
+    <string name="chat_mission_shake">nhiệm vụ lắc</string>
+    <string name="chat_mission_photo">nhiệm vụ ảnh</string>
+    <string name="chat_mission_none">không có nhiệm vụ</string>
+    <string name="chat_alarm_subline">%1$s · %2$s</string>
+    <string name="chat_err_history">Không thể tải lịch sử trò chuyện.</string>
+    <string name="chat_err_send">Không thể kết nối với coach. Thử lại.</string>
+    <string name="chat_err_create_event">Không thể tạo sự kiện. Thử lại.</string>
+    <string name="chat_err_create_alarm">Không thể tạo báo thức. Thử lại.</string>
+    <string name="chat_err_undo">Hoàn tác thất bại. Bạn có thể cần xóa thủ công.</string>
+    <string name="chat_err_reset">Không thể đặt lại cuộc trò chuyện. Thử lại.</string>
 </resources>

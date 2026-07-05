@@ -814,4 +814,43 @@
     <string name="relnote_1_13">La pestaña Concentración ahora muestra tu sesión en curso cuando vuelves a abrir la app. El tiempo extra está claramente marcado en el popup de bloqueo con un destacado indicador de TIEMPO EXTRA una vez que superas tu tiempo de concentración planificado.</string>
     <string name="relnote_1_12">La duración de la sesión de concentración se mantiene precisa cuando la app se ejecuta en segundo plano. Se eliminó la fase de descanso/pausa a favor de un único bloque de concentración con un indicador de Tiempo extra que cuenta hacia arriba más allá de tu tiempo planificado.</string>
     <string name="relnote_1_10">Toca una sesión de concentración reciente para expandir sus detalles. El banner de traslado de la Lista trae los elementos sin terminar del día anterior. Marca eventos pasados del calendario como hecho.</string>
+
+    <!-- §13.1 Android sweep — chat -->
+    <string name="chat_title">Coach</string>
+    <string name="chat_new_cd">Iniciar nuevo chat</string>
+    <string name="action_undo">Deshacer</string>
+    <string name="action_send">Enviar</string>
+    <string name="chat_reset_title">¿Iniciar nuevo chat?</string>
+    <string name="chat_reset_body">Tu conversación actual se archivará (la guardamos como registro, pero el coach no la verá a partir de ahora).</string>
+    <string name="chat_reset_confirm">Empezar de cero</string>
+    <string name="chat_proposed_event">Evento propuesto</string>
+    <string name="chat_proposed_alarm">Alarma propuesta</string>
+    <string name="chat_create">Crear</string>
+    <string name="chat_creating">Creando…</string>
+    <string name="chat_added_calendar">✓ Añadido a tu calendario</string>
+    <string name="chat_alarm_set">✓ Alarma activada</string>
+    <string name="chat_cancelled">Cancelado</string>
+    <string name="chat_thinking">pensando…</string>
+    <string name="chat_empty_title">Habla con tu coach</string>
+    <string name="chat_empty_body">Pregunta sobre el sueño, bloques de enfoque o planificación semanal. El coach puede revisar tus datos, añadir elementos a tu lista y crear eventos en el calendario que confirmas antes de guardarlos.</string>
+    <string name="chat_composer_placeholder">Escribe al coach…</string>
+    <string name="chat_verify_title">Verifica tu correo</string>
+    <string name="chat_verify_body">El coach permanece bloqueado hasta que confirmes la dirección.</string>
+    <string name="chat_sending">Enviando…</string>
+    <string name="chat_resend">Reenviar</string>
+    <string name="chat_cadence_oneshot">Una vez</string>
+    <string name="chat_cadence_daily">Diario</string>
+    <string name="chat_cadence_weekdays">Lun–Vie</string>
+    <string name="chat_cadence_weekends">Fines de semana</string>
+    <string name="chat_mission_math">misión matemática</string>
+    <string name="chat_mission_shake">misión de agitación</string>
+    <string name="chat_mission_photo">misión de foto</string>
+    <string name="chat_mission_none">sin misión</string>
+    <string name="chat_alarm_subline">%1$s · %2$s</string>
+    <string name="chat_err_history">No se pudo cargar tu historial de chat.</string>
+    <string name="chat_err_send">No se pudo contactar al coach. Inténtalo de nuevo.</string>
+    <string name="chat_err_create_event">No se pudo crear el evento. Inténtalo de nuevo.</string>
+    <string name="chat_err_create_alarm">No se pudo crear la alarma. Inténtalo de nuevo.</string>
+    <string name="chat_err_undo">Error al deshacer. Es posible que debas eliminarlo manualmente.</string>
+    <string name="chat_err_reset">No se pudo reiniciar el chat. Inténtalo de nuevo.</string>
 </resources>
