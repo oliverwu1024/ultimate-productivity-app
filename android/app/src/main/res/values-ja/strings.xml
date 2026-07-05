@@ -499,4 +499,43 @@
     <plurals name="end_sleep_talk_summary">
         <item quantity="other">寝言%1$d回 — 合計%2$ds</item>
     </plurals>
+
+    <!-- ══════════════════ §13.1 Android sweep — sleep settings ══════════════════ -->
+
+    <string name="unit_min">分</string>
+    <string name="pro_badge">Pro</string>
+
+    <string name="settings_optimal_sleep">理想的な夜間睡眠時間</string>
+    <string name="settings_optimal_sleep_desc">不足すると睡眠負債が増え、長すぎると余剰休息になります</string>
+    <string name="settings_schedule">睡眠スケジュール</string>
+    <string name="settings_duration_suffix">時間：%1$s</string>
+    <string name="settings_target_bedtime">目標就寝時刻</string>
+    <string name="settings_target_bedtime_desc">睡眠負債の計算と就寝リマインダーのスケジュールに使用します</string>
+    <string name="settings_target_wake">目標起床時刻</string>
+    <string name="settings_target_wake_desc">理想の起床時刻</string>
+    <string name="settings_lockout">睡眠中のロックアウト</string>
+    <string name="settings_lockout_desc">デフォルトはオフ — 睡眠は眠るためのもので、邪魔になるものではありません</string>
+    <string name="settings_phone_break">睡眠中のスマホ使用時間</string>
+    <string name="settings_phone_break_desc">睡眠セッション中に「はい、スマホが必要です」をタップした後の静止時間</string>
+    <string name="settings_sleep_sounds">睡眠音</string>
+    <string name="settings_track_snore">睡眠中のいびきと咳を記録</string>
+    <string name="settings_track_snore_desc">音声はデバイス上のみで解析 — アップロードも保存もされません。夜間のバッテリーを約3–5パーセント余分に消費します。</string>
+    <string name="settings_detect_talk">寝言の検出</string>
+    <string name="settings_detect_talk_desc">音声も監視します — デフォルトはオフ。いびき・咳よりも誤検知率が高いため、テレビをつけたまま寝る場合はオフのままにすることをおすすめします。</string>
+    <string name="settings_audio_recordings">音声録音</string>
+    <string name="settings_record_snore">いびきイベントを録音</string>
+    <string name="settings_record_snore_desc">検出されたいびきごとに音声クリップを保存します。</string>
+    <string name="settings_record_cough">咳イベントを録音</string>
+    <string name="settings_record_cough_desc">検出された咳ごとに音声クリップを保存します。</string>
+    <string name="settings_record_talk">寝言イベントを録音</string>
+    <string name="settings_record_talk_desc">検出された寝言ごとに音声クリップを保存します。</string>
+    <string name="settings_record_events">イベントを録音</string>
+    <string name="settings_record_events_desc">検出されたイベントごとに約10秒の音声を保存し、再生できます。クリップは30日後に自動削除されます。Proのみ。</string>
+    <string name="settings_consent_title">睡眠音声を録音しますか？</string>
+    <string name="settings_consent_p1">これをオンにすると、Ultiqは検出されたいびき、咳、または寝言イベントごとに約10秒の音声クリップを保存します。</string>
+    <string name="settings_consent_p2">クリップはUltiqのサーバーに（暗号化して）保存され、30日後に自動削除されます。再生できるのはあなただけです。</string>
+    <string name="settings_consent_p3">再生にはインターネット接続が必要です — クリップはUltiqのサーバーからストリーミングされ、このスマホには保存されません。</string>
+    <string name="settings_consent_p4">いつでもオフにしたり、再生リストから個別のクリップを削除したりできます。</string>
+    <string name="settings_turn_on">オンにする</string>
+    <string name="settings_last_audio">最後の音声試行</string>
 </resources>

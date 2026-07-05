@@ -538,4 +538,43 @@
         <item quantity="one">%1$d sleep-talk episode — %2$ds total</item>
         <item quantity="other">%1$d sleep-talk episodes — %2$ds total</item>
     </plurals>
+
+    <!-- ══════════════════ §13.1 Android sweep — sleep settings ══════════════════ -->
+
+    <string name="unit_min">min</string>
+    <string name="pro_badge">Pro</string>
+
+    <string name="settings_optimal_sleep">Optimal nightly sleep</string>
+    <string name="settings_optimal_sleep_desc">Falling short adds to sleep debt; sleeping longer goes into extra rest</string>
+    <string name="settings_schedule">Sleep schedule</string>
+    <string name="settings_duration_suffix">Duration: %1$s</string>
+    <string name="settings_target_bedtime">Target bedtime</string>
+    <string name="settings_target_bedtime_desc">Used to compute sleep debt and schedule the bedtime reminder</string>
+    <string name="settings_target_wake">Target wake time</string>
+    <string name="settings_target_wake_desc">When you\'d ideally wake up</string>
+    <string name="settings_lockout">Lockout during sleep</string>
+    <string name="settings_lockout_desc">Off by default — sleep is for sleeping, not friction</string>
+    <string name="settings_phone_break">Sleep phone-break duration</string>
+    <string name="settings_phone_break_desc">Quiet window after tapping \'Yes, I need my phone\' during a sleep session</string>
+    <string name="settings_sleep_sounds">Sleep sounds</string>
+    <string name="settings_track_snore">Track snoring &amp; coughing during sleep</string>
+    <string name="settings_track_snore_desc">Audio analysed on-device only — never uploaded or stored. Uses about 3–5 percent extra overnight battery.</string>
+    <string name="settings_detect_talk">Detect sleep-talk</string>
+    <string name="settings_detect_talk_desc">Also listens for speech — off by default. Higher false-positive rate than snore/cough; consider leaving off if you sleep with the TV on.</string>
+    <string name="settings_audio_recordings">Audio recordings</string>
+    <string name="settings_record_snore">Record snore events</string>
+    <string name="settings_record_snore_desc">Save an audio clip for each detected snore.</string>
+    <string name="settings_record_cough">Record cough events</string>
+    <string name="settings_record_cough_desc">Save an audio clip for each detected cough.</string>
+    <string name="settings_record_talk">Record sleep-talk events</string>
+    <string name="settings_record_talk_desc">Save an audio clip for each detected sleep-talk.</string>
+    <string name="settings_record_events">Record events</string>
+    <string name="settings_record_events_desc">Stores ~10 s audio per detected event so you can play it back. Clips auto-delete after 30 days. Pro only.</string>
+    <string name="settings_consent_title">Record sleep audio?</string>
+    <string name="settings_consent_p1">When you turn this on, Ultiq will save a ~10-second audio clip for each snore, cough, or sleep-talk event we detect.</string>
+    <string name="settings_consent_p2">Clips are stored on Ultiq\'s servers (encrypted) and auto-delete after 30 days. Only you can play them back.</string>
+    <string name="settings_consent_p3">Playback requires an internet connection — clips stream from Ultiq\'s servers and aren\'t stored on this phone.</string>
+    <string name="settings_consent_p4">You can turn this off any time, or delete individual clips from the playback list.</string>
+    <string name="settings_turn_on">Turn on</string>
+    <string name="settings_last_audio">Last audio attempt</string>
 </resources>

@@ -499,4 +499,43 @@
     <plurals name="end_sleep_talk_summary">
         <item quantity="other">%1$d lần nói mê — tổng %2$ds</item>
     </plurals>
+
+    <!-- ══════════════════ §13.1 Android sweep — sleep settings ══════════════════ -->
+
+    <string name="unit_min">phút</string>
+    <string name="pro_badge">Pro</string>
+
+    <string name="settings_optimal_sleep">Giấc ngủ đêm tối ưu</string>
+    <string name="settings_optimal_sleep_desc">Thiếu giấc cộng thêm nợ ngủ; ngủ nhiều hơn được tính là ngủ thêm</string>
+    <string name="settings_schedule">Lịch ngủ</string>
+    <string name="settings_duration_suffix">Thời lượng: %1$s</string>
+    <string name="settings_target_bedtime">Giờ đi ngủ mục tiêu</string>
+    <string name="settings_target_bedtime_desc">Dùng để tính nợ ngủ và đặt lịch nhắc nhở giờ đi ngủ</string>
+    <string name="settings_target_wake">Giờ thức dậy mục tiêu</string>
+    <string name="settings_target_wake_desc">Thời điểm bạn muốn thức dậy lý tưởng nhất</string>
+    <string name="settings_lockout">Khóa trong khi ngủ</string>
+    <string name="settings_lockout_desc">Tắt theo mặc định — ngủ là để ngủ, không phải để cản trở</string>
+    <string name="settings_phone_break">Thời gian nghỉ điện thoại khi ngủ</string>
+    <string name="settings_phone_break_desc">Cửa sổ yên tĩnh sau khi nhấn \'Vâng, tôi cần điện thoại\' trong phiên ngủ</string>
+    <string name="settings_sleep_sounds">Âm thanh khi ngủ</string>
+    <string name="settings_track_snore">Theo dõi ngáy &amp; ho khi ngủ</string>
+    <string name="settings_track_snore_desc">Âm thanh được phân tích trên thiết bị — không bao giờ tải lên hay lưu trữ. Tốn thêm khoảng 3–5 phần trăm pin qua đêm.</string>
+    <string name="settings_detect_talk">Phát hiện nói chuyện khi ngủ</string>
+    <string name="settings_detect_talk_desc">Cũng nghe ngóng lời nói — tắt theo mặc định. Tỷ lệ nhận diện sai cao hơn ngáy/ho; cân nhắc tắt nếu bạn ngủ khi đang bật TV.</string>
+    <string name="settings_audio_recordings">Bản ghi âm thanh</string>
+    <string name="settings_record_snore">Ghi lại sự kiện ngáy</string>
+    <string name="settings_record_snore_desc">Lưu một đoạn âm thanh cho mỗi tiếng ngáy được phát hiện.</string>
+    <string name="settings_record_cough">Ghi lại sự kiện ho</string>
+    <string name="settings_record_cough_desc">Lưu một đoạn âm thanh cho mỗi tiếng ho được phát hiện.</string>
+    <string name="settings_record_talk">Ghi lại sự kiện nói chuyện khi ngủ</string>
+    <string name="settings_record_talk_desc">Lưu một đoạn âm thanh cho mỗi lần nói chuyện khi ngủ được phát hiện.</string>
+    <string name="settings_record_events">Ghi lại sự kiện</string>
+    <string name="settings_record_events_desc">Lưu ~10 giây âm thanh cho mỗi sự kiện được phát hiện để bạn có thể phát lại. Đoạn âm tự xóa sau 30 ngày. Chỉ dành cho Pro.</string>
+    <string name="settings_consent_title">Ghi âm thanh khi ngủ?</string>
+    <string name="settings_consent_p1">Khi bật tính năng này, Ultiq sẽ lưu một đoạn âm thanh ~10 giây cho mỗi sự kiện ngáy, ho hoặc nói chuyện khi ngủ mà chúng tôi phát hiện.</string>
+    <string name="settings_consent_p2">Đoạn âm được lưu trên máy chủ Ultiq (đã mã hóa) và tự xóa sau 30 ngày. Chỉ bạn mới có thể phát lại.</string>
+    <string name="settings_consent_p3">Phát lại yêu cầu kết nối internet — đoạn âm phát trực tiếp từ máy chủ Ultiq và không được lưu trên điện thoại này.</string>
+    <string name="settings_consent_p4">Bạn có thể tắt tính năng này bất cứ lúc nào hoặc xóa từng đoạn âm riêng lẻ trong danh sách phát.</string>
+    <string name="settings_turn_on">Bật</string>
+    <string name="settings_last_audio">Lần thử âm thanh gần nhất</string>
 </resources>

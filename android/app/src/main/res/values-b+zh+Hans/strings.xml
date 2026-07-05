@@ -499,4 +499,43 @@
     <plurals name="end_sleep_talk_summary">
         <item quantity="other">%1$d 次说梦话，共 %2$d 秒</item>
     </plurals>
+
+    <!-- ══════════════════ §13.1 Android sweep — sleep settings ══════════════════ -->
+
+    <string name="unit_min">分钟</string>
+    <string name="pro_badge">Pro</string>
+
+    <string name="settings_optimal_sleep">最佳夜间睡眠时长</string>
+    <string name="settings_optimal_sleep_desc">睡眠不足会积累睡眠债；睡眠过长则进入额外休息</string>
+    <string name="settings_schedule">睡眠计划</string>
+    <string name="settings_duration_suffix">时长：%1$s</string>
+    <string name="settings_target_bedtime">目标就寝时间</string>
+    <string name="settings_target_bedtime_desc">用于计算睡眠债并安排就寝提醒</string>
+    <string name="settings_target_wake">目标起床时间</string>
+    <string name="settings_target_wake_desc">您理想中的起床时间</string>
+    <string name="settings_lockout">睡眠期间锁定</string>
+    <string name="settings_lockout_desc">默认关闭 — 睡觉就是睡觉，不设阻碍</string>
+    <string name="settings_phone_break">睡眠中使用手机时长</string>
+    <string name="settings_phone_break_desc">在睡眠期间点击"是，我需要手机"后的静默窗口时长</string>
+    <string name="settings_sleep_sounds">睡眠声音</string>
+    <string name="settings_track_snore">记录睡眠中的鼾声与咳嗽</string>
+    <string name="settings_track_snore_desc">音频仅在设备上分析 — 不上传或存储。每晚约额外消耗 3–5%% 电量。</string>
+    <string name="settings_detect_talk">检测梦话</string>
+    <string name="settings_detect_talk_desc">同时监听说话声 — 默认关闭。误报率高于鼾声/咳嗽；若您睡觉时开着电视，建议保持关闭。</string>
+    <string name="settings_audio_recordings">音频录音</string>
+    <string name="settings_record_snore">录制鼾声事件</string>
+    <string name="settings_record_snore_desc">为每次检测到的鼾声保存音频片段。</string>
+    <string name="settings_record_cough">录制咳嗽事件</string>
+    <string name="settings_record_cough_desc">为每次检测到的咳嗽保存音频片段。</string>
+    <string name="settings_record_talk">录制梦话事件</string>
+    <string name="settings_record_talk_desc">为每次检测到的梦话保存音频片段。</string>
+    <string name="settings_record_events">录制事件</string>
+    <string name="settings_record_events_desc">每次检测到事件时存储约 10 秒音频，供您回放。片段 30 天后自动删除。仅限 Pro。</string>
+    <string name="settings_consent_title">录制睡眠音频？</string>
+    <string name="settings_consent_p1">开启后，Ultiq 将为每次检测到的鼾声、咳嗽或梦话事件保存约 10 秒的音频片段。</string>
+    <string name="settings_consent_p2">片段加密存储于 Ultiq 的服务器，30 天后自动删除。仅您可以回放。</string>
+    <string name="settings_consent_p3">回放需要网络连接 — 片段从 Ultiq 的服务器流式传输，不存储在本机。</string>
+    <string name="settings_consent_p4">您可以随时关闭此功能，或从回放列表中删除单个片段。</string>
+    <string name="settings_turn_on">开启</string>
+    <string name="settings_last_audio">上次音频尝试</string>
 </resources>

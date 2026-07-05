@@ -545,4 +545,43 @@
         <item quantity="many">%1$d episódios de fala ao dormir — %2$ds no total</item>
         <item quantity="other">%1$d episódios de fala ao dormir — %2$ds no total</item>
     </plurals>
+
+    <!-- ══════════════════ §13.1 Android sweep — sleep settings ══════════════════ -->
+
+    <string name="unit_min">min</string>
+    <string name="pro_badge">Pro</string>
+
+    <string name="settings_optimal_sleep">Sono noturno ideal</string>
+    <string name="settings_optimal_sleep_desc">Dormir menos gera débito de sono; dormir mais adiciona descanso extra</string>
+    <string name="settings_schedule">Horários de sono</string>
+    <string name="settings_duration_suffix">Duração: %1$s</string>
+    <string name="settings_target_bedtime">Hora alvo de dormir</string>
+    <string name="settings_target_bedtime_desc">Usada para calcular o débito de sono e agendar o lembrete de dormir</string>
+    <string name="settings_target_wake">Hora alvo de acordar</string>
+    <string name="settings_target_wake_desc">Quando você idealmente acordaria</string>
+    <string name="settings_lockout">Bloqueio durante o sono</string>
+    <string name="settings_lockout_desc">Desativado por padrão — sono é para dormir, não para criar atrito</string>
+    <string name="settings_phone_break">Duração da pausa no celular durante o sono</string>
+    <string name="settings_phone_break_desc">Janela de silêncio após tocar \'Sim, preciso do celular\' durante uma sessão de sono</string>
+    <string name="settings_sleep_sounds">Sons do sono</string>
+    <string name="settings_track_snore">Monitorar ronco &amp; tosse durante o sono</string>
+    <string name="settings_track_snore_desc">Áudio analisado apenas no dispositivo — nunca enviado ou armazenado. Usa cerca de 3–5 por cento a mais de bateria durante a noite.</string>
+    <string name="settings_detect_talk">Detectar fala durante o sono</string>
+    <string name="settings_detect_talk_desc">Também escuta fala — desativado por padrão. Taxa de falsos positivos maior que ronco/tosse; considere deixar desativado se você dorme com a TV ligada.</string>
+    <string name="settings_audio_recordings">Gravações de áudio</string>
+    <string name="settings_record_snore">Gravar eventos de ronco</string>
+    <string name="settings_record_snore_desc">Salvar um clipe de áudio para cada ronco detectado.</string>
+    <string name="settings_record_cough">Gravar eventos de tosse</string>
+    <string name="settings_record_cough_desc">Salvar um clipe de áudio para cada tosse detectada.</string>
+    <string name="settings_record_talk">Gravar eventos de fala durante o sono</string>
+    <string name="settings_record_talk_desc">Salvar um clipe de áudio para cada fala durante o sono detectada.</string>
+    <string name="settings_record_events">Gravar eventos</string>
+    <string name="settings_record_events_desc">Armazena ~10 s de áudio por evento detectado para reprodução posterior. Clipes excluídos automaticamente após 30 dias. Somente Pro.</string>
+    <string name="settings_consent_title">Gravar áudio do sono?</string>
+    <string name="settings_consent_p1">Ao ativar isso, o Ultiq salvará um clipe de áudio de ~10 segundos para cada evento de ronco, tosse ou fala durante o sono que detectarmos.</string>
+    <string name="settings_consent_p2">Os clipes são armazenados nos servidores do Ultiq (criptografados) e excluídos automaticamente após 30 dias. Somente você pode reproduzi-los.</string>
+    <string name="settings_consent_p3">A reprodução requer conexão com a internet — os clipes são transmitidos dos servidores do Ultiq e não ficam armazenados neste telefone.</string>
+    <string name="settings_consent_p4">Você pode desativar isso a qualquer momento ou excluir clipes individuais da lista de reprodução.</string>
+    <string name="settings_turn_on">Ativar</string>
+    <string name="settings_last_audio">Última tentativa de áudio</string>
 </resources>
