@@ -584,4 +584,81 @@
     <string name="settings_consent_p4">Você pode desativar isso a qualquer momento ou excluir clipes individuais da lista de reprodução.</string>
     <string name="settings_turn_on">Ativar</string>
     <string name="settings_last_audio">Última tentativa de áudio</string>
+
+    <!-- ══════════════════ §13.1 Android sweep — alarms ══════════════════ -->
+
+    <!-- Missions (shared: list badge + editor picker) -->
+    <string name="mission_tap">Toque</string>
+    <string name="mission_math">Matemática</string>
+    <string name="mission_shake">Chacoalhar</string>
+    <string name="mission_photo">Foto</string>
+    <string name="mission_tap_dismiss">Toque para dispensar</string>
+
+    <!-- Difficulty / intensity levels (shared) -->
+    <string name="level_easy">Fácil</string>
+    <string name="level_medium">Médio</string>
+    <string name="level_hard">Difícil</string>
+    <string name="level_low">Baixo</string>
+    <string name="level_high">Alto</string>
+
+    <!-- Alarms list (Sleep tab) -->
+    <string name="alarms_header">Alarmes de despertar</string>
+    <string name="alarms_empty">Nenhum alarme ainda. Defina um horário e uma missão de dispensa para realmente sair da cama.</string>
+    <string name="alarm_delete_title">Excluir alarme?</string>
+    <string name="alarm_delete_body">Este alarme será removido deste dispositivo e da sua conta. Essa ação não pode ser desfeita.</string>
+    <string name="alarm_default_label">Alarme</string>
+    <string name="alarm_vibrate">Vibrar</string>
+    <string name="alarm_one_shot">Único</string>
+    <string name="oem_title">Torne os alarmes confiáveis neste %1$s</string>
+    <string name="oem_body">Celulares %1$s encerram agressivamente apps em segundo plano, o que pode impedir os alarmes de disparar. Siga o guia do dontkillmyapp.com para excluir o Ultiq da otimização de bateria.</string>
+    <string name="oem_open_guide">Abrir guia de configuração</string>
+    <string name="alarm_perms_title">Os alarmes precisam de algumas permissões</string>
+    <string name="alarm_perms_body">Sem elas, os alarmes podem não disparar no horário ou não aparecer na tela quando disparam.</string>
+    <string name="alarm_allow_notifications">Permitir notificações</string>
+    <string name="alarm_allow_exact">Permitir alarmes exatos</string>
+    <string name="alarm_allow_fullscreen">Permitir alarmes em tela cheia (sobre bloqueio)</string>
+    <string name="alarm_debug_title">Debug — agendar alarme único para 1–2 min agora</string>
+
+    <!-- Alarm editor -->
+    <string name="alarm_new">Novo alarme</string>
+    <string name="alarm_edit">Editar alarme</string>
+    <string name="alarm_time">Horário</string>
+    <string name="alarm_tap_to_change">Toque para alterar</string>
+    <string name="alarm_label">Rótulo (opcional)</string>
+    <string name="alarm_repeat">Repetir</string>
+    <string name="alarm_dismiss_mission">Missão de dispensa</string>
+    <string name="alarm_math_mission">Missão de matemática</string>
+    <string name="alarm_photo_mission">Missão de foto</string>
+    <string name="alarm_shake_mission">Missão de chacoalhada</string>
+    <string name="alarm_shakes_required">Chacoalhadas necessárias: %1$d</string>
+    <string name="alarm_sound_vibration">Som &amp; vibração</string>
+    <string name="alarm_volume_ramps">Volume aumenta gradualmente</string>
+    <string name="alarm_volume_ramps_desc">Começa suave e aumenta até o volume máximo em 30 s</string>
+    <string name="alarm_max_volume">Volume máximo: %1$d%%</string>
+    <string name="alarm_snooze">Soneca</string>
+    <string name="alarm_snooze_duration">Duração da soneca (minutos)</string>
+    <string name="alarm_snoozes_allowed">Sonecas permitidas</string>
+    <string name="alarm_tap_warning">Toque para dispensar não é bem uma missão — você apenas toca um botão para silenciar o alarme. Escolha Matemática, Chacoalhar ou Foto para realmente se levantar da cama.</string>
+    <string name="alarm_default_sound">Som de alarme padrão</string>
+    <string name="alarm_sound_picker_title">Som do alarme</string>
+    <string name="alarm_sound">Som</string>
+    <string name="alarm_pick_sound">Escolher som</string>
+    <string name="alarm_fires_once">Dispara uma vez na próxima ocorrência e se desativa.</string>
+    <string name="diff_easy_desc">Adição ou subtração de um dígito</string>
+    <string name="diff_medium_desc">Aritmética de dois dígitos, duas operações</string>
+    <string name="diff_hard_desc">Ordem das operações com números de três dígitos</string>
+    <string name="alarm_problems_required">Problemas necessários</string>
+    <string name="photo_instructions">Tire uma foto de referência de um local fixo (pia do banheiro, mesa, chaleira). Você terá que apontar para o mesmo local para dispensar o alarme.</string>
+    <string name="photo_take">Tirar foto de referência</string>
+    <string name="photo_cd">Foto de referência</string>
+    <string name="photo_saved">Foto de referência salva</string>
+    <string name="photo_local_only">Armazenada apenas neste dispositivo — nunca enviada.</string>
+    <string name="photo_retake">Tirar novamente</string>
+    <string name="intensity_low_desc">Chacoalhada firme (≈ 12 m/s²)</string>
+    <string name="intensity_medium_desc">Chacoalhada forte (≈ 18 m/s²)</string>
+    <string name="intensity_high_desc">Chacoalhada vigorosa (≈ 25 m/s²)</string>
+
+    <!-- Alarms ViewModel -->
+    <string name="alarm_test_label">Alarme de teste (%1$s)</string>
+    <string name="alarm_err_exact">Não foi possível agendar — conceda a permissão de Alarme Exato nas configurações do sistema</string>
 </resources>

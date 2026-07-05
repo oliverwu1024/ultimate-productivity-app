@@ -64,15 +64,18 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ultiq.app.R
 import com.ultiq.app.alarm.mission.MathDifficulty
 import com.ultiq.app.alarm.mission.MissionConfig
 import com.ultiq.app.alarm.mission.PhotoReferenceSetup
 import com.ultiq.app.alarm.mission.ShakeIntensity
+import com.ultiq.app.util.LocaleManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -89,10 +92,10 @@ fun AlarmEditScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (alarmId == null) "New alarm" else "Edit alarm") },
+                title = { Text(if (alarmId == null) stringResource(R.string.alarm_new) else stringResource(R.string.alarm_edit)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back))
                     }
                 },
             )
@@ -120,12 +123,12 @@ fun AlarmEditScreen(
                         },
                         enabled = draft != null,
                         modifier = Modifier.weight(1f),
-                    ) { Text("Cancel") }
+                    ) { Text(stringResource(R.string.action_cancel)) }
                     Button(
                         onClick = { viewModel.saveWithEnabled(enabled = true, onDone = onBack) },
                         enabled = draft != null,
                         modifier = Modifier.weight(1f),
-                    ) { Text("Set alarm") }
+                    ) { Text(stringResource(R.string.sleep_set_alarm)) }
                 }
             }
         },
@@ -145,7 +148,7 @@ fun AlarmEditScreen(
             item {
                 val displayTime = remember(current.triggerHour, current.triggerMinute) {
                     java.time.LocalTime.of(current.triggerHour, current.triggerMinute)
-                        .format(java.time.format.DateTimeFormatter.ofPattern("h:mm a"))
+                        .format(java.time.format.DateTimeFormatter.ofPattern("h:mm a", LocaleManager.currentLocale()))
                 }
                 Card(
                     colors = CardDefaults.cardColors(
@@ -167,7 +170,7 @@ fun AlarmEditScreen(
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
-                            "Time",
+                            stringResource(R.string.alarm_time),
                             style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -182,7 +185,7 @@ fun AlarmEditScreen(
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            "Tap to change",
+                            stringResource(R.string.alarm_tap_to_change),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -197,20 +200,20 @@ fun AlarmEditScreen(
                     onValueChange = { v ->
                         viewModel.updateEditingDraft { it.copy(label = v.ifBlank { null }) }
                     },
-                    label = { Text("Label (optional)") },
+                    label = { Text(stringResource(R.string.alarm_label)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                 )
             }
 
             // Repeat days
-            item { SectionLabel("Repeat") }
+            item { SectionLabel(stringResource(R.string.alarm_repeat)) }
             item { RepeatPicker(current.daysOfWeekMask) { mask ->
                 viewModel.updateEditingDraft { it.copy(daysOfWeekMask = mask) }
             } }
 
             // Mission
-            item { SectionLabel("Dismiss mission") }
+            item { SectionLabel(stringResource(R.string.alarm_dismiss_mission)) }
             item {
                 MissionPicker(current.missionKind) { kind ->
                     viewModel.updateEditingDraft { d ->
@@ -235,7 +238,7 @@ fun AlarmEditScreen(
             // Math-specific config
             if (current.missionKind == "math") {
                 val cfg = MissionConfig.parseMath(current.missionConfigJson)
-                item { SectionLabel("Math mission") }
+                item { SectionLabel(stringResource(R.string.alarm_math_mission)) }
                 item {
                     DifficultyPicker(cfg.difficulty) { diff ->
                         viewModel.updateEditingDraft { d ->
@@ -255,7 +258,7 @@ fun AlarmEditScreen(
             // Photo-specific config
             if (current.missionKind == "photo") {
                 val cfg = MissionConfig.parsePhoto(current.missionConfigJson)
-                item { SectionLabel("Photo mission") }
+                item { SectionLabel(stringResource(R.string.alarm_photo_mission)) }
                 item {
                     PhotoReferenceCard(
                         referenceUri = cfg.referenceUri,
@@ -267,7 +270,7 @@ fun AlarmEditScreen(
             // Shake-specific config
             if (current.missionKind == "shake") {
                 val cfg = MissionConfig.parseShake(current.missionConfigJson)
-                item { SectionLabel("Shake mission") }
+                item { SectionLabel(stringResource(R.string.alarm_shake_mission)) }
                 item {
                     IntensityPicker(cfg.intensity) { intensity ->
                         viewModel.updateEditingDraft { d ->
@@ -290,7 +293,7 @@ fun AlarmEditScreen(
                         ),
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
-                            Text("Shakes required: ${cfg.shakesRequired}")
+                            Text(stringResource(R.string.alarm_shakes_required, cfg.shakesRequired))
                             Slider(
                                 value = cfg.shakesRequired.toFloat(),
                                 onValueChange = { v ->
@@ -312,7 +315,7 @@ fun AlarmEditScreen(
             }
 
             // Sound + vibration
-            item { SectionLabel("Sound & vibration") }
+            item { SectionLabel(stringResource(R.string.alarm_sound_vibration)) }
             item {
                 SoundPickerRow(
                     soundUri = current.soundUri,
@@ -323,14 +326,14 @@ fun AlarmEditScreen(
             }
             item {
                 SwitchRow(
-                    title = "Vibrate",
+                    title = stringResource(R.string.alarm_vibrate),
                     checked = current.vibration,
                 ) { v -> viewModel.updateEditingDraft { it.copy(vibration = v) } }
             }
             item {
                 SwitchRow(
-                    title = "Volume ramps up",
-                    description = "Starts soft, builds to full volume over 30 s",
+                    title = stringResource(R.string.alarm_volume_ramps),
+                    description = stringResource(R.string.alarm_volume_ramps_desc),
                     checked = current.volumeEscalates,
                 ) { v -> viewModel.updateEditingDraft { it.copy(volumeEscalates = v) } }
             }
@@ -341,7 +344,7 @@ fun AlarmEditScreen(
                     ),
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text("Max volume: ${current.volumePct}%")
+                        Text(stringResource(R.string.alarm_max_volume, current.volumePct))
                         Slider(
                             value = current.volumePct.toFloat(),
                             onValueChange = { v ->
@@ -355,17 +358,17 @@ fun AlarmEditScreen(
             }
 
             // Snooze
-            item { SectionLabel("Snooze") }
+            item { SectionLabel(stringResource(R.string.alarm_snooze)) }
             item {
                 Stepper(
-                    label = "Snooze duration (minutes)",
+                    label = stringResource(R.string.alarm_snooze_duration),
                     value = current.snoozeMinutes,
                     range = 1..30,
                 ) { v -> viewModel.updateEditingDraft { it.copy(snoozeMinutes = v) } }
             }
             item {
                 Stepper(
-                    label = "Snoozes allowed",
+                    label = stringResource(R.string.alarm_snoozes_allowed),
                     value = current.snoozeMax,
                     range = 0..10,
                 ) { v -> viewModel.updateEditingDraft { it.copy(snoozeMax = v) } }
@@ -421,9 +424,7 @@ private fun TapDismissWarningCard() {
                 tint = MaterialTheme.colorScheme.onTertiaryContainer,
             )
             Text(
-                "Tap-to-dismiss isn't really a mission — you'll just tap a button " +
-                    "to silence the alarm. Pick Math, Shake, or Photo to actually " +
-                    "force yourself out of bed.",
+                stringResource(R.string.alarm_tap_warning),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onTertiaryContainer,
             )
@@ -437,6 +438,8 @@ private fun SoundPickerRow(
     onPicked: (String?) -> Unit,
 ) {
     val context = LocalContext.current
+    val defaultSoundName = stringResource(R.string.alarm_default_sound)
+    val pickerTitle = stringResource(R.string.alarm_sound_picker_title)
     val launcher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -456,7 +459,7 @@ private fun SoundPickerRow(
             ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
         runCatching {
             RingtoneManager.getRingtone(context, uri)?.getTitle(context)
-        }.getOrNull() ?: "Default alarm sound"
+        }.getOrNull() ?: defaultSoundName
     }
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
@@ -465,7 +468,7 @@ private fun SoundPickerRow(
             .clickable {
                 val intent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
                     putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_ALARM)
-                    putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, "Alarm sound")
+                    putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, pickerTitle)
                     putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
                     putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, false)
                     putExtra(
@@ -487,14 +490,14 @@ private fun SoundPickerRow(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("Sound", style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.alarm_sound), style = MaterialTheme.typography.titleMedium)
                 Text(
                     ringtoneName,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Icon(Icons.Default.ChevronRight, contentDescription = "Pick sound")
+            Icon(Icons.Default.ChevronRight, contentDescription = stringResource(R.string.alarm_pick_sound))
         }
     }
 }
@@ -544,7 +547,11 @@ private fun SwitchRow(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun RepeatPicker(mask: Int, onChange: (Int) -> Unit) {
-    val labels = listOf("S", "M", "T", "W", "T", "F", "S")
+    val locale = LocaleManager.currentLocale()
+    val labels = (0..6).map { bit ->
+        val dow = if (bit == 0) java.time.DayOfWeek.SUNDAY else java.time.DayOfWeek.of(bit)
+        dow.getDisplayName(java.time.format.TextStyle.NARROW, locale)
+    }
     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         labels.forEachIndexed { bit, letter ->
             val on = (mask shr bit) and 1 == 1
@@ -561,7 +568,7 @@ private fun RepeatPicker(mask: Int, onChange: (Int) -> Unit) {
     }
     if (mask == 0) {
         Text(
-            "Fires once on the next occurrence, then disables itself.",
+            stringResource(R.string.alarm_fires_once),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(start = 4.dp, top = 4.dp),
@@ -573,10 +580,10 @@ private fun RepeatPicker(mask: Int, onChange: (Int) -> Unit) {
 @Composable
 private fun MissionPicker(current: String, onChange: (String) -> Unit) {
     val options = listOf(
-        "none" to "Tap",
-        "math" to "Math",
-        "shake" to "Shake",
-        "photo" to "Photo",
+        "none" to stringResource(R.string.mission_tap),
+        "math" to stringResource(R.string.mission_math),
+        "shake" to stringResource(R.string.mission_shake),
+        "photo" to stringResource(R.string.mission_photo),
     )
     SingleChoiceSegmentedButtonRow {
         options.forEachIndexed { idx, (kind, label) ->
@@ -607,17 +614,17 @@ private fun DifficultyPicker(current: MathDifficulty, onChange: (MathDifficulty)
                     Column(modifier = Modifier.padding(start = 12.dp)) {
                         Text(
                             when (diff) {
-                                MathDifficulty.EASY -> "Easy"
-                                MathDifficulty.MEDIUM -> "Medium"
-                                MathDifficulty.HARD -> "Hard"
+                                MathDifficulty.EASY -> stringResource(R.string.level_easy)
+                                MathDifficulty.MEDIUM -> stringResource(R.string.level_medium)
+                                MathDifficulty.HARD -> stringResource(R.string.level_hard)
                             },
                             style = MaterialTheme.typography.titleSmall,
                         )
                         Text(
                             when (diff) {
-                                MathDifficulty.EASY -> "Single-digit addition or subtraction"
-                                MathDifficulty.MEDIUM -> "Two-digit, two-operation arithmetic"
-                                MathDifficulty.HARD -> "Order-of-operations with three-digit numbers"
+                                MathDifficulty.EASY -> stringResource(R.string.diff_easy_desc)
+                                MathDifficulty.MEDIUM -> stringResource(R.string.diff_medium_desc)
+                                MathDifficulty.HARD -> stringResource(R.string.diff_hard_desc)
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -637,7 +644,7 @@ private fun MathCountPicker(current: Int, onChange: (Int) -> Unit) {
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Problems required", style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.alarm_problems_required), style = MaterialTheme.typography.titleMedium)
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth(),
@@ -687,14 +694,13 @@ private fun PhotoReferenceCard(
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             if (referenceUri == null) {
                 Text(
-                    "Take a reference photo of a fixed scene (bathroom sink, desk, kettle). " +
-                        "You'll have to point at the same scene to dismiss the alarm.",
+                    stringResource(R.string.photo_instructions),
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 Button(
                     onClick = onTakePhoto,
                     modifier = Modifier.fillMaxWidth(),
-                ) { Text("Take reference photo") }
+                ) { Text(stringResource(R.string.photo_take)) }
             } else {
                 val bitmap by produceState<android.graphics.Bitmap?>(
                     initialValue = null,
@@ -721,16 +727,16 @@ private fun PhotoReferenceCard(
                         bitmap?.let {
                             Image(
                                 bitmap = it.asImageBitmap(),
-                                contentDescription = "Reference photo",
+                                contentDescription = stringResource(R.string.photo_cd),
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier.fillMaxSize(),
                             )
                         } ?: Text("…", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Reference photo saved", style = MaterialTheme.typography.titleMedium)
+                        Text(stringResource(R.string.photo_saved), style = MaterialTheme.typography.titleMedium)
                         Text(
-                            "Stored on this device only — never uploaded.",
+                            stringResource(R.string.photo_local_only),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -739,7 +745,7 @@ private fun PhotoReferenceCard(
                 OutlinedButton(
                     onClick = onTakePhoto,
                     modifier = Modifier.fillMaxWidth(),
-                ) { Text("Retake") }
+                ) { Text(stringResource(R.string.photo_retake)) }
             }
         }
     }
@@ -762,17 +768,17 @@ private fun IntensityPicker(current: ShakeIntensity, onChange: (ShakeIntensity) 
                     Column(modifier = Modifier.padding(start = 12.dp)) {
                         Text(
                             when (intensity) {
-                                ShakeIntensity.LOW -> "Low"
-                                ShakeIntensity.MEDIUM -> "Medium"
-                                ShakeIntensity.HIGH -> "High"
+                                ShakeIntensity.LOW -> stringResource(R.string.level_low)
+                                ShakeIntensity.MEDIUM -> stringResource(R.string.level_medium)
+                                ShakeIntensity.HIGH -> stringResource(R.string.level_high)
                             },
                             style = MaterialTheme.typography.titleSmall,
                         )
                         Text(
                             when (intensity) {
-                                ShakeIntensity.LOW -> "Firm shake (≈ 12 m/s²)"
-                                ShakeIntensity.MEDIUM -> "Hard shake (≈ 18 m/s²)"
-                                ShakeIntensity.HIGH -> "Vigorous shake (≈ 25 m/s²)"
+                                ShakeIntensity.LOW -> stringResource(R.string.intensity_low_desc)
+                                ShakeIntensity.MEDIUM -> stringResource(R.string.intensity_medium_desc)
+                                ShakeIntensity.HIGH -> stringResource(R.string.intensity_high_desc)
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,

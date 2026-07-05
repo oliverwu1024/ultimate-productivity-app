@@ -538,4 +538,81 @@
     <string name="settings_consent_p4">Bạn có thể tắt tính năng này bất cứ lúc nào hoặc xóa từng đoạn âm riêng lẻ trong danh sách phát.</string>
     <string name="settings_turn_on">Bật</string>
     <string name="settings_last_audio">Lần thử âm thanh gần nhất</string>
+
+    <!-- ══════════════════ §13.1 Android sweep — alarms ══════════════════ -->
+
+    <!-- Missions (shared: list badge + editor picker) -->
+    <string name="mission_tap">Chạm</string>
+    <string name="mission_math">Toán</string>
+    <string name="mission_shake">Lắc</string>
+    <string name="mission_photo">Ảnh</string>
+    <string name="mission_tap_dismiss">Chạm để tắt</string>
+
+    <!-- Difficulty / intensity levels (shared) -->
+    <string name="level_easy">Dễ</string>
+    <string name="level_medium">Vừa</string>
+    <string name="level_hard">Khó</string>
+    <string name="level_low">Thấp</string>
+    <string name="level_high">Cao</string>
+
+    <!-- Alarms list (Sleep tab) -->
+    <string name="alarms_header">Báo thức thức dậy</string>
+    <string name="alarms_empty">Chưa có báo thức. Đặt giờ thức dậy và chọn nhiệm vụ tắt để buộc bản thân rời khỏi giường.</string>
+    <string name="alarm_delete_title">Xoá báo thức?</string>
+    <string name="alarm_delete_body">Báo thức này sẽ bị xoá khỏi thiết bị và tài khoản của bạn. Không thể hoàn tác.</string>
+    <string name="alarm_default_label">Báo thức</string>
+    <string name="alarm_vibrate">Rung</string>
+    <string name="alarm_one_shot">Một lần</string>
+    <string name="oem_title">Giúp báo thức hoạt động ổn định trên %1$s</string>
+    <string name="oem_body">Điện thoại %1$s thường tắt mạnh ứng dụng nền, khiến báo thức không phát. Xem hướng dẫn tại dontkillmyapp.com để loại Ultiq khỏi tối ưu pin.</string>
+    <string name="oem_open_guide">Mở hướng dẫn cài đặt</string>
+    <string name="alarm_perms_title">Báo thức cần một số quyền</string>
+    <string name="alarm_perms_body">Nếu thiếu, báo thức có thể không đúng giờ hoặc không hiển thị trên màn hình.</string>
+    <string name="alarm_allow_notifications">Cho phép thông báo</string>
+    <string name="alarm_allow_exact">Cho phép báo thức chính xác</string>
+    <string name="alarm_allow_fullscreen">Cho phép báo thức toàn màn hình (trên màn khoá)</string>
+    <string name="alarm_debug_title">Debug — đặt báo thức một lần sau 1–2 phút</string>
+
+    <!-- Alarm editor -->
+    <string name="alarm_new">Báo thức mới</string>
+    <string name="alarm_edit">Chỉnh báo thức</string>
+    <string name="alarm_time">Giờ</string>
+    <string name="alarm_tap_to_change">Chạm để thay đổi</string>
+    <string name="alarm_label">Nhãn (tuỳ chọn)</string>
+    <string name="alarm_repeat">Lặp lại</string>
+    <string name="alarm_dismiss_mission">Nhiệm vụ tắt báo</string>
+    <string name="alarm_math_mission">Nhiệm vụ toán</string>
+    <string name="alarm_photo_mission">Nhiệm vụ ảnh</string>
+    <string name="alarm_shake_mission">Nhiệm vụ lắc</string>
+    <string name="alarm_shakes_required">Số lần lắc: %1$d</string>
+    <string name="alarm_sound_vibration">Âm thanh &amp; rung</string>
+    <string name="alarm_volume_ramps">Âm lượng tăng dần</string>
+    <string name="alarm_volume_ramps_desc">Bắt đầu nhỏ, tăng đến mức tối đa sau 30 giây</string>
+    <string name="alarm_max_volume">Âm lượng tối đa: %1$d%%</string>
+    <string name="alarm_snooze">Ngủ thêm</string>
+    <string name="alarm_snooze_duration">Thời gian ngủ thêm (phút)</string>
+    <string name="alarm_snoozes_allowed">Số lần ngủ thêm</string>
+    <string name="alarm_tap_warning">Chạm để tắt không phải nhiệm vụ thực sự — bạn chỉ chạm nút là xong. Chọn Toán, Lắc, hoặc Ảnh để thực sự buộc bản thân dậy.</string>
+    <string name="alarm_default_sound">Âm báo thức mặc định</string>
+    <string name="alarm_sound_picker_title">Âm báo thức</string>
+    <string name="alarm_sound">Âm thanh</string>
+    <string name="alarm_pick_sound">Chọn âm thanh</string>
+    <string name="alarm_fires_once">Chỉ báo một lần vào lần tới, sau đó tự tắt.</string>
+    <string name="diff_easy_desc">Cộng hoặc trừ một chữ số</string>
+    <string name="diff_medium_desc">Hai chữ số, hai phép tính</string>
+    <string name="diff_hard_desc">Thứ tự phép tính với số ba chữ số</string>
+    <string name="alarm_problems_required">Số bài toán</string>
+    <string name="photo_instructions">Chụp ảnh tham chiếu của một nơi cố định (bồn rửa tay, bàn làm việc, ấm đun nước). Bạn sẽ phải chỉ vào cùng nơi đó để tắt báo thức.</string>
+    <string name="photo_take">Chụp ảnh tham chiếu</string>
+    <string name="photo_cd">Ảnh tham chiếu</string>
+    <string name="photo_saved">Đã lưu ảnh tham chiếu</string>
+    <string name="photo_local_only">Chỉ lưu trên thiết bị này — không bao giờ tải lên.</string>
+    <string name="photo_retake">Chụp lại</string>
+    <string name="intensity_low_desc">Lắc vừa (≈ 12 m/s²)</string>
+    <string name="intensity_medium_desc">Lắc mạnh (≈ 18 m/s²)</string>
+    <string name="intensity_high_desc">Lắc thật mạnh (≈ 25 m/s²)</string>
+
+    <!-- Alarms ViewModel -->
+    <string name="alarm_test_label">Báo thức thử (%1$s)</string>
+    <string name="alarm_err_exact">Không thể đặt lịch — cấp quyền Báo thức chính xác trong cài đặt hệ thống</string>
 </resources>

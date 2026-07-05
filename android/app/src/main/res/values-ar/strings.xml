@@ -653,4 +653,81 @@
     <string name="settings_consent_p4">يمكنك إيقاف هذا الخيار في أي وقت، أو حذف مقاطع بعينها من قائمة التشغيل.</string>
     <string name="settings_turn_on">تشغيل</string>
     <string name="settings_last_audio">آخر محاولة تسجيل صوتي</string>
+
+    <!-- ══════════════════ §13.1 Android sweep — alarms ══════════════════ -->
+
+    <!-- Missions (shared: list badge + editor picker) -->
+    <string name="mission_tap">اضغط</string>
+    <string name="mission_math">رياضيات</string>
+    <string name="mission_shake">هزّ</string>
+    <string name="mission_photo">صورة</string>
+    <string name="mission_tap_dismiss">اضغط للإغلاق</string>
+
+    <!-- Difficulty / intensity levels (shared) -->
+    <string name="level_easy">سهل</string>
+    <string name="level_medium">متوسط</string>
+    <string name="level_hard">صعب</string>
+    <string name="level_low">منخفض</string>
+    <string name="level_high">مرتفع</string>
+
+    <!-- Alarms list (Sleep tab) -->
+    <string name="alarms_header">منبّهات الاستيقاظ</string>
+    <string name="alarms_empty">لا توجد منبّهات بعد. اضبط وقت الاستيقاظ ومهمة الإغلاق لتضمن النهوض من السرير فعلًا.</string>
+    <string name="alarm_delete_title">حذف المنبّه؟</string>
+    <string name="alarm_delete_body">سيُزال هذا المنبّه من هذا الجهاز وحسابك. لا يمكن التراجع عن هذا الإجراء.</string>
+    <string name="alarm_default_label">منبّه</string>
+    <string name="alarm_vibrate">اهتزاز</string>
+    <string name="alarm_one_shot">مرة واحدة</string>
+    <string name="oem_title">اجعل المنبّهات موثوقة على هذا %1$s</string>
+    <string name="oem_body">هواتف %1$s تُغلق تطبيقات الخلفية بقوة، مما قد يمنع المنبّهات من الرنين. اتبع دليل dontkillmyapp.com لاستثناء Ultiq من تحسين البطارية.</string>
+    <string name="oem_open_guide">فتح دليل الإعداد</string>
+    <string name="alarm_perms_title">المنبّهات تحتاج إلى بعض الأذونات</string>
+    <string name="alarm_perms_body">بدونها، لن تُطلق المنبّهات في موعدها أو لن تظهر على الشاشة عند حدوثها.</string>
+    <string name="alarm_allow_notifications">السماح بالإشعارات</string>
+    <string name="alarm_allow_exact">السماح بالمنبّهات الدقيقة</string>
+    <string name="alarm_allow_fullscreen">السماح بالمنبّهات على كامل الشاشة (فوق شاشة القفل)</string>
+    <string name="alarm_debug_title">تصحيح — جدولة تنبيه مرة واحدة بعد 1–2 دقيقة</string>
+
+    <!-- Alarm editor -->
+    <string name="alarm_new">منبّه جديد</string>
+    <string name="alarm_edit">تعديل المنبّه</string>
+    <string name="alarm_time">الوقت</string>
+    <string name="alarm_tap_to_change">اضغط للتغيير</string>
+    <string name="alarm_label">التسمية (اختياري)</string>
+    <string name="alarm_repeat">تكرار</string>
+    <string name="alarm_dismiss_mission">مهمة الإغلاق</string>
+    <string name="alarm_math_mission">مهمة الرياضيات</string>
+    <string name="alarm_photo_mission">مهمة الصورة</string>
+    <string name="alarm_shake_mission">مهمة الهزّ</string>
+    <string name="alarm_shakes_required">الهزّات المطلوبة: %1$d</string>
+    <string name="alarm_sound_vibration">الصوت &amp; الاهتزاز</string>
+    <string name="alarm_volume_ramps">الصوت يزداد تدريجيًا</string>
+    <string name="alarm_volume_ramps_desc">يبدأ هادئًا ويصل إلى الصوت الكامل خلال 30 ث</string>
+    <string name="alarm_max_volume">الحجم الأقصى: %1$d%%</string>
+    <string name="alarm_snooze">غفوة</string>
+    <string name="alarm_snooze_duration">مدة الغفوة (دقائق)</string>
+    <string name="alarm_snoozes_allowed">الغفوات المسموح بها</string>
+    <string name="alarm_tap_warning">الضغط للإغلاق ليست مهمة حقيقية — ستضغط فقط زرًا لإسكات المنبّه. اختر الرياضيات أو الهزّ أو الصورة لتُجبر نفسك على النهوض فعلًا.</string>
+    <string name="alarm_default_sound">صوت المنبّه الافتراضي</string>
+    <string name="alarm_sound_picker_title">صوت المنبّه</string>
+    <string name="alarm_sound">الصوت</string>
+    <string name="alarm_pick_sound">اختر صوتًا</string>
+    <string name="alarm_fires_once">يُطلق مرة واحدة عند أول موعد قادم، ثم يُعطّل نفسه.</string>
+    <string name="diff_easy_desc">جمع أو طرح أحادي الرقم</string>
+    <string name="diff_medium_desc">حساب ذو رقمين وعمليتين</string>
+    <string name="diff_hard_desc">ترتيب العمليات بأعداد ثلاثية الأرقام</string>
+    <string name="alarm_problems_required">المسائل المطلوبة</string>
+    <string name="photo_instructions">التقط صورة مرجعية لمكان ثابت (حوض الحمام، المكتب، الغلاية). ستحتاج إلى توجيه الكاميرا نحو نفس المكان لإغلاق المنبّه.</string>
+    <string name="photo_take">التقط صورة مرجعية</string>
+    <string name="photo_cd">صورة مرجعية</string>
+    <string name="photo_saved">تم حفظ الصورة المرجعية</string>
+    <string name="photo_local_only">مخزّنة على هذا الجهاز فقط — لا تُرفع أبدًا.</string>
+    <string name="photo_retake">إعادة الالتقاط</string>
+    <string name="intensity_low_desc">هزّة قوية (≈ 12 m/s²)</string>
+    <string name="intensity_medium_desc">هزّة شديدة (≈ 18 m/s²)</string>
+    <string name="intensity_high_desc">هزّة عنيفة (≈ 25 m/s²)</string>
+
+    <!-- Alarms ViewModel -->
+    <string name="alarm_test_label">منبّه تجريبي (%1$s)</string>
+    <string name="alarm_err_exact">تعذّرت الجدولة — امنح إذن المنبّه الدقيق في إعدادات النظام</string>
 </resources>

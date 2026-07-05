@@ -561,4 +561,81 @@
     <string name="settings_consent_p4">Du kannst dies jederzeit deaktivieren oder einzelne Clips aus der Wiedergabeliste löschen.</string>
     <string name="settings_turn_on">Aktivieren</string>
     <string name="settings_last_audio">Letzter Audioversuch</string>
+
+    <!-- ══════════════════ §13.1 Android sweep — alarms ══════════════════ -->
+
+    <!-- Missions (shared: list badge + editor picker) -->
+    <string name="mission_tap">Tippen</string>
+    <string name="mission_math">Mathe</string>
+    <string name="mission_shake">Schütteln</string>
+    <string name="mission_photo">Foto</string>
+    <string name="mission_tap_dismiss">Tippen zum Schließen</string>
+
+    <!-- Difficulty / intensity levels (shared) -->
+    <string name="level_easy">Einfach</string>
+    <string name="level_medium">Mittel</string>
+    <string name="level_hard">Schwer</string>
+    <string name="level_low">Niedrig</string>
+    <string name="level_high">Hoch</string>
+
+    <!-- Alarms list (Sleep tab) -->
+    <string name="alarms_header">Weckalarme</string>
+    <string name="alarms_empty">Noch keine Alarme. Stelle eine Aufwachzeit und eine Abbruchmission ein, damit du wirklich aufstehst.</string>
+    <string name="alarm_delete_title">Alarm löschen?</string>
+    <string name="alarm_delete_body">Dieser Alarm wird von diesem Gerät und deinem Konto entfernt. Dies kann nicht rückgängig gemacht werden.</string>
+    <string name="alarm_default_label">Alarm</string>
+    <string name="alarm_vibrate">Vibration</string>
+    <string name="alarm_one_shot">Einmalig</string>
+    <string name="oem_title">Alarme auf diesem %1$s zuverlässig machen</string>
+    <string name="oem_body">%1$s-Geräte beenden Hintergrund-Apps aggressiv, was Alarme stoppen kann. Folge der Anleitung auf dontkillmyapp.com, um Ultiq von der Akkuoptimierung auszuschließen.</string>
+    <string name="oem_open_guide">Einrichtungsanleitung öffnen</string>
+    <string name="alarm_perms_title">Alarme benötigen einige Berechtigungen</string>
+    <string name="alarm_perms_body">Ohne diese werden Alarme entweder nicht pünktlich ausgelöst oder erscheinen nicht auf dem Bildschirm.</string>
+    <string name="alarm_allow_notifications">Benachrichtigungen erlauben</string>
+    <string name="alarm_allow_exact">Exakte Alarme erlauben</string>
+    <string name="alarm_allow_fullscreen">Vollbild-Alarme erlauben (über Sperrbildschirm)</string>
+    <string name="alarm_debug_title">Debug — Einmaligen Alarm in 1–2 Min. planen</string>
+
+    <!-- Alarm editor -->
+    <string name="alarm_new">Neuer Alarm</string>
+    <string name="alarm_edit">Alarm bearbeiten</string>
+    <string name="alarm_time">Uhrzeit</string>
+    <string name="alarm_tap_to_change">Tippen zum Ändern</string>
+    <string name="alarm_label">Bezeichnung (optional)</string>
+    <string name="alarm_repeat">Wiederholen</string>
+    <string name="alarm_dismiss_mission">Abbruchmission</string>
+    <string name="alarm_math_mission">Mathe-Mission</string>
+    <string name="alarm_photo_mission">Foto-Mission</string>
+    <string name="alarm_shake_mission">Schüttel-Mission</string>
+    <string name="alarm_shakes_required">Schüttelbewegungen erforderlich: %1$d</string>
+    <string name="alarm_sound_vibration">Ton &amp; Vibration</string>
+    <string name="alarm_volume_ramps">Lautstärke steigt an</string>
+    <string name="alarm_volume_ramps_desc">Beginnt leise, steigert sich in 30 s auf volle Lautstärke</string>
+    <string name="alarm_max_volume">Max. Lautstärke: %1$d%%</string>
+    <string name="alarm_snooze">Schlummern</string>
+    <string name="alarm_snooze_duration">Schlummerdauer (Minuten)</string>
+    <string name="alarm_snoozes_allowed">Schlummern erlaubt</string>
+    <string name="alarm_tap_warning">Tippen zum Schließen ist keine echte Mission – du drückst nur einen Knopf. Wähle Mathe, Schütteln oder Foto, um dich wirklich aus dem Bett zu zwingen.</string>
+    <string name="alarm_default_sound">Standard-Alarmton</string>
+    <string name="alarm_sound_picker_title">Alarmton</string>
+    <string name="alarm_sound">Ton</string>
+    <string name="alarm_pick_sound">Ton auswählen</string>
+    <string name="alarm_fires_once">Löst beim nächsten Mal einmalig aus und deaktiviert sich dann.</string>
+    <string name="diff_easy_desc">Einstellige Addition oder Subtraktion</string>
+    <string name="diff_medium_desc">Zweistellige, zweigliedrige Arithmetik</string>
+    <string name="diff_hard_desc">Rechenreihenfolge mit dreistelligen Zahlen</string>
+    <string name="alarm_problems_required">Aufgaben erforderlich</string>
+    <string name="photo_instructions">Mache ein Referenzfoto einer festen Szene (Waschbecken, Schreibtisch, Wasserkocher). Du musst auf dieselbe Szene zeigen, um den Alarm zu beenden.</string>
+    <string name="photo_take">Referenzfoto aufnehmen</string>
+    <string name="photo_cd">Referenzfoto</string>
+    <string name="photo_saved">Referenzfoto gespeichert</string>
+    <string name="photo_local_only">Nur auf diesem Gerät gespeichert – nie hochgeladen.</string>
+    <string name="photo_retake">Neu aufnehmen</string>
+    <string name="intensity_low_desc">Festes Schütteln (≈ 12 m/s²)</string>
+    <string name="intensity_medium_desc">Kräftiges Schütteln (≈ 18 m/s²)</string>
+    <string name="intensity_high_desc">Starkes Schütteln (≈ 25 m/s²)</string>
+
+    <!-- Alarms ViewModel -->
+    <string name="alarm_test_label">Testalarm (%1$s)</string>
+    <string name="alarm_err_exact">Planung fehlgeschlagen – erteile die Berechtigung für exakte Alarme in den Systemeinstellungen</string>
 </resources>

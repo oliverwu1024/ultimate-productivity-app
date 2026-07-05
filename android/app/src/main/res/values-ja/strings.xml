@@ -538,4 +538,81 @@
     <string name="settings_consent_p4">いつでもオフにしたり、再生リストから個別のクリップを削除したりできます。</string>
     <string name="settings_turn_on">オンにする</string>
     <string name="settings_last_audio">最後の音声試行</string>
+
+    <!-- ══════════════════ §13.1 Android sweep — alarms ══════════════════ -->
+
+    <!-- Missions (shared: list badge + editor picker) -->
+    <string name="mission_tap">タップ</string>
+    <string name="mission_math">計算</string>
+    <string name="mission_shake">シェイク</string>
+    <string name="mission_photo">写真</string>
+    <string name="mission_tap_dismiss">タップして解除</string>
+
+    <!-- Difficulty / intensity levels (shared) -->
+    <string name="level_easy">簡単</string>
+    <string name="level_medium">普通</string>
+    <string name="level_hard">難しい</string>
+    <string name="level_low">低</string>
+    <string name="level_high">高</string>
+
+    <!-- Alarms list (Sleep tab) -->
+    <string name="alarms_header">起床アラーム</string>
+    <string name="alarms_empty">アラームがありません。起床時刻と解除ミッションを設定して、ちゃんと起きましょう。</string>
+    <string name="alarm_delete_title">アラームを削除しますか？</string>
+    <string name="alarm_delete_body">このアラームはこのデバイスとアカウントから削除されます。元に戻すことはできません。</string>
+    <string name="alarm_default_label">アラーム</string>
+    <string name="alarm_vibrate">バイブレーション</string>
+    <string name="alarm_one_shot">1回のみ</string>
+    <string name="oem_title">%1$sでアラームを確実に動作させる</string>
+    <string name="oem_body">%1$sのスマートフォンはバックグラウンドアプリを積極的に終了させるため、アラームが鳴らない場合があります。dontkillmyapp.comのガイドに従い、Ultiqをバッテリー最適化の対象外に設定してください。</string>
+    <string name="oem_open_guide">設定ガイドを開く</string>
+    <string name="alarm_perms_title">アラームにはいくつかの権限が必要です</string>
+    <string name="alarm_perms_body">これらがないと、アラームがスケジュール通りに鳴らないか、鳴ったときに画面に表示されない場合があります。</string>
+    <string name="alarm_allow_notifications">通知を許可</string>
+    <string name="alarm_allow_exact">正確なアラームを許可</string>
+    <string name="alarm_allow_fullscreen">全画面アラームを許可（ロック画面上）</string>
+    <string name="alarm_debug_title">デバッグ — 今から1〜2分後にワンショットをスケジュール</string>
+
+    <!-- Alarm editor -->
+    <string name="alarm_new">新しいアラーム</string>
+    <string name="alarm_edit">アラームを編集</string>
+    <string name="alarm_time">時刻</string>
+    <string name="alarm_tap_to_change">タップして変更</string>
+    <string name="alarm_label">ラベル（任意）</string>
+    <string name="alarm_repeat">繰り返し</string>
+    <string name="alarm_dismiss_mission">解除ミッション</string>
+    <string name="alarm_math_mission">計算ミッション</string>
+    <string name="alarm_photo_mission">写真ミッション</string>
+    <string name="alarm_shake_mission">シェイクミッション</string>
+    <string name="alarm_shakes_required">必要なシェイク回数: %1$d</string>
+    <string name="alarm_sound_vibration">サウンド &amp; バイブレーション</string>
+    <string name="alarm_volume_ramps">音量が徐々に上がる</string>
+    <string name="alarm_volume_ramps_desc">小さな音から始まり、30秒で最大音量になります</string>
+    <string name="alarm_max_volume">最大音量: %1$d%%</string>
+    <string name="alarm_snooze">スヌーズ</string>
+    <string name="alarm_snooze_duration">スヌーズ時間（分）</string>
+    <string name="alarm_snoozes_allowed">スヌーズ許可回数</string>
+    <string name="alarm_tap_warning">タップ解除は本当のミッションではありません — ボタンをタップするだけでアラームを止められます。ちゃんと起きるには、計算・シェイク・写真のいずれかを選んでください。</string>
+    <string name="alarm_default_sound">デフォルトのアラーム音</string>
+    <string name="alarm_sound_picker_title">アラーム音</string>
+    <string name="alarm_sound">サウンド</string>
+    <string name="alarm_pick_sound">サウンドを選択</string>
+    <string name="alarm_fires_once">次の発生時に1回鳴り、その後無効になります。</string>
+    <string name="diff_easy_desc">1桁の足し算または引き算</string>
+    <string name="diff_medium_desc">2桁の2ステップ計算</string>
+    <string name="diff_hard_desc">3桁の演算順序計算</string>
+    <string name="alarm_problems_required">必要な問題数</string>
+    <string name="photo_instructions">固定した場所（洗面台、デスク、やかんなど）の参照写真を撮ってください。アラームを解除するには、同じ場所にカメラを向ける必要があります。</string>
+    <string name="photo_take">参照写真を撮る</string>
+    <string name="photo_cd">参照写真</string>
+    <string name="photo_saved">参照写真を保存しました</string>
+    <string name="photo_local_only">このデバイスにのみ保存されます — アップロードされることはありません。</string>
+    <string name="photo_retake">撮り直す</string>
+    <string name="intensity_low_desc">軽いシェイク（≈ 12 m/s²）</string>
+    <string name="intensity_medium_desc">やや強いシェイク（≈ 18 m/s²）</string>
+    <string name="intensity_high_desc">激しいシェイク（≈ 25 m/s²）</string>
+
+    <!-- Alarms ViewModel -->
+    <string name="alarm_test_label">テストアラーム（%1$s）</string>
+    <string name="alarm_err_exact">スケジュールできませんでした — システム設定で正確なアラーム権限を付与してください</string>
 </resources>
