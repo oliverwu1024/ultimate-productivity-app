@@ -791,4 +791,43 @@
     <string name="relnote_1_13">फ़ोकस टैब अब ऐप दोबारा खोलने पर आपका चल रहा सेशन दिखाता है। लॉकआउट पॉपअप पर ओवरटाइम स्पष्ट रूप से एक प्रमुख OVERTIME पिल के साथ चिह्नित होता है जैसे ही आप नियोजित फ़ोकस समय पार करते हैं।</string>
     <string name="relnote_1_12">ऐप पृष्ठभूमि में चलने पर फ़ोकस सेशन अवधि सटीक रहती है। एकल फ़ोकस ब्लॉक के पक्ष में ब्रेक/आराम चरण हटाया जो नियोजित समय के बाद ऊपर गिनने वाले ओवरटाइम संकेतक के साथ है।</string>
     <string name="relnote_1_10">हाल के फ़ोकस सेशन को टैप करें तो उसका विवरण विस्तृत होता है। चेकलिस्ट कैरी-ओवर बैनर कल से अधूरे आइटम आगे लाता है। पिछले कैलेंडर इवेंट को पूर्ण चिह्नित करें।</string>
+
+    <!-- §13.1 Android sweep — chat -->
+    <string name="chat_title">कोच</string>
+    <string name="chat_new_cd">नई चैट शुरू करें</string>
+    <string name="action_undo">पूर्ववत करें</string>
+    <string name="action_send">भेजें</string>
+    <string name="chat_reset_title">नई चैट शुरू करें?</string>
+    <string name="chat_reset_body">आपकी वर्तमान बातचीत संग्रहीत हो जाएगी (हम इसे आपके रिकॉर्ड के लिए रखते हैं, लेकिन कोच अब इसे यहाँ से नहीं देख पाएगा)।</string>
+    <string name="chat_reset_confirm">नए सिरे से शुरू करें</string>
+    <string name="chat_proposed_event">प्रस्तावित इवेंट</string>
+    <string name="chat_proposed_alarm">प्रस्तावित अलार्म</string>
+    <string name="chat_create">बनाएं</string>
+    <string name="chat_creating">बना रहे हैं…</string>
+    <string name="chat_added_calendar">✓ कैलेंडर में जोड़ा गया</string>
+    <string name="chat_alarm_set">✓ अलार्म सेट</string>
+    <string name="chat_cancelled">रद्द किया</string>
+    <string name="chat_thinking">सोच रहे हैं…</string>
+    <string name="chat_empty_title">अपने कोच से बात करें</string>
+    <string name="chat_empty_body">नींद, फोकस ब्लॉक, या साप्ताहिक योजना के बारे में पूछें। कोच आपका डेटा देख सकता है, आपके लिए चेकलिस्ट आइटम जोड़ सकता है, और कैलेंडर इवेंट का मसौदा तैयार कर सकता है जिसे आप जोड़ने से पहले पुष्टि करते हैं।</string>
+    <string name="chat_composer_placeholder">कोच को संदेश भेजें…</string>
+    <string name="chat_verify_title">अपना ईमेल सत्यापित करें</string>
+    <string name="chat_verify_body">पता पुष्टि होने तक कोच लॉक रहेगा।</string>
+    <string name="chat_sending">भेज रहे हैं…</string>
+    <string name="chat_resend">फिर से भेजें</string>
+    <string name="chat_cadence_oneshot">एकबारगी</string>
+    <string name="chat_cadence_daily">दैनिक</string>
+    <string name="chat_cadence_weekdays">सोम–शुक्र</string>
+    <string name="chat_cadence_weekends">सप्ताहांत</string>
+    <string name="chat_mission_math">गणित मिशन</string>
+    <string name="chat_mission_shake">शेक मिशन</string>
+    <string name="chat_mission_photo">फोटो मिशन</string>
+    <string name="chat_mission_none">कोई मिशन नहीं</string>
+    <string name="chat_alarm_subline">%1$s · %2$s</string>
+    <string name="chat_err_history">चैट इतिहास लोड नहीं हो सका।</string>
+    <string name="chat_err_send">कोच तक नहीं पहुँच सके। पुनः प्रयास करें।</string>
+    <string name="chat_err_create_event">इवेंट नहीं बनाया जा सका। पुनः प्रयास करें।</string>
+    <string name="chat_err_create_alarm">अलार्म नहीं बनाया जा सका। पुनः प्रयास करें।</string>
+    <string name="chat_err_undo">पूर्ववत करना विफल हुआ। आपको इसे मैन्युअल रूप से हटाना पड़ सकता है।</string>
+    <string name="chat_err_reset">चैट रीसेट नहीं हो सकी। पुनः प्रयास करें।</string>
 </resources>

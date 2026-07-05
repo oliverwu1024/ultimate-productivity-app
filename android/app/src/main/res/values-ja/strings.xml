@@ -768,4 +768,43 @@
     <string name="relnote_1_13">フォーカスタブがアプリを再び開いたときに実行中のセッションを表示するようになりました。計画したフォーカス時間を超えると、ロックアウトポップアップに目立つOVERTIMEピルが明確に表示されます。</string>
     <string name="relnote_1_12">アプリがバックグラウンドで動作しているときもフォーカスセッションの時間が正確に保たれます。休憩/休息フェーズが削除され、計画時間を超えてカウントアップするオーバータイムインジケーター付きの単一フォーカスブロックになりました。</string>
     <string name="relnote_1_10">最近のフォーカスセッションをタップして詳細を展開します。チェックリストの繰り越しバナーが前日の未完了項目を引き継ぎます。過去のカレンダーイベントを完了としてマークします。</string>
+
+    <!-- §13.1 Android sweep — chat -->
+    <string name="chat_title">コーチ</string>
+    <string name="chat_new_cd">新しいチャットを開始</string>
+    <string name="action_undo">元に戻す</string>
+    <string name="action_send">送信</string>
+    <string name="chat_reset_title">新しいチャットを開始しますか？</string>
+    <string name="chat_reset_body">現在の会話はアーカイブされます（記録として保存されますが、コーチは今後これを参照しません）。</string>
+    <string name="chat_reset_confirm">最初から始める</string>
+    <string name="chat_proposed_event">提案されたイベント</string>
+    <string name="chat_proposed_alarm">提案されたアラーム</string>
+    <string name="chat_create">作成</string>
+    <string name="chat_creating">作成中…</string>
+    <string name="chat_added_calendar">✓ カレンダーに追加しました</string>
+    <string name="chat_alarm_set">✓ アラームを設定しました</string>
+    <string name="chat_cancelled">キャンセル済み</string>
+    <string name="chat_thinking">考え中…</string>
+    <string name="chat_empty_title">コーチに相談する</string>
+    <string name="chat_empty_body">睡眠、集中ブロック、週間計画についてご相談いただけます。コーチはデータを確認し、チェックリストの追加やカレンダーイベントの下書きを行います（確認後に登録されます）。</string>
+    <string name="chat_composer_placeholder">コーチへメッセージ…</string>
+    <string name="chat_verify_title">メールアドレスを確認</string>
+    <string name="chat_verify_body">メールアドレスを確認するまでコーチはロックされています。</string>
+    <string name="chat_sending">送信中…</string>
+    <string name="chat_resend">再送信</string>
+    <string name="chat_cadence_oneshot">一回のみ</string>
+    <string name="chat_cadence_daily">毎日</string>
+    <string name="chat_cadence_weekdays">月–金</string>
+    <string name="chat_cadence_weekends">週末</string>
+    <string name="chat_mission_math">計算ミッション</string>
+    <string name="chat_mission_shake">シェイクミッション</string>
+    <string name="chat_mission_photo">写真ミッション</string>
+    <string name="chat_mission_none">ミッションなし</string>
+    <string name="chat_alarm_subline">%1$s · %2$s</string>
+    <string name="chat_err_history">チャット履歴を読み込めませんでした。</string>
+    <string name="chat_err_send">コーチに接続できませんでした。もう一度お試しください。</string>
+    <string name="chat_err_create_event">イベントを作成できませんでした。もう一度お試しください。</string>
+    <string name="chat_err_create_alarm">アラームを作成できませんでした。もう一度お試しください。</string>
+    <string name="chat_err_undo">元に戻す操作に失敗しました。手動で削除してください。</string>
+    <string name="chat_err_reset">チャットをリセットできませんでした。もう一度お試しください。</string>
 </resources>

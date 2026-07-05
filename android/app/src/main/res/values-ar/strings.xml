@@ -883,4 +883,43 @@
     <string name="relnote_1_13">علامة تبويب التركيز تعرض الآن الجلسة الجارية عند إعادة فتح التطبيق. الوقت الإضافي مُعلَّم بوضوح على نافذة الحجب بحبة OVERTIME بارزة بمجرد تجاوز وقت التركيز المخطط.</string>
     <string name="relnote_1_12">مدة جلسة التركيز تظل دقيقة عند تشغيل التطبيق في الخلفية. إزالة مرحلة الاستراحة لصالح كتلة تركيز واحدة بمؤشر وقت إضافي يحسب تصاعدياً بعد وقتك المخطط.</string>
     <string name="relnote_1_10">انقر على جلسة تركيز حديثة لتوسيع تفاصيلها. شريط ترحيل قائمة المهام يجلب العناصر غير المكتملة من أمس. حدِّد الأحداث التقويمية السابقة كمكتملة.</string>
+
+    <!-- §13.1 Android sweep — chat -->
+    <string name="chat_title">المدرّب</string>
+    <string name="chat_new_cd">بدء محادثة جديدة</string>
+    <string name="action_undo">تراجع</string>
+    <string name="action_send">إرسال</string>
+    <string name="chat_reset_title">هل تريد بدء محادثة جديدة؟</string>
+    <string name="chat_reset_body">ستُحفظ محادثتك الحالية في الأرشيف (نحتفظ بها في سجلاتك، لكن المدرب لن يراها من الآن فصاعداً).</string>
+    <string name="chat_reset_confirm">ابدأ من جديد</string>
+    <string name="chat_proposed_event">حدث مقترح</string>
+    <string name="chat_proposed_alarm">منبّه مقترح</string>
+    <string name="chat_create">إنشاء</string>
+    <string name="chat_creating">جارٍ الإنشاء…</string>
+    <string name="chat_added_calendar">✓ أُضيف إلى تقويمك</string>
+    <string name="chat_alarm_set">✓ تم ضبط المنبّه</string>
+    <string name="chat_cancelled">ملغى</string>
+    <string name="chat_thinking">يفكّر…</string>
+    <string name="chat_empty_title">تحدّث مع مدرّبك</string>
+    <string name="chat_empty_body">اسأل عن النوم أو فترات التركيز أو التخطيط الأسبوعي. يستطيع المدرب الاطلاع على بياناتك، وإضافة مهام إلى قائمتك، وصياغة أحداث في التقويم تؤكدها قبل حفظها.</string>
+    <string name="chat_composer_placeholder">راسل مدرّبك…</string>
+    <string name="chat_verify_title">تحقق من بريدك الإلكتروني</string>
+    <string name="chat_verify_body">يظل المدرب مقفلاً حتى تؤكد عنوانك.</string>
+    <string name="chat_sending">جارٍ الإرسال…</string>
+    <string name="chat_resend">إعادة الإرسال</string>
+    <string name="chat_cadence_oneshot">مرة واحدة</string>
+    <string name="chat_cadence_daily">يوميًا</string>
+    <string name="chat_cadence_weekdays">الإثنين–الجمعة</string>
+    <string name="chat_cadence_weekends">نهاية الأسبوع</string>
+    <string name="chat_mission_math">مهمة رياضيات</string>
+    <string name="chat_mission_shake">مهمة اهتزاز</string>
+    <string name="chat_mission_photo">مهمة صورة</string>
+    <string name="chat_mission_none">بلا مهمة</string>
+    <string name="chat_alarm_subline">%1$s · %2$s</string>
+    <string name="chat_err_history">تعذّر تحميل سجل محادثتك.</string>
+    <string name="chat_err_send">تعذّر الوصول إلى المدرب. حاول مجدداً.</string>
+    <string name="chat_err_create_event">تعذّر إنشاء الحدث. حاول مجدداً.</string>
+    <string name="chat_err_create_alarm">تعذّر إنشاء المنبّه. حاول مجدداً.</string>
+    <string name="chat_err_undo">فشل التراجع. قد تحتاج إلى الحذف يدوياً.</string>
+    <string name="chat_err_reset">تعذّر إعادة ضبط المحادثة. حاول مجدداً.</string>
 </resources>

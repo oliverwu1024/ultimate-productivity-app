@@ -768,4 +768,43 @@
     <string name="relnote_1_13">แท็บ Focus แสดงเซสชันที่กำลังทำงานเมื่อคุณเปิดแอปขึ้นมาใหม่ โอเวอร์ไทม์แสดงชัดเจนบนป๊อปอัปล็อกด้วยป้าย OVERTIME ที่โดดเด่นเมื่อคุณผ่านเวลาโฟกัสที่วางแผนไว้</string>
     <string name="relnote_1_12">ระยะเวลาเซสชันโฟกัสแม่นยำแม้แอปทำงานในพื้นหลัง ลบเฟสพัก/ผ่อนคลายออก เหลือบล็อกโฟกัสเดียวพร้อมตัวนับโอเวอร์ไทม์ที่นับขึ้นเกินเวลาที่วางแผน</string>
     <string name="relnote_1_10">แตะเซสชันโฟกัสล่าสุดเพื่อขยายรายละเอียด แบนเนอร์นำรายการเช็คลิสต์ที่ยังค้างอยู่จากเมื่อวานมาแสดง ทำเครื่องหมายกิจกรรมปฏิทินในอดีตว่าเสร็จแล้ว</string>
+
+    <!-- §13.1 Android sweep — chat -->
+    <string name="chat_title">โค้ช</string>
+    <string name="chat_new_cd">เริ่มแชทใหม่</string>
+    <string name="action_undo">เลิกทำ</string>
+    <string name="action_send">ส่ง</string>
+    <string name="chat_reset_title">เริ่มแชทใหม่?</string>
+    <string name="chat_reset_body">บทสนทนาปัจจุบันจะถูกเก็บถาวร (เราเก็บไว้ในบันทึกของคุณ แต่โค้ชจะไม่เห็นจากนี้ไป)</string>
+    <string name="chat_reset_confirm">เริ่มใหม่</string>
+    <string name="chat_proposed_event">กิจกรรมที่เสนอ</string>
+    <string name="chat_proposed_alarm">การปลุกที่เสนอ</string>
+    <string name="chat_create">สร้าง</string>
+    <string name="chat_creating">กำลังสร้าง…</string>
+    <string name="chat_added_calendar">✓ เพิ่มในปฏิทินแล้ว</string>
+    <string name="chat_alarm_set">✓ ตั้งนาฬิกาปลุกแล้ว</string>
+    <string name="chat_cancelled">ยกเลิกแล้ว</string>
+    <string name="chat_thinking">กำลังคิด…</string>
+    <string name="chat_empty_title">คุยกับโค้ชของคุณ</string>
+    <string name="chat_empty_body">ถามเกี่ยวกับการนอน บล็อกโฟกัส หรือการวางแผนรายสัปดาห์ โค้ชสามารถดูข้อมูลของคุณ เพิ่มรายการในรายการตรวจสอบ และร่างกิจกรรมในปฏิทินที่คุณยืนยันก่อนบันทึก</string>
+    <string name="chat_composer_placeholder">ส่งข้อความถึงโค้ช…</string>
+    <string name="chat_verify_title">ยืนยันอีเมลของคุณ</string>
+    <string name="chat_verify_body">โค้ชจะถูกล็อกจนกว่าคุณจะยืนยันที่อยู่อีเมล</string>
+    <string name="chat_sending">กำลังส่ง…</string>
+    <string name="chat_resend">ส่งอีกครั้ง</string>
+    <string name="chat_cadence_oneshot">ครั้งเดียว</string>
+    <string name="chat_cadence_daily">ทุกวัน</string>
+    <string name="chat_cadence_weekdays">จ–ศ</string>
+    <string name="chat_cadence_weekends">ส–อา</string>
+    <string name="chat_mission_math">ภารกิจคณิตศาสตร์</string>
+    <string name="chat_mission_shake">ภารกิจเขย่า</string>
+    <string name="chat_mission_photo">ภารกิจถ่ายรูป</string>
+    <string name="chat_mission_none">ไม่มีภารกิจ</string>
+    <string name="chat_alarm_subline">%1$s · %2$s</string>
+    <string name="chat_err_history">ไม่สามารถโหลดประวัติแชทได้</string>
+    <string name="chat_err_send">ไม่สามารถเชื่อมต่อโค้ชได้ กรุณาลองอีกครั้ง</string>
+    <string name="chat_err_create_event">ไม่สามารถสร้างกิจกรรมได้ กรุณาลองอีกครั้ง</string>
+    <string name="chat_err_create_alarm">ไม่สามารถสร้างการปลุกได้ กรุณาลองอีกครั้ง</string>
+    <string name="chat_err_undo">เลิกทำไม่สำเร็จ คุณอาจต้องลบด้วยตนเอง</string>
+    <string name="chat_err_reset">ไม่สามารถรีเซ็ตแชทได้ กรุณาลองอีกครั้ง</string>
 </resources>

@@ -768,4 +768,43 @@
     <string name="relnote_1_13">重新打开应用时专注标签现在显示正在进行的会话。超时后，锁定弹窗上会以醒目的"超时"标签清晰标注超出计划专注时间的部分。</string>
     <string name="relnote_1_12">应用在后台运行时专注会话时长保持准确。移除了休息/间隔阶段，改为单一专注块加超时指示器，计数超过计划时间后持续增加。</string>
     <string name="relnote_1_10">点击最近的专注会话可展开详情。清单续接横幅将昨天未完成的项目带入今天。将过去的日历事件标记为已完成。</string>
+
+    <!-- §13.1 Android sweep — chat -->
+    <string name="chat_title">教练</string>
+    <string name="chat_new_cd">开始新对话</string>
+    <string name="action_undo">撤销</string>
+    <string name="action_send">发送</string>
+    <string name="chat_reset_title">开始新对话？</string>
+    <string name="chat_reset_body">当前对话将被存档（我们会为您保留记录，但教练此后将不会看到它）。</string>
+    <string name="chat_reset_confirm">重新开始</string>
+    <string name="chat_proposed_event">建议日程</string>
+    <string name="chat_proposed_alarm">建议闹钟</string>
+    <string name="chat_create">创建</string>
+    <string name="chat_creating">创建中…</string>
+    <string name="chat_added_calendar">✓ 已添加到日历</string>
+    <string name="chat_alarm_set">✓ 闹钟已设置</string>
+    <string name="chat_cancelled">已取消</string>
+    <string name="chat_thinking">思考中…</string>
+    <string name="chat_empty_title">与您的教练对话</string>
+    <string name="chat_empty_body">询问睡眠、专注时段或每周计划。教练可以查看您的数据、为您添加待办事项，并起草日历日程，待您确认后再添加。</string>
+    <string name="chat_composer_placeholder">向您的教练发送消息…</string>
+    <string name="chat_verify_title">验证您的电子邮件</string>
+    <string name="chat_verify_body">确认邮箱地址前，教练功能将保持锁定。</string>
+    <string name="chat_sending">发送中…</string>
+    <string name="chat_resend">重新发送</string>
+    <string name="chat_cadence_oneshot">单次</string>
+    <string name="chat_cadence_daily">每天</string>
+    <string name="chat_cadence_weekdays">周一–周五</string>
+    <string name="chat_cadence_weekends">周末</string>
+    <string name="chat_mission_math">数学任务</string>
+    <string name="chat_mission_shake">摇晃任务</string>
+    <string name="chat_mission_photo">拍照任务</string>
+    <string name="chat_mission_none">无任务</string>
+    <string name="chat_alarm_subline">%1$s · %2$s</string>
+    <string name="chat_err_history">无法加载聊天记录。</string>
+    <string name="chat_err_send">无法联系到教练，请重试。</string>
+    <string name="chat_err_create_event">无法创建日程，请重试。</string>
+    <string name="chat_err_create_alarm">无法创建闹钟，请重试。</string>
+    <string name="chat_err_undo">撤销失败，您可能需要手动删除。</string>
+    <string name="chat_err_reset">无法重置对话，请重试。</string>
 </resources>

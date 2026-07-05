@@ -814,4 +814,43 @@
     <string name="relnote_1_13">A aba Foco agora mostra sua sessão em andamento ao reabrir o app. O tempo extra é claramente marcado no popup de bloqueio com uma pílula OVERTIME em destaque assim que você passa o tempo de foco planejado.</string>
     <string name="relnote_1_12">A duração da sessão de foco permanece precisa quando o app roda em segundo plano. Removida a fase de pausa/descanso em favor de um único bloco de foco com um indicador de Overtime que conta além do tempo planejado.</string>
     <string name="relnote_1_10">Toque em uma sessão de foco recente para expandir seus detalhes. O banner de transferência da Lista traz itens inacabados do dia anterior. Marque eventos passados do Calendário como concluídos.</string>
+
+    <!-- §13.1 Android sweep — chat -->
+    <string name="chat_title">Coach</string>
+    <string name="chat_new_cd">Iniciar nova conversa</string>
+    <string name="action_undo">Desfazer</string>
+    <string name="action_send">Enviar</string>
+    <string name="chat_reset_title">Iniciar nova conversa?</string>
+    <string name="chat_reset_body">Sua conversa atual será arquivada (mantemos para seus registros, mas o Coach não a verá mais a partir daqui).</string>
+    <string name="chat_reset_confirm">Começar do zero</string>
+    <string name="chat_proposed_event">Evento proposto</string>
+    <string name="chat_proposed_alarm">Alarme proposto</string>
+    <string name="chat_create">Criar</string>
+    <string name="chat_creating">Criando…</string>
+    <string name="chat_added_calendar">✓ Adicionado ao seu calendário</string>
+    <string name="chat_alarm_set">✓ Alarme definido</string>
+    <string name="chat_cancelled">Cancelado</string>
+    <string name="chat_thinking">pensando…</string>
+    <string name="chat_empty_title">Fale com seu coach</string>
+    <string name="chat_empty_body">Pergunte sobre sono, blocos de foco ou planejamento semanal. O Coach pode analisar seus dados, adicionar itens à lista de tarefas e rascunhar eventos de calendário que você confirma antes de salvar.</string>
+    <string name="chat_composer_placeholder">Mensagem para o coach…</string>
+    <string name="chat_verify_title">Verifique seu e-mail</string>
+    <string name="chat_verify_body">O Coach fica bloqueado até você confirmar o endereço.</string>
+    <string name="chat_sending">Enviando…</string>
+    <string name="chat_resend">Reenviar</string>
+    <string name="chat_cadence_oneshot">Única vez</string>
+    <string name="chat_cadence_daily">Diário</string>
+    <string name="chat_cadence_weekdays">Seg–Sex</string>
+    <string name="chat_cadence_weekends">Fins de semana</string>
+    <string name="chat_mission_math">missão de cálculo</string>
+    <string name="chat_mission_shake">missão de agitar</string>
+    <string name="chat_mission_photo">missão de foto</string>
+    <string name="chat_mission_none">sem missão</string>
+    <string name="chat_alarm_subline">%1$s · %2$s</string>
+    <string name="chat_err_history">Não foi possível carregar seu histórico.</string>
+    <string name="chat_err_send">Não foi possível conectar ao Coach. Tente novamente.</string>
+    <string name="chat_err_create_event">Não foi possível criar o evento. Tente novamente.</string>
+    <string name="chat_err_create_alarm">Não foi possível criar o alarme. Tente novamente.</string>
+    <string name="chat_err_undo">Desfazer falhou. Talvez seja necessário excluir manualmente.</string>
+    <string name="chat_err_reset">Não foi possível reiniciar a conversa. Tente novamente.</string>
 </resources>

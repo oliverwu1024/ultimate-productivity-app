@@ -814,4 +814,43 @@
     <string name="relnote_1_13">L\'onglet Focus affiche maintenant votre session en cours quand vous rouvrez l\'app. Les heures supplémentaires sont clairement marquées sur la fenêtre contextuelle de blocage avec une pilule HEURES SUPP visible une fois que vous dépassez votre temps de concentration prévu.</string>
     <string name="relnote_1_12">La durée d\'une session de concentration reste précise quand l\'app tourne en arrière-plan. Suppression de la phase pause/repos au profit d\'un seul bloc de concentration avec un indicateur Heures supp qui compte au-delà de votre temps prévu.</string>
     <string name="relnote_1_10">Appuyez sur une session de concentration récente pour développer ses détails. La bannière de report de la Liste amène les éléments non terminés d\'hier. Marquez les événements de Calendrier passés comme terminés.</string>
+
+    <!-- §13.1 Android sweep — chat -->
+    <string name="chat_title">Coach</string>
+    <string name="chat_new_cd">Nouvelle conversation</string>
+    <string name="action_undo">Annuler</string>
+    <string name="action_send">Envoyer</string>
+    <string name="chat_reset_title">Nouvelle conversation ?</string>
+    <string name="chat_reset_body">Votre conversation actuelle sera archivée (nous la conservons pour vos dossiers, mais le coach ne la verra plus désormais).</string>
+    <string name="chat_reset_confirm">Recommencer</string>
+    <string name="chat_proposed_event">Événement proposé</string>
+    <string name="chat_proposed_alarm">Alarme proposée</string>
+    <string name="chat_create">Créer</string>
+    <string name="chat_creating">Création…</string>
+    <string name="chat_added_calendar">✓ Ajouté à votre agenda</string>
+    <string name="chat_alarm_set">✓ Alarme définie</string>
+    <string name="chat_cancelled">Annulé</string>
+    <string name="chat_thinking">réflexion…</string>
+    <string name="chat_empty_title">Parlez à votre coach</string>
+    <string name="chat_empty_body">Posez des questions sur le sommeil, les blocs de concentration ou la planification hebdomadaire. Le coach peut consulter vos données, ajouter des éléments à votre liste et rédiger des événements de calendrier que vous confirmez avant leur enregistrement.</string>
+    <string name="chat_composer_placeholder">Message à votre coach…</string>
+    <string name="chat_verify_title">Vérifiez votre adresse e-mail</string>
+    <string name="chat_verify_body">Le coach reste verrouillé jusqu\'à ce que vous confirmiez l\'adresse.</string>
+    <string name="chat_sending">Envoi…</string>
+    <string name="chat_resend">Renvoyer</string>
+    <string name="chat_cadence_oneshot">Unique</string>
+    <string name="chat_cadence_daily">Quotidien</string>
+    <string name="chat_cadence_weekdays">Lun–Ven</string>
+    <string name="chat_cadence_weekends">Week-ends</string>
+    <string name="chat_mission_math">mission calcul</string>
+    <string name="chat_mission_shake">mission secousse</string>
+    <string name="chat_mission_photo">mission photo</string>
+    <string name="chat_mission_none">sans mission</string>
+    <string name="chat_alarm_subline">%1$s · %2$s</string>
+    <string name="chat_err_history">Impossible de charger votre historique de conversation.</string>
+    <string name="chat_err_send">Impossible de contacter le coach. Réessayez.</string>
+    <string name="chat_err_create_event">Impossible de créer l\'événement. Réessayez.</string>
+    <string name="chat_err_create_alarm">Impossible de créer l\'alarme. Réessayez.</string>
+    <string name="chat_err_undo">Annulation échouée. Vous devrez peut-être le supprimer manuellement.</string>
+    <string name="chat_err_reset">Impossible de réinitialiser la conversation. Réessayez.</string>
 </resources>

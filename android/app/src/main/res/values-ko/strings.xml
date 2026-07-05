@@ -768,4 +768,43 @@
     <string name="relnote_1_13">집중 탭이 앱을 다시 열면 실행 중인 세션을 표시합니다. 계획된 집중 시간을 지나면 잠금 팝업에 눈에 띄는 초과 시간 알약이 명확하게 표시됩니다.</string>
     <string name="relnote_1_12">집중 세션 시간이 앱이 백그라운드에서 실행될 때 정확하게 유지됩니다. 계획된 시간 이후를 카운트업하는 초과 시간 표시기가 있는 단일 집중 블록을 위해 휴식 단계를 제거했습니다.</string>
     <string name="relnote_1_10">최근 집중 세션을 탭하면 세부 정보가 펼쳐집니다. 체크리스트 이월 배너가 어제의 미완료 항목을 가져옵니다. 과거 캘린더 이벤트를 완료로 표시하세요.</string>
+
+    <!-- §13.1 Android sweep — chat -->
+    <string name="chat_title">코치</string>
+    <string name="chat_new_cd">새 대화 시작</string>
+    <string name="action_undo">실행 취소</string>
+    <string name="action_send">보내기</string>
+    <string name="chat_reset_title">새 대화를 시작할까요?</string>
+    <string name="chat_reset_body">현재 대화가 보관됩니다(기록을 위해 저장되지만, 코치는 앞으로 이 대화를 볼 수 없습니다).</string>
+    <string name="chat_reset_confirm">새로 시작</string>
+    <string name="chat_proposed_event">제안된 일정</string>
+    <string name="chat_proposed_alarm">제안된 알람</string>
+    <string name="chat_create">생성</string>
+    <string name="chat_creating">생성 중…</string>
+    <string name="chat_added_calendar">✓ 캘린더에 추가됨</string>
+    <string name="chat_alarm_set">✓ 알람 설정됨</string>
+    <string name="chat_cancelled">취소됨</string>
+    <string name="chat_thinking">생각 중…</string>
+    <string name="chat_empty_title">코치와 대화하기</string>
+    <string name="chat_empty_body">수면, 집중 블록, 주간 계획에 대해 물어보세요. 코치가 데이터를 살펴보고, 체크리스트 항목을 추가하며, 확인 후 등록되는 캘린더 일정을 초안으로 만들어 드릴 수 있습니다.</string>
+    <string name="chat_composer_placeholder">코치에게 메시지 보내기…</string>
+    <string name="chat_verify_title">이메일 인증</string>
+    <string name="chat_verify_body">이메일 주소를 확인할 때까지 코치 기능이 잠겨 있습니다.</string>
+    <string name="chat_sending">전송 중…</string>
+    <string name="chat_resend">재전송</string>
+    <string name="chat_cadence_oneshot">1회</string>
+    <string name="chat_cadence_daily">매일</string>
+    <string name="chat_cadence_weekdays">월–금</string>
+    <string name="chat_cadence_weekends">주말</string>
+    <string name="chat_mission_math">수학 미션</string>
+    <string name="chat_mission_shake">흔들기 미션</string>
+    <string name="chat_mission_photo">사진 미션</string>
+    <string name="chat_mission_none">미션 없음</string>
+    <string name="chat_alarm_subline">%1$s · %2$s</string>
+    <string name="chat_err_history">대화 기록을 불러올 수 없습니다.</string>
+    <string name="chat_err_send">코치에 연결할 수 없습니다. 다시 시도해 주세요.</string>
+    <string name="chat_err_create_event">일정을 생성할 수 없습니다. 다시 시도해 주세요.</string>
+    <string name="chat_err_create_alarm">알람을 생성할 수 없습니다. 다시 시도해 주세요.</string>
+    <string name="chat_err_undo">실행 취소에 실패했습니다. 직접 삭제해야 할 수 있습니다.</string>
+    <string name="chat_err_reset">대화를 초기화할 수 없습니다. 다시 시도해 주세요.</string>
 </resources>

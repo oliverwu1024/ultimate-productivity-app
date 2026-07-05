@@ -768,4 +768,43 @@
     <string name="relnote_1_13">重新開啟應用程式時，專注分頁現在顯示正在進行的工作階段。一旦超過計劃的專注時間，鎖定彈出視窗上的加班時間以顯著的「加班」標籤清楚標示。</string>
     <string name="relnote_1_12">應用程式在背景執行時，專注工作階段的持續時間保持準確。移除了休息/暫停階段，改為單一專注區塊，並有一個計數超過計劃時間的加班指示器。</string>
     <string name="relnote_1_10">點選最近的專注工作階段以展開其詳情。待辦事項延續橫幅將昨天未完成的項目帶到今天。將過去的行事曆活動標記為完成。</string>
+
+    <!-- §13.1 Android sweep — chat -->
+    <string name="chat_title">教練</string>
+    <string name="chat_new_cd">開始新對話</string>
+    <string name="action_undo">復原</string>
+    <string name="action_send">傳送</string>
+    <string name="chat_reset_title">開始新對話？</string>
+    <string name="chat_reset_body">您目前的對話將被封存（我們會保留以供記錄，但教練此後將不會看到）。</string>
+    <string name="chat_reset_confirm">重新開始</string>
+    <string name="chat_proposed_event">建議活動</string>
+    <string name="chat_proposed_alarm">建議鬧鐘</string>
+    <string name="chat_create">建立</string>
+    <string name="chat_creating">建立中…</string>
+    <string name="chat_added_calendar">✓ 已新增至日曆</string>
+    <string name="chat_alarm_set">✓ 鬧鐘已設定</string>
+    <string name="chat_cancelled">已取消</string>
+    <string name="chat_thinking">思考中…</string>
+    <string name="chat_empty_title">與教練對話</string>
+    <string name="chat_empty_body">詢問睡眠、專注時段或每週計畫。教練可查看您的數據、為您新增待辦事項，並草擬日曆活動供您確認後加入。</string>
+    <string name="chat_composer_placeholder">傳訊給教練…</string>
+    <string name="chat_verify_title">驗證您的電子郵件</string>
+    <string name="chat_verify_body">確認地址後才能使用教練功能。</string>
+    <string name="chat_sending">傳送中…</string>
+    <string name="chat_resend">重新傳送</string>
+    <string name="chat_cadence_oneshot">單次</string>
+    <string name="chat_cadence_daily">每天</string>
+    <string name="chat_cadence_weekdays">週一–週五</string>
+    <string name="chat_cadence_weekends">週末</string>
+    <string name="chat_mission_math">數學任務</string>
+    <string name="chat_mission_shake">搖晃任務</string>
+    <string name="chat_mission_photo">拍照任務</string>
+    <string name="chat_mission_none">無任務</string>
+    <string name="chat_alarm_subline">%1$s · %2$s</string>
+    <string name="chat_err_history">無法載入對話記錄。</string>
+    <string name="chat_err_send">無法聯繫教練，請再試一次。</string>
+    <string name="chat_err_create_event">無法建立活動，請再試一次。</string>
+    <string name="chat_err_create_alarm">無法建立鬧鐘，請再試一次。</string>
+    <string name="chat_err_undo">復原失敗，您可能需要手動刪除。</string>
+    <string name="chat_err_reset">無法重置對話，請再試一次。</string>
 </resources>

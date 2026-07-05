@@ -822,4 +822,46 @@
     <string name="relnote_1_13">Focus tab now shows your running session when you reopen the app. Overtime is clearly marked on the lockout popup with a prominent OVERTIME pill once you pass your planned focus time.</string>
     <string name="relnote_1_12">Focus session duration stays accurate when the app runs in the background. Removed the break/rest phase in favour of a single focus block with an Overtime indicator that counts up past your planned time.</string>
     <string name="relnote_1_10">Tap a recent focus session to expand its details. Checklist carry-over banner brings unfinished items forward from yesterday. Mark past calendar events as done.</string>
+
+    <!-- §13.1 Android sweep — chat -->
+    <!-- ChatScreen -->
+    <string name="chat_title">Coach</string>
+    <string name="chat_new_cd">Start a new chat</string>
+    <string name="action_undo">Undo</string>
+    <string name="action_send">Send</string>
+    <string name="chat_reset_title">Start a new chat?</string>
+    <string name="chat_reset_body">Your current conversation will be archived (we keep it for your records but the coach won\'t see it from here on).</string>
+    <string name="chat_reset_confirm">Start fresh</string>
+    <string name="chat_proposed_event">Proposed event</string>
+    <string name="chat_proposed_alarm">Proposed alarm</string>
+    <string name="chat_create">Create</string>
+    <string name="chat_creating">Creating…</string>
+    <string name="chat_added_calendar">✓ Added to your calendar</string>
+    <string name="chat_alarm_set">✓ Alarm set</string>
+    <string name="chat_cancelled">Cancelled</string>
+    <string name="chat_thinking">thinking…</string>
+    <string name="chat_empty_title">Talk to your coach</string>
+    <string name="chat_empty_body">Ask about sleep, focus blocks, or weekly planning. The coach can look at your data, add checklist items for you, and draft calendar events you confirm before they land.</string>
+    <string name="chat_composer_placeholder">Message your coach…</string>
+    <string name="chat_verify_title">Verify your email</string>
+    <string name="chat_verify_body">Coach stays locked until you confirm the address.</string>
+    <string name="chat_sending">Sending…</string>
+    <string name="chat_resend">Resend</string>
+    <string name="chat_cadence_oneshot">One-shot</string>
+    <string name="chat_cadence_daily">Daily</string>
+    <string name="chat_cadence_weekdays">Mon–Fri</string>
+    <string name="chat_cadence_weekends">Weekends</string>
+    <string name="chat_mission_math">math mission</string>
+    <string name="chat_mission_shake">shake mission</string>
+    <string name="chat_mission_photo">photo mission</string>
+    <string name="chat_mission_none">no mission</string>
+    <string name="chat_alarm_subline">%1$s · %2$s</string>
+
+    <!-- ChatViewModel -->
+    <string name="chat_err_history">Couldn\'t load your chat history.</string>
+    <string name="chat_err_send">Couldn\'t reach the coach. Try again.</string>
+    <string name="chat_err_create_event">Couldn\'t create the event. Try again.</string>
+    <string name="chat_err_create_alarm">Couldn\'t create the alarm. Try again.</string>
+    <string name="chat_err_undo">Undo failed. You may need to delete it manually.</string>
+    <string name="chat_err_reset">Couldn\'t reset the chat. Try again.</string>
 </resources>
