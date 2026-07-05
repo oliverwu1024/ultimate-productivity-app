@@ -44,18 +44,21 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ultiq.app.R
 import com.ultiq.app.data.achievements.AchievementId
+import com.ultiq.app.ui.calendar.categoryLabel
 import com.ultiq.app.ui.theme.CategoryColors
+import com.ultiq.app.util.LocaleManager
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,10 +71,10 @@ fun WeeklyReportScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Weekly report") },
+                title = { Text(stringResource(R.string.reports_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back))
                     }
                 },
             )
@@ -91,19 +94,19 @@ fun WeeklyReportScreen(
                     onNext = { viewModel.nextWeek() },
                 )
             }
-            item { SectionHeader("Sleep") }
+            item { SectionHeader(stringResource(R.string.reports_section_sleep)) }
             item { SleepSection(uiState) }
 
-            item { SectionHeader("Focus") }
+            item { SectionHeader(stringResource(R.string.reports_section_focus)) }
             item { FocusSection(uiState) }
 
-            item { SectionHeader("Calendar") }
+            item { SectionHeader(stringResource(R.string.reports_section_calendar)) }
             item { CalendarSection(uiState) }
 
-            item { SectionHeader("Streaks") }
+            item { SectionHeader(stringResource(R.string.reports_section_streaks)) }
             item { StreakSection(uiState) }
 
-            item { SectionHeader("Achievements") }
+            item { SectionHeader(stringResource(R.string.achievements_title)) }
             item { AchievementsSection(uiState) }
         }
     }
@@ -114,14 +117,14 @@ fun WeeklyReportScreen(
 @Composable
 private fun WeekSelector(start: LocalDate, onPrevious: () -> Unit, onNext: () -> Unit) {
     val end = start.plusDays(6)
-    val fmt = DateTimeFormatter.ofPattern("MMM d")
+    val fmt = DateTimeFormatter.ofPattern("MMM d", LocaleManager.currentLocale())
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         IconButton(onClick = onPrevious) {
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, "Previous week")
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, stringResource(R.string.reports_prev_week))
         }
         Text(
             "${start.format(fmt)} – ${end.format(fmt)}",
@@ -129,7 +132,7 @@ private fun WeekSelector(start: LocalDate, onPrevious: () -> Unit, onNext: () ->
             fontWeight = FontWeight.SemiBold,
         )
         IconButton(onClick = onNext) {
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, "Next week")
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, stringResource(R.string.reports_next_week))
         }
     }
 }
@@ -153,7 +156,7 @@ private fun SleepSection(state: WeeklyReportUiState) {
     ReportCard {
         val bars = state.sleepByDay.map { day ->
             BarData(
-                label = day.date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault()).take(1),
+                label = day.date.dayOfWeek.getDisplayName(TextStyle.SHORT, LocaleManager.currentLocale()).take(1),
                 value = (day.durationMinutes ?: 0).toFloat() / 60f,
                 color = sleepBarColor(day.qualityRating),
             )
@@ -168,27 +171,28 @@ private fun SleepSection(state: WeeklyReportUiState) {
         )
 
         Spacer(Modifier.height(12.dp))
+        val locale = LocaleManager.currentLocale()
         StatGrid(
             pairs = listOf(
-                "Avg duration" to formatDuration(state.avgSleepDurationMinutes.toInt()),
-                "Avg quality" to if (state.avgSleepQuality > 0) "%.1f / 5".format(state.avgSleepQuality) else "-",
-                "Sleep debt" to if (state.sleepDebtMinutes > 0) formatDuration(state.sleepDebtMinutes) else "0m",
-                "Extra rest" to if (state.sleepExtraMinutes > 0) formatDuration(state.sleepExtraMinutes) else "0m",
-                "Best night" to (state.bestNight?.let { "${it.date.dayOfWeek.name.take(3)} (${it.qualityRating}★)" } ?: "-"),
-                "Worst night" to (state.worstNight?.let { "${it.date.dayOfWeek.name.take(3)} (${it.qualityRating}★)" } ?: "-"),
+                stringResource(R.string.reports_avg_duration) to formatDuration(state.avgSleepDurationMinutes.toInt()),
+                stringResource(R.string.reports_avg_quality) to if (state.avgSleepQuality > 0) String.format(locale, "%.1f / 5", state.avgSleepQuality) else "-",
+                stringResource(R.string.reports_sleep_debt) to if (state.sleepDebtMinutes > 0) formatDuration(state.sleepDebtMinutes) else "0m",
+                stringResource(R.string.reports_extra_rest) to if (state.sleepExtraMinutes > 0) formatDuration(state.sleepExtraMinutes) else "0m",
+                stringResource(R.string.reports_best_night) to (state.bestNight?.let { "${it.date.dayOfWeek.getDisplayName(TextStyle.SHORT, locale)} (${it.qualityRating}★)" } ?: "-"),
+                stringResource(R.string.reports_worst_night) to (state.worstNight?.let { "${it.date.dayOfWeek.getDisplayName(TextStyle.SHORT, locale)} (${it.qualityRating}★)" } ?: "-"),
             ),
         )
 
         Spacer(Modifier.height(8.dp))
         Text(
-            "Target: ${formatDuration(state.sleepTargetMinutes)}/night · debt = nights below, extra = nights above",
+            stringResource(R.string.reports_sleep_target_note, formatDuration(state.sleepTargetMinutes)),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
         Spacer(Modifier.height(8.dp))
         PickupsRow(
-            label = "Phone pickups / night",
+            label = stringResource(R.string.reports_pickups_label),
             current = state.avgPhonePickupsPerNight,
             trend = state.phonePickupsTrend,
         )
@@ -202,7 +206,7 @@ private fun FocusSection(state: WeeklyReportUiState) {
     ReportCard {
         val bars = state.focusByDay.map { day ->
             BarData(
-                label = day.date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault()).take(1),
+                label = day.date.dayOfWeek.getDisplayName(TextStyle.SHORT, LocaleManager.currentLocale()).take(1),
                 value = day.totalMinutes.toFloat() / 60f,
                 color = MaterialTheme.colorScheme.primary,
             )
@@ -220,17 +224,17 @@ private fun FocusSection(state: WeeklyReportUiState) {
         Spacer(Modifier.height(12.dp))
         StatGrid(
             pairs = listOf(
-                "Total focus" to formatDuration(state.totalFocusMinutes),
-                "Sessions" to "${state.sessionsCompleted}",
-                "Pickups total" to "${state.totalSessionPickups}",
-                "Avg pickups/session" to "%.1f".format(state.avgPickupsPerSession),
+                stringResource(R.string.reports_total_focus) to formatDuration(state.totalFocusMinutes),
+                stringResource(R.string.reports_sessions) to "${state.sessionsCompleted}",
+                stringResource(R.string.reports_pickups_total) to "${state.totalSessionPickups}",
+                stringResource(R.string.reports_avg_pickups_session) to String.format(LocaleManager.currentLocale(), "%.1f", state.avgPickupsPerSession),
             ),
         )
 
         if (state.topTags.isNotEmpty()) {
             Spacer(Modifier.height(12.dp))
             Text(
-                "Top tags",
+                stringResource(R.string.reports_top_tags),
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -248,7 +252,11 @@ private fun FocusSection(state: WeeklyReportUiState) {
 
         Spacer(Modifier.height(8.dp))
         Text(
-            "Best distraction-free streak: ${state.bestDistractionFreeStreak} session${if (state.bestDistractionFreeStreak != 1) "s" else ""}",
+            pluralStringResource(
+                R.plurals.reports_best_streak,
+                state.bestDistractionFreeStreak,
+                state.bestDistractionFreeStreak,
+            ),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -265,7 +273,12 @@ private fun TagBar(tag: String, minutes: Int, total: Int, sessionCount: Int) {
         ) {
             Text(tag, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
             Text(
-                "${formatDuration(minutes)} · $sessionCount session${if (sessionCount != 1) "s" else ""}",
+                pluralStringResource(
+                    R.plurals.reports_tag_sessions,
+                    sessionCount,
+                    formatDuration(minutes),
+                    sessionCount,
+                ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -289,9 +302,9 @@ private fun CalendarSection(state: WeeklyReportUiState) {
     ReportCard {
         StatGrid(
             pairs = listOf(
-                "Events" to "${state.eventsCompleted}/${state.eventsTotal}",
-                "Busiest day" to (state.busiestDay?.let {
-                    "${it.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault())} ($${state.busiestDayCount})"
+                stringResource(R.string.reports_events) to "${state.eventsCompleted}/${state.eventsTotal}",
+                stringResource(R.string.reports_busiest_day) to (state.busiestDay?.let {
+                    "${it.dayOfWeek.getDisplayName(TextStyle.SHORT, LocaleManager.currentLocale())} ($${state.busiestDayCount})"
                         .replace("$", "")
                 } ?: "-"),
             ),
@@ -299,7 +312,7 @@ private fun CalendarSection(state: WeeklyReportUiState) {
         if (state.categoryBreakdown.isNotEmpty()) {
             Spacer(Modifier.height(12.dp))
             Text(
-                "By category",
+                stringResource(R.string.reports_by_category),
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -319,7 +332,7 @@ private fun CalendarSection(state: WeeklyReportUiState) {
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        cat.category.replaceFirstChar { it.uppercase() },
+                        categoryLabel(cat.category),
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.width(96.dp),
                     )
@@ -349,28 +362,25 @@ private fun StreakSection(state: WeeklyReportUiState) {
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         StreakCard(
-            label = "Sleep target",
-            value = state.sleepTargetStreak,
-            unit = "night${if (state.sleepTargetStreak != 1) "s" else ""}",
+            label = stringResource(R.string.reports_streak_sleep_target),
+            value = pluralStringResource(R.plurals.reports_unit_nights, state.sleepTargetStreak, state.sleepTargetStreak),
             modifier = Modifier.weight(1f),
         )
         StreakCard(
-            label = "Focus",
-            value = state.focusStreak,
-            unit = "day${if (state.focusStreak != 1) "s" else ""}",
+            label = stringResource(R.string.reports_section_focus),
+            value = pluralStringResource(R.plurals.reports_unit_days, state.focusStreak, state.focusStreak),
             modifier = Modifier.weight(1f),
         )
         StreakCard(
-            label = "Zero pickups",
-            value = state.bestDistractionFreeStreak,
-            unit = "session${if (state.bestDistractionFreeStreak != 1) "s" else ""}",
+            label = stringResource(R.string.reports_streak_zero_pickups),
+            value = pluralStringResource(R.plurals.reports_unit_sessions, state.bestDistractionFreeStreak, state.bestDistractionFreeStreak),
             modifier = Modifier.weight(1f),
         )
     }
 }
 
 @Composable
-private fun StreakCard(label: String, value: Int, unit: String, modifier: Modifier = Modifier) {
+private fun StreakCard(label: String, value: String, modifier: Modifier = Modifier) {
     Card(
         modifier = modifier,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
@@ -384,12 +394,12 @@ private fun StreakCard(label: String, value: Int, unit: String, modifier: Modifi
             Icon(Icons.Default.LocalFireDepartment, null, tint = Color(0xFFFF9800))
             Spacer(Modifier.height(4.dp))
             Text(
-                "$value",
+                value,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
+                textAlign = TextAlign.Center,
             )
-            Text(unit, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
@@ -454,9 +464,9 @@ private fun AchievementRow(id: AchievementId, earned: Boolean, earnedAt: Long?) 
                 if (earned && earnedAt != null) {
                     val dateStr = java.time.Instant.ofEpochMilli(earnedAt)
                         .atZone(java.time.ZoneId.systemDefault())
-                        .format(DateTimeFormatter.ofPattern("MMM d, yyyy"))
+                        .format(DateTimeFormatter.ofPattern("MMM d, yyyy", LocaleManager.currentLocale()))
                     Text(
-                        "Earned $dateStr",
+                        stringResource(R.string.achievements_earned_date, dateStr),
                         style = MaterialTheme.typography.labelSmall,
                         color = fg.copy(alpha = 0.7f),
                     )
@@ -515,15 +525,17 @@ private fun PickupsRow(label: String, current: Double, trend: Double) {
         else -> Icons.AutoMirrored.Filled.TrendingFlat to MaterialTheme.colorScheme.onSurfaceVariant
     }
     Row(verticalAlignment = Alignment.CenterVertically) {
+        val locale = LocaleManager.currentLocale()
         Text(
-            "$label: %.1f".format(current),
+            stringResource(R.string.reports_stat_value, label, String.format(locale, "%.1f", current)),
             style = MaterialTheme.typography.bodyMedium,
         )
         Spacer(Modifier.width(8.dp))
         Icon(icon, null, tint = color, modifier = Modifier.size(16.dp))
         if (trend != 0.0) {
+            Spacer(Modifier.width(4.dp))
             Text(
-                " %+.1f vs last week".format(trend),
+                stringResource(R.string.reports_vs_lastweek, String.format(locale, "%+.1f", trend)),
                 style = MaterialTheme.typography.bodySmall,
                 color = color,
             )

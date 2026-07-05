@@ -922,4 +922,93 @@
     <string name="chat_err_create_alarm">تعذّر إنشاء المنبّه. حاول مجدداً.</string>
     <string name="chat_err_undo">فشل التراجع. قد تحتاج إلى الحذف يدوياً.</string>
     <string name="chat_err_reset">تعذّر إعادة ضبط المحادثة. حاول مجدداً.</string>
+
+    <!-- §13.1 Android sweep — reports+lockout -->
+    <string name="reports_title">التقرير الأسبوعي</string>
+    <string name="reports_prev_week">الأسبوع السابق</string>
+    <string name="reports_next_week">الأسبوع التالي</string>
+    <string name="reports_section_sleep">النوم</string>
+    <string name="reports_section_focus">التركيز</string>
+    <string name="reports_section_calendar">التقويم</string>
+    <string name="reports_section_streaks">السلاسل</string>
+    <string name="reports_avg_duration">متوسط المدة</string>
+    <string name="reports_avg_quality">متوسط الجودة</string>
+    <string name="reports_sleep_debt">عجز النوم</string>
+    <string name="reports_extra_rest">راحة إضافية</string>
+    <string name="reports_best_night">أفضل ليلة</string>
+    <string name="reports_worst_night">أسوأ ليلة</string>
+    <string name="reports_sleep_target_note">الهدف: %1$s/ليلة · العجز = ليالٍ دون الهدف، الإضافي = ليالٍ فوقه</string>
+    <string name="reports_pickups_label">مرات إمساك الهاتف / ليلة</string>
+    <string name="reports_total_focus">إجمالي التركيز</string>
+    <string name="reports_sessions">الجلسات</string>
+    <string name="reports_pickups_total">إجمالي مرات الإمساك</string>
+    <string name="reports_avg_pickups_session">متوسط الإمساك/جلسة</string>
+    <string name="reports_top_tags">أبرز الوسوم</string>
+    <string name="reports_events">الأحداث</string>
+    <string name="reports_busiest_day">أكثر يوم ازدحاماً</string>
+    <string name="reports_by_category">حسب الفئة</string>
+    <string name="reports_streak_sleep_target">هدف النوم</string>
+    <string name="reports_streak_zero_pickups">صفر إمساكات</string>
+    <string name="reports_stat_value">%1$s: %2$s</string>
+    <string name="reports_vs_lastweek">%1$s مقارنةً بالأسبوع الماضي</string>
+    <string name="reports_untagged">غير موسوم</string>
+    <string name="lockout_focus_active">جلسة تركيز نشطة</string>
+    <string name="lockout_sleep_active">جلسة نوم نشطة</string>
+    <string name="lockout_overtime">وقت إضافي</string>
+    <string name="lockout_overtime_sub">ركّزت أكثر من المخطط بـ %1$dد</string>
+    <string name="lockout_into_focus">في جلسة تركيزك</string>
+    <string name="lockout_into_sleep">في جلسة نومك</string>
+    <string name="lockout_focus_hint">ابقَ في حالة التركيز، أو أكّد أنك تحتاج هاتفك فعلاً.</string>
+    <string name="lockout_sleep_hint">حاول وضعه جانباً. إن كنت تحتاجه فعلاً، أكّد أدناه.</string>
+    <string name="lockout_stay_locked">ابقَ مقفلاً</string>
+    <string name="lockout_need_phone">نعم، أحتاج هاتفي</string>
+    <string name="lockout_end_early">إنهاء الجلسة مبكراً</string>
+    <plurals name="lockout_unlocks">
+        <item quantity="zero">%1$d فتح لهذه الجلسة</item>
+        <item quantity="one">%1$d فتح لهذه الجلسة</item>
+        <item quantity="two">%1$d فتحان لهذه الجلسة</item>
+        <item quantity="few">%1$d فتوح لهذه الجلسة</item>
+        <item quantity="many">%1$d فتحاً لهذه الجلسة</item>
+        <item quantity="other">%1$d فتح لهذه الجلسة</item>
+    </plurals>
+    <plurals name="reports_best_streak">
+        <item quantity="zero">أفضل سلسلة بدون تشتت: لا جلسات</item>
+        <item quantity="one">أفضل سلسلة بدون تشتت: %1$d جلسة</item>
+        <item quantity="two">أفضل سلسلة بدون تشتت: جلستان</item>
+        <item quantity="few">أفضل سلسلة بدون تشتت: %1$d جلسات</item>
+        <item quantity="many">أفضل سلسلة بدون تشتت: %1$d جلسة</item>
+        <item quantity="other">أفضل سلسلة بدون تشتت: %1$d جلسة</item>
+    </plurals>
+    <plurals name="reports_tag_sessions">
+        <item quantity="zero">%1$s · لا جلسات</item>
+        <item quantity="one">%1$s · %2$d جلسة</item>
+        <item quantity="two">%1$s · جلستان</item>
+        <item quantity="few">%1$s · %2$d جلسات</item>
+        <item quantity="many">%1$s · %2$d جلسة</item>
+        <item quantity="other">%1$s · %2$d جلسة</item>
+    </plurals>
+    <plurals name="reports_unit_nights">
+        <item quantity="zero">%1$d ليالٍ</item>
+        <item quantity="one">%1$d ليلة</item>
+        <item quantity="two">%1$d ليلتان</item>
+        <item quantity="few">%1$d ليالٍ</item>
+        <item quantity="many">%1$d ليلة</item>
+        <item quantity="other">%1$d ليالٍ</item>
+    </plurals>
+    <plurals name="reports_unit_days">
+        <item quantity="zero">%1$d أيام</item>
+        <item quantity="one">%1$d يوم</item>
+        <item quantity="two">%1$d يومان</item>
+        <item quantity="few">%1$d أيام</item>
+        <item quantity="many">%1$d يوماً</item>
+        <item quantity="other">%1$d يوم</item>
+    </plurals>
+    <plurals name="reports_unit_sessions">
+        <item quantity="zero">%1$d جلسات</item>
+        <item quantity="one">%1$d جلسة</item>
+        <item quantity="two">%1$d جلستان</item>
+        <item quantity="few">%1$d جلسات</item>
+        <item quantity="many">%1$d جلسة</item>
+        <item quantity="other">%1$d جلسة</item>
+    </plurals>
 </resources>

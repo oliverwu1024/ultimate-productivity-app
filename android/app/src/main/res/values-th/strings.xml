@@ -807,4 +807,63 @@
     <string name="chat_err_create_alarm">ไม่สามารถสร้างการปลุกได้ กรุณาลองอีกครั้ง</string>
     <string name="chat_err_undo">เลิกทำไม่สำเร็จ คุณอาจต้องลบด้วยตนเอง</string>
     <string name="chat_err_reset">ไม่สามารถรีเซ็ตแชทได้ กรุณาลองอีกครั้ง</string>
+
+    <!-- §13.1 Android sweep — reports+lockout -->
+    <string name="reports_title">รายงานประจำสัปดาห์</string>
+    <string name="reports_prev_week">สัปดาห์ก่อน</string>
+    <string name="reports_next_week">สัปดาห์หน้า</string>
+    <string name="reports_section_sleep">การนอน</string>
+    <string name="reports_section_focus">โฟกัส</string>
+    <string name="reports_section_calendar">ปฏิทิน</string>
+    <string name="reports_section_streaks">ความต่อเนื่อง</string>
+    <string name="reports_avg_duration">ระยะเวลาเฉลี่ย</string>
+    <string name="reports_avg_quality">คุณภาพเฉลี่ย</string>
+    <string name="reports_sleep_debt">หนี้การนอน</string>
+    <string name="reports_extra_rest">พักเพิ่ม</string>
+    <string name="reports_best_night">คืนที่ดีที่สุด</string>
+    <string name="reports_worst_night">คืนที่แย่ที่สุด</string>
+    <string name="reports_sleep_target_note">เป้าหมาย: %1$s/คืน · ขาดดุล = คืนต่ำกว่า, เพิ่ม = คืนสูงกว่า</string>
+    <string name="reports_pickups_label">หยิบโทรศัพท์/คืน</string>
+    <string name="reports_total_focus">โฟกัสรวม</string>
+    <string name="reports_sessions">เซสชัน</string>
+    <string name="reports_pickups_total">หยิบโทรศัพท์รวม</string>
+    <string name="reports_avg_pickups_session">เฉลี่ยหยิบ/เซสชัน</string>
+    <string name="reports_top_tags">แท็กยอดนิยม</string>
+    <string name="reports_events">กิจกรรม</string>
+    <string name="reports_busiest_day">วันที่ยุ่งที่สุด</string>
+    <string name="reports_by_category">ตามหมวดหมู่</string>
+    <string name="reports_streak_sleep_target">เป้าหมายการนอน</string>
+    <string name="reports_streak_zero_pickups">ไม่หยิบโทรศัพท์</string>
+    <string name="reports_stat_value">%1$s: %2$s</string>
+    <string name="reports_vs_lastweek">%1$s เทียบสัปดาห์ก่อน</string>
+    <string name="reports_untagged">ไม่มีแท็ก</string>
+    <string name="lockout_focus_active">เซสชันโฟกัสกำลังดำเนินอยู่</string>
+    <string name="lockout_sleep_active">เซสชันการนอนกำลังดำเนินอยู่</string>
+    <string name="lockout_overtime">เกินเวลา</string>
+    <string name="lockout_overtime_sub">คุณโฟกัสนานกว่าที่วางแผนไว้ %1$dm</string>
+    <string name="lockout_into_focus">เข้าสู่เซสชันโฟกัสของคุณ</string>
+    <string name="lockout_into_sleep">เข้าสู่เซสชันการนอนของคุณ</string>
+    <string name="lockout_focus_hint">อยู่ในโหมดโฟกัส หรือยืนยันหากต้องการโทรศัพท์จริงๆ</string>
+    <string name="lockout_sleep_hint">ลองวางโทรศัพท์ลง หากต้องการจริงๆ ยืนยันด้านล่าง</string>
+    <string name="lockout_stay_locked">อยู่ในโหมดล็อก</string>
+    <string name="lockout_need_phone">ใช่ ฉันต้องการโทรศัพท์</string>
+    <string name="lockout_end_early">สิ้นสุดเซสชันก่อนกำหนด</string>
+    <plurals name="lockout_unlocks">
+        <item quantity="other">%1$d ครั้งที่ปลดล็อกในเซสชันนี้</item>
+    </plurals>
+    <plurals name="reports_best_streak">
+        <item quantity="other">ช่วงปราศจากสิ่งรบกวนที่ยาวที่สุด: %1$d เซสชัน</item>
+    </plurals>
+    <plurals name="reports_tag_sessions">
+        <item quantity="other">%1$s · %2$d เซสชัน</item>
+    </plurals>
+    <plurals name="reports_unit_nights">
+        <item quantity="other">%1$d คืน</item>
+    </plurals>
+    <plurals name="reports_unit_days">
+        <item quantity="other">%1$d วัน</item>
+    </plurals>
+    <plurals name="reports_unit_sessions">
+        <item quantity="other">%1$d เซสชัน</item>
+    </plurals>
 </resources>

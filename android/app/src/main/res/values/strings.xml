@@ -864,4 +864,74 @@
     <string name="chat_err_create_alarm">Couldn\'t create the alarm. Try again.</string>
     <string name="chat_err_undo">Undo failed. You may need to delete it manually.</string>
     <string name="chat_err_reset">Couldn\'t reset the chat. Try again.</string>
+
+    <!-- §13.1 Android sweep — reports+lockout -->
+    <!-- reports -->
+    <string name="reports_title">Weekly report</string>
+    <string name="reports_prev_week">Previous week</string>
+    <string name="reports_next_week">Next week</string>
+    <string name="reports_section_sleep">Sleep</string>
+    <string name="reports_section_focus">Focus</string>
+    <string name="reports_section_calendar">Calendar</string>
+    <string name="reports_section_streaks">Streaks</string>
+    <string name="reports_avg_duration">Avg duration</string>
+    <string name="reports_avg_quality">Avg quality</string>
+    <string name="reports_sleep_debt">Sleep debt</string>
+    <string name="reports_extra_rest">Extra rest</string>
+    <string name="reports_best_night">Best night</string>
+    <string name="reports_worst_night">Worst night</string>
+    <string name="reports_sleep_target_note">Target: %1$s/night · debt = nights below, extra = nights above</string>
+    <string name="reports_pickups_label">Phone pickups / night</string>
+    <string name="reports_total_focus">Total focus</string>
+    <string name="reports_sessions">Sessions</string>
+    <string name="reports_pickups_total">Pickups total</string>
+    <string name="reports_avg_pickups_session">Avg pickups/session</string>
+    <string name="reports_top_tags">Top tags</string>
+    <string name="reports_events">Events</string>
+    <string name="reports_busiest_day">Busiest day</string>
+    <string name="reports_by_category">By category</string>
+    <string name="reports_streak_sleep_target">Sleep target</string>
+    <string name="reports_streak_zero_pickups">Zero pickups</string>
+    <string name="reports_stat_value">%1$s: %2$s</string>
+    <string name="reports_vs_lastweek">%1$s vs last week</string>
+    <string name="reports_untagged">Untagged</string>
+
+    <!-- lockout -->
+    <string name="lockout_focus_active">Focus session active</string>
+    <string name="lockout_sleep_active">Sleep session active</string>
+    <string name="lockout_overtime">OVERTIME</string>
+    <string name="lockout_overtime_sub">you focused more than your planned %1$dm</string>
+    <string name="lockout_into_focus">into your focus session</string>
+    <string name="lockout_into_sleep">into your sleep session</string>
+    <string name="lockout_focus_hint">Stay in focus, or confirm you really need your phone.</string>
+    <string name="lockout_sleep_hint">Try to put it down. If you really need it, confirm below.</string>
+    <string name="lockout_stay_locked">Stay locked</string>
+    <string name="lockout_need_phone">Yes, I need my phone</string>
+    <string name="lockout_end_early">End session early</string>
+
+    <!-- plurals -->
+    <plurals name="lockout_unlocks">
+        <item quantity="one">%1$d unlock this session</item>
+        <item quantity="other">%1$d unlocks this session</item>
+    </plurals>
+    <plurals name="reports_best_streak">
+        <item quantity="one">Best distraction-free streak: %1$d session</item>
+        <item quantity="other">Best distraction-free streak: %1$d sessions</item>
+    </plurals>
+    <plurals name="reports_tag_sessions">
+        <item quantity="one">%1$s · %2$d session</item>
+        <item quantity="other">%1$s · %2$d sessions</item>
+    </plurals>
+    <plurals name="reports_unit_nights">
+        <item quantity="one">%1$d night</item>
+        <item quantity="other">%1$d nights</item>
+    </plurals>
+    <plurals name="reports_unit_days">
+        <item quantity="one">%1$d day</item>
+        <item quantity="other">%1$d days</item>
+    </plurals>
+    <plurals name="reports_unit_sessions">
+        <item quantity="one">%1$d session</item>
+        <item quantity="other">%1$d sessions</item>
+    </plurals>
 </resources>

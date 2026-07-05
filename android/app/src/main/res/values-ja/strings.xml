@@ -807,4 +807,63 @@
     <string name="chat_err_create_alarm">アラームを作成できませんでした。もう一度お試しください。</string>
     <string name="chat_err_undo">元に戻す操作に失敗しました。手動で削除してください。</string>
     <string name="chat_err_reset">チャットをリセットできませんでした。もう一度お試しください。</string>
+
+    <!-- §13.1 Android sweep — reports+lockout -->
+    <string name="reports_title">週次レポート</string>
+    <string name="reports_prev_week">前の週</string>
+    <string name="reports_next_week">次の週</string>
+    <string name="reports_section_sleep">睡眠</string>
+    <string name="reports_section_focus">フォーカス</string>
+    <string name="reports_section_calendar">カレンダー</string>
+    <string name="reports_section_streaks">ストリーク</string>
+    <string name="reports_avg_duration">平均時間</string>
+    <string name="reports_avg_quality">平均品質</string>
+    <string name="reports_sleep_debt">睡眠負債</string>
+    <string name="reports_extra_rest">余剰睡眠</string>
+    <string name="reports_best_night">最良の夜</string>
+    <string name="reports_worst_night">最悪の夜</string>
+    <string name="reports_sleep_target_note">目標：%1$s/夜 · 負債 = 未達の夜、余剰 = 超過の夜</string>
+    <string name="reports_pickups_label">端末ピックアップ / 夜</string>
+    <string name="reports_total_focus">合計フォーカス</string>
+    <string name="reports_sessions">セッション</string>
+    <string name="reports_pickups_total">総ピックアップ数</string>
+    <string name="reports_avg_pickups_session">平均ピックアップ数/セッション</string>
+    <string name="reports_top_tags">トップタグ</string>
+    <string name="reports_events">イベント</string>
+    <string name="reports_busiest_day">最も忙しい日</string>
+    <string name="reports_by_category">カテゴリ別</string>
+    <string name="reports_streak_sleep_target">睡眠目標</string>
+    <string name="reports_streak_zero_pickups">ピックアップゼロ</string>
+    <string name="reports_stat_value">%1$s：%2$s</string>
+    <string name="reports_vs_lastweek">%1$s（先週比）</string>
+    <string name="reports_untagged">タグなし</string>
+    <string name="lockout_focus_active">フォーカスセッション中</string>
+    <string name="lockout_sleep_active">睡眠セッション中</string>
+    <string name="lockout_overtime">超過中</string>
+    <string name="lockout_overtime_sub">計画の%1$dmを超えてフォーカスしています</string>
+    <string name="lockout_into_focus">フォーカスセッション経過中</string>
+    <string name="lockout_into_sleep">睡眠セッション経過中</string>
+    <string name="lockout_focus_hint">フォーカスを維持するか、本当に必要な場合のみ確認してください。</string>
+    <string name="lockout_sleep_hint">置いてみましょう。本当に必要な場合は下で確認してください。</string>
+    <string name="lockout_stay_locked">ロックを維持</string>
+    <string name="lockout_need_phone">はい、スマホが必要です</string>
+    <string name="lockout_end_early">セッションを早期終了</string>
+    <plurals name="lockout_unlocks">
+        <item quantity="other">%1$d 今回のセッションのロック解除</item>
+    </plurals>
+    <plurals name="reports_best_streak">
+        <item quantity="other">最長集中ストリーク：%1$dセッション</item>
+    </plurals>
+    <plurals name="reports_tag_sessions">
+        <item quantity="other">%1$s · %2$dセッション</item>
+    </plurals>
+    <plurals name="reports_unit_nights">
+        <item quantity="other">%1$d 夜</item>
+    </plurals>
+    <plurals name="reports_unit_days">
+        <item quantity="other">%1$d 日</item>
+    </plurals>
+    <plurals name="reports_unit_sessions">
+        <item quantity="other">%1$d セッション</item>
+    </plurals>
 </resources>

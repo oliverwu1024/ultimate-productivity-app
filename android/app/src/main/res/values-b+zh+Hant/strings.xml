@@ -807,4 +807,63 @@
     <string name="chat_err_create_alarm">無法建立鬧鐘，請再試一次。</string>
     <string name="chat_err_undo">復原失敗，您可能需要手動刪除。</string>
     <string name="chat_err_reset">無法重置對話，請再試一次。</string>
+
+    <!-- §13.1 Android sweep — reports+lockout -->
+    <string name="reports_title">每週報告</string>
+    <string name="reports_prev_week">上一週</string>
+    <string name="reports_next_week">下一週</string>
+    <string name="reports_section_sleep">睡眠</string>
+    <string name="reports_section_focus">專注</string>
+    <string name="reports_section_calendar">行事曆</string>
+    <string name="reports_section_streaks">連續紀錄</string>
+    <string name="reports_avg_duration">平均時長</string>
+    <string name="reports_avg_quality">平均品質</string>
+    <string name="reports_sleep_debt">睡眠債</string>
+    <string name="reports_extra_rest">額外休息</string>
+    <string name="reports_best_night">最佳夜晚</string>
+    <string name="reports_worst_night">最差夜晚</string>
+    <string name="reports_sleep_target_note">目標：%1$s/晚 · 欠債 = 未達夜數，額外 = 超額夜數</string>
+    <string name="reports_pickups_label">每晚拿機次數</string>
+    <string name="reports_total_focus">專注總時長</string>
+    <string name="reports_sessions">場次</string>
+    <string name="reports_pickups_total">拿機次數合計</string>
+    <string name="reports_avg_pickups_session">每場平均拿機次數</string>
+    <string name="reports_top_tags">熱門標籤</string>
+    <string name="reports_events">活動</string>
+    <string name="reports_busiest_day">最忙一天</string>
+    <string name="reports_by_category">按分類</string>
+    <string name="reports_streak_sleep_target">睡眠目標</string>
+    <string name="reports_streak_zero_pickups">零次拿機</string>
+    <string name="reports_stat_value">%1$s：%2$s</string>
+    <string name="reports_vs_lastweek">%1$s 對比上週</string>
+    <string name="reports_untagged">未標記</string>
+    <string name="lockout_focus_active">專注場次進行中</string>
+    <string name="lockout_sleep_active">睡眠場次進行中</string>
+    <string name="lockout_overtime">超時</string>
+    <string name="lockout_overtime_sub">您的專注超出計劃的 %1$dm</string>
+    <string name="lockout_into_focus">進入您的專注場次</string>
+    <string name="lockout_into_sleep">進入您的睡眠場次</string>
+    <string name="lockout_focus_hint">保持專注，或確認您確實需要使用手機。</string>
+    <string name="lockout_sleep_hint">試著放下手機。如果確實需要，請在下方確認。</string>
+    <string name="lockout_stay_locked">保持鎖定</string>
+    <string name="lockout_need_phone">是的，我需要手機</string>
+    <string name="lockout_end_early">提前結束場次</string>
+    <plurals name="lockout_unlocks">
+        <item quantity="other">%1$d 次解鎖本場次</item>
+    </plurals>
+    <plurals name="reports_best_streak">
+        <item quantity="other">最佳無干擾連續紀錄：%1$d 場</item>
+    </plurals>
+    <plurals name="reports_tag_sessions">
+        <item quantity="other">%1$s · %2$d 場</item>
+    </plurals>
+    <plurals name="reports_unit_nights">
+        <item quantity="other">%1$d 晚</item>
+    </plurals>
+    <plurals name="reports_unit_days">
+        <item quantity="other">%1$d 天</item>
+    </plurals>
+    <plurals name="reports_unit_sessions">
+        <item quantity="other">%1$d 場</item>
+    </plurals>
 </resources>

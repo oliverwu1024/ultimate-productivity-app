@@ -28,9 +28,12 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.ultiq.app.R
 
 @Composable
 fun LockoutScreen(
@@ -110,8 +113,8 @@ private fun HeaderSection(mode: LockoutMode) {
 
         Text(
             text = when (mode) {
-                LockoutMode.FOCUS -> "Focus session active"
-                LockoutMode.SLEEP -> "Sleep session active"
+                LockoutMode.FOCUS -> stringResource(R.string.lockout_focus_active)
+                LockoutMode.SLEEP -> stringResource(R.string.lockout_sleep_active)
             },
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.SemiBold,
@@ -156,7 +159,7 @@ private fun BodySection(
                 color = MaterialTheme.colorScheme.tertiaryContainer,
             ) {
                 Text(
-                    text = "OVERTIME",
+                    text = stringResource(R.string.lockout_overtime),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onTertiaryContainer,
@@ -167,9 +170,9 @@ private fun BodySection(
 
         Text(
             text = when {
-                isOvertime -> "you focused more than your planned ${plannedWorkMinutes}m"
-                mode == LockoutMode.FOCUS -> "into your focus session"
-                else -> "into your sleep session"
+                isOvertime -> stringResource(R.string.lockout_overtime_sub, plannedWorkMinutes)
+                mode == LockoutMode.FOCUS -> stringResource(R.string.lockout_into_focus)
+                else -> stringResource(R.string.lockout_into_sleep)
             },
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -186,14 +189,9 @@ private fun BodySection(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(
-                        text = "$unlockCount",
-                        style = MaterialTheme.typography.headlineSmall,
+                        text = pluralStringResource(R.plurals.lockout_unlocks, unlockCount, unlockCount),
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        text = if (unlockCount == 1) "unlock this session" else "unlocks this session",
-                        style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
@@ -204,8 +202,8 @@ private fun BodySection(
 
         Text(
             text = when (mode) {
-                LockoutMode.FOCUS -> "Stay in focus, or confirm you really need your phone."
-                LockoutMode.SLEEP -> "Try to put it down. If you really need it, confirm below."
+                LockoutMode.FOCUS -> stringResource(R.string.lockout_focus_hint)
+                LockoutMode.SLEEP -> stringResource(R.string.lockout_sleep_hint)
             },
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -241,7 +239,7 @@ private fun ActionsSection(
             )
             Spacer(Modifier.size(8.dp))
             Text(
-                text = "Stay locked",
+                text = stringResource(R.string.lockout_stay_locked),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -258,7 +256,7 @@ private fun ActionsSection(
             ),
         ) {
             Text(
-                text = "Yes, I need my phone",
+                text = stringResource(R.string.lockout_need_phone),
                 style = MaterialTheme.typography.titleMedium,
             )
         }
@@ -266,7 +264,7 @@ private fun ActionsSection(
         if (allowEndSession) {
             TextButton(onClick = onEndSession) {
                 Text(
-                    text = "End session early",
+                    text = stringResource(R.string.lockout_end_early),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.error,
                 )
