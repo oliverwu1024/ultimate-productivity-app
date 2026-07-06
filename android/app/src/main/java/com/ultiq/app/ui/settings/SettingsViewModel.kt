@@ -98,8 +98,8 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                     _uiState.value = _uiState.value.copy(
                         resendingVerification = false,
                         verificationFeedback = e.toUserMessage(
-                            getApplication<Application>()
-                                .getString(R.string.settings_verification_error)
+                            getApplication(),
+                            R.string.settings_verification_error,
                         ),
                     )
                 }

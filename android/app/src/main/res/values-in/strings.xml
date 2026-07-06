@@ -843,4 +843,44 @@
     <plurals name="reports_unit_sessions"><item quantity="other">%1$d sesi</item></plurals>
     <plurals name="sessions_streak_days"><item quantity="other">%1$d hari</item></plurals>
     <plurals name="sessions_distractions"><item quantity="other">%1$d gangguan</item></plurals>
+    <!-- §13.1 cleanup — password rules, API errors, notification strings -->
+    <string name="pw_check_length">Minimal 8 karakter</string>
+    <string name="pw_check_uppercase">Huruf kapital</string>
+    <string name="pw_check_lowercase">Huruf kecil</string>
+    <string name="pw_check_digit">Sebuah angka</string>
+    <string name="pw_check_special">Karakter khusus</string>
+    <string name="err_network">Tidak dapat menjangkau server. Periksa koneksi internet Anda.</string>
+    <string name="err_ai_unreachable">Tidak dapat menjangkau layanan AI. Coba lagi.</string>
+    <string name="auth_err_login">Login gagal. Coba lagi.</string>
+    <string name="auth_err_register">Pendaftaran gagal. Coba lagi.</string>
+    <string name="auth_err_delete_account">Tidak dapat menghapus akun. Coba lagi.</string>
+    <string name="auth_err_reset_account">Tidak dapat mereset akun. Coba lagi.</string>
+    <string name="auth_err_send_reset">Tidak dapat mengirim email reset. Coba lagi.</string>
+    <string name="auth_err_reset_password">Tidak dapat mereset kata sandi. Tautan mungkin sudah kedaluwarsa.</string>
+    <string name="auth_err_verify">Verifikasi gagal. Tautan mungkin sudah kedaluwarsa.</string>
+    <string name="auth_err_resend_verification">Tidak dapat mengirim email verifikasi baru. Coba lagi.</string>
+    <string name="calendar_err_save">Tidak dapat menyimpan acara. Coba lagi.</string>
+    <string name="calendar_err_update">Tidak dapat memperbarui acara. Coba lagi.</string>
+    <string name="sleep_err_ai_rating">Penilaian AI tidak tersedia. Coba lagi atau nilai sendiri.</string>
+    <string name="sleep_err_save">Tidak dapat menyimpan data tidur. Coba lagi.</string>
+    <string name="checklist_err_save">Tidak dapat menyimpan tugas. Coba lagi.</string>
+    <string name="weekly_err_save">Tidak dapat menyimpan rencana. Coba lagi.</string>
+    <string name="notif_channel_reminders">Pengingat</string>
+    <string name="notif_channel_reminders_desc">Pengingat waktu tidur, fokus, dan acara kalender</string>
+    <string name="notif_channel_summary">Ringkasan Harian</string>
+    <string name="notif_channel_summary_desc">Ringkasan pagi tentang tidur dan hari yang akan datang</string>
+    <string name="notif_channel_alarm">Alarm</string>
+    <string name="notif_channel_alarm_desc">Alarm bangun tidur — melewati mode Jangan Ganggu</string>
+    <string name="notif_bedtime_title">Bersiap tidur</string>
+    <string name="notif_bedtime_now">Waktunya tidur — mulai sesi tidur Anda</string>
+    <string name="notif_focus_title">Waktunya fokus</string>
+    <string name="notif_focus_body">Mulai sesi dan jaga blok kerja mendalam Anda berikutnya</string>
+    <string name="notif_event_title">Acara mendatang</string>
+    <string name="notif_event_now">Dimulai sekarang: %1$s</string>
+    <string name="notif_event_soon">Dalam %1$s: %2$s</string>
+    <string name="notif_summary_title">Selamat pagi</string>
+    <string name="notif_summary_slept">Anda tidur selama %1$s.</string>
+    <string name="notif_summary_no_events">Tidak ada acara terjadwal hari ini.</string>
+    <plurals name="notif_bedtime_soon"><item quantity="other">Waktunya bersiap tidur — waktu tidur dalam %1$d menit</item></plurals>
+    <plurals name="notif_summary_events"><item quantity="other">%1$d acara di kalender hari ini.</item></plurals>
 </resources>

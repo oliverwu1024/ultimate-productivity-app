@@ -1009,4 +1009,44 @@
     <string name="onboarding_done_title">準備完了</string>
     <string name="onboarding_done_body">セットアップ完了です。目標・リマインダー・ロックアウトの設定は、いつでも設定から変更できます。</string>
     <string name="onboarding_lets_go">はじめよう</string>
+    <!-- §13.1 cleanup — password rules, API errors, notification strings -->
+    <string name="pw_check_length">8文字以上</string>
+    <string name="pw_check_uppercase">大文字を含む</string>
+    <string name="pw_check_lowercase">小文字を含む</string>
+    <string name="pw_check_digit">数字を含む</string>
+    <string name="pw_check_special">特殊文字を含む</string>
+    <string name="err_network">サーバーに接続できませんでした。インターネット接続を確認してください。</string>
+    <string name="err_ai_unreachable">AIサービスに接続できませんでした。もう一度お試しください。</string>
+    <string name="auth_err_login">ログインに失敗しました。もう一度お試しください。</string>
+    <string name="auth_err_register">登録に失敗しました。もう一度お試しください。</string>
+    <string name="auth_err_delete_account">アカウントを削除できませんでした。もう一度お試しください。</string>
+    <string name="auth_err_reset_account">アカウントをリセットできませんでした。もう一度お試しください。</string>
+    <string name="auth_err_send_reset">リセットメールを送信できませんでした。もう一度お試しください。</string>
+    <string name="auth_err_reset_password">パスワードをリセットできませんでした。リンクの有効期限が切れている可能性があります。</string>
+    <string name="auth_err_verify">認証に失敗しました。リンクの有効期限が切れている可能性があります。</string>
+    <string name="auth_err_resend_verification">認証メールを再送信できませんでした。もう一度お試しください。</string>
+    <string name="calendar_err_save">イベントを保存できませんでした。もう一度お試しください。</string>
+    <string name="calendar_err_update">イベントを更新できませんでした。もう一度お試しください。</string>
+    <string name="sleep_err_ai_rating">AI評価を取得できませんでした。もう一度試すか、ご自身で評価してください。</string>
+    <string name="sleep_err_save">睡眠データを保存できませんでした。もう一度お試しください。</string>
+    <string name="checklist_err_save">タスクを保存できませんでした。もう一度お試しください。</string>
+    <string name="weekly_err_save">プランを保存できませんでした。もう一度お試しください。</string>
+    <string name="notif_channel_reminders">リマインダー</string>
+    <string name="notif_channel_reminders_desc">就寝時間、集中、カレンダーイベントのリマインダー</string>
+    <string name="notif_channel_summary">デイリーサマリー</string>
+    <string name="notif_channel_summary_desc">睡眠と1日の予定の朝のサマリー</string>
+    <string name="notif_channel_alarm">アラーム</string>
+    <string name="notif_channel_alarm_desc">起床アラーム — おやすみモードを無視</string>
+    <string name="notif_bedtime_title">就寝準備</string>
+    <string name="notif_bedtime_now">就寝時間です — 睡眠セッションを開始してください</string>
+    <string name="notif_focus_title">集中の時間</string>
+    <string name="notif_focus_body">セッションを開始して、次の深い作業ブロックを確保しましょう</string>
+    <string name="notif_event_title">まもなくのイベント</string>
+    <string name="notif_event_now">今すぐ開始: %1$s</string>
+    <string name="notif_event_soon">%1$s後: %2$s</string>
+    <string name="notif_summary_title">おはようございます</string>
+    <string name="notif_summary_slept">%1$s眠りました。</string>
+    <string name="notif_summary_no_events">今日の予定はありません。</string>
+    <plurals name="notif_bedtime_soon"><item quantity="other">リラックスタイムです — %1$d分後に就寝</item></plurals>
+    <plurals name="notif_summary_events"><item quantity="other">今日のカレンダーに%1$d件の予定があります。</item></plurals>
 </resources>

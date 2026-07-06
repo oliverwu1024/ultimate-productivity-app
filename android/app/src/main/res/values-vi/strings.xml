@@ -1009,4 +1009,44 @@
     <string name="onboarding_done_title">Gối đã sẵn sàng</string>
     <string name="onboarding_done_body">Bạn đã thiết lập xong. Mục tiêu, nhắc nhở và cài đặt khóa đều có trong Cài đặt bất cứ khi nào bạn muốn điều chỉnh.</string>
     <string name="onboarding_lets_go">Bắt đầu thôi</string>
+    <!-- §13.1 cleanup — password rules, API errors, notification strings -->
+    <string name="pw_check_length">Ít nhất 8 ký tự</string>
+    <string name="pw_check_uppercase">Một chữ hoa</string>
+    <string name="pw_check_lowercase">Một chữ thường</string>
+    <string name="pw_check_digit">Một chữ số</string>
+    <string name="pw_check_special">Một ký tự đặc biệt</string>
+    <string name="err_network">Không thể kết nối máy chủ. Kiểm tra kết nối internet của bạn.</string>
+    <string name="err_ai_unreachable">Không thể kết nối dịch vụ AI. Vui lòng thử lại.</string>
+    <string name="auth_err_login">Đăng nhập thất bại. Vui lòng thử lại.</string>
+    <string name="auth_err_register">Đăng ký thất bại. Vui lòng thử lại.</string>
+    <string name="auth_err_delete_account">Không thể xóa tài khoản. Vui lòng thử lại.</string>
+    <string name="auth_err_reset_account">Không thể đặt lại tài khoản. Vui lòng thử lại.</string>
+    <string name="auth_err_send_reset">Không thể gửi email đặt lại. Vui lòng thử lại.</string>
+    <string name="auth_err_reset_password">Không thể đặt lại mật khẩu. Liên kết có thể đã hết hạn.</string>
+    <string name="auth_err_verify">Xác minh thất bại. Liên kết có thể đã hết hạn.</string>
+    <string name="auth_err_resend_verification">Không thể gửi email xác minh mới. Vui lòng thử lại.</string>
+    <string name="calendar_err_save">Không thể lưu sự kiện. Vui lòng thử lại.</string>
+    <string name="calendar_err_update">Không thể cập nhật sự kiện. Vui lòng thử lại.</string>
+    <string name="sleep_err_ai_rating">Đánh giá AI không khả dụng. Thử lại hoặc tự đánh giá.</string>
+    <string name="sleep_err_save">Không thể lưu giấc ngủ. Vui lòng thử lại.</string>
+    <string name="checklist_err_save">Không thể lưu nhiệm vụ. Vui lòng thử lại.</string>
+    <string name="weekly_err_save">Không thể lưu kế hoạch. Vui lòng thử lại.</string>
+    <string name="notif_channel_reminders">Nhắc nhở</string>
+    <string name="notif_channel_reminders_desc">Nhắc nhở giờ ngủ, tập trung và sự kiện lịch</string>
+    <string name="notif_channel_summary">Tóm tắt hằng ngày</string>
+    <string name="notif_channel_summary_desc">Tóm tắt buổi sáng về giấc ngủ và ngày sắp tới</string>
+    <string name="notif_channel_alarm">Báo thức</string>
+    <string name="notif_channel_alarm_desc">Báo thức thức dậy — bỏ qua Không làm phiền</string>
+    <string name="notif_bedtime_title">Thư giãn</string>
+    <string name="notif_bedtime_now">Đến giờ ngủ rồi — bắt đầu phiên ngủ của bạn</string>
+    <string name="notif_focus_title">Đến giờ tập trung</string>
+    <string name="notif_focus_body">Bắt đầu phiên và bảo vệ khối làm việc sâu tiếp theo của bạn</string>
+    <string name="notif_event_title">Sự kiện sắp tới</string>
+    <string name="notif_event_now">Đang bắt đầu: %1$s</string>
+    <string name="notif_event_soon">Trong %1$s: %2$s</string>
+    <string name="notif_summary_title">Chào buổi sáng</string>
+    <string name="notif_summary_slept">Bạn đã ngủ %1$s.</string>
+    <string name="notif_summary_no_events">Không có sự kiện nào hôm nay.</string>
+    <plurals name="notif_bedtime_soon"><item quantity="other">Đến giờ thư giãn — còn %1$d phút nữa là giờ ngủ</item></plurals>
+    <plurals name="notif_summary_events"><item quantity="other">%1$d sự kiện trong lịch hôm nay.</item></plurals>
 </resources>

@@ -183,7 +183,7 @@ fun PasswordStrengthChecklist(password: String) {
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = check.label,
+                    text = stringResource(check.labelRes),
                     style = MaterialTheme.typography.bodySmall,
                     color = if (check.passed) {
                         MaterialTheme.colorScheme.primary

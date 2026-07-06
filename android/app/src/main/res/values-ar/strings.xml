@@ -1164,4 +1164,44 @@
     <string name="onboarding_done_title">الوسادة جاهزة</string>
     <string name="onboarding_done_body">إعداداتك جاهزة. يمكنك دائماً ضبط الأهداف والتذكيرات وإعدادات القفل من الإعدادات.</string>
     <string name="onboarding_lets_go">هيا بنا</string>
+    <!-- §13.1 cleanup — password rules, API errors, notification strings -->
+    <string name="pw_check_length">8 أحرف على الأقل</string>
+    <string name="pw_check_uppercase">حرف كبير</string>
+    <string name="pw_check_lowercase">حرف صغير</string>
+    <string name="pw_check_digit">رقم</string>
+    <string name="pw_check_special">حرف خاص</string>
+    <string name="err_network">تعذّر الوصول إلى الخادم. تحقق من اتصالك بالإنترنت.</string>
+    <string name="err_ai_unreachable">تعذّر الوصول إلى خدمة AI. حاول مجدداً.</string>
+    <string name="auth_err_login">فشل تسجيل الدخول. حاول مجدداً.</string>
+    <string name="auth_err_register">فشل التسجيل. حاول مجدداً.</string>
+    <string name="auth_err_delete_account">تعذّر حذف الحساب. حاول مجدداً.</string>
+    <string name="auth_err_reset_account">تعذّر إعادة ضبط الحساب. حاول مجدداً.</string>
+    <string name="auth_err_send_reset">تعذّر إرسال بريد إعادة التعيين. حاول مجدداً.</string>
+    <string name="auth_err_reset_password">تعذّر إعادة تعيين كلمة المرور. قد يكون الرابط منتهي الصلاحية.</string>
+    <string name="auth_err_verify">فشل التحقق. قد يكون الرابط منتهي الصلاحية.</string>
+    <string name="auth_err_resend_verification">تعذّر إرسال بريد تحقق جديد. حاول مجدداً.</string>
+    <string name="calendar_err_save">تعذّر حفظ الحدث. حاول مجدداً.</string>
+    <string name="calendar_err_update">تعذّر تحديث الحدث. حاول مجدداً.</string>
+    <string name="sleep_err_ai_rating">تقييم AI غير متاح. حاول مجدداً أو قيّم بنفسك.</string>
+    <string name="sleep_err_save">تعذّر حفظ بيانات النوم. حاول مجدداً.</string>
+    <string name="checklist_err_save">تعذّر حفظ المهمة. حاول مجدداً.</string>
+    <string name="weekly_err_save">تعذّر حفظ الخطة. حاول مجدداً.</string>
+    <string name="notif_channel_reminders">التذكيرات</string>
+    <string name="notif_channel_reminders_desc">تذكيرات وقت النوم والتركيز وأحداث التقويم</string>
+    <string name="notif_channel_summary">الملخص اليومي</string>
+    <string name="notif_channel_summary_desc">ملخص صباحي للنوم واليوم القادم</string>
+    <string name="notif_channel_alarm">المنبّهات</string>
+    <string name="notif_channel_alarm_desc">منبّهات الاستيقاظ — تتجاوز وضع عدم الإزعاج</string>
+    <string name="notif_bedtime_title">استعد للنوم</string>
+    <string name="notif_bedtime_now">حان وقت النوم — ابدأ جلسة نومك</string>
+    <string name="notif_focus_title">حان وقت التركيز</string>
+    <string name="notif_focus_body">ابدأ جلسة واحمِ وقتك القادم للعمل العميق</string>
+    <string name="notif_event_title">حدث قادم</string>
+    <string name="notif_event_now">يبدأ الآن: %1$s</string>
+    <string name="notif_event_soon">بعد %1$s: %2$s</string>
+    <string name="notif_summary_title">صباح الخير</string>
+    <string name="notif_summary_slept">لقد نمت %1$s.</string>
+    <string name="notif_summary_no_events">لا توجد أحداث مجدولة اليوم.</string>
+    <plurals name="notif_bedtime_soon"><item quantity="zero">حان وقت الاستعداد للنوم — وقت النوم الآن</item><item quantity="one">حان وقت الاستعداد للنوم — وقت النوم بعد %1$d دقيقة</item><item quantity="two">حان وقت الاستعداد للنوم — وقت النوم بعد دقيقتين</item><item quantity="few">حان وقت الاستعداد للنوم — وقت النوم بعد %1$d دقائق</item><item quantity="many">حان وقت الاستعداد للنوم — وقت النوم بعد %1$d دقيقة</item><item quantity="other">حان وقت الاستعداد للنوم — وقت النوم بعد %1$d دقيقة</item></plurals>
+    <plurals name="notif_summary_events"><item quantity="zero">لا أحداث في التقويم اليوم.</item><item quantity="one">%1$d حدث في التقويم اليوم.</item><item quantity="two">حدثان في التقويم اليوم.</item><item quantity="few">%1$d أحداث في التقويم اليوم.</item><item quantity="many">%1$d حدثاً في التقويم اليوم.</item><item quantity="other">%1$d حدث في التقويم اليوم.</item></plurals>
 </resources>

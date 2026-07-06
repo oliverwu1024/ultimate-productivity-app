@@ -1,5 +1,7 @@
 package com.ultiq.app.ui.checklist
 
+import com.ultiq.app.R
+
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -101,7 +103,7 @@ class WeeklyPlannerViewModel(application: Application) : AndroidViewModel(applic
             val result = repository.bulkCreate(flat)
             _uiState.value = result.fold(
                 onSuccess = { _uiState.value.copy(isSaving = false, finished = true) },
-                onFailure = { _uiState.value.copy(isSaving = false, error = it.toUserMessage("Couldn't save plan. Try again.")) },
+                onFailure = { _uiState.value.copy(isSaving = false, error = it.toUserMessage(getApplication(), R.string.weekly_err_save)) },
             )
         }
     }

@@ -34,7 +34,7 @@ class ChangePasswordViewModel(application: Application) : AndroidViewModel(appli
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    error = e.toUserMessage(getApplication<Application>().getString(R.string.change_password_error)),
+                    error = e.toUserMessage(getApplication(), R.string.change_password_error),
                 )
             }
         }

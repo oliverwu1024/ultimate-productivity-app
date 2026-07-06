@@ -626,7 +626,7 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
                     _uiState.value = _uiState.value.copy(
                         aiRatingLoading = false,
                         aiRatingResult = null,
-                        aiRatingError = e.toUserMessage("AI rating unavailable. Try again or rate yourself."),
+                        aiRatingError = e.toUserMessage(getApplication(), R.string.sleep_err_ai_rating),
                     )
                 },
             )
@@ -821,7 +821,7 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
 
             _uiState.value = _uiState.value.copy(
                 isLoading = false,
-                error = result.exceptionOrNull()?.toUserMessage("Couldn't save sleep. Try again.")
+                error = result.exceptionOrNull()?.toUserMessage(getApplication(), R.string.sleep_err_save)
             )
         }
     }
@@ -844,7 +844,7 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
             val result = repository.createSleepRecord(record, userId)
             _uiState.value = _uiState.value.copy(
                 isLoading = false,
-                error = result.exceptionOrNull()?.toUserMessage("Couldn't save sleep. Try again.")
+                error = result.exceptionOrNull()?.toUserMessage(getApplication(), R.string.sleep_err_save)
             )
         }
     }

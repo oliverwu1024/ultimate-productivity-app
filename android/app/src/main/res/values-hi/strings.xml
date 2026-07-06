@@ -1040,4 +1040,44 @@
     <string name="onboarding_done_title">तैयार हो गए</string>
     <string name="onboarding_done_body">आप तैयार हैं। लक्ष्य, रिमाइंडर, और लॉकआउट सेटिंग्स जब भी बदलना हो, सेटिंग्स में उपलब्ध हैं।</string>
     <string name="onboarding_lets_go">चलिए शुरू करें</string>
+    <!-- §13.1 cleanup — password rules, API errors, notification strings -->
+    <string name="pw_check_length">कम से कम 8 अक्षर</string>
+    <string name="pw_check_uppercase">एक बड़ा अक्षर</string>
+    <string name="pw_check_lowercase">एक छोटा अक्षर</string>
+    <string name="pw_check_digit">एक अंक</string>
+    <string name="pw_check_special">एक विशेष चिह्न</string>
+    <string name="err_network">सर्वर से कनेक्ट नहीं हो सका। अपना इंटरनेट कनेक्शन जाँचें।</string>
+    <string name="err_ai_unreachable">AI सेवा से कनेक्ट नहीं हो सका। पुनः प्रयास करें।</string>
+    <string name="auth_err_login">लॉगिन विफल हुआ। पुनः प्रयास करें।</string>
+    <string name="auth_err_register">पंजीकरण विफल हुआ। पुनः प्रयास करें।</string>
+    <string name="auth_err_delete_account">खाता हटाया नहीं जा सका। पुनः प्रयास करें।</string>
+    <string name="auth_err_reset_account">खाता रीसेट नहीं हो सका। पुनः प्रयास करें।</string>
+    <string name="auth_err_send_reset">रीसेट ईमेल नहीं भेजा जा सका। पुनः प्रयास करें।</string>
+    <string name="auth_err_reset_password">पासवर्ड रीसेट नहीं हो सका। लिंक की समय-सीमा समाप्त हो सकती है।</string>
+    <string name="auth_err_verify">सत्यापन विफल हुआ। लिंक की समय-सीमा समाप्त हो सकती है।</string>
+    <string name="auth_err_resend_verification">नया सत्यापन ईमेल नहीं भेजा जा सका। पुनः प्रयास करें।</string>
+    <string name="calendar_err_save">इवेंट सहेजा नहीं जा सका। पुनः प्रयास करें।</string>
+    <string name="calendar_err_update">इवेंट अपडेट नहीं हो सका। पुनः प्रयास करें।</string>
+    <string name="sleep_err_ai_rating">AI रेटिंग उपलब्ध नहीं है। पुनः प्रयास करें या स्वयं रेट करें।</string>
+    <string name="sleep_err_save">नींद सहेजी नहीं जा सकी। पुनः प्रयास करें।</string>
+    <string name="checklist_err_save">कार्य सहेजा नहीं जा सका। पुनः प्रयास करें।</string>
+    <string name="weekly_err_save">योजना सहेजी नहीं जा सकी। पुनः प्रयास करें।</string>
+    <string name="notif_channel_reminders">अनुस्मारक</string>
+    <string name="notif_channel_reminders_desc">सोने का समय, फ़ोकस और कैलेंडर इवेंट के अनुस्मारक</string>
+    <string name="notif_channel_summary">दैनिक सारांश</string>
+    <string name="notif_channel_summary_desc">नींद और आने वाले दिन का सुबह का सारांश</string>
+    <string name="notif_channel_alarm">अलार्म</string>
+    <string name="notif_channel_alarm_desc">उठाने वाले अलार्म — परेशान न करें को बायपास करते हैं</string>
+    <string name="notif_bedtime_title">शांत हों</string>
+    <string name="notif_bedtime_now">सोने का समय हो गया — अपना नींद सत्र शुरू करें</string>
+    <string name="notif_focus_title">फ़ोकस का समय</string>
+    <string name="notif_focus_body">एक सत्र शुरू करें और गहरे काम के अगले ब्लॉक को सुरक्षित रखें</string>
+    <string name="notif_event_title">आने वाला इवेंट</string>
+    <string name="notif_event_now">अभी शुरू हो रहा है: %1$s</string>
+    <string name="notif_event_soon">%1$s में: %2$s</string>
+    <string name="notif_summary_title">शुभ प्रभात</string>
+    <string name="notif_summary_slept">आपने %1$s की नींद ली।</string>
+    <string name="notif_summary_no_events">आज कोई इवेंट निर्धारित नहीं है।</string>
+    <plurals name="notif_bedtime_soon"><item quantity="one">शांत होने का समय — %1$d मिनट में सोने का समय</item><item quantity="other">शांत होने का समय — %1$d मिनट में सोने का समय</item></plurals>
+    <plurals name="notif_summary_events"><item quantity="one">आज कैलेंडर पर %1$d इवेंट है।</item><item quantity="other">आज कैलेंडर पर %1$d इवेंट हैं।</item></plurals>
 </resources>

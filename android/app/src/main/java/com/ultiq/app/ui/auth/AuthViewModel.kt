@@ -1,5 +1,7 @@
 package com.ultiq.app.ui.auth
 
+import com.ultiq.app.R
+
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -182,7 +184,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    error = e.toUserMessage("Login failed. Try again."),
+                    error = e.toUserMessage(getApplication(), R.string.auth_err_login),
                 )
             }
         }
@@ -238,7 +240,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    error = e.toUserMessage("Registration failed. Try again."),
+                    error = e.toUserMessage(getApplication(), R.string.auth_err_register),
                 )
             }
         }
@@ -302,7 +304,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    error = e.toUserMessage("Couldn't delete account. Try again."),
+                    error = e.toUserMessage(getApplication(), R.string.auth_err_delete_account),
                 )
             }
         }
@@ -318,7 +320,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    error = e.toUserMessage("Couldn't reset account. Try again."),
+                    error = e.toUserMessage(getApplication(), R.string.auth_err_reset_account),
                 )
             }
         }
@@ -356,7 +358,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    error = e.toUserMessage("Couldn't send reset email. Try again."),
+                    error = e.toUserMessage(getApplication(), R.string.auth_err_send_reset),
                 )
             }
         }
@@ -378,7 +380,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    error = e.toUserMessage("Couldn't reset password. The link may have expired."),
+                    error = e.toUserMessage(getApplication(), R.string.auth_err_reset_password),
                 )
             }
         }
@@ -412,9 +414,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     verifyEmailLoading = false,
-                    verifyEmailError = e.toUserMessage(
-                        "Verification failed. The link may have expired."
-                    ),
+                    verifyEmailError = e.toUserMessage(getApplication(), R.string.auth_err_verify),
                 )
             }
         }
@@ -438,9 +438,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     resendVerificationLoading = false,
-                    resendVerificationError = e.toUserMessage(
-                        "Couldn't send a new verification email. Try again."
-                    ),
+                    resendVerificationError = e.toUserMessage(getApplication(), R.string.auth_err_resend_verification),
                 )
             }
         }

@@ -187,7 +187,7 @@ class CalendarViewModel(application: Application) : AndroidViewModel(application
             }.onFailure { e ->
                 _uiState.value = _uiState.value.copy(
                     aiLoading = false,
-                    aiError = e.toUserMessage("Couldn't reach the AI service. Try again."),
+                    aiError = e.toUserMessage(getApplication(), R.string.err_ai_unreachable),
                 )
             }
         }
@@ -197,7 +197,7 @@ class CalendarViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
             repository.createEvent(dto, userId)
-                .onFailure { _uiState.value = _uiState.value.copy(error = it.toUserMessage("Couldn't save event. Try again.")) }
+                .onFailure { _uiState.value = _uiState.value.copy(error = it.toUserMessage(getApplication(), R.string.calendar_err_save)) }
             _uiState.value = _uiState.value.copy(isLoading = false, showAddDialog = false, editingEvent = null)
         }
     }
@@ -217,7 +217,7 @@ class CalendarViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
             repository.updateEventWithScope(id, dto, userId, occurrenceDate, scope)
-                .onFailure { _uiState.value = _uiState.value.copy(error = it.toUserMessage("Couldn't update event. Try again.")) }
+                .onFailure { _uiState.value = _uiState.value.copy(error = it.toUserMessage(getApplication(), R.string.calendar_err_update)) }
             _uiState.value = _uiState.value.copy(isLoading = false, showAddDialog = false, editingEvent = null)
         }
     }
@@ -246,7 +246,7 @@ class CalendarViewModel(application: Application) : AndroidViewModel(application
     fun setEventDone(id: String, isDone: Boolean, occurrenceDate: LocalDate? = null) {
         viewModelScope.launch {
             repository.setEventDone(id, userId, isDone, occurrenceDate)
-                .onFailure { _uiState.value = _uiState.value.copy(error = it.toUserMessage("Couldn't update event. Try again.")) }
+                .onFailure { _uiState.value = _uiState.value.copy(error = it.toUserMessage(getApplication(), R.string.calendar_err_update)) }
         }
     }
 

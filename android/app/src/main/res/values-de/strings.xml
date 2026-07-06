@@ -1040,4 +1040,44 @@
     <string name="onboarding_done_title">Das Kissen ist bereit</string>
     <string name="onboarding_done_body">Du bist eingerichtet. Ziele, Erinnerungen und Sperr-Einstellungen findest du jederzeit in den Einstellungen.</string>
     <string name="onboarding_lets_go">Los geht\'s</string>
+    <!-- §13.1 cleanup — password rules, API errors, notification strings -->
+    <string name="pw_check_length">Mindestens 8 Zeichen</string>
+    <string name="pw_check_uppercase">Ein Großbuchstabe</string>
+    <string name="pw_check_lowercase">Ein Kleinbuchstabe</string>
+    <string name="pw_check_digit">Eine Ziffer</string>
+    <string name="pw_check_special">Ein Sonderzeichen</string>
+    <string name="err_network">Server nicht erreichbar. Überprüfe deine Internetverbindung.</string>
+    <string name="err_ai_unreachable">KI-Dienst nicht erreichbar. Versuche es erneut.</string>
+    <string name="auth_err_login">Anmeldung fehlgeschlagen. Versuche es erneut.</string>
+    <string name="auth_err_register">Registrierung fehlgeschlagen. Versuche es erneut.</string>
+    <string name="auth_err_delete_account">Konto konnte nicht gelöscht werden. Versuche es erneut.</string>
+    <string name="auth_err_reset_account">Konto konnte nicht zurückgesetzt werden. Versuche es erneut.</string>
+    <string name="auth_err_send_reset">Zurücksetz-E-Mail konnte nicht gesendet werden. Versuche es erneut.</string>
+    <string name="auth_err_reset_password">Passwort konnte nicht zurückgesetzt werden. Der Link ist möglicherweise abgelaufen.</string>
+    <string name="auth_err_verify">Verifizierung fehlgeschlagen. Der Link ist möglicherweise abgelaufen.</string>
+    <string name="auth_err_resend_verification">Neue Bestätigungs-E-Mail konnte nicht gesendet werden. Versuche es erneut.</string>
+    <string name="calendar_err_save">Termin konnte nicht gespeichert werden. Versuche es erneut.</string>
+    <string name="calendar_err_update">Termin konnte nicht aktualisiert werden. Versuche es erneut.</string>
+    <string name="sleep_err_ai_rating">KI-Bewertung nicht verfügbar. Versuche es erneut oder bewerte selbst.</string>
+    <string name="sleep_err_save">Schlaf konnte nicht gespeichert werden. Versuche es erneut.</string>
+    <string name="checklist_err_save">Aufgabe konnte nicht gespeichert werden. Versuche es erneut.</string>
+    <string name="weekly_err_save">Plan konnte nicht gespeichert werden. Versuche es erneut.</string>
+    <string name="notif_channel_reminders">Erinnerungen</string>
+    <string name="notif_channel_reminders_desc">Erinnerungen für Schlafenszeit, Fokus und Kalendertermine</string>
+    <string name="notif_channel_summary">Tagesübersicht</string>
+    <string name="notif_channel_summary_desc">Morgendliche Zusammenfassung von Schlaf und dem bevorstehenden Tag</string>
+    <string name="notif_channel_alarm">Wecker</string>
+    <string name="notif_channel_alarm_desc">Weckalarme — umgeht den Bitte-nicht-stören-Modus</string>
+    <string name="notif_bedtime_title">Entspannen</string>
+    <string name="notif_bedtime_now">Schlafenszeit — Schlafsitzung jetzt starten</string>
+    <string name="notif_focus_title">Zeit zum Fokussieren</string>
+    <string name="notif_focus_body">Starte eine Sitzung und schütze deinen nächsten Block für konzentriertes Arbeiten</string>
+    <string name="notif_event_title">Bevorstehender Termin</string>
+    <string name="notif_event_now">Beginnt jetzt: %1$s</string>
+    <string name="notif_event_soon">In %1$s: %2$s</string>
+    <string name="notif_summary_title">Guten Morgen</string>
+    <string name="notif_summary_slept">Du hast %1$s geschlafen.</string>
+    <string name="notif_summary_no_events">Heute keine Termine geplant.</string>
+    <plurals name="notif_bedtime_soon"><item quantity="one">Zeit zum Entspannen — Schlafenszeit in %1$d Minute</item><item quantity="other">Zeit zum Entspannen — Schlafenszeit in %1$d Minuten</item></plurals>
+    <plurals name="notif_summary_events"><item quantity="one">%1$d Termin im Kalender heute.</item><item quantity="other">%1$d Termine im Kalender heute.</item></plurals>
 </resources>

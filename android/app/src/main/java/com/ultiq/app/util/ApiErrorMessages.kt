@@ -1,14 +1,23 @@
 package com.ultiq.app.util
 
+import android.content.Context
+import androidx.annotation.StringRes
 import com.google.gson.JsonParser
+import com.ultiq.app.R
 import retrofit2.HttpException
 import java.io.IOException
 
-fun Throwable.toUserMessage(fallback: String = "Something went wrong. Try again."): String {
+/**
+ * Maps a Throwable to a user-facing message. The server's own error text
+ * (already localized once the backend is) passes through; network + fallback
+ * cases resolve from resources so they follow the app language. Resolved at
+ * call time (transient), so a VM resolving it is fine.
+ */
+fun Throwable.toUserMessage(context: Context, @StringRes fallback: Int): String {
     return when (this) {
-        is HttpException -> parseErrorBody() ?: fallback
-        is IOException -> "Couldn't reach the server. Check your internet connection."
-        else -> fallback
+        is HttpException -> parseErrorBody() ?: context.getString(fallback)
+        is IOException -> context.getString(R.string.err_network)
+        else -> context.getString(fallback)
     }
 }
 

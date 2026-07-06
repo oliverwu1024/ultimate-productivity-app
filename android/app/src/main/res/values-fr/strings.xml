@@ -1071,4 +1071,44 @@
     <string name="onboarding_done_title">L\'oreiller est prêt</string>
     <string name="onboarding_done_body">C\'est configuré. Les objectifs, rappels et paramètres de verrouillage sont tous dans Paramètres si vous souhaitez les ajuster.</string>
     <string name="onboarding_lets_go">C\'est parti</string>
+    <!-- §13.1 cleanup — password rules, API errors, notification strings -->
+    <string name="pw_check_length">Au moins 8 caractères</string>
+    <string name="pw_check_uppercase">Une lettre majuscule</string>
+    <string name="pw_check_lowercase">Une lettre minuscule</string>
+    <string name="pw_check_digit">Un chiffre</string>
+    <string name="pw_check_special">Un caractère spécial</string>
+    <string name="err_network">Impossible de contacter le serveur. Vérifiez votre connexion internet.</string>
+    <string name="err_ai_unreachable">Impossible de contacter le service AI. Réessayez.</string>
+    <string name="auth_err_login">Échec de la connexion. Réessayez.</string>
+    <string name="auth_err_register">Échec de l\'inscription. Réessayez.</string>
+    <string name="auth_err_delete_account">Impossible de supprimer le compte. Réessayez.</string>
+    <string name="auth_err_reset_account">Impossible de réinitialiser le compte. Réessayez.</string>
+    <string name="auth_err_send_reset">Impossible d\'envoyer l\'e-mail de réinitialisation. Réessayez.</string>
+    <string name="auth_err_reset_password">Impossible de réinitialiser le mot de passe. Le lien a peut-être expiré.</string>
+    <string name="auth_err_verify">Échec de la vérification. Le lien a peut-être expiré.</string>
+    <string name="auth_err_resend_verification">Impossible d\'envoyer un nouvel e-mail de vérification. Réessayez.</string>
+    <string name="calendar_err_save">Impossible d\'enregistrer l\'événement. Réessayez.</string>
+    <string name="calendar_err_update">Impossible de mettre à jour l\'événement. Réessayez.</string>
+    <string name="sleep_err_ai_rating">Évaluation AI indisponible. Réessayez ou évaluez vous-même.</string>
+    <string name="sleep_err_save">Impossible d\'enregistrer le sommeil. Réessayez.</string>
+    <string name="checklist_err_save">Impossible d\'enregistrer la tâche. Réessayez.</string>
+    <string name="weekly_err_save">Impossible d\'enregistrer le plan. Réessayez.</string>
+    <string name="notif_channel_reminders">Rappels</string>
+    <string name="notif_channel_reminders_desc">Rappels de coucher, de concentration et d\'événements du calendrier</string>
+    <string name="notif_channel_summary">Résumé quotidien</string>
+    <string name="notif_channel_summary_desc">Résumé matinal du sommeil et de la journée à venir</string>
+    <string name="notif_channel_alarm">Alarmes</string>
+    <string name="notif_channel_alarm_desc">Alarmes de réveil — contournent le mode Ne pas déranger</string>
+    <string name="notif_bedtime_title">Ralentissez</string>
+    <string name="notif_bedtime_now">C\'est l\'heure du coucher — démarrez votre session de sommeil</string>
+    <string name="notif_focus_title">Concentrez-vous</string>
+    <string name="notif_focus_body">Démarrez une session et protégez votre prochain bloc de travail concentré</string>
+    <string name="notif_event_title">Événement à venir</string>
+    <string name="notif_event_now">Commence maintenant : %1$s</string>
+    <string name="notif_event_soon">Dans %1$s : %2$s</string>
+    <string name="notif_summary_title">Bonjour</string>
+    <string name="notif_summary_slept">Vous avez dormi %1$s.</string>
+    <string name="notif_summary_no_events">Aucun événement prévu aujourd\'hui.</string>
+    <plurals name="notif_bedtime_soon"><item quantity="one">C\'est l\'heure de ralentir — coucher dans %1$d minute</item><item quantity="many">C\'est l\'heure de ralentir — coucher dans %1$d minutes</item><item quantity="other">C\'est l\'heure de ralentir — coucher dans %1$d minutes</item></plurals>
+    <plurals name="notif_summary_events"><item quantity="one">%1$d événement au calendrier aujourd\'hui.</item><item quantity="many">%1$d événements au calendrier aujourd\'hui.</item><item quantity="other">%1$d événements au calendrier aujourd\'hui.</item></plurals>
 </resources>
