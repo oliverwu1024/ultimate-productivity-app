@@ -184,8 +184,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     _uiState.value = _uiState.value.copy(
                         resendingVerification = false,
                         error = e.toUserMessage(
-                            getApplication<Application>()
-                                .getString(R.string.settings_verification_error)
+                            getApplication(),
+                            R.string.settings_verification_error,
                         ),
                     )
                 }
@@ -208,7 +208,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 .onFailure { e ->
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        error = e.toUserMessage(getApplication<Application>().getString(R.string.chat_err_history)),
+                        error = e.toUserMessage(getApplication(), R.string.chat_err_history),
                     )
                 }
         }
@@ -296,7 +296,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     _uiState.value = _uiState.value.copy(
                         turns = rolled,
                         isSending = false,
-                        error = e.toUserMessage(getApplication<Application>().getString(R.string.chat_err_send)),
+                        error = e.toUserMessage(getApplication(), R.string.chat_err_send),
                     )
                 }
         }
@@ -354,7 +354,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     }
                     _uiState.value = _uiState.value.copy(
                         turns = turns,
-                        error = e.toUserMessage(getApplication<Application>().getString(R.string.chat_err_create_event)),
+                        error = e.toUserMessage(getApplication(), R.string.chat_err_create_event),
                     )
                 }
         }
@@ -386,7 +386,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }.onFailure { e ->
                 _uiState.value = _uiState.value.copy(
-                    error = e.toUserMessage(getApplication<Application>().getString(R.string.chat_err_undo))
+                    error = e.toUserMessage(getApplication(), R.string.chat_err_undo)
                 )
             }
         }
@@ -435,7 +435,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     }
                     _uiState.value = _uiState.value.copy(
                         turns = turns,
-                        error = e.toUserMessage(getApplication<Application>().getString(R.string.chat_err_create_alarm)),
+                        error = e.toUserMessage(getApplication(), R.string.chat_err_create_alarm),
                     )
                 }
         }
@@ -466,7 +466,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 .onFailure { e ->
                     _uiState.value = _uiState.value.copy(
                         isSending = false,
-                        error = e.toUserMessage(getApplication<Application>().getString(R.string.chat_err_reset)),
+                        error = e.toUserMessage(getApplication(), R.string.chat_err_reset),
                     )
                 }
         }

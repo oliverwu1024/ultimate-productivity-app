@@ -1009,4 +1009,44 @@
     <string name="onboarding_done_title">หมอนพร้อมแล้ว</string>
     <string name="onboarding_done_body">ตั้งค่าเสร็จแล้ว เป้าหมาย การแจ้งเตือน และการตั้งค่าการล็อคอยู่ใน การตั้งค่า เมื่อคุณต้องการปรับ</string>
     <string name="onboarding_lets_go">ไปเลย</string>
+    <!-- §13.1 cleanup — password rules, API errors, notification strings -->
+    <string name="pw_check_length">อย่างน้อย 8 ตัวอักษร</string>
+    <string name="pw_check_uppercase">ตัวอักษรพิมพ์ใหญ่</string>
+    <string name="pw_check_lowercase">ตัวอักษรพิมพ์เล็ก</string>
+    <string name="pw_check_digit">ตัวเลข</string>
+    <string name="pw_check_special">อักขระพิเศษ</string>
+    <string name="err_network">ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ ตรวจสอบการเชื่อมต่ออินเทอร์เน็ตของคุณ</string>
+    <string name="err_ai_unreachable">ไม่สามารถเข้าถึงบริการ AI ได้ ลองใหม่อีกครั้ง</string>
+    <string name="auth_err_login">เข้าสู่ระบบล้มเหลว ลองใหม่อีกครั้ง</string>
+    <string name="auth_err_register">การลงทะเบียนล้มเหลว ลองใหม่อีกครั้ง</string>
+    <string name="auth_err_delete_account">ไม่สามารถลบบัญชีได้ ลองใหม่อีกครั้ง</string>
+    <string name="auth_err_reset_account">ไม่สามารถรีเซ็ตบัญชีได้ ลองใหม่อีกครั้ง</string>
+    <string name="auth_err_send_reset">ไม่สามารถส่งอีเมลรีเซ็ตได้ ลองใหม่อีกครั้ง</string>
+    <string name="auth_err_reset_password">ไม่สามารถรีเซ็ตรหัสผ่านได้ ลิงก์อาจหมดอายุแล้ว</string>
+    <string name="auth_err_verify">การยืนยันล้มเหลว ลิงก์อาจหมดอายุแล้ว</string>
+    <string name="auth_err_resend_verification">ไม่สามารถส่งอีเมลยืนยันใหม่ได้ ลองใหม่อีกครั้ง</string>
+    <string name="calendar_err_save">ไม่สามารถบันทึกกิจกรรมได้ ลองใหม่อีกครั้ง</string>
+    <string name="calendar_err_update">ไม่สามารถอัปเดตกิจกรรมได้ ลองใหม่อีกครั้ง</string>
+    <string name="sleep_err_ai_rating">ไม่สามารถให้คะแนน AI ได้ ลองใหม่หรือให้คะแนนด้วยตัวเอง</string>
+    <string name="sleep_err_save">ไม่สามารถบันทึกข้อมูลการนอนได้ ลองใหม่อีกครั้ง</string>
+    <string name="checklist_err_save">ไม่สามารถบันทึกงานได้ ลองใหม่อีกครั้ง</string>
+    <string name="weekly_err_save">ไม่สามารถบันทึกแผนได้ ลองใหม่อีกครั้ง</string>
+    <string name="notif_channel_reminders">การแจ้งเตือน</string>
+    <string name="notif_channel_reminders_desc">การแจ้งเตือนเวลานอน โฟกัส และกิจกรรมในปฏิทิน</string>
+    <string name="notif_channel_summary">สรุปประจำวัน</string>
+    <string name="notif_channel_summary_desc">สรุปตอนเช้าเกี่ยวกับการนอนและกิจกรรมของวัน</string>
+    <string name="notif_channel_alarm">การปลุก</string>
+    <string name="notif_channel_alarm_desc">เสียงปลุก — ข้ามโหมดห้ามรบกวน</string>
+    <string name="notif_bedtime_title">ผ่อนคลายก่อนนอน</string>
+    <string name="notif_bedtime_now">ถึงเวลานอนแล้ว — เริ่มช่วงการนอนของคุณ</string>
+    <string name="notif_focus_title">ถึงเวลาโฟกัส</string>
+    <string name="notif_focus_body">เริ่มเซสชันและปกป้องช่วงเวลาทำงานเข้มข้นถัดไปของคุณ</string>
+    <string name="notif_event_title">กิจกรรมที่กำลังจะมาถึง</string>
+    <string name="notif_event_now">กำลังเริ่มตอนนี้: %1$s</string>
+    <string name="notif_event_soon">ใน %1$s: %2$s</string>
+    <string name="notif_summary_title">อรุณสวัสดิ์</string>
+    <string name="notif_summary_slept">คุณนอนหลับนาน %1$s</string>
+    <string name="notif_summary_no_events">ไม่มีกิจกรรมในวันนี้</string>
+    <plurals name="notif_bedtime_soon"><item quantity="other">ถึงเวลาผ่อนคลาย — อีก %1$d นาทีจะถึงเวลานอน</item></plurals>
+    <plurals name="notif_summary_events"><item quantity="other">มี %1$d กิจกรรมในปฏิทินวันนี้</item></plurals>
 </resources>

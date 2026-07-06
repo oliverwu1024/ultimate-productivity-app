@@ -1009,4 +1009,44 @@
     <string name="onboarding_done_title">枕頭就位</string>
     <string name="onboarding_done_body">設定完成，目標、提醒與鎖定設定均可在「設定」中隨時調整。</string>
     <string name="onboarding_lets_go">出發吧</string>
+    <!-- §13.1 cleanup — password rules, API errors, notification strings -->
+    <string name="pw_check_length">至少 8 個字元</string>
+    <string name="pw_check_uppercase">一個大寫字母</string>
+    <string name="pw_check_lowercase">一個小寫字母</string>
+    <string name="pw_check_digit">一個數字</string>
+    <string name="pw_check_special">一個特殊字元</string>
+    <string name="err_network">無法連線至伺服器，請檢查您的網路連線。</string>
+    <string name="err_ai_unreachable">無法連線至 AI 服務，請重試。</string>
+    <string name="auth_err_login">登入失敗，請重試。</string>
+    <string name="auth_err_register">註冊失敗，請重試。</string>
+    <string name="auth_err_delete_account">無法刪除帳號，請重試。</string>
+    <string name="auth_err_reset_account">無法重設帳號，請重試。</string>
+    <string name="auth_err_send_reset">無法傳送重設郵件，請重試。</string>
+    <string name="auth_err_reset_password">無法重設密碼，連結可能已過期。</string>
+    <string name="auth_err_verify">驗證失敗，連結可能已過期。</string>
+    <string name="auth_err_resend_verification">無法傳送新的驗證郵件，請重試。</string>
+    <string name="calendar_err_save">無法儲存事件，請重試。</string>
+    <string name="calendar_err_update">無法更新事件，請重試。</string>
+    <string name="sleep_err_ai_rating">AI 評分無法使用，請重試或自行評分。</string>
+    <string name="sleep_err_save">無法儲存睡眠記錄，請重試。</string>
+    <string name="checklist_err_save">無法儲存任務，請重試。</string>
+    <string name="weekly_err_save">無法儲存計畫，請重試。</string>
+    <string name="notif_channel_reminders">提醒</string>
+    <string name="notif_channel_reminders_desc">就寢時間、專注與行事曆事件提醒</string>
+    <string name="notif_channel_summary">每日摘要</string>
+    <string name="notif_channel_summary_desc">早晨睡眠與當日行程摘要</string>
+    <string name="notif_channel_alarm">鬧鐘</string>
+    <string name="notif_channel_alarm_desc">起床鬧鐘——略過勿擾模式</string>
+    <string name="notif_bedtime_title">放鬆一下</string>
+    <string name="notif_bedtime_now">現在是就寢時間——開始您的睡眠記錄</string>
+    <string name="notif_focus_title">專注時刻</string>
+    <string name="notif_focus_body">開始一次專注，保護您的下一段深度工作時間</string>
+    <string name="notif_event_title">即將到來的事件</string>
+    <string name="notif_event_now">現在開始：%1$s</string>
+    <string name="notif_event_soon">還有 %1$s：%2$s</string>
+    <string name="notif_summary_title">早安</string>
+    <string name="notif_summary_slept">您睡了 %1$s。</string>
+    <string name="notif_summary_no_events">今日無行程安排。</string>
+    <plurals name="notif_bedtime_soon"><item quantity="other">是時候放鬆了——還有 %1$d 分鐘就寢</item></plurals>
+    <plurals name="notif_summary_events"><item quantity="other">今日行事曆有 %1$d 個事件。</item></plurals>
 </resources>

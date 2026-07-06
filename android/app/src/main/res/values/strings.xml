@@ -1097,4 +1097,44 @@
     <string name="onboarding_done_title">Pillow\'s ready</string>
     <string name="onboarding_done_body">You\'re set up. Targets, reminders, and lockout settings are all in Settings whenever you want to adjust.</string>
     <string name="onboarding_lets_go">Let\'s go</string>
+    <!-- §13.1 cleanup — password rules, API errors, notification strings -->
+    <string name="pw_check_length">At least 8 characters</string>
+    <string name="pw_check_uppercase">An uppercase letter</string>
+    <string name="pw_check_lowercase">A lowercase letter</string>
+    <string name="pw_check_digit">A digit</string>
+    <string name="pw_check_special">A special character</string>
+    <string name="err_network">Couldn\'t reach the server. Check your internet connection.</string>
+    <string name="err_ai_unreachable">Couldn\'t reach the AI service. Try again.</string>
+    <string name="auth_err_login">Login failed. Try again.</string>
+    <string name="auth_err_register">Registration failed. Try again.</string>
+    <string name="auth_err_delete_account">Couldn\'t delete account. Try again.</string>
+    <string name="auth_err_reset_account">Couldn\'t reset account. Try again.</string>
+    <string name="auth_err_send_reset">Couldn\'t send reset email. Try again.</string>
+    <string name="auth_err_reset_password">Couldn\'t reset password. The link may have expired.</string>
+    <string name="auth_err_verify">Verification failed. The link may have expired.</string>
+    <string name="auth_err_resend_verification">Couldn\'t send a new verification email. Try again.</string>
+    <string name="calendar_err_save">Couldn\'t save event. Try again.</string>
+    <string name="calendar_err_update">Couldn\'t update event. Try again.</string>
+    <string name="sleep_err_ai_rating">AI rating unavailable. Try again or rate yourself.</string>
+    <string name="sleep_err_save">Couldn\'t save sleep. Try again.</string>
+    <string name="checklist_err_save">Couldn\'t save task. Try again.</string>
+    <string name="weekly_err_save">Couldn\'t save plan. Try again.</string>
+    <string name="notif_channel_reminders">Reminders</string>
+    <string name="notif_channel_reminders_desc">Bedtime, focus, and calendar event reminders</string>
+    <string name="notif_channel_summary">Daily Summary</string>
+    <string name="notif_channel_summary_desc">Morning summary of sleep and the day ahead</string>
+    <string name="notif_channel_alarm">Alarms</string>
+    <string name="notif_channel_alarm_desc">Wake-up alarms — bypass Do Not Disturb</string>
+    <string name="notif_bedtime_title">Wind down</string>
+    <string name="notif_bedtime_now">Bedtime is now — start your sleep session</string>
+    <string name="notif_focus_title">Time to focus</string>
+    <string name="notif_focus_body">Start a session and protect your next block of deep work</string>
+    <string name="notif_event_title">Upcoming event</string>
+    <string name="notif_event_now">Starting now: %1$s</string>
+    <string name="notif_event_soon">In %1$s: %2$s</string>
+    <string name="notif_summary_title">Good morning</string>
+    <string name="notif_summary_slept">You slept %1$s.</string>
+    <string name="notif_summary_no_events">No events scheduled today.</string>
+    <plurals name="notif_bedtime_soon"><item quantity="one">Time to wind down — bedtime in %1$d minute</item><item quantity="other">Time to wind down — bedtime in %1$d minutes</item></plurals>
+    <plurals name="notif_summary_events"><item quantity="one">%1$d event on the calendar today.</item><item quantity="other">%1$d events on the calendar today.</item></plurals>
 </resources>

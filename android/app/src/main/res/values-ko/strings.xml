@@ -1009,4 +1009,44 @@
     <string name="onboarding_done_title">베개가 준비됐어요</string>
     <string name="onboarding_done_body">설정이 완료됐어요. 목표, 알림, 잠금 설정은 언제든지 설정에서 변경할 수 있어요.</string>
     <string name="onboarding_lets_go">시작해요</string>
+    <!-- §13.1 cleanup — password rules, API errors, notification strings -->
+    <string name="pw_check_length">최소 8자 이상</string>
+    <string name="pw_check_uppercase">대문자 포함</string>
+    <string name="pw_check_lowercase">소문자 포함</string>
+    <string name="pw_check_digit">숫자 포함</string>
+    <string name="pw_check_special">특수 문자 포함</string>
+    <string name="err_network">서버에 연결할 수 없습니다. 인터넷 연결을 확인해 주세요.</string>
+    <string name="err_ai_unreachable">AI 서비스에 연결할 수 없습니다. 다시 시도해 주세요.</string>
+    <string name="auth_err_login">로그인에 실패했습니다. 다시 시도해 주세요.</string>
+    <string name="auth_err_register">회원가입에 실패했습니다. 다시 시도해 주세요.</string>
+    <string name="auth_err_delete_account">계정을 삭제할 수 없습니다. 다시 시도해 주세요.</string>
+    <string name="auth_err_reset_account">계정을 초기화할 수 없습니다. 다시 시도해 주세요.</string>
+    <string name="auth_err_send_reset">재설정 이메일을 보낼 수 없습니다. 다시 시도해 주세요.</string>
+    <string name="auth_err_reset_password">비밀번호를 재설정할 수 없습니다. 링크가 만료되었을 수 있습니다.</string>
+    <string name="auth_err_verify">인증에 실패했습니다. 링크가 만료되었을 수 있습니다.</string>
+    <string name="auth_err_resend_verification">새 인증 이메일을 보낼 수 없습니다. 다시 시도해 주세요.</string>
+    <string name="calendar_err_save">일정을 저장할 수 없습니다. 다시 시도해 주세요.</string>
+    <string name="calendar_err_update">일정을 업데이트할 수 없습니다. 다시 시도해 주세요.</string>
+    <string name="sleep_err_ai_rating">AI 평가를 사용할 수 없습니다. 다시 시도하거나 직접 평가해 주세요.</string>
+    <string name="sleep_err_save">수면 기록을 저장할 수 없습니다. 다시 시도해 주세요.</string>
+    <string name="checklist_err_save">할 일을 저장할 수 없습니다. 다시 시도해 주세요.</string>
+    <string name="weekly_err_save">계획을 저장할 수 없습니다. 다시 시도해 주세요.</string>
+    <string name="notif_channel_reminders">알림</string>
+    <string name="notif_channel_reminders_desc">취침, 집중, 일정 알림</string>
+    <string name="notif_channel_summary">일일 요약</string>
+    <string name="notif_channel_summary_desc">수면 및 하루 일정 아침 요약</string>
+    <string name="notif_channel_alarm">알람</string>
+    <string name="notif_channel_alarm_desc">기상 알람 — 방해 금지 모드 무시</string>
+    <string name="notif_bedtime_title">긴장 풀기</string>
+    <string name="notif_bedtime_now">취침 시간입니다 — 수면 세션을 시작하세요</string>
+    <string name="notif_focus_title">집중할 시간</string>
+    <string name="notif_focus_body">세션을 시작하고 다음 심층 작업 시간을 확보하세요</string>
+    <string name="notif_event_title">다가오는 일정</string>
+    <string name="notif_event_now">지금 시작: %1$s</string>
+    <string name="notif_event_soon">%1$s 후: %2$s</string>
+    <string name="notif_summary_title">좋은 아침이에요</string>
+    <string name="notif_summary_slept">%1$s 동안 수면했습니다.</string>
+    <string name="notif_summary_no_events">오늘 예정된 일정이 없습니다.</string>
+    <plurals name="notif_bedtime_soon"><item quantity="other">이제 긴장 푸세요 — %1$d분 후 취침입니다</item></plurals>
+    <plurals name="notif_summary_events"><item quantity="other">오늘 일정이 %1$d개 있습니다.</item></plurals>
 </resources>

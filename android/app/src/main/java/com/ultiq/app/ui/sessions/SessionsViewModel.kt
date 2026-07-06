@@ -447,7 +447,7 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
             result.onSuccess { session ->
                 currentSessionId = session.id
             }.onFailure {
-                _uiState.value = _uiState.value.copy(error = it.toUserMessage(getApplication<Application>().getString(R.string.sessions_err_start)))
+                _uiState.value = _uiState.value.copy(error = it.toUserMessage(getApplication(), R.string.sessions_err_start))
             }
         }
 

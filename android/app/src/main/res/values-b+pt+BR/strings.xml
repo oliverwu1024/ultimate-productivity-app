@@ -1071,4 +1071,44 @@
     <string name="onboarding_done_title">Travesseiro pronto</string>
     <string name="onboarding_done_body">Você está configurado. Metas, lembretes e bloqueio estão em Configurações sempre que quiser ajustar.</string>
     <string name="onboarding_lets_go">Vamos lá</string>
+    <!-- §13.1 cleanup — password rules, API errors, notification strings -->
+    <string name="pw_check_length">Pelo menos 8 caracteres</string>
+    <string name="pw_check_uppercase">Uma letra maiúscula</string>
+    <string name="pw_check_lowercase">Uma letra minúscula</string>
+    <string name="pw_check_digit">Um dígito</string>
+    <string name="pw_check_special">Um caractere especial</string>
+    <string name="err_network">Não foi possível conectar ao servidor. Verifique sua conexão com a internet.</string>
+    <string name="err_ai_unreachable">Não foi possível conectar ao serviço de AI. Tente novamente.</string>
+    <string name="auth_err_login">Falha no login. Tente novamente.</string>
+    <string name="auth_err_register">Falha no cadastro. Tente novamente.</string>
+    <string name="auth_err_delete_account">Não foi possível excluir a conta. Tente novamente.</string>
+    <string name="auth_err_reset_account">Não foi possível redefinir a conta. Tente novamente.</string>
+    <string name="auth_err_send_reset">Não foi possível enviar o e-mail de redefinição. Tente novamente.</string>
+    <string name="auth_err_reset_password">Não foi possível redefinir a senha. O link pode ter expirado.</string>
+    <string name="auth_err_verify">Falha na verificação. O link pode ter expirado.</string>
+    <string name="auth_err_resend_verification">Não foi possível enviar um novo e-mail de verificação. Tente novamente.</string>
+    <string name="calendar_err_save">Não foi possível salvar o evento. Tente novamente.</string>
+    <string name="calendar_err_update">Não foi possível atualizar o evento. Tente novamente.</string>
+    <string name="sleep_err_ai_rating">Avaliação de AI indisponível. Tente novamente ou avalie você mesmo.</string>
+    <string name="sleep_err_save">Não foi possível salvar o sono. Tente novamente.</string>
+    <string name="checklist_err_save">Não foi possível salvar a tarefa. Tente novamente.</string>
+    <string name="weekly_err_save">Não foi possível salvar o plano. Tente novamente.</string>
+    <string name="notif_channel_reminders">Lembretes</string>
+    <string name="notif_channel_reminders_desc">Lembretes de hora de dormir, foco e eventos do calendário</string>
+    <string name="notif_channel_summary">Resumo Diário</string>
+    <string name="notif_channel_summary_desc">Resumo matinal do sono e do dia à frente</string>
+    <string name="notif_channel_alarm">Alarmes</string>
+    <string name="notif_channel_alarm_desc">Alarmes de despertar — ignora o Não Perturbe</string>
+    <string name="notif_bedtime_title">Hora de relaxar</string>
+    <string name="notif_bedtime_now">Hora de dormir — inicie sua sessão de sono</string>
+    <string name="notif_focus_title">Hora de focar</string>
+    <string name="notif_focus_body">Inicie uma sessão e proteja seu próximo bloco de trabalho focado</string>
+    <string name="notif_event_title">Próximo evento</string>
+    <string name="notif_event_now">Começando agora: %1$s</string>
+    <string name="notif_event_soon">Em %1$s: %2$s</string>
+    <string name="notif_summary_title">Bom dia</string>
+    <string name="notif_summary_slept">Você dormiu %1$s.</string>
+    <string name="notif_summary_no_events">Nenhum evento agendado hoje.</string>
+    <plurals name="notif_bedtime_soon"><item quantity="one">Hora de relaxar — falta %1$d minuto para dormir</item><item quantity="many">Hora de relaxar — faltam %1$d minutos para dormir</item><item quantity="other">Hora de relaxar — faltam %1$d minutos para dormir</item></plurals>
+    <plurals name="notif_summary_events"><item quantity="one">%1$d evento no calendário hoje.</item><item quantity="many">%1$d eventos no calendário hoje.</item><item quantity="other">%1$d eventos no calendário hoje.</item></plurals>
 </resources>

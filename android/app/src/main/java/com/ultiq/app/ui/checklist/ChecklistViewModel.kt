@@ -212,7 +212,7 @@ class ChecklistViewModel(application: Application) : AndroidViewModel(applicatio
             }.onFailure { e ->
                 _uiState.value = _uiState.value.copy(
                     aiLoading = false,
-                    aiError = e.toUserMessage("Couldn't reach the AI service. Try again."),
+                    aiError = e.toUserMessage(getApplication(), R.string.err_ai_unreachable),
                 )
             }
         }
@@ -280,7 +280,7 @@ class ChecklistViewModel(application: Application) : AndroidViewModel(applicatio
                 }
                 _uiState.value = _uiState.value.copy(showAddDialog = false, editingItem = null)
             }.onFailure {
-                _uiState.value = _uiState.value.copy(error = it.toUserMessage("Couldn't save task. Try again."))
+                _uiState.value = _uiState.value.copy(error = it.toUserMessage(getApplication(), R.string.checklist_err_save))
             }
         }
     }

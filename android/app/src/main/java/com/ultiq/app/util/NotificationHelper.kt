@@ -45,27 +45,27 @@ object NotificationHelper {
 
         val reminders = NotificationChannel(
             CHANNEL_REMINDERS,
-            "Reminders",
+            context.getString(R.string.notif_channel_reminders),
             NotificationManager.IMPORTANCE_HIGH
         ).apply {
-            description = "Bedtime, focus, and calendar event reminders"
+            description = context.getString(R.string.notif_channel_reminders_desc)
             enableVibration(true)
         }
 
         val summary = NotificationChannel(
             CHANNEL_SUMMARY,
-            "Daily Summary",
+            context.getString(R.string.notif_channel_summary),
             NotificationManager.IMPORTANCE_DEFAULT
         ).apply {
-            description = "Morning summary of sleep and the day ahead"
+            description = context.getString(R.string.notif_channel_summary_desc)
         }
 
         val alarm = NotificationChannel(
             CHANNEL_ALARM,
-            "Alarms",
+            context.getString(R.string.notif_channel_alarm),
             NotificationManager.IMPORTANCE_HIGH,
         ).apply {
-            description = "Wake-up alarms — bypass Do Not Disturb"
+            description = context.getString(R.string.notif_channel_alarm_desc)
             enableVibration(true)
             setBypassDnd(true)
             lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
@@ -85,15 +85,17 @@ object NotificationHelper {
 
     fun showBedtimeReminder(context: Context, minutesUntilBedtime: Int) {
         val text = if (minutesUntilBedtime <= 0) {
-            "Bedtime is now — start your sleep session"
+            context.getString(R.string.notif_bedtime_now)
         } else {
-            "Time to wind down — bedtime in $minutesUntilBedtime minutes"
+            context.resources.getQuantityString(
+                R.plurals.notif_bedtime_soon, minutesUntilBedtime, minutesUntilBedtime,
+            )
         }
         notify(
             context = context,
             id = NOTIFICATION_ID_BEDTIME,
             channelId = CHANNEL_REMINDERS,
-            title = "Wind down",
+            title = context.getString(R.string.notif_bedtime_title),
             body = text,
             deepLink = DEEP_LINK_SLEEP
         )
@@ -104,8 +106,8 @@ object NotificationHelper {
             context = context,
             id = NOTIFICATION_ID_FOCUS,
             channelId = CHANNEL_REMINDERS,
-            title = "Time to focus",
-            body = "Start a session and protect your next block of deep work",
+            title = context.getString(R.string.notif_focus_title),
+            body = context.getString(R.string.notif_focus_body),
             deepLink = DEEP_LINK_SESSIONS
         )
     }
@@ -138,15 +140,15 @@ object NotificationHelper {
 
     fun showEventReminder(context: Context, eventId: String, eventTitle: String, minutesUntil: Int) {
         val body = if (minutesUntil <= 0) {
-            "Starting now: $eventTitle"
+            context.getString(R.string.notif_event_now, eventTitle)
         } else {
-            "In ${formatLeadTime(minutesUntil)}: $eventTitle"
+            context.getString(R.string.notif_event_soon, formatLeadTime(minutesUntil), eventTitle)
         }
         notify(
             context = context,
             id = eventNotificationId(eventId),
             channelId = CHANNEL_REMINDERS,
-            title = "Upcoming event",
+            title = context.getString(R.string.notif_event_title),
             body = body,
             deepLink = DEEP_LINK_CALENDAR
         )
@@ -154,17 +156,17 @@ object NotificationHelper {
 
     fun showMorningSummary(context: Context, sleepDuration: String?, eventCount: Int) {
         val parts = mutableListOf<String>()
-        if (sleepDuration != null) parts += "You slept $sleepDuration."
-        parts += when (eventCount) {
-            0 -> "No events scheduled today."
-            1 -> "1 event on the calendar."
-            else -> "$eventCount events on the calendar today."
+        if (sleepDuration != null) parts += context.getString(R.string.notif_summary_slept, sleepDuration)
+        parts += if (eventCount <= 0) {
+            context.getString(R.string.notif_summary_no_events)
+        } else {
+            context.resources.getQuantityString(R.plurals.notif_summary_events, eventCount, eventCount)
         }
         notify(
             context = context,
             id = NOTIFICATION_ID_MORNING_SUMMARY,
             channelId = CHANNEL_SUMMARY,
-            title = "Good morning",
+            title = context.getString(R.string.notif_summary_title),
             body = parts.joinToString(" "),
             deepLink = DEEP_LINK_DASHBOARD
         )
