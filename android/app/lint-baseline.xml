@@ -536,6 +536,17 @@
     </issue>
 
     <issue
+        id="PluralsCandidate"
+        message="Formatting %d followed by words (&quot;left&quot;): This should probably be a plural rather than a string"
+        errorLine1="    &lt;string name=&quot;photo_attempt_fallback&quot;>%1$d left before math fallback&lt;/string>"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="1050"
+            column="5"/>
+    </issue>
+
+    <issue
         id="ObsoleteSdkInt"
         message="Unnecessary; `SDK_INT` is always >= 26"
         errorLine1="        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {"

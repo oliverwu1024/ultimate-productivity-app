@@ -978,4 +978,24 @@
     <string name="alarm_set_for">%1$s के लिए सेट</string>
     <string name="alarm_dismiss">बंद करें</string>
     <string name="alarm_force_dismiss">ज़बरदस्ती बंद करें</string>
+
+    <!-- §13.1 Android sweep — photo mission -->
+    <string name="photo_permission_title">कैमरा अनुमति आवश्यक है</string>
+    <string name="photo_permission_body">Ultiq को फ़ोटो डिसमिस मिशन सेट करने के लिए कैमरे की ज़रूरत है।</string>
+    <string name="photo_grant_access">अनुमति दें</string>
+    <string name="photo_reference">संदर्भ फ़ोटो</string>
+    <string name="photo_setup_body">कैमरे को किसी स्थिर दृश्य पर रोककर रखें — जैसे बाथरूम का सिंक, फ्रिज, या दरवाज़ा। अलार्म बंद करने के लिए उसी दृश्य की ओर कैमरा करना होगा।</string>
+    <string name="photo_capture">कैप्चर करें</string>
+    <string name="photo_saving">सहेजा जा रहा है…</string>
+    <string name="photo_camera_open_failed">कैमरा नहीं खुल सका</string>
+    <string name="photo_save_failed">फ़ोटो सहेजी नहीं जा सकी</string>
+    <string name="photo_capture_failed">कैप्चर विफल</string>
+    <string name="photo_mission_title">दृश्य की फ़ोटो लें</string>
+    <string name="photo_mission_body">धुंधली गाइड को असली दृश्य से मिलाएं, फिर कैप्चर करें।</string>
+    <string name="photo_attempt">प्रयास %1$d / %2$d</string>
+    <string name="photo_attempt_fallback">%1$d बचे, फिर गणित मिशन</string>
+    <string name="photo_last_match">अंतिम मिलान: %1$d%% समान (≥ %2$d%% चाहिए)</string>
+    <string name="photo_checking">जाँच हो रही है…</string>
+    <string name="photo_preparing">तैयार हो रहा है…</string>
+    <string name="photo_process_failed">फ्रेम प्रोसेस नहीं हो सका</string>
 </resources>

@@ -1009,4 +1009,24 @@
     <string name="alarm_set_for">Réglée pour %1$s</string>
     <string name="alarm_dismiss">Arrêter</string>
     <string name="alarm_force_dismiss">Forcer l\'arrêt</string>
+
+    <!-- §13.1 Android sweep — photo mission -->
+    <string name="photo_permission_title">Autorisation caméra requise</string>
+    <string name="photo_permission_body">Ultiq a besoin de l\'appareil photo pour configurer votre mission de réveil photo.</string>
+    <string name="photo_grant_access">Autoriser l\'accès</string>
+    <string name="photo_reference">Photo de référence</string>
+    <string name="photo_setup_body">Tenez l\'appareil photo fixe sur une scène stable — votre lavabo, réfrigérateur ou porte. Vous devrez pointer la même scène pour désactiver l\'alarme.</string>
+    <string name="photo_capture">Capturer</string>
+    <string name="photo_saving">Enregistrement…</string>
+    <string name="photo_camera_open_failed">Impossible d\'ouvrir l\'appareil photo</string>
+    <string name="photo_save_failed">Impossible d\'enregistrer la photo</string>
+    <string name="photo_capture_failed">Échec de la capture</string>
+    <string name="photo_mission_title">Photographier la scène</string>
+    <string name="photo_mission_body">Alignez le guide discret sur la scène réelle, puis capturez.</string>
+    <string name="photo_attempt">Tentative %1$d sur %2$d</string>
+    <string name="photo_attempt_fallback">%1$d restant avant calcul</string>
+    <string name="photo_last_match">Dernière correspondance : %1$d%% similaire (≥ %2$d%% requis)</string>
+    <string name="photo_checking">Vérification…</string>
+    <string name="photo_preparing">Préparation…</string>
+    <string name="photo_process_failed">Impossible de traiter l\'image</string>
 </resources>
