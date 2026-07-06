@@ -35,9 +35,9 @@
     <string name="common_dismiss_hint">संकेत छुपाएं</string>
 
     <!-- Dashboard -->
-    <string name="dashboard_title">Dashboard</string>
-    <string name="dashboard_coach">Coach</string>
-    <string name="dashboard_coach_cd">अपने Coach से बात करें</string>
+    <string name="dashboard_title">डैशबोर्ड</string>
+    <string name="dashboard_coach">कोच</string>
+    <string name="dashboard_coach_cd">अपने कोच से बात करें</string>
     <string name="dashboard_today_calendar">आज का कैलेंडर</string>
     <string name="dashboard_today_plan">आज की योजना</string>
     <string name="dashboard_this_week">इस हफ़्ते</string>
@@ -47,9 +47,9 @@
     <string name="dashboard_heads_up">ध्यान दें</string>
     <string name="dashboard_offline_note">दिन-प्रतिदिन की ट्रैकिंग ऑफलाइन काम करती है, लेकिन क्रॉस-डिवाइस सिंक, AI इनसाइट्स, साप्ताहिक सारांश और ऑडियो क्लिप चलाने के लिए इंटरनेट ज़रूरी है।</string>
     <string name="dashboard_lock_overlay_title">सेटिंग्स में लॉक &amp; ओवरले अनुमति दें</string>
-    <string name="dashboard_lock_overlay_body">Focus मोड और स्लीप लॉकआउट को सही से काम करने के लिए \'अन्य ऐप्स पर दिखाएं\' और \'सख्त लॉक\' ज़रूरी है। इनके बिना, लॉकआउट स्क्रीन को स्वाइप किया जा सकता है। अनुमति देने के लिए सेटिंग्स खोलें (ऊपर दाईं ओर)।</string>
-    <string name="dashboard_prefs_title">अपनी Sleep &amp; Focus प्राथमिकताएं सेट करें</string>
-    <string name="dashboard_prefs_body">वेक-अप अलार्म और Sleep सेटिंग्स Sleep टैब पर हैं; Focus सेटिंग्स Focus टैब पर। कॉन्फ़िगर करने के लिए प्रत्येक टैब खोलें — या इस कार्ड के × से छुपाएं।</string>
+    <string name="dashboard_lock_overlay_body">फ़ोकस मोड और नींद लॉकआउट को विश्वसनीय रूप से काम करने के लिए \'अन्य ऐप्स के ऊपर प्रदर्शित करें\' और \'सख्त लॉक\' की अनुमति ज़रूरी है। इनके बिना, लॉकआउट स्क्रीन को स्वाइप करके हटाया जा सकता है। अनुमति देने के लिए सेटिंग्स (ऊपर दाईं तरफ) खोलें।</string>
+    <string name="dashboard_prefs_title">अपनी नींद &amp; फ़ोकस प्राथमिकताएँ सेट करें</string>
+    <string name="dashboard_prefs_body">आपके वेक-अप अलार्म और नींद की सेटिंग्स नींद टैब पर हैं; आपकी फ़ोकस सेटिंग्स फ़ोकस टैब पर हैं। कॉन्फ़िगर करने के लिए हर टैब खोलें और नीचे स्क्रॉल करें — या इस कार्ड का × दबाकर इसे छुपाएँ।</string>
     <string name="dashboard_not_synced">अभी सिंक नहीं हुआ</string>
     <string name="dashboard_just_synced">अभी सिंक हुआ</string>
     <string name="dashboard_synced_minutes_ago">%1$d मिनट पहले सिंक हुआ</string>
@@ -59,14 +59,14 @@
     <string name="dashboard_sleep_sounds">🔊 %1$s</string>
     <string name="dashboard_last_week_daily_avg">पिछले हफ़्ते का दैनिक औसत %1$s था</string>
     <string name="dashboard_focus_today">आज</string>
-    <string name="dashboard_longest_streak">अब तक की सबसे लंबी Streak — जारी रखें</string>
+    <string name="dashboard_longest_streak">अब तक की सबसे लंबी स्ट्रीक — इसे जारी रखें</string>
     <string name="dashboard_checklist_done">%2$d में से %1$d पूर्ण</string>
-    <string name="dashboard_quick_sleep">Sleep लॉग करें</string>
-    <string name="dashboard_quick_focus">Focus शुरू करें</string>
+    <string name="dashboard_quick_sleep">नींद दर्ज करें</string>
+    <string name="dashboard_quick_focus">फ़ोकस शुरू करें</string>
     <string name="dashboard_quick_event">इवेंट जोड़ें</string>
     <string name="dashboard_stat_avg_sleep">औसत नींद</string>
     <string name="dashboard_stat_avg_quality">औसत गुणवत्ता</string>
-    <string name="dashboard_stat_total_focus">कुल Focus</string>
+    <string name="dashboard_stat_total_focus">कुल फ़ोकस</string>
     <string name="dashboard_stat_calendar_events">कैलेंडर इवेंट</string>
     <string name="dashboard_marked_done">पूर्ण किया</string>
     <string name="dashboard_last_week">पिछला हफ़्ता</string>
@@ -132,21 +132,21 @@
     <string name="warm_sleep_decent_short">ठीक-ठाक, पर कम</string>
     <string name="warm_sleep_rough">कठिन रात — आज हल्का लें</string>
     <string name="warm_sleep_empty_title">अभी कोई रात दर्ज नहीं</string>
-    <string name="warm_sleep_empty_body">आज रात Start Sleep टैप करें — बाकी हम संभाल लेंगे।</string>
-    <string name="warm_focus_ready">Focus के लिए तैयार?</string>
+    <string name="warm_sleep_empty_body">आज रात \'नींद शुरू करें\' दबाएँ — बाकी हम संभाल लेंगे।</string>
+    <string name="warm_focus_ready">फ़ोकस के लिए तैयार हैं?</string>
     <string name="warm_focus_starting">अभी शुरुआत</string>
     <string name="warm_focus_momentum">अच्छी गति</string>
     <string name="warm_focus_deep">पूरी तरह डूबे</string>
-    <string name="warm_focus_big">बड़ा Focus दिन</string>
+    <string name="warm_focus_big">बड़ा फ़ोकस दिन</string>
     <string name="warm_focus_empty_title">आज अभी कुछ नहीं</string>
-    <string name="warm_focus_empty_body">एक टास्क टैग करें और पहला Focus ब्लॉक शुरू करें।</string>
+    <string name="warm_focus_empty_body">एक टास्क टैग करें और अपना पहला फ़ोकस ब्लॉक शुरू करें।</string>
     <string name="warm_achievement_unlocked">अनलॉक हुआ: %1$s</string>
     <string name="warm_calendar_empty_title">कोई इवेंट नहीं</string>
     <string name="warm_calendar_empty_body">एक इवेंट जोड़ें और यह यहां दिखेगा।</string>
     <string name="warm_checklist_empty_title">आज का दिन खाली है</string>
     <string name="warm_checklist_empty_body">शुरू करने के लिए टास्क जोड़ें।</string>
-    <string name="warm_sessions_empty_title">Focus के लिए तैयार?</string>
-    <string name="warm_sessions_empty_body">एक टास्क टैग करें, समय चुनें और पहला Focus ब्लॉक शुरू करें।</string>
+    <string name="warm_sessions_empty_title">फ़ोकस के लिए तैयार हैं?</string>
+    <string name="warm_sessions_empty_body">एक टास्क टैग करें, अवधि चुनें, और अपना पहला फ़ोकस ब्लॉक शुरू करें।</string>
     <string name="warm_upcoming_empty">आज कैलेंडर में कुछ नहीं</string>
 
     <plurals name="warm_streak_days">
@@ -176,7 +176,7 @@
     <!-- In-app APK update banner -->
     <string name="update_downloading_pct">Ultiq %1$s डाउनलोड हो रहा है… %2$d%%</string>
     <string name="update_downloading">Ultiq %1$s डाउनलोड हो रहा है…</string>
-    <string name="update_awaiting_confirm">सिस्टम प्रॉम्प्ट खुला है — वहां Install टैप करें</string>
+    <string name="update_awaiting_confirm">सिस्टम प्रॉम्प्ट खुला है — वहाँ इंस्टॉल दबाएँ</string>
     <string name="update_installed">अपडेट इंस्टॉल हुआ — Ultiq पुनः शुरू करने के लिए टैप करें</string>
     <string name="update_failed">अपडेट विफल — पुनः प्रयास करने के लिए टैप करें</string>
     <string name="update_available">Ultiq %1$s उपलब्ध है — इंस्टॉल करने के लिए टैप करें</string>
@@ -483,7 +483,7 @@
     <string name="add_sleep_err_quality">कृपया गुणवत्ता रेटिंग चुनें</string>
 
     <!-- Sleep ViewModel -->
-    <string name="sleep_err_end_focus">नींद ट्रैकिंग शुरू करने से पहले अपना Focus सत्र समाप्त करें</string>
+    <string name="sleep_err_end_focus">नींद ट्रैकिंग शुरू करने से पहले अपना फ़ोकस सत्र समाप्त करें</string>
 
     <plurals name="sleep_audio_sync_failed_body">
         <item quantity="one">%1$d इवेंट स्थानीय रूप से संग्रहीत है लेकिन अभी सर्वर तक नहीं पहुंचा। अभी अपलोड करने के लिए Retry टैप करें, या सिग्नल मिलने पर यह अपने आप दोबारा कोशिश करेगा।</item>
@@ -732,9 +732,9 @@
     <string name="achv_zen_mode_name">ज़ेन मोड</string>
     <string name="achv_zen_mode_desc">5 सेशन बिना फ़ोन उठाए</string>
     <string name="achv_iron_streak_name">आयरन स्ट्रीक</string>
-    <string name="achv_iron_streak_desc">30-day फ़ोकस स्ट्रीक</string>
+    <string name="achv_iron_streak_desc">30-दिन फ़ोकस स्ट्रीक</string>
     <string name="achv_sleep_champion_name">स्लीप चैंपियन</string>
-    <string name="achv_sleep_champion_desc">14-day स्लीप लक्ष्य स्ट्रीक</string>
+    <string name="achv_sleep_champion_desc">14-दिन नींद लक्ष्य स्ट्रीक</string>
     <string name="achv_marathon_name">मैराथन</string>
     <string name="achv_marathon_desc">एक दिन में 4+ घंटे का फ़ोकस</string>
     <string name="terms_title">नियम &amp; शर्तें</string>
@@ -932,7 +932,7 @@
     <string name="sessions_phone_pickups">फ़ोन पिकअप</string>
     <string name="sessions_pickup_row">#%1$d, %2$s पर</string>
     <string name="sessions_debrief_title">आपने किस पर काम किया?</string>
-    <string name="sessions_debrief_hint">जैसे cs61a problem set 3</string>
+    <string name="sessions_debrief_hint">उदा. cs61a प्रॉब्लम सेट 3</string>
     <string name="sessions_debrief_count">%1$d / 240</string>
     <string name="sessions_tagging">टैग हो रहा है…</string>
     <string name="sessions_tagged_as">%1$s के रूप में टैग किया</string>
@@ -963,10 +963,10 @@
     </plurals>
 
     <!-- §13.1 Android sweep — nonui (nav/notifications/alarm) -->
-    <string name="nav_dashboard">Dashboard</string>
+    <string name="nav_dashboard">डैशबोर्ड</string>
     <string name="nav_checklist">चेकलिस्ट</string>
     <string name="nav_sleep">नींद</string>
-    <string name="nav_focus">Focus</string>
+    <string name="nav_focus">फ़ोकस</string>
     <string name="nav_calendar">कैलेंडर</string>
     <string name="notif_tap_open">ऐप खोलने के लिए टैप करें</string>
     <string name="notif_sleep_tracking">नींद ट्रैकिंग सक्रिय</string>
@@ -1008,14 +1008,14 @@
     <string name="reset_pw_submit">नया पासवर्ड सेट करें</string>
     <string name="verify_no_token">इस लिंक में कोई सत्यापन टोकन नहीं है। हमारे भेजे ईमेल से सीधे पेज खोलें।</string>
     <string name="verify_loading">सत्यापित हो रहा है…</string>
-    <string name="verify_success">ईमेल सत्यापित हो गया। Coach और अन्य AI सुविधाएं अब अनलॉक हैं।</string>
+    <string name="verify_success">ईमेल सत्यापित हुई। कोच और अन्य AI सुविधाएँ अब अनलॉक हो गई हैं।</string>
     <string name="verify_open_app">Ultiq खोलें</string>
-    <string name="verify_expired_hint">सत्यापन लिंक 24 घंटे बाद समाप्त होते हैं। साइन इन करें और Settings में Resend verification email टैप करके नया लिंक पाएं।</string>
+    <string name="verify_expired_hint">सत्यापन लिंक 24 घंटे बाद समाप्त हो जाते हैं। ताज़ा लिंक पाने के लिए साइन इन करें और सेटिंग्स से \'सत्यापन ईमेल दोबारा भेजें\' दबाएँ।</string>
     <string name="forgot_pw_title">पासवर्ड भूल गए</string>
     <string name="forgot_pw_body">अपने खाते से जुड़ा ईमेल दर्ज करें। हम एक रीसेट लिंक भेजेंगे।</string>
     <string name="forgot_pw_sent">यदि वह ईमेल पंजीकृत है, तो रीसेट लिंक रास्ते में है। अपना इनबॉक्स (और स्पैम) जांचें — लिंक 1 घंटे में समाप्त हो जाता है।</string>
     <string name="forgot_pw_paste_title">रीसेट लिंक ऐप नहीं खोल रहा?</string>
-    <string name="forgot_pw_paste_body">ईमेल का पूरा लिंक नीचे पेस्ट करें और Continue टैप करें।</string>
+    <string name="forgot_pw_paste_body">ईमेल का पूरा लिंक नीचे पेस्ट करें और \'जारी रखें\' दबाएँ।</string>
     <string name="forgot_pw_paste_continue">पेस्ट किए लिंक से जारी रखें</string>
     <string name="forgot_pw_sent_btn">भेजा गया</string>
     <string name="forgot_pw_submit">रीसेट लिंक भेजें</string>
@@ -1030,13 +1030,13 @@
     <string name="onboarding_perm_reminders_desc">सोने के संकेत, फोकस प्रॉम्प्ट, साप्ताहिक सारांश</string>
     <string name="onboarding_perm_usage_title">फ़ोन उपयोग</string>
     <string name="onboarding_perm_usage_desc">Ultiq को नींद + फोकस के दौरान फ़ोन उठाने की गिनती करने देता है</string>
-    <string name="onboarding_perm_overlay_desc">फोकस सत्र के दौरान lockout को स्क्रीन पर छा जाने देता है</string>
-    <string name="onboarding_perm_overlay_hint">यदि टॉगल धुंधला है (\"Restricted setting\"), तो App info में ⋮ मेनू टैप करें → Allow restricted settings।</string>
+    <string name="onboarding_perm_overlay_desc">फ़ोकस सत्रों के दौरान लॉकआउट को स्क्रीन पर नियंत्रण लेने देता है</string>
+    <string name="onboarding_perm_overlay_hint">अगर टॉगल धूसर (\"Restricted setting\") है, तो App info में ⋮ मेनू दबाएँ → Allow restricted settings।</string>
     <string name="onboarding_perm_alarms_title">सटीक अलार्म</string>
     <string name="onboarding_perm_alarms_desc">ताकि रिमाइंडर सही मिनट पर बजें, 15 मिनट बाद नहीं</string>
     <string name="onboarding_granted">दी गई</string>
     <string name="onboarding_tap_grant">देने के लिए टैप करें</string>
     <string name="onboarding_done_title">तैयार हो गए</string>
-    <string name="onboarding_done_body">सेटअप पूरा। लक्ष्य, रिमाइंडर और lockout Settings में जब चाहें बदलें।</string>
+    <string name="onboarding_done_body">आप तैयार हैं। लक्ष्य, रिमाइंडर, और लॉकआउट सेटिंग्स जब भी बदलना हो, सेटिंग्स में उपलब्ध हैं।</string>
     <string name="onboarding_lets_go">चलिए शुरू करें</string>
 </resources>

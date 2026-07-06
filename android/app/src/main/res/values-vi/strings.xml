@@ -127,7 +127,7 @@
     <string name="warm_sleep_decent_short">Ổn, nhưng bị cắt ngắn</string>
     <string name="warm_sleep_rough">Đêm vất vả — hôm nay thư giãn nhé</string>
     <string name="warm_sleep_empty_title">Chưa có đêm nào được ghi lại</string>
-    <string name="warm_sleep_empty_body">Nhấn Bắt đầu Ngủ tối nay — chúng tôi lo phần còn lại.</string>
+    <string name="warm_sleep_empty_body">Nhấn Bắt đầu ngủ tối nay — chúng tôi lo phần còn lại.</string>
     <string name="warm_focus_ready">Sẵn sàng tập trung?</string>
     <string name="warm_focus_starting">Mới bắt đầu thôi</string>
     <string name="warm_focus_momentum">Đang có đà tốt</string>
