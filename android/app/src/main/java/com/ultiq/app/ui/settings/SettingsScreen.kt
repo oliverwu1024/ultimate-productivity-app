@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -492,7 +493,14 @@ private fun ThemeCard(current: ThemeMode, onSelect: (ThemeMode) -> Unit) {
                         onClick = { onSelect(mode) },
                         shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
                         icon = { Icon(labelAndIcon.second, null, modifier = Modifier.size(18.dp)) },
-                        label = { Text(labelAndIcon.first) },
+                        label = {
+                            Text(
+                                labelAndIcon.first,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                style = MaterialTheme.typography.labelMedium,
+                            )
+                        },
                     )
                 }
             }
