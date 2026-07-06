@@ -17,6 +17,7 @@
 
     <string name="settings_language">语言</string>
     <string name="settings_language_system">系统默认</string>
+    <string name="settings_language_experimental">实验性语言</string>
     <string name="common_close">关闭</string>
 
     <!-- ══════════════════ §13.1 Android sweep — dashboard + common ══════════════════ -->
