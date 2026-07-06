@@ -967,4 +967,45 @@
     <string name="photo_checking">检测中…</string>
     <string name="photo_preparing">准备中…</string>
     <string name="photo_process_failed">无法处理画面</string>
+
+    <!-- §13.1 Android sweep — auth + onboarding -->
+    <string name="action_continue">继续</string>
+    <string name="auth_back_to_login">返回登录</string>
+    <string name="reset_pw_title">设置新密码</string>
+    <string name="reset_pw_no_token">此重置链接缺少令牌，请重新申请一封邮件。</string>
+    <string name="reset_pw_success">密码已重置，正在返回登录…</string>
+    <string name="reset_pw_submit">设置新密码</string>
+    <string name="verify_no_token">此链接中没有验证令牌，请直接从我们发送的邮件中打开页面。</string>
+    <string name="verify_loading">验证中…</string>
+    <string name="verify_success">邮箱已验证，Coach 及其他 AI 功能现已解锁。</string>
+    <string name="verify_open_app">打开 Ultiq</string>
+    <string name="verify_expired_hint">验证链接 24 小时后过期。请登录后在设置中点击"重新发送验证邮件"获取新链接。</string>
+    <string name="forgot_pw_title">忘记密码</string>
+    <string name="forgot_pw_body">输入与账户绑定的邮箱，我们将发送重置链接。</string>
+    <string name="forgot_pw_sent">如果该邮箱已注册，重置链接正在发送中。请查看收件箱（及垃圾邮件）—链接 1 小时后过期。</string>
+    <string name="forgot_pw_paste_title">重置链接无法打开应用？</string>
+    <string name="forgot_pw_paste_body">将邮件中的完整链接粘贴到下方，然后点击继续。</string>
+    <string name="forgot_pw_paste_continue">使用粘贴的链接继续</string>
+    <string name="forgot_pw_sent_btn">已发送</string>
+    <string name="forgot_pw_submit">发送重置链接</string>
+    <string name="onboarding_welcome_title">嗨，我是 Ultiq</string>
+    <string name="onboarding_welcome_body">您的日常伴侣，助您管理睡眠、专注与日常事务。让我们来设置一下—约需一分钟。</string>
+    <string name="onboarding_sleep_title">您什么时候睡得最好？</string>
+    <string name="onboarding_sleep_body">选择您希望入睡和起床的时间，我们会悄悄记录您的完成情况。</string>
+    <string name="onboarding_focus_title">您如何专注？</string>
+    <string name="onboarding_focus_body">选择默认专注时段的时长，随时可以调整—这只是一个起点。</string>
+    <string name="onboarding_perms_title">需要几项权限</string>
+    <string name="onboarding_perms_body">全部可选—开启后 Ultiq 效果更佳。点击任意行以授权。</string>
+    <string name="onboarding_perm_reminders_desc">就寝提醒、专注提示、每周总结</string>
+    <string name="onboarding_perm_usage_title">手机使用情况</string>
+    <string name="onboarding_perm_usage_desc">允许 Ultiq 统计睡眠和专注期间的拿起次数</string>
+    <string name="onboarding_perm_overlay_desc">允许锁定界面在专注期间全屏显示</string>
+    <string name="onboarding_perm_overlay_hint">如果开关显示为灰色（\"受限设置\"），请在应用信息中点击 ⋮ 菜单 → 允许受限设置。</string>
+    <string name="onboarding_perm_alarms_title">精确闹钟</string>
+    <string name="onboarding_perm_alarms_desc">确保提醒准时触发，而非延迟 15 分钟</string>
+    <string name="onboarding_granted">已授权</string>
+    <string name="onboarding_tap_grant">点击授权</string>
+    <string name="onboarding_done_title">枕头备好了</string>
+    <string name="onboarding_done_body">设置完成。目标、提醒和锁定设置均可在设置中随时调整。</string>
+    <string name="onboarding_lets_go">出发吧</string>
 </resources>

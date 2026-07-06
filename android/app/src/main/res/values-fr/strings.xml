@@ -1029,4 +1029,45 @@
     <string name="photo_checking">Vérification…</string>
     <string name="photo_preparing">Préparation…</string>
     <string name="photo_process_failed">Impossible de traiter l\'image</string>
+
+    <!-- §13.1 Android sweep — auth + onboarding -->
+    <string name="action_continue">Continuer</string>
+    <string name="auth_back_to_login">Retour à la connexion</string>
+    <string name="reset_pw_title">Définir un nouveau mot de passe</string>
+    <string name="reset_pw_no_token">Ce lien de réinitialisation ne contient pas de jeton. Veuillez demander un nouvel e-mail.</string>
+    <string name="reset_pw_success">Mot de passe réinitialisé. Redirection vers la connexion…</string>
+    <string name="reset_pw_submit">Définir un nouveau mot de passe</string>
+    <string name="verify_no_token">Aucun jeton de vérification dans ce lien. Ouvrez la page directement depuis l\'e-mail que nous vous avons envoyé.</string>
+    <string name="verify_loading">Vérification…</string>
+    <string name="verify_success">E-mail vérifié. Coach et les autres fonctionnalités IA sont maintenant déverrouillées.</string>
+    <string name="verify_open_app">Ouvrir Ultiq</string>
+    <string name="verify_expired_hint">Les liens de vérification expirent après 24 heures. Connectez-vous et appuyez sur Renvoyer l\'e-mail de vérification dans Paramètres pour en obtenir un nouveau.</string>
+    <string name="forgot_pw_title">Mot de passe oublié</string>
+    <string name="forgot_pw_body">Saisissez l\'e-mail associé à votre compte. Nous vous enverrons un lien de réinitialisation.</string>
+    <string name="forgot_pw_sent">Si cet e-mail est enregistré, un lien de réinitialisation est en route. Vérifiez votre boîte de réception (et les spams) — le lien expire dans 1 heure.</string>
+    <string name="forgot_pw_paste_title">Le lien de réinitialisation n\'ouvre pas l\'application ?</string>
+    <string name="forgot_pw_paste_body">Collez le lien complet de l\'e-mail ci-dessous et appuyez sur Continuer.</string>
+    <string name="forgot_pw_paste_continue">Continuer avec le lien collé</string>
+    <string name="forgot_pw_sent_btn">Envoyé</string>
+    <string name="forgot_pw_submit">Envoyer le lien de réinitialisation</string>
+    <string name="onboarding_welcome_title">Bonjour, je suis Ultiq</string>
+    <string name="onboarding_welcome_body">Votre compagnon quotidien pour le sommeil, la concentration et le reste. Configurons tout — ça prend environ une minute.</string>
+    <string name="onboarding_sleep_title">À quelle heure dormez-vous le mieux ?</string>
+    <string name="onboarding_sleep_body">Choisissez les heures auxquelles vous souhaitez vous coucher et vous réveiller. Nous suivrons discrètement vos progrès.</string>
+    <string name="onboarding_focus_title">Comment vous concentrez-vous ?</string>
+    <string name="onboarding_focus_body">Choisissez la durée par défaut de vos sessions de concentration. Ajustez-la à tout moment — c\'est juste un point de départ.</string>
+    <string name="onboarding_perms_title">Quelques autorisations</string>
+    <string name="onboarding_perms_body">Toutes optionnelles — Ultiq fonctionne simplement mieux avec elles. Appuyez sur une ligne pour l\'accorder.</string>
+    <string name="onboarding_perm_reminders_desc">Rappels du coucher, invites de concentration, résumés hebdomadaires</string>
+    <string name="onboarding_perm_usage_title">Utilisation du téléphone</string>
+    <string name="onboarding_perm_usage_desc">Permet à Ultiq de compter les prises en main du téléphone pendant le sommeil et la concentration</string>
+    <string name="onboarding_perm_overlay_desc">Permet au verrouillage de prendre le contrôle de l\'écran pendant les sessions de concentration</string>
+    <string name="onboarding_perm_overlay_hint">Si le bouton est grisé (\"Paramètre restreint\"), appuyez sur le menu ⋮ dans Infos sur l\'appli → Autoriser les paramètres restreints.</string>
+    <string name="onboarding_perm_alarms_title">Alarmes exactes</string>
+    <string name="onboarding_perm_alarms_desc">Pour que les rappels sonnent à la bonne minute, pas 15 min plus tard</string>
+    <string name="onboarding_granted">Accordée</string>
+    <string name="onboarding_tap_grant">Appuyez pour accorder</string>
+    <string name="onboarding_done_title">L\'oreiller est prêt</string>
+    <string name="onboarding_done_body">C\'est configuré. Les objectifs, rappels et paramètres de verrouillage sont tous dans Paramètres si vous souhaitez les ajuster.</string>
+    <string name="onboarding_lets_go">C\'est parti</string>
 </resources>

@@ -1052,4 +1052,48 @@
     <string name="photo_checking">Checking…</string>
     <string name="photo_preparing">Preparing…</string>
     <string name="photo_process_failed">Couldn\'t process the frame</string>
+
+    <!-- §13.1 Android sweep — auth + onboarding -->
+    <!-- auth — shared / reset / verify / forgot -->
+    <string name="action_continue">Continue</string>
+    <string name="auth_back_to_login">Back to login</string>
+    <string name="reset_pw_title">Set a new password</string>
+    <string name="reset_pw_no_token">This reset link is missing its token. Please request a new email.</string>
+    <string name="reset_pw_success">Password reset. Sending you back to login…</string>
+    <string name="reset_pw_submit">Set new password</string>
+    <string name="verify_no_token">No verification token in this link. Open the page directly from the email we sent.</string>
+    <string name="verify_loading">Verifying…</string>
+    <string name="verify_success">Email verified. Coach and other AI features are now unlocked.</string>
+    <string name="verify_open_app">Open Ultiq</string>
+    <string name="verify_expired_hint">Verification links expire after 24 hours. Sign in and tap Resend verification email from Settings to get a fresh one.</string>
+    <string name="forgot_pw_title">Forgot password</string>
+    <string name="forgot_pw_body">Enter the email tied to your account. We\'ll send a reset link.</string>
+    <string name="forgot_pw_sent">If that email is registered, a reset link is on the way. Check your inbox (and spam) — the link expires in 1 hour.</string>
+    <string name="forgot_pw_paste_title">Reset link not opening the app?</string>
+    <string name="forgot_pw_paste_body">Paste the full link from the email below and tap Continue.</string>
+    <string name="forgot_pw_paste_continue">Continue with pasted link</string>
+    <string name="forgot_pw_sent_btn">Sent</string>
+    <string name="forgot_pw_submit">Send reset link</string>
+
+    <!-- onboarding -->
+    <string name="onboarding_welcome_title">Hi, I\'m Ultiq</string>
+    <string name="onboarding_welcome_body">Your daily companion for sleep, focus, and the in-between. Let\'s get you set up — takes about a minute.</string>
+    <string name="onboarding_sleep_title">When do you sleep best?</string>
+    <string name="onboarding_sleep_body">Pick the times you\'d like to wind down and wake up. We\'ll quietly track how close you get.</string>
+    <string name="onboarding_focus_title">How do you focus?</string>
+    <string name="onboarding_focus_body">Pick your default focus block length. Tweak it anytime — this is just a starting point.</string>
+    <string name="onboarding_perms_title">A few permissions</string>
+    <string name="onboarding_perms_body">All optional — Ultiq just works better with them on. Tap any row to grant.</string>
+    <string name="onboarding_perm_reminders_desc">Bedtime nudges, focus prompts, weekly summaries</string>
+    <string name="onboarding_perm_usage_title">Phone usage</string>
+    <string name="onboarding_perm_usage_desc">Lets Ultiq count phone pickups during sleep + focus</string>
+    <string name="onboarding_perm_overlay_desc">Lets the lockout take over the screen during focus sessions</string>
+    <string name="onboarding_perm_overlay_hint">If the toggle is grayed out (\"Restricted setting\"), tap the ⋮ menu in App info → Allow restricted settings.</string>
+    <string name="onboarding_perm_alarms_title">Exact alarms</string>
+    <string name="onboarding_perm_alarms_desc">So reminders fire at the right minute, not 15 min later</string>
+    <string name="onboarding_granted">Granted</string>
+    <string name="onboarding_tap_grant">Tap to grant</string>
+    <string name="onboarding_done_title">Pillow\'s ready</string>
+    <string name="onboarding_done_body">You\'re set up. Targets, reminders, and lockout settings are all in Settings whenever you want to adjust.</string>
+    <string name="onboarding_lets_go">Let\'s go</string>
 </resources>

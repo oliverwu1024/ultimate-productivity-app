@@ -967,4 +967,45 @@
     <string name="photo_checking">กำลังตรวจสอบ…</string>
     <string name="photo_preparing">กำลังเตรียม…</string>
     <string name="photo_process_failed">ไม่สามารถประมวลผลเฟรมได้</string>
+
+    <!-- §13.1 Android sweep — auth + onboarding -->
+    <string name="action_continue">ดำเนินการต่อ</string>
+    <string name="auth_back_to_login">กลับไปเข้าสู่ระบบ</string>
+    <string name="reset_pw_title">ตั้งรหัสผ่านใหม่</string>
+    <string name="reset_pw_no_token">ลิงก์รีเซ็ตนี้ไม่มีโทเค็น กรุณาขอส่งอีเมลใหม่อีกครั้ง</string>
+    <string name="reset_pw_success">รีเซ็ตรหัสผ่านแล้ว กำลังพาคุณกลับไปหน้าเข้าสู่ระบบ…</string>
+    <string name="reset_pw_submit">ตั้งรหัสผ่านใหม่</string>
+    <string name="verify_no_token">ลิงก์นี้ไม่มีโทเค็นยืนยัน กรุณาเปิดหน้านี้โดยตรงจากอีเมลที่เราส่งให้</string>
+    <string name="verify_loading">กำลังยืนยัน…</string>
+    <string name="verify_success">ยืนยันอีเมลแล้ว ฟีเจอร์ Coach และ AI อื่น ๆ พร้อมใช้งานแล้ว</string>
+    <string name="verify_open_app">เปิด Ultiq</string>
+    <string name="verify_expired_hint">ลิงก์ยืนยันหมดอายุหลังจาก 24 ชั่วโมง เข้าสู่ระบบแล้วแตะ ส่งอีเมลยืนยันใหม่ ใน การตั้งค่า เพื่อรับลิงก์ใหม่</string>
+    <string name="forgot_pw_title">ลืมรหัสผ่าน</string>
+    <string name="forgot_pw_body">ป้อนอีเมลที่ผูกกับบัญชีของคุณ เราจะส่งลิงก์รีเซ็ตให้</string>
+    <string name="forgot_pw_sent">หากอีเมลนั้นลงทะเบียนไว้ ลิงก์รีเซ็ตกำลังถูกส่งไป ตรวจสอบกล่องจดหมาย (และสแปม) — ลิงก์หมดอายุใน 1 ชั่วโมง</string>
+    <string name="forgot_pw_paste_title">ลิงก์รีเซ็ตไม่เปิดแอปใช่ไหม?</string>
+    <string name="forgot_pw_paste_body">วางลิงก์ทั้งหมดจากอีเมลด้านล่าง แล้วแตะ ดำเนินการต่อ</string>
+    <string name="forgot_pw_paste_continue">ดำเนินการต่อด้วยลิงก์ที่วาง</string>
+    <string name="forgot_pw_sent_btn">ส่งแล้ว</string>
+    <string name="forgot_pw_submit">ส่งลิงก์รีเซ็ต</string>
+    <string name="onboarding_welcome_title">สวัสดี ฉันคือ Ultiq</string>
+    <string name="onboarding_welcome_body">เพื่อนประจำวันของคุณสำหรับการนอน โฟกัส และช่วงเวลาระหว่างนั้น มาตั้งค่ากันสักแป๊บ — ใช้เวลาแค่ประมาณหนึ่งนาที</string>
+    <string name="onboarding_sleep_title">คุณนอนหลับได้ดีที่สุดเมื่อไหร่?</string>
+    <string name="onboarding_sleep_body">เลือกเวลาที่ต้องการเข้านอนและตื่น เราจะค่อย ๆ ติดตามว่าคุณทำได้ใกล้เคียงแค่ไหน</string>
+    <string name="onboarding_focus_title">คุณโฟกัสอย่างไร?</string>
+    <string name="onboarding_focus_body">เลือกความยาวบล็อกโฟกัสเริ่มต้น ปรับได้ตลอดเวลา — นี่เป็นแค่จุดเริ่มต้น</string>
+    <string name="onboarding_perms_title">สิทธิ์การเข้าถึงบางอย่าง</string>
+    <string name="onboarding_perms_body">ทั้งหมดเป็นตัวเลือก — Ultiq ทำงานได้ดีกว่าเมื่อเปิดใช้ แตะแถวใด ๆ เพื่อให้สิทธิ์</string>
+    <string name="onboarding_perm_reminders_desc">การแจ้งเตือนก่อนนอน คำแนะนำโฟกัส สรุปรายสัปดาห์</string>
+    <string name="onboarding_perm_usage_title">การใช้งานโทรศัพท์</string>
+    <string name="onboarding_perm_usage_desc">ให้ Ultiq นับครั้งที่หยิบโทรศัพท์ระหว่างนอนและโฟกัส</string>
+    <string name="onboarding_perm_overlay_desc">ให้การล็อคหน้าจอครอบคลุมหน้าจอระหว่างเซสชันโฟกัส</string>
+    <string name="onboarding_perm_overlay_hint">หากปุ่มสลับเป็นสีเทา (\"Restricted setting\") ให้แตะเมนู ⋮ ใน ข้อมูลแอป → อนุญาตการตั้งค่าที่จำกัด</string>
+    <string name="onboarding_perm_alarms_title">การแจ้งเตือนที่แม่นยำ</string>
+    <string name="onboarding_perm_alarms_desc">เพื่อให้การแจ้งเตือนส่งตรงเวลา ไม่ใช่ช้าไป 15 นาที</string>
+    <string name="onboarding_granted">ให้สิทธิ์แล้ว</string>
+    <string name="onboarding_tap_grant">แตะเพื่อให้สิทธิ์</string>
+    <string name="onboarding_done_title">หมอนพร้อมแล้ว</string>
+    <string name="onboarding_done_body">ตั้งค่าเสร็จแล้ว เป้าหมาย การแจ้งเตือน และการตั้งค่าการล็อคอยู่ใน การตั้งค่า เมื่อคุณต้องการปรับ</string>
+    <string name="onboarding_lets_go">ไปเลย</string>
 </resources>

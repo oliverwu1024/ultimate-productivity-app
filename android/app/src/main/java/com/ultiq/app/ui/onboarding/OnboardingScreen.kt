@@ -66,6 +66,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -74,7 +75,9 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ultiq.app.R
 import com.ultiq.app.ui.theme.MascotSleepingBook
+import com.ultiq.app.util.LocaleManager
 import com.ultiq.app.util.PhoneUsageTracker
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -151,10 +154,10 @@ private fun WelcomeStep() {
     StepContainer {
         MascotSleepingBook(size = 128.dp)
         Spacer(Modifier.height(24.dp))
-        Text("Hi, I'm Ultiq", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.onboarding_welcome_title), style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(8.dp))
         Text(
-            "Your daily companion for sleep, focus, and the in-between. Let's get you set up — takes about a minute.",
+            stringResource(R.string.onboarding_welcome_body),
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -171,18 +174,18 @@ private fun SleepTargetsStep(
 ) {
     StepContainer {
         BigIcon(Icons.Default.Bedtime)
-        Text("When do you sleep best?", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.onboarding_sleep_title), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(8.dp))
         Text(
-            "Pick the times you'd like to wind down and wake up. We'll quietly track how close you get.",
+            stringResource(R.string.onboarding_sleep_body),
             style = MaterialTheme.typography.bodyMedium,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(Modifier.height(24.dp))
-        TimeRow(label = "Target bedtime", time = bedtime, onChange = onBedtimeChange)
+        TimeRow(label = stringResource(R.string.settings_target_bedtime), time = bedtime, onChange = onBedtimeChange)
         Spacer(Modifier.height(12.dp))
-        TimeRow(label = "Target wake time", time = wakeTime, onChange = onWakeChange)
+        TimeRow(label = stringResource(R.string.settings_target_wake), time = wakeTime, onChange = onWakeChange)
     }
 }
 
@@ -193,16 +196,16 @@ private fun FocusPrefsStep(
 ) {
     StepContainer {
         BigIcon(Icons.Default.Timer)
-        Text("How do you focus?", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.onboarding_focus_title), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(8.dp))
         Text(
-            "Pick your default focus block length. Tweak it anytime — this is just a starting point.",
+            stringResource(R.string.onboarding_focus_body),
             style = MaterialTheme.typography.bodyMedium,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(Modifier.height(24.dp))
-        StepperRow(label = "Work", value = work, suffix = "min", step = 5, range = 5..240, onChange = onWorkChange)
+        StepperRow(label = stringResource(R.string.sessions_work), value = work, suffix = stringResource(R.string.unit_min), step = 5, range = 5..240, onChange = onWorkChange)
     }
 }
 
@@ -238,13 +241,13 @@ private fun PermissionsStep() {
     StepContainer {
         BigIcon(Icons.Default.Insights)
         Text(
-            "A few permissions",
+            stringResource(R.string.onboarding_perms_title),
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            "All optional — Ultiq just works better with them on. Tap any row to grant.",
+            stringResource(R.string.onboarding_perms_body),
             style = MaterialTheme.typography.bodyMedium,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -257,8 +260,8 @@ private fun PermissionsStep() {
         ) {
             PermissionRow(
                 icon = Icons.Default.Notifications,
-                label = "Reminders",
-                description = "Bedtime nudges, focus prompts, weekly summaries",
+                label = stringResource(R.string.reminders_title),
+                description = stringResource(R.string.onboarding_perm_reminders_desc),
                 granted = notificationsGranted,
                 onGrant = {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -270,23 +273,23 @@ private fun PermissionsStep() {
             )
             PermissionRow(
                 icon = Icons.Default.Insights,
-                label = "Phone usage",
-                description = "Lets Ultiq count phone pickups during sleep + focus",
+                label = stringResource(R.string.onboarding_perm_usage_title),
+                description = stringResource(R.string.onboarding_perm_usage_desc),
                 granted = usageGranted,
                 onGrant = { PhoneUsageTracker(context).openPermissionSettings() },
             )
             PermissionRow(
                 icon = Icons.Default.PhonelinkLock,
-                label = "Display over other apps",
-                description = "Lets the lockout take over the screen during focus sessions",
+                label = stringResource(R.string.settings_overlay_title),
+                description = stringResource(R.string.onboarding_perm_overlay_desc),
                 granted = overlayGranted,
                 onGrant = { openOverlaySettings(context) },
-                hint = "If the toggle is grayed out (\"Restricted setting\"), tap the ⋮ menu in App info → Allow restricted settings.",
+                hint = stringResource(R.string.onboarding_perm_overlay_hint),
             )
             PermissionRow(
                 icon = Icons.Default.Alarm,
-                label = "Exact alarms",
-                description = "So reminders fire at the right minute, not 15 min later",
+                label = stringResource(R.string.onboarding_perm_alarms_title),
+                description = stringResource(R.string.onboarding_perm_alarms_desc),
                 granted = exactAlarmGranted,
                 onGrant = { openExactAlarmSettings(context) },
             )
@@ -347,7 +350,7 @@ private fun PermissionRow(
                 }
                 Icon(
                     if (granted) Icons.Default.Check else Icons.Default.ChevronRight,
-                    contentDescription = if (granted) "Granted" else "Tap to grant",
+                    contentDescription = if (granted) stringResource(R.string.onboarding_granted) else stringResource(R.string.onboarding_tap_grant),
                     tint = if (granted) MaterialTheme.colorScheme.primary
                         else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -396,10 +399,10 @@ private fun AllSetStep() {
     StepContainer {
         MascotSleepingBook(size = 128.dp)
         Spacer(Modifier.height(24.dp))
-        Text("Pillow's ready", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.onboarding_done_title), style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(8.dp))
         Text(
-            "You're set up. Targets, reminders, and lockout settings are all in Settings whenever you want to adjust.",
+            stringResource(R.string.onboarding_done_body),
             style = MaterialTheme.typography.bodyMedium,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -437,7 +440,7 @@ private fun BigIcon(icon: ImageVector) {
 @Composable
 private fun TimeRow(label: String, time: LocalTime, onChange: (LocalTime) -> Unit) {
     val context = LocalContext.current
-    val fmt = DateTimeFormatter.ofPattern("h:mm a")
+    val fmt = DateTimeFormatter.ofPattern("h:mm a", LocaleManager.currentLocale())
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
@@ -475,7 +478,7 @@ private fun StepperRow(
             IconButton(
                 onClick = { onChange((value - step).coerceAtLeast(range.first)) },
                 enabled = value > range.first,
-            ) { Icon(Icons.Default.Remove, "Decrease") }
+            ) { Icon(Icons.Default.Remove, stringResource(R.string.action_decrease)) }
             Text(
                 "$value $suffix",
                 style = MaterialTheme.typography.titleLarge,
@@ -485,7 +488,7 @@ private fun StepperRow(
             IconButton(
                 onClick = { onChange((value + step).coerceAtMost(range.last)) },
                 enabled = value < range.last,
-            ) { Icon(Icons.Default.Add, "Increase") }
+            ) { Icon(Icons.Default.Add, stringResource(R.string.action_increase)) }
         }
     }
 }
@@ -524,13 +527,13 @@ private fun BottomBar(step: Int, onBack: () -> Unit, onNext: () -> Unit) {
             TextButton(onClick = onBack) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, null, Modifier.size(18.dp))
                 Spacer(Modifier.width(4.dp))
-                Text("Back")
+                Text(stringResource(R.string.action_back))
             }
         } else {
             Spacer(Modifier.width(80.dp))
         }
         Button(onClick = onNext) {
-            Text(if (step == STEP_COUNT - 1) "Let's go" else "Continue")
+            Text(if (step == STEP_COUNT - 1) stringResource(R.string.onboarding_lets_go) else stringResource(R.string.action_continue))
         }
     }
 }

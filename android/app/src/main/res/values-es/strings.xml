@@ -1029,4 +1029,45 @@
     <string name="photo_checking">Verificando…</string>
     <string name="photo_preparing">Preparando…</string>
     <string name="photo_process_failed">No se pudo procesar el fotograma</string>
+
+    <!-- §13.1 Android sweep — auth + onboarding -->
+    <string name="action_continue">Continuar</string>
+    <string name="auth_back_to_login">Volver al inicio de sesión</string>
+    <string name="reset_pw_title">Establecer una nueva contraseña</string>
+    <string name="reset_pw_no_token">Este enlace de restablecimiento no tiene token. Solicita un nuevo correo.</string>
+    <string name="reset_pw_success">Contraseña restablecida. Volviendo al inicio de sesión…</string>
+    <string name="reset_pw_submit">Establecer nueva contraseña</string>
+    <string name="verify_no_token">No hay token de verificación en este enlace. Abre la página directamente desde el correo que enviamos.</string>
+    <string name="verify_loading">Verificando…</string>
+    <string name="verify_success">Correo verificado. El Coach y otras funciones de IA están ahora disponibles.</string>
+    <string name="verify_open_app">Abrir Ultiq</string>
+    <string name="verify_expired_hint">Los enlaces de verificación caducan a las 24 horas. Inicia sesión y toca Reenviar correo de verificación en Ajustes para obtener uno nuevo.</string>
+    <string name="forgot_pw_title">Olvidé mi contraseña</string>
+    <string name="forgot_pw_body">Ingresa el correo de tu cuenta. Te enviaremos un enlace de restablecimiento.</string>
+    <string name="forgot_pw_sent">Si ese correo está registrado, el enlace de restablecimiento está en camino. Revisa tu bandeja de entrada (y spam) — el enlace caduca en 1 hora.</string>
+    <string name="forgot_pw_paste_title">¿El enlace de restablecimiento no abre la app?</string>
+    <string name="forgot_pw_paste_body">Pega el enlace completo del correo abajo y toca Continuar.</string>
+    <string name="forgot_pw_paste_continue">Continuar con el enlace pegado</string>
+    <string name="forgot_pw_sent_btn">Enviado</string>
+    <string name="forgot_pw_submit">Enviar enlace de restablecimiento</string>
+    <string name="onboarding_welcome_title">Hola, soy Ultiq</string>
+    <string name="onboarding_welcome_body">Tu compañero diario para el sueño, la concentración y lo demás. Vamos a configurarte — solo tarda un minuto.</string>
+    <string name="onboarding_sleep_title">¿Cuándo duermes mejor?</string>
+    <string name="onboarding_sleep_body">Elige las horas a las que quieres relajarte y despertar. Registraremos discretamente qué tan cerca llegas.</string>
+    <string name="onboarding_focus_title">¿Cómo te concentras?</string>
+    <string name="onboarding_focus_body">Elige la duración predeterminada de tu bloque de concentración. Ajústalo cuando quieras — es solo un punto de partida.</string>
+    <string name="onboarding_perms_title">Algunos permisos</string>
+    <string name="onboarding_perms_body">Todos opcionales — Ultiq funciona mejor con ellos activados. Toca cualquier fila para conceder.</string>
+    <string name="onboarding_perm_reminders_desc">Recordatorios de hora de dormir, avisos de concentración, resúmenes semanales</string>
+    <string name="onboarding_perm_usage_title">Uso del teléfono</string>
+    <string name="onboarding_perm_usage_desc">Permite a Ultiq contar los desbloqueos del teléfono durante el sueño y la concentración</string>
+    <string name="onboarding_perm_overlay_desc">Permite al bloqueo tomar la pantalla durante las sesiones de concentración</string>
+    <string name="onboarding_perm_overlay_hint">Si el interruptor está atenuado (\"Configuración restringida\"), toca el menú ⋮ en Información de la app → Permitir configuración restringida.</string>
+    <string name="onboarding_perm_alarms_title">Alarmas exactas</string>
+    <string name="onboarding_perm_alarms_desc">Para que los recordatorios suenen en el minuto exacto, no 15 min después</string>
+    <string name="onboarding_granted">Concedido</string>
+    <string name="onboarding_tap_grant">Toca para conceder</string>
+    <string name="onboarding_done_title">La almohada está lista</string>
+    <string name="onboarding_done_body">Ya estás configurado. Las metas, recordatorios y ajustes de bloqueo están en Ajustes cuando quieras cambiarlos.</string>
+    <string name="onboarding_lets_go">Vamos</string>
 </resources>

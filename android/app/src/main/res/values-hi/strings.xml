@@ -998,4 +998,45 @@
     <string name="photo_checking">जाँच हो रही है…</string>
     <string name="photo_preparing">तैयार हो रहा है…</string>
     <string name="photo_process_failed">फ्रेम प्रोसेस नहीं हो सका</string>
+
+    <!-- §13.1 Android sweep — auth + onboarding -->
+    <string name="action_continue">जारी रखें</string>
+    <string name="auth_back_to_login">लॉगिन पर वापस</string>
+    <string name="reset_pw_title">नया पासवर्ड सेट करें</string>
+    <string name="reset_pw_no_token">इस रीसेट लिंक में टोकन नहीं है। कृपया नया ईमेल अनुरोध करें।</string>
+    <string name="reset_pw_success">पासवर्ड रीसेट हो गया। लॉगिन पर वापस भेज रहे हैं…</string>
+    <string name="reset_pw_submit">नया पासवर्ड सेट करें</string>
+    <string name="verify_no_token">इस लिंक में कोई सत्यापन टोकन नहीं है। हमारे भेजे ईमेल से सीधे पेज खोलें।</string>
+    <string name="verify_loading">सत्यापित हो रहा है…</string>
+    <string name="verify_success">ईमेल सत्यापित हो गया। Coach और अन्य AI सुविधाएं अब अनलॉक हैं।</string>
+    <string name="verify_open_app">Ultiq खोलें</string>
+    <string name="verify_expired_hint">सत्यापन लिंक 24 घंटे बाद समाप्त होते हैं। साइन इन करें और Settings में Resend verification email टैप करके नया लिंक पाएं।</string>
+    <string name="forgot_pw_title">पासवर्ड भूल गए</string>
+    <string name="forgot_pw_body">अपने खाते से जुड़ा ईमेल दर्ज करें। हम एक रीसेट लिंक भेजेंगे।</string>
+    <string name="forgot_pw_sent">यदि वह ईमेल पंजीकृत है, तो रीसेट लिंक रास्ते में है। अपना इनबॉक्स (और स्पैम) जांचें — लिंक 1 घंटे में समाप्त हो जाता है।</string>
+    <string name="forgot_pw_paste_title">रीसेट लिंक ऐप नहीं खोल रहा?</string>
+    <string name="forgot_pw_paste_body">ईमेल का पूरा लिंक नीचे पेस्ट करें और Continue टैप करें।</string>
+    <string name="forgot_pw_paste_continue">पेस्ट किए लिंक से जारी रखें</string>
+    <string name="forgot_pw_sent_btn">भेजा गया</string>
+    <string name="forgot_pw_submit">रीसेट लिंक भेजें</string>
+    <string name="onboarding_welcome_title">नमस्ते, मैं Ultiq हूं</string>
+    <string name="onboarding_welcome_body">नींद, फोकस और बीच-बीच के लिए आपका रोज़ का साथी। सेटअप करते हैं — बस एक मिनट लगेगा।</string>
+    <string name="onboarding_sleep_title">आप सबसे अच्छी नींद कब लेते हैं?</string>
+    <string name="onboarding_sleep_body">वह समय चुनें जब आप सोना और उठना चाहते हैं। हम चुपचाप ट्रैक करेंगे कि आप कितने करीब पहुंचते हैं।</string>
+    <string name="onboarding_focus_title">आप फोकस कैसे करते हैं?</string>
+    <string name="onboarding_focus_body">अपना डिफ़ॉल्ट फोकस ब्लॉक समय चुनें। कभी भी बदलें — यह सिर्फ शुरुआती बिंदु है।</string>
+    <string name="onboarding_perms_title">कुछ अनुमतियां</string>
+    <string name="onboarding_perms_body">सब वैकल्पिक हैं — Ultiq इनके साथ बेहतर काम करता है। देने के लिए किसी भी पंक्ति को टैप करें।</string>
+    <string name="onboarding_perm_reminders_desc">सोने के संकेत, फोकस प्रॉम्प्ट, साप्ताहिक सारांश</string>
+    <string name="onboarding_perm_usage_title">फ़ोन उपयोग</string>
+    <string name="onboarding_perm_usage_desc">Ultiq को नींद + फोकस के दौरान फ़ोन उठाने की गिनती करने देता है</string>
+    <string name="onboarding_perm_overlay_desc">फोकस सत्र के दौरान lockout को स्क्रीन पर छा जाने देता है</string>
+    <string name="onboarding_perm_overlay_hint">यदि टॉगल धुंधला है (\"Restricted setting\"), तो App info में ⋮ मेनू टैप करें → Allow restricted settings।</string>
+    <string name="onboarding_perm_alarms_title">सटीक अलार्म</string>
+    <string name="onboarding_perm_alarms_desc">ताकि रिमाइंडर सही मिनट पर बजें, 15 मिनट बाद नहीं</string>
+    <string name="onboarding_granted">दी गई</string>
+    <string name="onboarding_tap_grant">देने के लिए टैप करें</string>
+    <string name="onboarding_done_title">तैयार हो गए</string>
+    <string name="onboarding_done_body">सेटअप पूरा। लक्ष्य, रिमाइंडर और lockout Settings में जब चाहें बदलें।</string>
+    <string name="onboarding_lets_go">चलिए शुरू करें</string>
 </resources>
