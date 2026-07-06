@@ -865,4 +865,69 @@
     <plurals name="reports_unit_sessions">
         <item quantity="other">%1$d 場</item>
     </plurals>
+
+    <!-- §13.1 Android sweep — sessions -->
+    <string name="sessions_title">專注</string>
+    <string name="sessions_focus_prefs">專注偏好設定</string>
+    <string name="sessions_focus_prefs_hint">點擊右上角的「偏好設定」以設定預設工作時長和鎖定偏好。</string>
+    <string name="sessions_usage_banner">啟用使用記錄存取以追蹤分心情況</string>
+    <string name="sessions_enable">啟用</string>
+    <string name="sessions_none_week">本週及上週沒有專注記錄。</string>
+    <string name="sessions_none_month">本月及上月沒有專注記錄。</string>
+    <string name="sessions_focus_today">今日專注</string>
+    <string name="sessions_streak">連續天數</string>
+    <string name="sessions_pickups">拿取次數</string>
+    <string name="sessions_focus_phase">專注</string>
+    <string name="sessions_tag_hint">標籤（如：LeetCode、讀書）</string>
+    <string name="sessions_work">工作</string>
+    <string name="sessions_start">開始專注</string>
+    <string name="sessions_no_checklist_items">今天沒有待辦事項——前往清單新增</string>
+    <string name="sessions_pick_checklist">從今日清單選取（%1$d）</string>
+    <string name="sessions_from_checklist">來自清單（可選）</string>
+    <string name="sessions_custom_tag">（輸入自訂標籤）</string>
+    <string name="sessions_mark_done_title">標記為已完成？</string>
+    <string name="action_yes">是</string>
+    <string name="action_no">否</string>
+    <string name="sessions_off">關閉</string>
+    <string name="sessions_pause">暫停</string>
+    <string name="sessions_resume">繼續</string>
+    <string name="sessions_complete">完成專注</string>
+    <string name="sessions_delete_title">刪除記錄？</string>
+    <string name="sessions_delete_body">將永久刪除 \'%1$s\'。</string>
+    <string name="sessions_detail_time">時間</string>
+    <string name="sessions_detail_plan">計劃</string>
+    <string name="sessions_detail_task">連結任務</string>
+    <string name="sessions_not_synced">未同步</string>
+    <string name="sessions_plan_work_break">%1$dm 工作 / %2$dm 休息</string>
+    <string name="sessions_plan_planned">計劃 %1$dm</string>
+    <string name="sessions_phone_pickups">拿起手機</string>
+    <string name="sessions_pickup_row">#%1$d 於 %2$s</string>
+    <string name="sessions_debrief_title">你做了什麼？</string>
+    <string name="sessions_debrief_hint">例：cs61a problem set 3</string>
+    <string name="sessions_debrief_count">%1$d / 240</string>
+    <string name="sessions_tagging">標記中…</string>
+    <string name="sessions_tagged_as">已標記為 %1$s</string>
+    <string name="sessions_done">完成</string>
+    <string name="sessions_pref_work_title">預設工作時長</string>
+    <string name="sessions_pref_work_desc">單次專注區塊的時長</string>
+    <string name="sessions_pref_lockout_title">專注時鎖定</string>
+    <string name="sessions_pref_lockout_desc">專注時每次解鎖都顯示確認畫面</string>
+    <string name="sessions_pref_unlockcount_title">顯示解鎖次數</string>
+    <string name="sessions_pref_unlockcount_desc">顯示目前專注期間的解鎖次數</string>
+    <string name="sessions_pref_endlockout_title">允許從鎖定畫面結束專注</string>
+    <string name="sessions_pref_endlockout_desc">在鎖定畫面顯示 \'提前結束\' 連結</string>
+    <string name="sessions_pref_break_title">手機休息時長</string>
+    <string name="sessions_pref_break_desc">專注時點擊 \'是，我需要手機\' 後的靜默時段</string>
+    <string name="sessions_err_tag">請輸入標籤以開始</string>
+    <string name="sessions_err_sleep_active">請先結束睡眠記錄再開始專注</string>
+    <string name="sessions_err_start">無法開始專注，請再試一次。</string>
+    <string name="sessions_err_ai_limit">已達每日 AI 限制——明天再試</string>
+    <string name="sessions_err_debrief_text">無法處理該文字</string>
+    <string name="sessions_err_debrief">無法標記專注記錄</string>
+    <plurals name="sessions_streak_days">
+        <item quantity="other">%1$d 天</item>
+    </plurals>
+    <plurals name="sessions_distractions">
+        <item quantity="other">%1$d 次分心</item>
+    </plurals>
 </resources>

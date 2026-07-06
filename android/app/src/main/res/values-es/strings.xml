@@ -923,4 +923,73 @@
         <item quantity="many">%1$d sesiones</item>
         <item quantity="other">%1$d sesiones</item>
     </plurals>
+
+    <!-- §13.1 Android sweep — sessions -->
+    <string name="sessions_title">Enfoque</string>
+    <string name="sessions_focus_prefs">Preferencias de enfoque</string>
+    <string name="sessions_focus_prefs_hint">Toca Preferencias en la esquina superior derecha para establecer la duración de trabajo predeterminada y las preferencias de bloqueo.</string>
+    <string name="sessions_usage_banner">Activa el acceso de uso para rastrear distracciones</string>
+    <string name="sessions_enable">Activar</string>
+    <string name="sessions_none_week">Sin sesiones de enfoque esta semana ni la anterior.</string>
+    <string name="sessions_none_month">Sin sesiones de enfoque este mes ni el anterior.</string>
+    <string name="sessions_focus_today">Enfoque de hoy</string>
+    <string name="sessions_streak">Racha</string>
+    <string name="sessions_pickups">Desbloqueos</string>
+    <string name="sessions_focus_phase">ENFOQUE</string>
+    <string name="sessions_tag_hint">Etiqueta (p. ej. LeetCode, Estudio)</string>
+    <string name="sessions_work">Trabajo</string>
+    <string name="sessions_start">Iniciar enfoque</string>
+    <string name="sessions_no_checklist_items">Sin elementos para hoy — agrega algunos en Lista de tareas</string>
+    <string name="sessions_pick_checklist">Elegir de la lista de hoy (%1$d)</string>
+    <string name="sessions_from_checklist">De la lista de tareas (opcional)</string>
+    <string name="sessions_custom_tag">(escribe una etiqueta personalizada)</string>
+    <string name="sessions_mark_done_title">¿Marcar como completado?</string>
+    <string name="action_yes">Sí</string>
+    <string name="action_no">No</string>
+    <string name="sessions_off">ninguno</string>
+    <string name="sessions_pause">Pausar</string>
+    <string name="sessions_resume">Reanudar</string>
+    <string name="sessions_complete">Completar sesión</string>
+    <string name="sessions_delete_title">¿Eliminar sesión?</string>
+    <string name="sessions_delete_body">Esto eliminará permanentemente \'%1$s\'.</string>
+    <string name="sessions_detail_time">Hora</string>
+    <string name="sessions_detail_plan">Plan</string>
+    <string name="sessions_detail_task">Tarea vinculada</string>
+    <string name="sessions_not_synced">Sin sincronizar</string>
+    <string name="sessions_plan_work_break">%1$dm trabajo / %2$dm descanso</string>
+    <string name="sessions_plan_planned">%1$dm planificados</string>
+    <string name="sessions_phone_pickups">Desbloqueos del teléfono</string>
+    <string name="sessions_pickup_row">#%1$d a las %2$s</string>
+    <string name="sessions_debrief_title">¿En qué trabajaste?</string>
+    <string name="sessions_debrief_hint">p. ej. cs61a problem set 3</string>
+    <string name="sessions_debrief_count">%1$d / 240</string>
+    <string name="sessions_tagging">Etiquetando…</string>
+    <string name="sessions_tagged_as">Etiquetado como %1$s</string>
+    <string name="sessions_done">Listo</string>
+    <string name="sessions_pref_work_title">Duración de trabajo predeterminada</string>
+    <string name="sessions_pref_work_desc">Duración de un bloque de enfoque</string>
+    <string name="sessions_pref_lockout_title">Bloqueo durante sesiones de enfoque</string>
+    <string name="sessions_pref_lockout_desc">Muestra una pantalla de confirmación cada vez que desbloquees durante una sesión de enfoque</string>
+    <string name="sessions_pref_unlockcount_title">Mostrar recuento de desbloqueos</string>
+    <string name="sessions_pref_unlockcount_desc">Muestra cuántas veces has desbloqueado el teléfono durante la sesión activa</string>
+    <string name="sessions_pref_endlockout_title">Permitir finalizar sesión desde el bloqueo</string>
+    <string name="sessions_pref_endlockout_desc">Muestra un enlace \'Finalizar sesión antes\' en la pantalla de bloqueo</string>
+    <string name="sessions_pref_break_title">Duración del descanso del teléfono</string>
+    <string name="sessions_pref_break_desc">Ventana de pausa tras tocar \'Sí, necesito mi teléfono\' durante una sesión de enfoque</string>
+    <string name="sessions_err_tag">Ingresa una etiqueta para comenzar</string>
+    <string name="sessions_err_sleep_active">Termina tu sesión de sueño antes de iniciar una sesión de enfoque</string>
+    <string name="sessions_err_start">No se pudo iniciar la sesión. Inténtalo de nuevo.</string>
+    <string name="sessions_err_ai_limit">Límite diario de IA alcanzado — vuelve mañana</string>
+    <string name="sessions_err_debrief_text">No se pudo procesar ese texto</string>
+    <string name="sessions_err_debrief">No se pudo etiquetar la sesión</string>
+    <plurals name="sessions_streak_days">
+        <item quantity="one">%1$d día</item>
+        <item quantity="many">%1$d días</item>
+        <item quantity="other">%1$d días</item>
+    </plurals>
+    <plurals name="sessions_distractions">
+        <item quantity="one">%1$d distracción</item>
+        <item quantity="many">%1$d distracciones</item>
+        <item quantity="other">%1$d distracciones</item>
+    </plurals>
 </resources>

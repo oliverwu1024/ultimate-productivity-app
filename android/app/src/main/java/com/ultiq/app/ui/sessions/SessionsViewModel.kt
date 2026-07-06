@@ -6,6 +6,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.gson.JsonObject
+import com.ultiq.app.R
 import com.ultiq.app.data.local.AppDatabase
 import com.ultiq.app.data.local.entity.ChecklistEntity
 import com.ultiq.app.data.local.entity.SessionEntity
@@ -413,12 +414,12 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
     fun startSession() {
         val state = _uiState.value
         if (state.tag.isBlank()) {
-            _uiState.value = state.copy(error = "Enter a tag to start")
+            _uiState.value = state.copy(error = getApplication<Application>().getString(R.string.sessions_err_tag))
             return
         }
         if (SleepTrackingService.isRunning.value) {
             _uiState.value = state.copy(
-                error = "End your sleep session before starting a focus session",
+                error = getApplication<Application>().getString(R.string.sessions_err_sleep_active),
             )
             return
         }
@@ -446,7 +447,7 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
             result.onSuccess { session ->
                 currentSessionId = session.id
             }.onFailure {
-                _uiState.value = _uiState.value.copy(error = it.toUserMessage("Couldn't start session. Try again."))
+                _uiState.value = _uiState.value.copy(error = it.toUserMessage(getApplication<Application>().getString(R.string.sessions_err_start)))
             }
         }
 
@@ -718,16 +719,16 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
                 )
             } catch (e: retrofit2.HttpException) {
                 val msg = when (e.code()) {
-                    429 -> "Daily AI limit reached — back tomorrow"
-                    400 -> "Couldn't process that text"
-                    else -> "Couldn't tag the session"
+                    429 -> getApplication<Application>().getString(R.string.sessions_err_ai_limit)
+                    400 -> getApplication<Application>().getString(R.string.sessions_err_debrief_text)
+                    else -> getApplication<Application>().getString(R.string.sessions_err_debrief)
                 }
                 _uiState.value = _uiState.value.copy(
                     debriefPrompt = cur.copy(submitState = DebriefSubmitState.Error(msg)),
                 )
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
-                    debriefPrompt = cur.copy(submitState = DebriefSubmitState.Error("Couldn't tag the session")),
+                    debriefPrompt = cur.copy(submitState = DebriefSubmitState.Error(getApplication<Application>().getString(R.string.sessions_err_debrief))),
                 )
             }
         }

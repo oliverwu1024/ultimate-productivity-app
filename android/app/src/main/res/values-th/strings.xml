@@ -865,4 +865,69 @@
     <plurals name="reports_unit_sessions">
         <item quantity="other">%1$d เซสชัน</item>
     </plurals>
+
+    <!-- §13.1 Android sweep — sessions -->
+    <string name="sessions_title">โฟกัส</string>
+    <string name="sessions_focus_prefs">การตั้งค่าโฟกัส</string>
+    <string name="sessions_focus_prefs_hint">แตะ การตั้งค่า ที่มุมขวาบนเพื่อกำหนดระยะเวลาทำงานเริ่มต้นและการตั้งค่าล็อกเอาต์</string>
+    <string name="sessions_usage_banner">เปิดใช้การเข้าถึงการใช้งานเพื่อติดตามสิ่งรบกวน</string>
+    <string name="sessions_enable">เปิดใช้</string>
+    <string name="sessions_none_week">ไม่มีเซสชันโฟกัสสัปดาห์นี้หรือสัปดาห์ที่แล้ว</string>
+    <string name="sessions_none_month">ไม่มีเซสชันโฟกัสเดือนนี้หรือเดือนที่แล้ว</string>
+    <string name="sessions_focus_today">โฟกัสวันนี้</string>
+    <string name="sessions_streak">ต่อเนื่อง</string>
+    <string name="sessions_pickups">หยิบโทรศัพท์</string>
+    <string name="sessions_focus_phase">โฟกัส</string>
+    <string name="sessions_tag_hint">แท็ก (เช่น LeetCode, เรียน)</string>
+    <string name="sessions_work">ทำงาน</string>
+    <string name="sessions_start">เริ่มโฟกัส</string>
+    <string name="sessions_no_checklist_items">ไม่มีรายการวันนี้ — เพิ่มใน Checklist</string>
+    <string name="sessions_pick_checklist">เลือกจากรายการวันนี้ (%1$d)</string>
+    <string name="sessions_from_checklist">จาก Checklist (ไม่บังคับ)</string>
+    <string name="sessions_custom_tag">(พิมพ์แท็กเอง)</string>
+    <string name="sessions_mark_done_title">ทำเครื่องหมายว่าเสร็จแล้ว?</string>
+    <string name="action_yes">ใช่</string>
+    <string name="action_no">ไม่</string>
+    <string name="sessions_off">ปิด</string>
+    <string name="sessions_pause">หยุดชั่วคราว</string>
+    <string name="sessions_resume">ดำเนินต่อ</string>
+    <string name="sessions_complete">จบเซสชัน</string>
+    <string name="sessions_delete_title">ลบเซสชัน?</string>
+    <string name="sessions_delete_body">การดำเนินการนี้จะลบ \'%1$s\' อย่างถาวร</string>
+    <string name="sessions_detail_time">เวลา</string>
+    <string name="sessions_detail_plan">แผน</string>
+    <string name="sessions_detail_task">งานที่เชื่อมโยง</string>
+    <string name="sessions_not_synced">ไม่ได้ซิงค์</string>
+    <string name="sessions_plan_work_break">%1$dm ทำงาน / %2$dm พัก</string>
+    <string name="sessions_plan_planned">วางแผน %1$dm</string>
+    <string name="sessions_phone_pickups">การหยิบโทรศัพท์</string>
+    <string name="sessions_pickup_row">#%1$d เวลา %2$s</string>
+    <string name="sessions_debrief_title">คุณทำงานอะไรบ้าง?</string>
+    <string name="sessions_debrief_hint">เช่น cs61a problem set 3</string>
+    <string name="sessions_debrief_count">%1$d / 240</string>
+    <string name="sessions_tagging">กำลังแท็ก…</string>
+    <string name="sessions_tagged_as">แท็กเป็น %1$s</string>
+    <string name="sessions_done">เสร็จ</string>
+    <string name="sessions_pref_work_title">ระยะเวลาทำงานเริ่มต้น</string>
+    <string name="sessions_pref_work_desc">ความยาวของช่วงโฟกัสหนึ่งช่วง</string>
+    <string name="sessions_pref_lockout_title">ล็อกเอาต์ระหว่างเซสชันโฟกัส</string>
+    <string name="sessions_pref_lockout_desc">แสดงหน้าจอยืนยันทุกครั้งที่คุณปลดล็อกระหว่างเซสชันโฟกัส</string>
+    <string name="sessions_pref_unlockcount_title">แสดงจำนวนครั้งที่ปลดล็อก</string>
+    <string name="sessions_pref_unlockcount_desc">แสดงจำนวนครั้งที่คุณปลดล็อกระหว่างเซสชันที่ใช้งานอยู่</string>
+    <string name="sessions_pref_endlockout_title">อนุญาตให้จบเซสชันจากหน้าล็อกเอาต์</string>
+    <string name="sessions_pref_endlockout_desc">แสดงลิงก์ \'จบเซสชันก่อนกำหนด\' บนหน้าจอล็อกเอาต์</string>
+    <string name="sessions_pref_break_title">ระยะเวลาหยุดพักโทรศัพท์ระหว่างโฟกัส</string>
+    <string name="sessions_pref_break_desc">ช่วงเวลาเงียบหลังจากแตะ \'ใช่ ฉันต้องการโทรศัพท์\' ระหว่างเซสชันโฟกัส</string>
+    <string name="sessions_err_tag">ป้อนแท็กเพื่อเริ่ม</string>
+    <string name="sessions_err_sleep_active">จบเซสชันการนอนก่อนเริ่มเซสชันโฟกัส</string>
+    <string name="sessions_err_start">ไม่สามารถเริ่มเซสชันได้ ลองใหม่อีกครั้ง</string>
+    <string name="sessions_err_ai_limit">ถึงขีดจำกัด AI รายวันแล้ว — กลับมาพรุ่งนี้</string>
+    <string name="sessions_err_debrief_text">ไม่สามารถประมวลผลข้อความนั้นได้</string>
+    <string name="sessions_err_debrief">ไม่สามารถแท็กเซสชันได้</string>
+    <plurals name="sessions_streak_days">
+        <item quantity="other">%1$d วัน</item>
+    </plurals>
+    <plurals name="sessions_distractions">
+        <item quantity="other">%1$d สิ่งรบกวน</item>
+    </plurals>
 </resources>

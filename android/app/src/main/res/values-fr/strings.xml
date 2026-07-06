@@ -923,4 +923,73 @@
         <item quantity="many">%1$d sessions</item>
         <item quantity="other">%1$d sessions</item>
     </plurals>
+
+    <!-- §13.1 Android sweep — sessions -->
+    <string name="sessions_title">Focus</string>
+    <string name="sessions_focus_prefs">Préférences Focus</string>
+    <string name="sessions_focus_prefs_hint">Appuyez sur Préférences en haut à droite pour définir votre durée de travail par défaut et vos préférences de verrouillage.</string>
+    <string name="sessions_usage_banner">Activer l\'accès à l\'utilisation pour suivre les distractions</string>
+    <string name="sessions_enable">Activer</string>
+    <string name="sessions_none_week">Aucune session Focus cette semaine ni la semaine dernière.</string>
+    <string name="sessions_none_month">Aucune session Focus ce mois-ci ni le mois dernier.</string>
+    <string name="sessions_focus_today">Focus aujourd\'hui</string>
+    <string name="sessions_streak">Série</string>
+    <string name="sessions_pickups">Reprises</string>
+    <string name="sessions_focus_phase">ACTIF</string>
+    <string name="sessions_tag_hint">Étiquette (ex. : LeetCode, Révision)</string>
+    <string name="sessions_work">Travail</string>
+    <string name="sessions_start">Démarrer la session</string>
+    <string name="sessions_no_checklist_items">Aucun élément aujourd\'hui — ajoutez-en dans la liste</string>
+    <string name="sessions_pick_checklist">Choisir dans la liste d\'aujourd\'hui (%1$d)</string>
+    <string name="sessions_from_checklist">Depuis la liste (facultatif)</string>
+    <string name="sessions_custom_tag">(saisir une étiquette personnalisée)</string>
+    <string name="sessions_mark_done_title">Marquer comme terminé ?</string>
+    <string name="action_yes">Oui</string>
+    <string name="action_no">Non</string>
+    <string name="sessions_off">désactivé</string>
+    <string name="sessions_pause">Pause</string>
+    <string name="sessions_resume">Reprendre</string>
+    <string name="sessions_complete">Terminer la session</string>
+    <string name="sessions_delete_title">Supprimer la session ?</string>
+    <string name="sessions_delete_body">Ceci supprimera définitivement \'%1$s\'.</string>
+    <string name="sessions_detail_time">Heure</string>
+    <string name="sessions_detail_plan">Plan</string>
+    <string name="sessions_detail_task">Tâche liée</string>
+    <string name="sessions_not_synced">Non synchronisé</string>
+    <string name="sessions_plan_work_break">%1$dm travail / %2$dm pause</string>
+    <string name="sessions_plan_planned">%1$dm planifié</string>
+    <string name="sessions_phone_pickups">Prises de téléphone</string>
+    <string name="sessions_pickup_row">#%1$d à %2$s</string>
+    <string name="sessions_debrief_title">Sur quoi avez-vous travaillé ?</string>
+    <string name="sessions_debrief_hint">ex. : cs61a problem set 3</string>
+    <string name="sessions_debrief_count">%1$d / 240</string>
+    <string name="sessions_tagging">Étiquetage…</string>
+    <string name="sessions_tagged_as">Étiqueté comme %1$s</string>
+    <string name="sessions_done">Terminé</string>
+    <string name="sessions_pref_work_title">Durée de travail par défaut</string>
+    <string name="sessions_pref_work_desc">Durée d\'un bloc de concentration</string>
+    <string name="sessions_pref_lockout_title">Verrouillage pendant la session</string>
+    <string name="sessions_pref_lockout_desc">Afficher un écran de confirmation à chaque déverrouillage pendant une session de concentration</string>
+    <string name="sessions_pref_unlockcount_title">Afficher le nombre de déverrouillages</string>
+    <string name="sessions_pref_unlockcount_desc">Afficher combien de fois vous avez déverrouillé l\'écran pendant la session active</string>
+    <string name="sessions_pref_endlockout_title">Autoriser la fin depuis l\'écran de verrouillage</string>
+    <string name="sessions_pref_endlockout_desc">Afficher un lien \'Terminer tôt\' sur l\'écran de verrouillage</string>
+    <string name="sessions_pref_break_title">Durée de pause téléphone</string>
+    <string name="sessions_pref_break_desc">Fenêtre de calme après avoir appuyé sur \'Oui, j\'ai besoin de mon téléphone\' pendant une session</string>
+    <string name="sessions_err_tag">Saisir une étiquette pour commencer</string>
+    <string name="sessions_err_sleep_active">Terminez votre session de sommeil avant de démarrer une session Focus</string>
+    <string name="sessions_err_start">Impossible de démarrer la session. Réessayez.</string>
+    <string name="sessions_err_ai_limit">Limite IA quotidienne atteinte — revenez demain</string>
+    <string name="sessions_err_debrief_text">Impossible de traiter ce texte</string>
+    <string name="sessions_err_debrief">Impossible d\'étiqueter la session</string>
+    <plurals name="sessions_streak_days">
+        <item quantity="one">%1$d jour</item>
+        <item quantity="many">%1$d jours</item>
+        <item quantity="other">%1$d jours</item>
+    </plurals>
+    <plurals name="sessions_distractions">
+        <item quantity="one">%1$d distraction</item>
+        <item quantity="many">%1$d distractions</item>
+        <item quantity="other">%1$d distractions</item>
+    </plurals>
 </resources>

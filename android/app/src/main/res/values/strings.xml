@@ -933,4 +933,78 @@
         <item quantity="one">%1$d session</item>
         <item quantity="other">%1$d sessions</item>
     </plurals>
+
+    <!-- §13.1 Android sweep — sessions -->
+    <!-- SessionsScreen -->
+    <string name="sessions_title">Focus</string>
+    <string name="sessions_focus_prefs">Focus preferences</string>
+    <string name="sessions_focus_prefs_hint">Tap Preferences in the top right to set your default work duration and lockout preferences.</string>
+    <string name="sessions_usage_banner">Enable Usage Access to track distractions</string>
+    <string name="sessions_enable">Enable</string>
+    <string name="sessions_none_week">No focus sessions this week or last week.</string>
+    <string name="sessions_none_month">No focus sessions this month or last month.</string>
+    <string name="sessions_focus_today">Focus Today</string>
+    <string name="sessions_streak">Streak</string>
+    <string name="sessions_pickups">Pickups</string>
+    <string name="sessions_focus_phase">FOCUS</string>
+    <string name="sessions_tag_hint">Tag (e.g. LeetCode, Study)</string>
+    <string name="sessions_work">Work</string>
+    <string name="sessions_start">Start Focus</string>
+    <string name="sessions_no_checklist_items">No items for today — add some in Checklist</string>
+    <string name="sessions_pick_checklist">Pick from today\'s checklist (%1$d)</string>
+    <string name="sessions_from_checklist">From checklist (optional)</string>
+    <string name="sessions_custom_tag">(type a custom tag)</string>
+    <string name="sessions_mark_done_title">Mark as done?</string>
+    <string name="action_yes">Yes</string>
+    <string name="action_no">No</string>
+    <string name="sessions_off">off</string>
+    <string name="sessions_pause">Pause</string>
+    <string name="sessions_resume">Resume</string>
+    <string name="sessions_complete">Complete Session</string>
+    <string name="sessions_delete_title">Delete session?</string>
+    <string name="sessions_delete_body">This will permanently remove \'%1$s\'.</string>
+    <string name="sessions_detail_time">Time</string>
+    <string name="sessions_detail_plan">Plan</string>
+    <string name="sessions_detail_task">Linked task</string>
+    <string name="sessions_not_synced">Not synced</string>
+    <string name="sessions_plan_work_break">%1$dm work / %2$dm break</string>
+    <string name="sessions_plan_planned">%1$dm planned</string>
+    <string name="sessions_phone_pickups">Phone pickups</string>
+    <string name="sessions_pickup_row">#%1$d at %2$s</string>
+    <string name="sessions_debrief_title">What did you work on?</string>
+    <string name="sessions_debrief_hint">e.g. cs61a problem set 3</string>
+    <string name="sessions_debrief_count">%1$d / 240</string>
+    <string name="sessions_tagging">Tagging…</string>
+    <string name="sessions_tagged_as">Tagged as %1$s</string>
+    <string name="sessions_done">Done</string>
+
+    <!-- FocusSettingsScreen -->
+    <string name="sessions_pref_work_title">Default work duration</string>
+    <string name="sessions_pref_work_desc">Length of one focus block</string>
+    <string name="sessions_pref_lockout_title">Lockout during focus sessions</string>
+    <string name="sessions_pref_lockout_desc">Pop a confirmation screen each time you unlock during a focus session</string>
+    <string name="sessions_pref_unlockcount_title">Show unlock count</string>
+    <string name="sessions_pref_unlockcount_desc">Display how many times you\'ve unlocked during the active session</string>
+    <string name="sessions_pref_endlockout_title">Allow ending session from lockout</string>
+    <string name="sessions_pref_endlockout_desc">Show an \'End session early\' link on the lockout screen</string>
+    <string name="sessions_pref_break_title">Focus phone-break duration</string>
+    <string name="sessions_pref_break_desc">Quiet window after tapping \'Yes, I need my phone\' during a focus session</string>
+
+    <!-- SessionsViewModel -->
+    <string name="sessions_err_tag">Enter a tag to start</string>
+    <string name="sessions_err_sleep_active">End your sleep session before starting a focus session</string>
+    <string name="sessions_err_start">Couldn\'t start session. Try again.</string>
+    <string name="sessions_err_ai_limit">Daily AI limit reached — back tomorrow</string>
+    <string name="sessions_err_debrief_text">Couldn\'t process that text</string>
+    <string name="sessions_err_debrief">Couldn\'t tag the session</string>
+
+    <!-- plurals -->
+    <plurals name="sessions_streak_days">
+        <item quantity="one">%1$d day</item>
+        <item quantity="other">%1$d days</item>
+    </plurals>
+    <plurals name="sessions_distractions">
+        <item quantity="one">%1$d distraction</item>
+        <item quantity="other">%1$d distractions</item>
+    </plurals>
 </resources>

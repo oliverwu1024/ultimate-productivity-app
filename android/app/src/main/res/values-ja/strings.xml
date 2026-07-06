@@ -865,4 +865,69 @@
     <plurals name="reports_unit_sessions">
         <item quantity="other">%1$d セッション</item>
     </plurals>
+
+    <!-- §13.1 Android sweep — sessions -->
+    <string name="sessions_title">フォーカス</string>
+    <string name="sessions_focus_prefs">フォーカス設定</string>
+    <string name="sessions_focus_prefs_hint">右上の「設定」をタップして、デフォルトの作業時間とロックアウト設定を変更できます。</string>
+    <string name="sessions_usage_banner">気散りを追跡するには使用状況アクセスを有効にしてください</string>
+    <string name="sessions_enable">有効にする</string>
+    <string name="sessions_none_week">今週・先週のフォーカスセッションはありません。</string>
+    <string name="sessions_none_month">今月・先月のフォーカスセッションはありません。</string>
+    <string name="sessions_focus_today">今日のフォーカス</string>
+    <string name="sessions_streak">連続</string>
+    <string name="sessions_pickups">スマホ確認</string>
+    <string name="sessions_focus_phase">集中中</string>
+    <string name="sessions_tag_hint">タグ（例: LeetCode、学習）</string>
+    <string name="sessions_work">作業</string>
+    <string name="sessions_start">フォーカス開始</string>
+    <string name="sessions_no_checklist_items">今日の項目なし — チェックリストで追加してください</string>
+    <string name="sessions_pick_checklist">今日のチェックリストから選択 (%1$d)</string>
+    <string name="sessions_from_checklist">チェックリストから（任意）</string>
+    <string name="sessions_custom_tag">（カスタムタグを入力）</string>
+    <string name="sessions_mark_done_title">完了にしますか？</string>
+    <string name="action_yes">はい</string>
+    <string name="action_no">いいえ</string>
+    <string name="sessions_off">なし</string>
+    <string name="sessions_pause">一時停止</string>
+    <string name="sessions_resume">再開</string>
+    <string name="sessions_complete">セッション完了</string>
+    <string name="sessions_delete_title">セッションを削除しますか？</string>
+    <string name="sessions_delete_body">\'%1$s\' を完全に削除します。</string>
+    <string name="sessions_detail_time">時間</string>
+    <string name="sessions_detail_plan">プラン</string>
+    <string name="sessions_detail_task">リンクタスク</string>
+    <string name="sessions_not_synced">未同期</string>
+    <string name="sessions_plan_work_break">%1$dm 作業 / %2$dm 休憩</string>
+    <string name="sessions_plan_planned">%1$dm 予定</string>
+    <string name="sessions_phone_pickups">スマホ確認</string>
+    <string name="sessions_pickup_row">#%1$d（%2$s）</string>
+    <string name="sessions_debrief_title">何に取り組みましたか？</string>
+    <string name="sessions_debrief_hint">例: cs61a problem set 3</string>
+    <string name="sessions_debrief_count">%1$d / 240</string>
+    <string name="sessions_tagging">タグ付け中…</string>
+    <string name="sessions_tagged_as">%1$s としてタグ付け</string>
+    <string name="sessions_done">完了</string>
+    <string name="sessions_pref_work_title">デフォルト作業時間</string>
+    <string name="sessions_pref_work_desc">1フォーカスブロックの長さ</string>
+    <string name="sessions_pref_lockout_title">フォーカス中のロックアウト</string>
+    <string name="sessions_pref_lockout_desc">フォーカス中に画面をアンロックするたびに確認画面を表示</string>
+    <string name="sessions_pref_unlockcount_title">アンロック回数を表示</string>
+    <string name="sessions_pref_unlockcount_desc">セッション中のアンロック回数を表示</string>
+    <string name="sessions_pref_endlockout_title">ロックアウト画面からセッション終了を許可</string>
+    <string name="sessions_pref_endlockout_desc">ロックアウト画面に\'セッションを早期終了\'リンクを表示</string>
+    <string name="sessions_pref_break_title">フォーカス中の休憩時間</string>
+    <string name="sessions_pref_break_desc">フォーカス中に\'はい、スマホが必要\'をタップした後の猶予時間</string>
+    <string name="sessions_err_tag">タグを入力して開始してください</string>
+    <string name="sessions_err_sleep_active">フォーカスを開始する前に睡眠セッションを終了してください</string>
+    <string name="sessions_err_start">セッションを開始できませんでした。もう一度お試しください。</string>
+    <string name="sessions_err_ai_limit">本日のAI上限に達しました — 明日またお試しください</string>
+    <string name="sessions_err_debrief_text">テキストを処理できませんでした</string>
+    <string name="sessions_err_debrief">セッションにタグ付けできませんでした</string>
+    <plurals name="sessions_streak_days">
+        <item quantity="other">%1$d 日</item>
+    </plurals>
+    <plurals name="sessions_distractions">
+        <item quantity="other">%1$d 回の気散り</item>
+    </plurals>
 </resources>
