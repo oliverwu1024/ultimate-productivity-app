@@ -894,4 +894,71 @@
         <item quantity="one">%1$d सत्र</item>
         <item quantity="other">%1$d सत्र</item>
     </plurals>
+
+    <!-- §13.1 Android sweep — sessions -->
+    <string name="sessions_title">फ़ोकस</string>
+    <string name="sessions_focus_prefs">फ़ोकस प्राथमिकताएँ</string>
+    <string name="sessions_focus_prefs_hint">डिफ़ॉल्ट कार्य अवधि और लॉकआउट प्राथमिकताएँ सेट करने के लिए ऊपर दाईं ओर प्राथमिकताएँ पर टैप करें।</string>
+    <string name="sessions_usage_banner">विकर्षणों को ट्रैक करने के लिए उपयोग पहुँच सक्षम करें</string>
+    <string name="sessions_enable">सक्षम करें</string>
+    <string name="sessions_none_week">इस सप्ताह या पिछले सप्ताह कोई फ़ोकस सत्र नहीं।</string>
+    <string name="sessions_none_month">इस महीने या पिछले महीने कोई फ़ोकस सत्र नहीं।</string>
+    <string name="sessions_focus_today">आज का फ़ोकस</string>
+    <string name="sessions_streak">स्ट्रीक</string>
+    <string name="sessions_pickups">पिकअप</string>
+    <string name="sessions_focus_phase">फ़ोकस</string>
+    <string name="sessions_tag_hint">टैग (जैसे LeetCode, अध्ययन)</string>
+    <string name="sessions_work">कार्य</string>
+    <string name="sessions_start">फ़ोकस शुरू करें</string>
+    <string name="sessions_no_checklist_items">आज के लिए कोई आइटम नहीं — चेकलिस्ट में जोड़ें</string>
+    <string name="sessions_pick_checklist">आज की चेकलिस्ट से चुनें (%1$d)</string>
+    <string name="sessions_from_checklist">चेकलिस्ट से (वैकल्पिक)</string>
+    <string name="sessions_custom_tag">(कस्टम टैग टाइप करें)</string>
+    <string name="sessions_mark_done_title">पूर्ण के रूप में चिह्नित करें?</string>
+    <string name="action_yes">हाँ</string>
+    <string name="action_no">नहीं</string>
+    <string name="sessions_off">बंद</string>
+    <string name="sessions_pause">रोकें</string>
+    <string name="sessions_resume">जारी रखें</string>
+    <string name="sessions_complete">सत्र पूर्ण करें</string>
+    <string name="sessions_delete_title">सत्र हटाएँ?</string>
+    <string name="sessions_delete_body">यह \'%1$s\' को स्थायी रूप से हटा देगा।</string>
+    <string name="sessions_detail_time">समय</string>
+    <string name="sessions_detail_plan">योजना</string>
+    <string name="sessions_detail_task">लिंक्ड कार्य</string>
+    <string name="sessions_not_synced">सिंक नहीं हुआ</string>
+    <string name="sessions_plan_work_break">%1$dm कार्य / %2$dm विराम</string>
+    <string name="sessions_plan_planned">%1$dm नियोजित</string>
+    <string name="sessions_phone_pickups">फ़ोन पिकअप</string>
+    <string name="sessions_pickup_row">#%1$d, %2$s पर</string>
+    <string name="sessions_debrief_title">आपने किस पर काम किया?</string>
+    <string name="sessions_debrief_hint">जैसे cs61a problem set 3</string>
+    <string name="sessions_debrief_count">%1$d / 240</string>
+    <string name="sessions_tagging">टैग हो रहा है…</string>
+    <string name="sessions_tagged_as">%1$s के रूप में टैग किया</string>
+    <string name="sessions_done">हो गया</string>
+    <string name="sessions_pref_work_title">डिफ़ॉल्ट कार्य अवधि</string>
+    <string name="sessions_pref_work_desc">एक फ़ोकस ब्लॉक की लंबाई</string>
+    <string name="sessions_pref_lockout_title">फ़ोकस सत्रों के दौरान लॉकआउट</string>
+    <string name="sessions_pref_lockout_desc">फ़ोकस सत्र के दौरान हर बार अनलॉक करने पर पुष्टि स्क्रीन दिखाएँ</string>
+    <string name="sessions_pref_unlockcount_title">अनलॉक गिनती दिखाएँ</string>
+    <string name="sessions_pref_unlockcount_desc">सक्रिय सत्र के दौरान अनलॉक की गिनती दिखाएँ</string>
+    <string name="sessions_pref_endlockout_title">लॉकआउट से सत्र समाप्त करने की अनुमति दें</string>
+    <string name="sessions_pref_endlockout_desc">लॉकआउट स्क्रीन पर \'सत्र जल्दी समाप्त करें\' लिंक दिखाएँ</string>
+    <string name="sessions_pref_break_title">फ़ोकस फ़ोन-ब्रेक अवधि</string>
+    <string name="sessions_pref_break_desc">फ़ोकस सत्र के दौरान \'हाँ, मुझे फ़ोन चाहिए\' टैप करने के बाद शांत समय</string>
+    <string name="sessions_err_tag">शुरू करने के लिए टैग दर्ज करें</string>
+    <string name="sessions_err_sleep_active">फ़ोकस सत्र शुरू करने से पहले नींद सत्र समाप्त करें</string>
+    <string name="sessions_err_start">सत्र शुरू नहीं हो सका। पुनः प्रयास करें।</string>
+    <string name="sessions_err_ai_limit">दैनिक AI सीमा समाप्त — कल वापस आएँ</string>
+    <string name="sessions_err_debrief_text">वह टेक्स्ट प्रोसेस नहीं हो सका</string>
+    <string name="sessions_err_debrief">सत्र टैग नहीं हो सका</string>
+    <plurals name="sessions_streak_days">
+        <item quantity="one">%1$d दिन</item>
+        <item quantity="other">%1$d दिन</item>
+    </plurals>
+    <plurals name="sessions_distractions">
+        <item quantity="one">%1$d विकर्षण</item>
+        <item quantity="other">%1$d विकर्षण</item>
+    </plurals>
 </resources>

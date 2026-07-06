@@ -76,6 +76,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -84,11 +86,13 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ultiq.app.R
 import com.ultiq.app.data.local.entity.SessionEntity
 import com.ultiq.app.ui.common.MascotEmptyState
 import com.ultiq.app.ui.copy.WarmCopy
 import com.ultiq.app.ui.sleep.TimeRange
 import com.ultiq.app.ui.theme.AnimatedAppear
+import com.ultiq.app.util.LocaleManager
 import androidx.compose.material.icons.filled.SelfImprovement
 import java.time.Instant
 import java.time.LocalDate
@@ -125,10 +129,10 @@ fun SessionsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Focus") },
+                title = { Text(stringResource(R.string.sessions_title)) },
                 actions = {
                     TextButton(onClick = onOpenFocusSettings) {
-                        Text("Preferences")
+                        Text(stringResource(R.string.action_preferences))
                     }
                 },
             )
@@ -145,9 +149,8 @@ fun SessionsScreen(
             if (uiState.settings?.focusPrefsHintSeen == false) {
                 item(key = "focus-prefs-hint") {
                     com.ultiq.app.ui.common.ConfigureHintCard(
-                        title = "Focus preferences",
-                        body = "Tap Preferences in the top right to set your " +
-                            "default work duration and lockout preferences.",
+                        title = stringResource(R.string.sessions_focus_prefs),
+                        body = stringResource(R.string.sessions_focus_prefs_hint),
                         onDismiss = { viewModel.dismissFocusPrefsHint() },
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                     )
@@ -172,12 +175,12 @@ fun SessionsScreen(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
-                                "Enable Usage Access to track distractions",
+                                stringResource(R.string.sessions_usage_banner),
                                 style = MaterialTheme.typography.bodySmall,
                                 modifier = Modifier.weight(1f)
                             )
                             TextButton(onClick = { viewModel.openUsageSettings() }) {
-                                Text("Enable")
+                                Text(stringResource(R.string.sessions_enable))
                             }
                         }
                     }
@@ -214,12 +217,12 @@ fun SessionsScreen(
                         Tab(
                             selected = selectedTab == 0,
                             onClick = { viewModel.setTimeRange(TimeRange.WEEK) },
-                            text = { Text("Week") },
+                            text = { Text(stringResource(R.string.range_week)) },
                         )
                         Tab(
                             selected = selectedTab == 1,
                             onClick = { viewModel.setTimeRange(TimeRange.MONTH) },
-                            text = { Text("Month") },
+                            text = { Text(stringResource(R.string.range_month)) },
                         )
                     }
                 }
@@ -235,13 +238,10 @@ fun SessionsScreen(
                 )
                 if (sections.isEmpty()) {
                     item(key = "empty-range") {
-                        val periodLabel = if (uiState.selectedTimeRange == TimeRange.WEEK) {
-                            "this week or last week"
-                        } else {
-                            "this month or last month"
-                        }
                         Text(
-                            "No focus sessions $periodLabel.",
+                            if (uiState.selectedTimeRange == TimeRange.WEEK)
+                                stringResource(R.string.sessions_none_week)
+                            else stringResource(R.string.sessions_none_month),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,
@@ -251,10 +251,10 @@ fun SessionsScreen(
                         )
                     }
                 } else {
-                    sections.forEach { (header, sessions) ->
-                        item(key = "sec-$header") {
+                    sections.forEach { (headerRes, sessions) ->
+                        item(key = "sec-$headerRes") {
                             Text(
-                                header,
+                                stringResource(headerRes),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold,
                                 modifier = Modifier
@@ -293,13 +293,13 @@ fun SessionsScreen(
     if (prompt != null) {
         AlertDialog(
             onDismissRequest = { viewModel.dismissChecklistCompletion() },
-            title = { Text("Mark as done?") },
+            title = { Text(stringResource(R.string.sessions_mark_done_title)) },
             text = { Text("'${prompt.title}'") },
             confirmButton = {
-                Button(onClick = { viewModel.confirmChecklistCompletion() }) { Text("Yes") }
+                Button(onClick = { viewModel.confirmChecklistCompletion() }) { Text(stringResource(R.string.action_yes)) }
             },
             dismissButton = {
-                TextButton(onClick = { viewModel.dismissChecklistCompletion() }) { Text("No") }
+                TextButton(onClick = { viewModel.dismissChecklistCompletion() }) { Text(stringResource(R.string.action_no)) }
             },
         )
     }
@@ -331,7 +331,7 @@ fun SessionsScreen(
 private fun groupSessionsByPeriod(
     sessions: List<SessionEntity>,
     range: TimeRange,
-): List<Pair<String, List<SessionEntity>>> {
+): List<Pair<Int, List<SessionEntity>>> {
     val zone = ZoneId.systemDefault()
     val today = LocalDate.now(zone)
     fun dayOf(s: SessionEntity): LocalDate =
@@ -345,8 +345,8 @@ private fun groupSessionsByPeriod(
             val thisWeek = sessions.filter { val d = dayOf(it); !d.isBefore(mondayOfThisWeek) && !d.isAfter(today) }
             val lastWeek = sessions.filter { val d = dayOf(it); !d.isBefore(mondayOfLastWeek) && !d.isAfter(sundayOfLastWeek) }
             listOfNotNull(
-                "This week".takeIf { thisWeek.isNotEmpty() }?.let { it to thisWeek },
-                "Last week".takeIf { lastWeek.isNotEmpty() }?.let { it to lastWeek },
+                R.string.dashboard_this_week.takeIf { thisWeek.isNotEmpty() }?.let { it to thisWeek },
+                R.string.dashboard_last_week.takeIf { lastWeek.isNotEmpty() }?.let { it to lastWeek },
             )
         }
         TimeRange.MONTH -> {
@@ -356,8 +356,8 @@ private fun groupSessionsByPeriod(
             val thisMonth = sessions.filter { val d = dayOf(it); !d.isBefore(firstOfThisMonth) && !d.isAfter(today) }
             val lastMonth = sessions.filter { val d = dayOf(it); !d.isBefore(firstOfLastMonth) && !d.isAfter(lastOfLastMonth) }
             listOfNotNull(
-                "This month".takeIf { thisMonth.isNotEmpty() }?.let { it to thisMonth },
-                "Last month".takeIf { lastMonth.isNotEmpty() }?.let { it to lastMonth },
+                R.string.period_this_month.takeIf { thisMonth.isNotEmpty() }?.let { it to thisMonth },
+                R.string.period_last_month.takeIf { lastMonth.isNotEmpty() }?.let { it to lastMonth },
             )
         }
     }
@@ -374,16 +374,16 @@ private fun TodayStatsBar(stats: TodayStats?) {
             val h = s.totalFocusMinutes / 60
             val m = s.totalFocusMinutes % 60
             val text = if (h > 0) "${h}h ${m}m" else "${m}m"
-            StatCard("Focus Today", text)
+            StatCard(stringResource(R.string.sessions_focus_today), text)
         }
-        item { StatCard("Sessions", "${s.sessionsCompleted}") }
+        item { StatCard(stringResource(R.string.reports_sessions), "${s.sessionsCompleted}") }
         item {
             StatCard(
-                "Streak",
-                if (s.currentStreak > 0) "${s.currentStreak} day${if (s.currentStreak != 1) "s" else ""}" else "-"
+                stringResource(R.string.sessions_streak),
+                if (s.currentStreak > 0) pluralStringResource(R.plurals.sessions_streak_days, s.currentStreak, s.currentStreak) else "-"
             )
         }
-        item { StatCard("Pickups", "${s.phonePickupsToday}") }
+        item { StatCard(stringResource(R.string.sessions_pickups), "${s.phonePickupsToday}") }
     }
 }
 
@@ -439,7 +439,7 @@ private fun TimerSection(uiState: SessionsUiState) {
             )
             if (uiState.timerState != TimerState.IDLE) {
                 Text(
-                    text = if (uiState.isOvertime) "OVERTIME" else "FOCUS",
+                    text = if (uiState.isOvertime) stringResource(R.string.lockout_overtime) else stringResource(R.string.sessions_focus_phase),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Medium,
                     color = if (uiState.isOvertime) Color(0xFFFF9800) else Color(0xFF4CAF50),
@@ -453,7 +453,7 @@ private fun TimerSection(uiState: SessionsUiState) {
                 }
                 if (uiState.phonePickups > 0) {
                     Text(
-                        text = "${uiState.phonePickups} distraction${if (uiState.phonePickups != 1) "s" else ""}",
+                        text = pluralStringResource(R.plurals.sessions_distractions, uiState.phonePickups, uiState.phonePickups),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
                     )
@@ -478,14 +478,14 @@ private fun TimerControls(uiState: SessionsUiState, viewModel: SessionsViewModel
                 onPause = { viewModel.pauseTimer() },
                 onCancel = { viewModel.cancelSession() },
                 onComplete = { viewModel.completeSession() },
-                primaryLabel = "Pause",
+                primaryLabel = stringResource(R.string.sessions_pause),
                 primaryIcon = { Icon(Icons.Default.Pause, null, Modifier.size(18.dp)) }
             )
             TimerState.PAUSED -> ActiveControls(
                 onPause = { viewModel.resumeTimer() },
                 onCancel = { viewModel.cancelSession() },
                 onComplete = { viewModel.completeSession() },
-                primaryLabel = "Resume",
+                primaryLabel = stringResource(R.string.sessions_resume),
                 primaryIcon = { Icon(Icons.Default.PlayArrow, null, Modifier.size(18.dp)) }
             )
             TimerState.FINISHED -> {}
@@ -506,13 +506,13 @@ private fun IdleControls(uiState: SessionsUiState, viewModel: SessionsViewModel)
     OutlinedTextField(
         value = uiState.tag,
         onValueChange = { viewModel.updateTag(it) },
-        label = { Text("Tag (e.g. LeetCode, Study)") },
+        label = { Text(stringResource(R.string.sessions_tag_hint)) },
         singleLine = true,
         modifier = Modifier.fillMaxWidth()
     )
 
     DurationPicker(
-        label = "Work",
+        label = stringResource(R.string.sessions_work),
         value = uiState.workDuration,
         onDecrease = { viewModel.updateWorkDuration(uiState.workDuration - 5) },
         onIncrease = { viewModel.updateWorkDuration(uiState.workDuration + 5) },
@@ -526,7 +526,7 @@ private fun IdleControls(uiState: SessionsUiState, viewModel: SessionsViewModel)
     ) {
         Icon(Icons.Default.PlayArrow, null, Modifier.size(18.dp))
         Spacer(Modifier.width(8.dp))
-        Text("Start Focus")
+        Text(stringResource(R.string.sessions_start))
     }
 }
 
@@ -540,8 +540,8 @@ private fun ChecklistDropdown(
     var expanded by remember { mutableStateOf(false) }
     val selected = items.firstOrNull { it.id == selectedId }
     val text = selected?.title
-        ?: if (items.isEmpty()) "No items for today — add some in Checklist"
-        else "Pick from today's checklist (${items.size})"
+        ?: if (items.isEmpty()) stringResource(R.string.sessions_no_checklist_items)
+        else stringResource(R.string.sessions_pick_checklist, items.size)
 
     ExposedDropdownMenuBox(
         expanded = expanded,
@@ -553,7 +553,7 @@ private fun ChecklistDropdown(
             onValueChange = {},
             readOnly = true,
             enabled = items.isNotEmpty(),
-            label = { Text("From checklist (optional)") },
+            label = { Text(stringResource(R.string.sessions_from_checklist)) },
             trailingIcon = {
                 if (items.isNotEmpty()) {
                     ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
@@ -590,14 +590,14 @@ private fun ChecklistMenu(
             onDismissRequest = onDismiss,
         ) {
             DropdownMenuItem(
-                text = { Text("(type a custom tag)") },
+                text = { Text(stringResource(R.string.sessions_custom_tag)) },
                 onClick = { onSelect(null); onDismiss() },
             )
             items.forEach { item ->
                 val priorityLabel = when (item.priority) {
-                    2 -> "● High"
-                    1 -> "● Med"
-                    else -> "● Low"
+                    2 -> "● " + stringResource(R.string.priority_high)
+                    1 -> "● " + stringResource(R.string.priority_medium)
+                    else -> "● " + stringResource(R.string.priority_low)
                 }
                 DropdownMenuItem(
                     text = {
@@ -653,17 +653,17 @@ private fun DurationPicker(
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onDecrease, modifier = Modifier.size(32.dp)) {
-                Icon(Icons.Default.Remove, "Decrease", modifier = Modifier.size(16.dp))
+                Icon(Icons.Default.Remove, stringResource(R.string.action_decrease), modifier = Modifier.size(16.dp))
             }
             Text(
-                if (value == 0) "off" else "${value}m",
+                if (value == 0) stringResource(R.string.sessions_off) else "${value}m",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.width(48.dp),
                 textAlign = TextAlign.Center
             )
             IconButton(onClick = onIncrease, modifier = Modifier.size(32.dp)) {
-                Icon(Icons.Default.Add, "Increase", modifier = Modifier.size(16.dp))
+                Icon(Icons.Default.Add, stringResource(R.string.action_increase), modifier = Modifier.size(16.dp))
             }
         }
     }
@@ -698,7 +698,7 @@ private fun ActiveControls(
         ) {
             Icon(Icons.Default.Close, null, Modifier.size(18.dp))
             Spacer(Modifier.width(8.dp))
-            Text("Cancel")
+            Text(stringResource(R.string.action_cancel))
         }
     }
     Button(
@@ -710,7 +710,7 @@ private fun ActiveControls(
     ) {
         Icon(Icons.Default.Check, null, Modifier.size(18.dp))
         Spacer(Modifier.width(8.dp))
-        Text("Complete Session")
+        Text(stringResource(R.string.sessions_complete))
     }
 }
 
@@ -740,8 +740,8 @@ private fun SessionItem(
     if (pendingDelete) {
         AlertDialog(
             onDismissRequest = { pendingDelete = false },
-            title = { Text("Delete session?") },
-            text = { Text("This will permanently remove '${session.tag}'.") },
+            title = { Text(stringResource(R.string.sessions_delete_title)) },
+            text = { Text(stringResource(R.string.sessions_delete_body, session.tag)) },
             confirmButton = {
                 Button(
                     onClick = {
@@ -751,10 +751,10 @@ private fun SessionItem(
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.error
                     )
-                ) { Text("Delete") }
+                ) { Text(stringResource(R.string.action_delete)) }
             },
             dismissButton = {
-                TextButton(onClick = { pendingDelete = false }) { Text("Cancel") }
+                TextButton(onClick = { pendingDelete = false }) { Text(stringResource(R.string.action_cancel)) }
             },
         )
     }
@@ -770,7 +770,7 @@ private fun SessionItem(
                     .padding(horizontal = 20.dp),
                 contentAlignment = Alignment.CenterEnd
             ) {
-                Icon(Icons.Default.Delete, "Delete", tint = MaterialTheme.colorScheme.onError)
+                Icon(Icons.Default.Delete, stringResource(R.string.action_delete), tint = MaterialTheme.colorScheme.onError)
             }
         },
         enableDismissFromStartToEnd = false,
@@ -792,7 +792,7 @@ private fun SessionItemContent(
     val zone = session.recordedTz?.let { runCatching { ZoneId.of(it) }.getOrNull() }
         ?: ZoneId.systemDefault()
     val startInstant = Instant.ofEpochMilli(session.startedAt).atZone(zone)
-    val dateStr = startInstant.format(DateTimeFormatter.ofPattern("EEE, MMM dd"))
+    val dateStr = startInstant.format(DateTimeFormatter.ofPattern("EEE, MMM dd", LocaleManager.currentLocale()))
     val h = session.durationMinutes / 60
     val m = session.durationMinutes % 60
     val durationStr = if (h > 0) "${h}h ${m}m" else "${m}m"
@@ -887,26 +887,26 @@ private fun SessionItemContent(
 
             AnimatedVisibility(visible = expanded) {
                 Column(modifier = Modifier.padding(top = 12.dp)) {
-                    val timeFormat = DateTimeFormatter.ofPattern("hh:mm a")
+                    val timeFormat = DateTimeFormatter.ofPattern("hh:mm a", LocaleManager.currentLocale())
                     val timeStr = if (session.endedAt != null) {
                         val endInstant = Instant.ofEpochMilli(session.endedAt).atZone(zone)
                         "${startInstant.format(timeFormat)} – ${endInstant.format(timeFormat)}"
                     } else {
                         startInstant.format(timeFormat)
                     }
-                    SessionDetailRow("Time", timeStr)
+                    SessionDetailRow(stringResource(R.string.sessions_detail_time), timeStr)
                     val planStr = if (session.breakDuration > 0) {
-                        "${session.workDuration}m work / ${session.breakDuration}m break"
+                        stringResource(R.string.sessions_plan_work_break, session.workDuration, session.breakDuration)
                     } else {
-                        "${session.workDuration}m planned"
+                        stringResource(R.string.sessions_plan_planned, session.workDuration)
                     }
-                    SessionDetailRow("Plan", planStr)
+                    SessionDetailRow(stringResource(R.string.sessions_detail_plan), planStr)
                     if (!checklistTitle.isNullOrBlank()) {
-                        SessionDetailRow("Linked task", checklistTitle)
+                        SessionDetailRow(stringResource(R.string.sessions_detail_task), checklistTitle)
                     }
                     if (!session.isSynced) {
                         Text(
-                            "Not synced",
+                            stringResource(R.string.sessions_not_synced),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.error,
                             modifier = Modifier.padding(top = 4.dp),
@@ -930,14 +930,14 @@ private fun SessionItemContent(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            "Phone pickups",
+                            stringResource(R.string.sessions_phone_pickups),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         val pickupTimeFormat =
-                            DateTimeFormatter.ofPattern("hh:mm a")
+                            DateTimeFormatter.ofPattern("hh:mm a", LocaleManager.currentLocale())
                         pickups.forEachIndexed { index, pickup ->
                             val pickupTime = Instant.ofEpochMilli(pickup.pickedUpAt)
                                 .atZone(zone)
@@ -959,7 +959,7 @@ private fun SessionItemContent(
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
-                                        "#${index + 1} at $pickupTime",
+                                        stringResource(R.string.sessions_pickup_row, index + 1, pickupTime),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurface,
                                     )
@@ -1021,7 +1021,7 @@ private fun DebriefPromptDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("What did you work on?") },
+        title = { Text(stringResource(R.string.sessions_debrief_title)) },
         text = {
             Column {
                 when (val s = prompt.submitState) {
@@ -1030,10 +1030,10 @@ private fun DebriefPromptDialog(
                         OutlinedTextField(
                             value = prompt.text,
                             onValueChange = onTextChange,
-                            placeholder = { Text("e.g. cs61a problem set 3") },
+                            placeholder = { Text(stringResource(R.string.sessions_debrief_hint)) },
                             singleLine = false,
                             maxLines = 3,
-                            supportingText = { Text("${prompt.text.length} / 240") },
+                            supportingText = { Text(stringResource(R.string.sessions_debrief_count, prompt.text.length)) },
                             modifier = Modifier.fillMaxWidth(),
                         )
                         if (s is DebriefSubmitState.Error) {
@@ -1052,7 +1052,7 @@ private fun DebriefPromptDialog(
                                 strokeWidth = 2.dp,
                             )
                             Spacer(Modifier.width(12.dp))
-                            Text("Tagging…", style = MaterialTheme.typography.bodyMedium)
+                            Text(stringResource(R.string.sessions_tagging), style = MaterialTheme.typography.bodyMedium)
                         }
                     }
                     is DebriefSubmitState.Tagged -> {
@@ -1062,7 +1062,7 @@ private fun DebriefPromptDialog(
                         )
                         Spacer(Modifier.height(12.dp))
                         Text(
-                            "Tagged as " + s.tag.replace('_', ' '),
+                            stringResource(R.string.sessions_tagged_as, s.tag.replace('_', ' ')),
                             style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.SemiBold,
@@ -1074,23 +1074,23 @@ private fun DebriefPromptDialog(
         confirmButton = {
             when (prompt.submitState) {
                 is DebriefSubmitState.Tagged -> {
-                    Button(onClick = onDismiss) { Text("Done") }
+                    Button(onClick = onDismiss) { Text(stringResource(R.string.sessions_done)) }
                 }
                 DebriefSubmitState.Submitting -> {
-                    Button(onClick = {}, enabled = false) { Text("Save") }
+                    Button(onClick = {}, enabled = false) { Text(stringResource(R.string.action_save)) }
                 }
                 else -> {
                     Button(
                         onClick = onSubmit,
                         enabled = prompt.text.trim().isNotEmpty(),
-                    ) { Text("Save") }
+                    ) { Text(stringResource(R.string.action_save)) }
                 }
             }
         },
         dismissButton = {
             if (prompt.submitState !is DebriefSubmitState.Tagged &&
                 prompt.submitState !is DebriefSubmitState.Submitting) {
-                TextButton(onClick = onDismiss) { Text("Skip") }
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_skip)) }
             }
         },
     )

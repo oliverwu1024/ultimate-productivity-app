@@ -865,4 +865,69 @@
     <plurals name="reports_unit_sessions">
         <item quantity="other">%1$d phiên</item>
     </plurals>
+
+    <!-- §13.1 Android sweep — sessions -->
+    <string name="sessions_title">Tập trung</string>
+    <string name="sessions_focus_prefs">Cài đặt tập trung</string>
+    <string name="sessions_focus_prefs_hint">Nhấn Cài đặt ở góc trên bên phải để đặt thời lượng làm việc mặc định và tuỳ chọn khoá màn hình.</string>
+    <string name="sessions_usage_banner">Bật Quyền truy cập sử dụng để theo dõi sao nhãng</string>
+    <string name="sessions_enable">Bật</string>
+    <string name="sessions_none_week">Không có phiên tập trung tuần này hoặc tuần trước.</string>
+    <string name="sessions_none_month">Không có phiên tập trung tháng này hoặc tháng trước.</string>
+    <string name="sessions_focus_today">Tập trung hôm nay</string>
+    <string name="sessions_streak">Chuỗi ngày</string>
+    <string name="sessions_pickups">Cầm máy</string>
+    <string name="sessions_focus_phase">TẬP TRUNG</string>
+    <string name="sessions_tag_hint">Nhãn (vd: LeetCode, Học bài)</string>
+    <string name="sessions_work">Làm việc</string>
+    <string name="sessions_start">Bắt đầu tập trung</string>
+    <string name="sessions_no_checklist_items">Không có mục nào hôm nay — thêm trong Danh sách</string>
+    <string name="sessions_pick_checklist">Chọn từ danh sách hôm nay (%1$d)</string>
+    <string name="sessions_from_checklist">Từ danh sách (tuỳ chọn)</string>
+    <string name="sessions_custom_tag">(nhập nhãn tuỳ chỉnh)</string>
+    <string name="sessions_mark_done_title">Đánh dấu hoàn thành?</string>
+    <string name="action_yes">Có</string>
+    <string name="action_no">Không</string>
+    <string name="sessions_off">tắt</string>
+    <string name="sessions_pause">Tạm dừng</string>
+    <string name="sessions_resume">Tiếp tục</string>
+    <string name="sessions_complete">Kết thúc phiên</string>
+    <string name="sessions_delete_title">Xoá phiên?</string>
+    <string name="sessions_delete_body">Thao tác này sẽ xoá vĩnh viễn \'%1$s\'.</string>
+    <string name="sessions_detail_time">Thời gian</string>
+    <string name="sessions_detail_plan">Kế hoạch</string>
+    <string name="sessions_detail_task">Nhiệm vụ liên kết</string>
+    <string name="sessions_not_synced">Chưa đồng bộ</string>
+    <string name="sessions_plan_work_break">%1$dm làm việc / %2$dm nghỉ</string>
+    <string name="sessions_plan_planned">%1$dm theo kế hoạch</string>
+    <string name="sessions_phone_pickups">Lần cầm điện thoại</string>
+    <string name="sessions_pickup_row">#%1$d lúc %2$s</string>
+    <string name="sessions_debrief_title">Bạn đã làm gì?</string>
+    <string name="sessions_debrief_hint">vd: cs61a problem set 3</string>
+    <string name="sessions_debrief_count">%1$d / 240</string>
+    <string name="sessions_tagging">Đang gắn nhãn…</string>
+    <string name="sessions_tagged_as">Đã gắn nhãn %1$s</string>
+    <string name="sessions_done">Xong</string>
+    <string name="sessions_pref_work_title">Thời lượng làm việc mặc định</string>
+    <string name="sessions_pref_work_desc">Độ dài một khối tập trung</string>
+    <string name="sessions_pref_lockout_title">Khoá trong phiên tập trung</string>
+    <string name="sessions_pref_lockout_desc">Hiện màn hình xác nhận mỗi khi bạn mở khoá trong phiên tập trung</string>
+    <string name="sessions_pref_unlockcount_title">Hiển thị số lần mở khoá</string>
+    <string name="sessions_pref_unlockcount_desc">Hiển thị số lần bạn đã mở khoá trong phiên hiện tại</string>
+    <string name="sessions_pref_endlockout_title">Cho phép kết thúc phiên từ màn hình khoá</string>
+    <string name="sessions_pref_endlockout_desc">Hiện liên kết \'Kết thúc phiên sớm\' trên màn hình khoá</string>
+    <string name="sessions_pref_break_title">Thời gian nghỉ điện thoại</string>
+    <string name="sessions_pref_break_desc">Khoảng thời gian yên tĩnh sau khi nhấn \'Có, tôi cần điện thoại\' trong phiên tập trung</string>
+    <string name="sessions_err_tag">Nhập nhãn để bắt đầu</string>
+    <string name="sessions_err_sleep_active">Kết thúc phiên ngủ trước khi bắt đầu phiên tập trung</string>
+    <string name="sessions_err_start">Không thể bắt đầu phiên. Thử lại.</string>
+    <string name="sessions_err_ai_limit">Đã đạt giới hạn AI hôm nay — quay lại ngày mai</string>
+    <string name="sessions_err_debrief_text">Không thể xử lý văn bản này</string>
+    <string name="sessions_err_debrief">Không thể gắn nhãn phiên</string>
+    <plurals name="sessions_streak_days">
+        <item quantity="other">%1$d ngày</item>
+    </plurals>
+    <plurals name="sessions_distractions">
+        <item quantity="other">%1$d lần xao nhãng</item>
+    </plurals>
 </resources>

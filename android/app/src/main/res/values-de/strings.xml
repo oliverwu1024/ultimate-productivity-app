@@ -894,4 +894,71 @@
         <item quantity="one">%1$d Sitzung</item>
         <item quantity="other">%1$d Sitzungen</item>
     </plurals>
+
+    <!-- §13.1 Android sweep — sessions -->
+    <string name="sessions_title">Fokus</string>
+    <string name="sessions_focus_prefs">Fokus-Einstellungen</string>
+    <string name="sessions_focus_prefs_hint">Tippe oben rechts auf Einstellungen, um Standard-Arbeitsdauer und Sperr-Einstellungen festzulegen.</string>
+    <string name="sessions_usage_banner">Nutzungszugriff aktivieren, um Ablenkungen zu verfolgen</string>
+    <string name="sessions_enable">Aktivieren</string>
+    <string name="sessions_none_week">Keine Fokus-Sitzungen diese oder letzte Woche.</string>
+    <string name="sessions_none_month">Keine Fokus-Sitzungen diesen oder letzten Monat.</string>
+    <string name="sessions_focus_today">Fokus heute</string>
+    <string name="sessions_streak">Serie</string>
+    <string name="sessions_pickups">Zugriffe</string>
+    <string name="sessions_focus_phase">FOKUS</string>
+    <string name="sessions_tag_hint">Tag (z. B. LeetCode, Lernen)</string>
+    <string name="sessions_work">Arbeit</string>
+    <string name="sessions_start">Fokus starten</string>
+    <string name="sessions_no_checklist_items">Keine Einträge für heute — füge welche in der Checkliste hinzu</string>
+    <string name="sessions_pick_checklist">Aus heutiger Checkliste wählen (%1$d)</string>
+    <string name="sessions_from_checklist">Aus Checkliste (optional)</string>
+    <string name="sessions_custom_tag">(eigenen Tag eingeben)</string>
+    <string name="sessions_mark_done_title">Als erledigt markieren?</string>
+    <string name="action_yes">Ja</string>
+    <string name="action_no">Nein</string>
+    <string name="sessions_off">aus</string>
+    <string name="sessions_pause">Pausieren</string>
+    <string name="sessions_resume">Fortsetzen</string>
+    <string name="sessions_complete">Sitzung abschließen</string>
+    <string name="sessions_delete_title">Sitzung löschen?</string>
+    <string name="sessions_delete_body">\'%1$s\' wird dauerhaft entfernt.</string>
+    <string name="sessions_detail_time">Zeit</string>
+    <string name="sessions_detail_plan">Plan</string>
+    <string name="sessions_detail_task">Verknüpfte Aufgabe</string>
+    <string name="sessions_not_synced">Nicht synchronisiert</string>
+    <string name="sessions_plan_work_break">%1$dm Arbeit / %2$dm Pause</string>
+    <string name="sessions_plan_planned">%1$dm geplant</string>
+    <string name="sessions_phone_pickups">Handy-Zugriffe</string>
+    <string name="sessions_pickup_row">#%1$d um %2$s</string>
+    <string name="sessions_debrief_title">Woran hast du gearbeitet?</string>
+    <string name="sessions_debrief_hint">z. B. cs61a problem set 3</string>
+    <string name="sessions_debrief_count">%1$d / 240</string>
+    <string name="sessions_tagging">Wird getaggt…</string>
+    <string name="sessions_tagged_as">Getaggt als %1$s</string>
+    <string name="sessions_done">Fertig</string>
+    <string name="sessions_pref_work_title">Standard-Arbeitsdauer</string>
+    <string name="sessions_pref_work_desc">Länge eines Fokusblocks</string>
+    <string name="sessions_pref_lockout_title">Sperre während Fokus-Sitzungen</string>
+    <string name="sessions_pref_lockout_desc">Zeigt bei jedem Entsperren während einer Fokus-Sitzung einen Bestätigungsbildschirm</string>
+    <string name="sessions_pref_unlockcount_title">Entsperranzahl anzeigen</string>
+    <string name="sessions_pref_unlockcount_desc">Zeigt an, wie oft du während der aktiven Sitzung entsperrt hast</string>
+    <string name="sessions_pref_endlockout_title">Sitzung vom Sperrbildschirm beenden</string>
+    <string name="sessions_pref_endlockout_desc">Zeigt den Link \'Sitzung früh beenden\' auf dem Sperrbildschirm</string>
+    <string name="sessions_pref_break_title">Handypausen-Dauer im Fokus</string>
+    <string name="sessions_pref_break_desc">Stilles Fenster nach Tippen auf \'Ja, ich brauche mein Handy\' während einer Fokus-Sitzung</string>
+    <string name="sessions_err_tag">Tag eingeben, um zu starten</string>
+    <string name="sessions_err_sleep_active">Beende zuerst deine Schlaf-Sitzung</string>
+    <string name="sessions_err_start">Sitzung konnte nicht gestartet werden. Erneut versuchen.</string>
+    <string name="sessions_err_ai_limit">Tägliches KI-Limit erreicht — morgen wieder</string>
+    <string name="sessions_err_debrief_text">Text konnte nicht verarbeitet werden</string>
+    <string name="sessions_err_debrief">Sitzung konnte nicht getaggt werden</string>
+    <plurals name="sessions_streak_days">
+        <item quantity="one">%1$d Tag</item>
+        <item quantity="other">%1$d Tage</item>
+    </plurals>
+    <plurals name="sessions_distractions">
+        <item quantity="one">%1$d Ablenkung</item>
+        <item quantity="other">%1$d Ablenkungen</item>
+    </plurals>
 </resources>

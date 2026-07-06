@@ -865,4 +865,69 @@
     <plurals name="reports_unit_sessions">
         <item quantity="other">%1$d 次</item>
     </plurals>
+
+    <!-- §13.1 Android sweep — sessions -->
+    <string name="sessions_title">专注</string>
+    <string name="sessions_focus_prefs">专注偏好设置</string>
+    <string name="sessions_focus_prefs_hint">点击右上角的「偏好设置」来配置默认专注时长和锁定偏好。</string>
+    <string name="sessions_usage_banner">启用使用情况访问权限以追踪干扰</string>
+    <string name="sessions_enable">启用</string>
+    <string name="sessions_none_week">本周及上周没有专注记录。</string>
+    <string name="sessions_none_month">本月及上月没有专注记录。</string>
+    <string name="sessions_focus_today">今日专注</string>
+    <string name="sessions_streak">连续</string>
+    <string name="sessions_pickups">拿起次数</string>
+    <string name="sessions_focus_phase">专注</string>
+    <string name="sessions_tag_hint">标签（例如：刷题、学习）</string>
+    <string name="sessions_work">工作</string>
+    <string name="sessions_start">开始专注</string>
+    <string name="sessions_no_checklist_items">今天没有待办事项——在清单中添加</string>
+    <string name="sessions_pick_checklist">从今日清单中选择 (%1$d)</string>
+    <string name="sessions_from_checklist">来自清单（可选）</string>
+    <string name="sessions_custom_tag">（输入自定义标签）</string>
+    <string name="sessions_mark_done_title">标记为已完成？</string>
+    <string name="action_yes">是</string>
+    <string name="action_no">否</string>
+    <string name="sessions_off">关</string>
+    <string name="sessions_pause">暂停</string>
+    <string name="sessions_resume">继续</string>
+    <string name="sessions_complete">完成专注</string>
+    <string name="sessions_delete_title">删除专注记录？</string>
+    <string name="sessions_delete_body">将永久删除 \'%1$s\'。</string>
+    <string name="sessions_detail_time">时间</string>
+    <string name="sessions_detail_plan">计划</string>
+    <string name="sessions_detail_task">关联任务</string>
+    <string name="sessions_not_synced">未同步</string>
+    <string name="sessions_plan_work_break">%1$dm 专注 / %2$dm 休息</string>
+    <string name="sessions_plan_planned">计划 %1$dm</string>
+    <string name="sessions_phone_pickups">拿起手机次数</string>
+    <string name="sessions_pickup_row">#%1$d 于 %2$s</string>
+    <string name="sessions_debrief_title">你做了什么？</string>
+    <string name="sessions_debrief_hint">例如 cs61a problem set 3</string>
+    <string name="sessions_debrief_count">%1$d / 240</string>
+    <string name="sessions_tagging">标记中…</string>
+    <string name="sessions_tagged_as">已标记为 %1$s</string>
+    <string name="sessions_done">完成</string>
+    <string name="sessions_pref_work_title">默认专注时长</string>
+    <string name="sessions_pref_work_desc">单次专注块的时长</string>
+    <string name="sessions_pref_lockout_title">专注时锁定屏幕</string>
+    <string name="sessions_pref_lockout_desc">专注时每次解锁均显示确认界面</string>
+    <string name="sessions_pref_unlockcount_title">显示解锁次数</string>
+    <string name="sessions_pref_unlockcount_desc">显示当前专注期间的解锁次数</string>
+    <string name="sessions_pref_endlockout_title">允许从锁定界面结束专注</string>
+    <string name="sessions_pref_endlockout_desc">在锁定界面显示\'提前结束\'链接</string>
+    <string name="sessions_pref_break_title">专注手机休息时长</string>
+    <string name="sessions_pref_break_desc">专注时点击\'是，我需要手机\'后的静默窗口</string>
+    <string name="sessions_err_tag">请输入标签以开始</string>
+    <string name="sessions_err_sleep_active">请先结束睡眠记录再开始专注</string>
+    <string name="sessions_err_start">无法开始专注，请重试。</string>
+    <string name="sessions_err_ai_limit">今日 AI 额度已用尽——明天再试</string>
+    <string name="sessions_err_debrief_text">无法处理该文本</string>
+    <string name="sessions_err_debrief">无法标记专注记录</string>
+    <plurals name="sessions_streak_days">
+        <item quantity="other">%1$d 天</item>
+    </plurals>
+    <plurals name="sessions_distractions">
+        <item quantity="other">%1$d 次干扰</item>
+    </plurals>
 </resources>

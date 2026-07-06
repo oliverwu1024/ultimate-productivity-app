@@ -865,4 +865,69 @@
     <plurals name="reports_unit_sessions">
     <item quantity="other">%1$d 세션</item>
 </plurals>
+
+    <!-- §13.1 Android sweep — sessions -->
+    <string name="sessions_title">집중</string>
+    <string name="sessions_focus_prefs">집중 설정</string>
+    <string name="sessions_focus_prefs_hint">우측 상단의 환경설정을 탭하여 기본 작업 시간 및 잠금 설정을 변경하세요.</string>
+    <string name="sessions_usage_banner">방해 요소 추적을 위해 사용 기록 접근을 허용하세요</string>
+    <string name="sessions_enable">허용</string>
+    <string name="sessions_none_week">이번 주 또는 지난 주에 집중 세션이 없습니다.</string>
+    <string name="sessions_none_month">이번 달 또는 지난 달에 집중 세션이 없습니다.</string>
+    <string name="sessions_focus_today">오늘 집중</string>
+    <string name="sessions_streak">연속</string>
+    <string name="sessions_pickups">픽업</string>
+    <string name="sessions_focus_phase">집중</string>
+    <string name="sessions_tag_hint">태그 (예: LeetCode, 공부)</string>
+    <string name="sessions_work">작업</string>
+    <string name="sessions_start">집중 시작</string>
+    <string name="sessions_no_checklist_items">오늘 항목이 없습니다 — 체크리스트에서 추가하세요</string>
+    <string name="sessions_pick_checklist">오늘의 체크리스트에서 선택 (%1$d)</string>
+    <string name="sessions_from_checklist">체크리스트에서 (선택사항)</string>
+    <string name="sessions_custom_tag">(커스텀 태그 입력)</string>
+    <string name="sessions_mark_done_title">완료로 표시할까요?</string>
+    <string name="action_yes">예</string>
+    <string name="action_no">아니오</string>
+    <string name="sessions_off">끔</string>
+    <string name="sessions_pause">일시정지</string>
+    <string name="sessions_resume">재개</string>
+    <string name="sessions_complete">세션 완료</string>
+    <string name="sessions_delete_title">세션을 삭제할까요?</string>
+    <string name="sessions_delete_body">\'%1$s\'이(가) 영구적으로 삭제됩니다.</string>
+    <string name="sessions_detail_time">시간</string>
+    <string name="sessions_detail_plan">계획</string>
+    <string name="sessions_detail_task">연결된 작업</string>
+    <string name="sessions_not_synced">동기화 안 됨</string>
+    <string name="sessions_plan_work_break">%1$dm 작업 / %2$dm 휴식</string>
+    <string name="sessions_plan_planned">%1$dm 계획됨</string>
+    <string name="sessions_phone_pickups">폰 픽업</string>
+    <string name="sessions_pickup_row">#%1$d, %2$s</string>
+    <string name="sessions_debrief_title">무엇을 작업했나요?</string>
+    <string name="sessions_debrief_hint">예) cs61a problem set 3</string>
+    <string name="sessions_debrief_count">%1$d / 240</string>
+    <string name="sessions_tagging">태그 중…</string>
+    <string name="sessions_tagged_as">%1$s 태그됨</string>
+    <string name="sessions_done">완료</string>
+    <string name="sessions_pref_work_title">기본 작업 시간</string>
+    <string name="sessions_pref_work_desc">집중 블록 하나의 길이</string>
+    <string name="sessions_pref_lockout_title">집중 세션 중 잠금</string>
+    <string name="sessions_pref_lockout_desc">집중 세션 중 잠금 해제 시마다 확인 화면 표시</string>
+    <string name="sessions_pref_unlockcount_title">잠금 해제 횟수 표시</string>
+    <string name="sessions_pref_unlockcount_desc">현재 세션 중 잠금 해제 횟수를 표시합니다</string>
+    <string name="sessions_pref_endlockout_title">잠금 화면에서 세션 종료 허용</string>
+    <string name="sessions_pref_endlockout_desc">잠금 화면에 \'세션 일찍 종료\' 링크 표시</string>
+    <string name="sessions_pref_break_title">폰 휴식 시간</string>
+    <string name="sessions_pref_break_desc">집중 세션 중 \'예, 폰이 필요해요\'를 탭한 후의 조용한 시간</string>
+    <string name="sessions_err_tag">시작하려면 태그를 입력하세요</string>
+    <string name="sessions_err_sleep_active">집중 세션을 시작하기 전에 수면 세션을 종료하세요</string>
+    <string name="sessions_err_start">세션을 시작할 수 없습니다. 다시 시도하세요.</string>
+    <string name="sessions_err_ai_limit">일일 AI 한도 도달 — 내일 다시 시도하세요</string>
+    <string name="sessions_err_debrief_text">텍스트를 처리할 수 없습니다</string>
+    <string name="sessions_err_debrief">세션에 태그를 달 수 없습니다</string>
+    <plurals name="sessions_streak_days">
+        <item quantity="other">%1$d일</item>
+    </plurals>
+    <plurals name="sessions_distractions">
+        <item quantity="other">%1$d회 방해</item>
+    </plurals>
 </resources>

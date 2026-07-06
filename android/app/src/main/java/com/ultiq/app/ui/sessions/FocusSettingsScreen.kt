@@ -21,8 +21,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ultiq.app.R
 import com.ultiq.app.ui.common.StepperCard
 import com.ultiq.app.ui.common.SwitchCard
 
@@ -43,10 +45,10 @@ fun FocusSettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Focus preferences") },
+                title = { Text(stringResource(R.string.sessions_focus_prefs)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back))
                     }
                 },
             )
@@ -61,10 +63,10 @@ fun FocusSettingsScreen(
             item {
                 StepperCard(
                     icon = Icons.Default.Timer,
-                    title = "Default work duration",
-                    description = "Length of one focus block",
+                    title = stringResource(R.string.sessions_pref_work_title),
+                    description = stringResource(R.string.sessions_pref_work_desc),
                     value = settings.defaultWorkDuration,
-                    suffix = "min",
+                    suffix = stringResource(R.string.unit_min),
                     step = 5,
                     range = 5..240,
                     onValueChange = viewModel::setDefaultWorkDuration,
@@ -77,8 +79,8 @@ fun FocusSettingsScreen(
             item {
                 SwitchCard(
                     icon = Icons.Default.Lock,
-                    title = "Lockout during focus sessions",
-                    description = "Pop a confirmation screen each time you unlock during a focus session",
+                    title = stringResource(R.string.sessions_pref_lockout_title),
+                    description = stringResource(R.string.sessions_pref_lockout_desc),
                     checked = settings.lockoutForFocus,
                     onCheckedChange = viewModel::setLockoutForFocus,
                 )
@@ -86,8 +88,8 @@ fun FocusSettingsScreen(
             item {
                 SwitchCard(
                     icon = Icons.Default.Visibility,
-                    title = "Show unlock count",
-                    description = "Display how many times you've unlocked during the active session",
+                    title = stringResource(R.string.sessions_pref_unlockcount_title),
+                    description = stringResource(R.string.sessions_pref_unlockcount_desc),
                     checked = settings.showPickupCountOnLockout,
                     onCheckedChange = viewModel::setShowPickupCountOnLockout,
                 )
@@ -95,8 +97,8 @@ fun FocusSettingsScreen(
             item {
                 SwitchCard(
                     icon = Icons.Default.Stop,
-                    title = "Allow ending session from lockout",
-                    description = "Show an 'End session early' link on the lockout screen",
+                    title = stringResource(R.string.sessions_pref_endlockout_title),
+                    description = stringResource(R.string.sessions_pref_endlockout_desc),
                     checked = settings.allowEndSessionFromLockout,
                     onCheckedChange = viewModel::setAllowEndSessionFromLockout,
                 )
@@ -104,10 +106,10 @@ fun FocusSettingsScreen(
             item {
                 StepperCard(
                     icon = Icons.Default.Timer,
-                    title = "Focus phone-break duration",
-                    description = "Quiet window after tapping 'Yes, I need my phone' during a focus session",
+                    title = stringResource(R.string.sessions_pref_break_title),
+                    description = stringResource(R.string.sessions_pref_break_desc),
                     value = settings.focusLockoutGraceMinutes,
-                    suffix = "min",
+                    suffix = stringResource(R.string.unit_min),
                     step = 1,
                     range = 1..10,
                     onValueChange = viewModel::setFocusLockoutGraceMinutes,
