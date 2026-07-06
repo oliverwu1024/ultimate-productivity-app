@@ -190,7 +190,6 @@
     <string name="date_tomorrow">내일</string>
     <string name="date_yesterday">어제</string>
     <string name="priority_high">높음</string>
-    <string name="priority_med">보통</string>
     <string name="priority_low">낮음</string>
     <string name="recur_every_day">매일</string>
     <string name="recur_weekdays">평일</string>

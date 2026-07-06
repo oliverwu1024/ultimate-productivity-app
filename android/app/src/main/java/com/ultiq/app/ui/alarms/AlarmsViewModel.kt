@@ -13,6 +13,7 @@ import com.ultiq.app.data.local.AppDatabase
 import com.ultiq.app.data.local.entity.AlarmEntity
 import com.ultiq.app.data.remote.RetrofitClient
 import com.ultiq.app.data.repository.AlarmRepository
+import com.ultiq.app.util.LocaleManager
 import com.ultiq.app.util.TokenManager
 import com.ultiq.app.util.UserPreferences
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -132,7 +133,7 @@ class AlarmsViewModel(application: Application) : AndroidViewModel(application) 
         val scheduledAt = WakeAlarmScheduler(app).schedule(alarm)
         val message = if (scheduledAt != null) {
             "$missionKind alarm scheduled for " + triggerLocal.toLocalTime()
-                .format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))
+                .format(java.time.format.DateTimeFormatter.ofPattern("HH:mm", LocaleManager.currentLocale()))
         } else {
             getApplication<Application>().getString(R.string.alarm_err_exact)
         }

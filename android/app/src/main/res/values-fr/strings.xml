@@ -206,7 +206,6 @@
     <string name="date_tomorrow">Demain</string>
     <string name="date_yesterday">Hier</string>
     <string name="priority_high">Haute</string>
-    <string name="priority_med">Moy</string>
     <string name="priority_low">Basse</string>
     <string name="recur_every_day">Chaque jour</string>
     <string name="recur_weekdays">Jours de semaine</string>

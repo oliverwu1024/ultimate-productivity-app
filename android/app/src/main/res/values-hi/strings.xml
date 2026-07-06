@@ -198,7 +198,6 @@
     <string name="date_tomorrow">कल</string>
     <string name="date_yesterday">कल</string>
     <string name="priority_high">उच्च</string>
-    <string name="priority_med">मध्यम</string>
     <string name="priority_low">निम्न</string>
     <string name="recur_every_day">हर दिन</string>
     <string name="recur_weekdays">कार्यदिवस</string>

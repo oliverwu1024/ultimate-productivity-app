@@ -75,7 +75,7 @@ fun LazyListScope.sleepAlarmsSection(
 ) {
     item(key = "alarms-header") {
         Text(
-            text = stringResource(R.string.alarms_header).uppercase(),
+            text = stringResource(R.string.alarms_header).uppercase(LocaleManager.currentLocale()),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.primary,
             fontWeight = FontWeight.SemiBold,
@@ -220,7 +220,7 @@ private fun AlarmRow(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = java.time.LocalTime.of(alarm.triggerHour, alarm.triggerMinute)
-                            .format(java.time.format.DateTimeFormatter.ofPattern("h:mm a")),
+                            .format(java.time.format.DateTimeFormatter.ofPattern("h:mm a", LocaleManager.currentLocale())),
                         style = MaterialTheme.typography.displaySmall,
                         fontWeight = FontWeight.SemiBold,
                         color = if (alarm.enabled) MaterialTheme.colorScheme.onSurface

@@ -190,7 +190,6 @@
     <string name="date_tomorrow">明天</string>
     <string name="date_yesterday">昨天</string>
     <string name="priority_high">高</string>
-    <string name="priority_med">中</string>
     <string name="priority_low">低</string>
     <string name="recur_every_day">每天</string>
     <string name="recur_weekdays">工作日</string>
@@ -519,7 +518,7 @@
     <string name="settings_phone_break_desc">在睡眠期间点击"是，我需要手机"后的静默窗口时长</string>
     <string name="settings_sleep_sounds">睡眠声音</string>
     <string name="settings_track_snore">记录睡眠中的鼾声与咳嗽</string>
-    <string name="settings_track_snore_desc">音频仅在设备上分析 — 不上传或存储。每晚约额外消耗 3–5%% 电量。</string>
+    <string name="settings_track_snore_desc">音频仅在设备上分析 — 不上传或存储。每晚约额外消耗 3–5% 电量。</string>
     <string name="settings_detect_talk">检测梦话</string>
     <string name="settings_detect_talk_desc">同时监听说话声 — 默认关闭。误报率高于鼾声/咳嗽；若您睡觉时开着电视，建议保持关闭。</string>
     <string name="settings_audio_recordings">音频录音</string>

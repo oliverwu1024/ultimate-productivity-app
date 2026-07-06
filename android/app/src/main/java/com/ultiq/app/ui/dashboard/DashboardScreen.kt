@@ -645,7 +645,16 @@ private fun SleepCard(sleep: SleepSummary?, onClick: () -> Unit) {
                 // §sleep-card-audio — mirrors the Sleep tab's "Sleep sounds"
                 // counts so the verdict and the audio never disagree. Hidden
                 // when audio monitoring was off (soundsSummary == null).
-                sleep.soundsSummary?.let { sounds ->
+                sleep.soundsData?.let { s ->
+                    val sounds = if (s.snore > 0 || s.cough > 0 || s.talk > 0) {
+                        val parts = mutableListOf<String>()
+                        if (s.snore > 0) parts += pluralStringResource(R.plurals.dashboard_sound_snore, s.snore, s.snore)
+                        if (s.cough > 0) parts += pluralStringResource(R.plurals.dashboard_sound_cough, s.cough, s.cough)
+                        if (s.talk > 0) parts += pluralStringResource(R.plurals.dashboard_sound_talk, s.talk, s.talk)
+                        parts.joinToString(" · ")
+                    } else {
+                        stringResource(R.string.dashboard_quiet_night)
+                    }
                     Spacer(Modifier.height(4.dp))
                     Text(
                         stringResource(R.string.dashboard_sleep_sounds, sounds),
@@ -1338,7 +1347,7 @@ private fun AchievementsCard(earned: Int, total: Int, recent: List<AchievementBa
                     ) {
                         Icon(
                             badge.icon,
-                            contentDescription = badge.name,
+                            contentDescription = stringResource(badge.nameRes),
                             tint = MaterialTheme.colorScheme.onPrimaryContainer,
                             modifier = Modifier.size(22.dp),
                         )
@@ -1349,7 +1358,7 @@ private fun AchievementsCard(earned: Int, total: Int, recent: List<AchievementBa
             val newest = recent.firstOrNull()
             if (newest != null) {
                 Text(
-                    stringResource(R.string.dashboard_achievement_latest, newest.name),
+                    stringResource(R.string.dashboard_achievement_latest, stringResource(newest.nameRes)),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

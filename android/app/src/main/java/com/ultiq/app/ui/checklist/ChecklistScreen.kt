@@ -474,7 +474,7 @@ private fun ProgressBar(done: Int, total: Int, progress: Float) {
 @Composable
 private fun SectionLabel(text: String) {
     Text(
-        text.uppercase(),
+        text.uppercase(LocaleManager.currentLocale()),
         style = MaterialTheme.typography.labelMedium,
         fontWeight = FontWeight.SemiBold,
         color = MaterialTheme.colorScheme.primary,
@@ -568,7 +568,7 @@ private fun ChecklistRow(
 private fun PriorityChip(priority: Int) {
     val (label, color) = when (priority) {
         2 -> stringResource(R.string.priority_high) to MaterialTheme.colorScheme.error
-        1 -> stringResource(R.string.priority_med) to MaterialTheme.colorScheme.tertiary
+        1 -> stringResource(R.string.priority_medium) to MaterialTheme.colorScheme.tertiary
         else -> stringResource(R.string.priority_low) to MaterialTheme.colorScheme.outline
     }
     Surface(
@@ -616,7 +616,7 @@ private fun CompletedSection(
                 )
                 Spacer(Modifier.width(4.dp))
                 Text(
-                    stringResource(R.string.checklist_completed_count, items.size).uppercase(),
+                    stringResource(R.string.checklist_completed_count, items.size).uppercase(LocaleManager.currentLocale()),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -791,7 +791,7 @@ private fun ChecklistEditDialog(
                 Text(stringResource(R.string.field_priority), style = MaterialTheme.typography.labelMedium)
                 val labels = listOf(
                     stringResource(R.string.priority_low) to 0,
-                    stringResource(R.string.priority_med) to 1,
+                    stringResource(R.string.priority_medium) to 1,
                     stringResource(R.string.priority_high) to 2,
                 )
                 SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {

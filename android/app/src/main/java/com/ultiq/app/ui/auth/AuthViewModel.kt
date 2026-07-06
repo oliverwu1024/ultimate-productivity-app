@@ -146,7 +146,15 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                 // so it only recreates when the language genuinely differs.
                 response.user.preferences?.get("app_language")?.takeIf { !it.isJsonNull }?.asString
                     ?.let { lang ->
-                        if (lang.isNotBlank() && lang != com.ultiq.app.util.LocaleManager.currentTag()) {
+                        // §i18n hardening — only apply a tag we actually ship
+                        // translations for; ignore anything unexpected from the
+                        // server (defends against a bad/compromised value → it
+                        // would otherwise recreate the Activity into an English
+                        // fallback with no matching resources).
+                        if (lang.isNotBlank() &&
+                            com.ultiq.app.util.LocaleManager.SUPPORTED.contains(lang) &&
+                            lang != com.ultiq.app.util.LocaleManager.currentTag()
+                        ) {
                             com.ultiq.app.util.LocaleManager.setLanguage(lang)
                         }
                     }
@@ -198,7 +206,15 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                 // stored language so this is a no-op.
                 response.user.preferences?.get("app_language")?.takeIf { !it.isJsonNull }?.asString
                     ?.let { lang ->
-                        if (lang.isNotBlank() && lang != com.ultiq.app.util.LocaleManager.currentTag()) {
+                        // §i18n hardening — only apply a tag we actually ship
+                        // translations for; ignore anything unexpected from the
+                        // server (defends against a bad/compromised value → it
+                        // would otherwise recreate the Activity into an English
+                        // fallback with no matching resources).
+                        if (lang.isNotBlank() &&
+                            com.ultiq.app.util.LocaleManager.SUPPORTED.contains(lang) &&
+                            lang != com.ultiq.app.util.LocaleManager.currentTag()
+                        ) {
                             com.ultiq.app.util.LocaleManager.setLanguage(lang)
                         }
                     }

@@ -793,7 +793,7 @@ private fun PriorityIndicator(priority: String) {
     val label = when (priority) {
         "high" -> stringResource(R.string.priority_high)
         "low" -> stringResource(R.string.priority_low)
-        else -> stringResource(R.string.priority_med)
+        else -> stringResource(R.string.priority_medium)
     }
     Text(label, style = MaterialTheme.typography.labelSmall, color = color)
 }
