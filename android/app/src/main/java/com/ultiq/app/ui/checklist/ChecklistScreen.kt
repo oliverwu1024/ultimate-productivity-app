@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -739,7 +740,14 @@ private fun ChecklistEditDialog(
                             selected = mode == value,
                             onClick = { mode = value },
                             shape = SegmentedButtonDefaults.itemShape(i, modeLabels.size),
-                            label = { Text(label) },
+                            label = {
+                                Text(
+                                    label,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    style = MaterialTheme.typography.labelMedium,
+                                )
+                            },
                         )
                     }
                 }
@@ -800,7 +808,14 @@ private fun ChecklistEditDialog(
                             selected = priority == value,
                             onClick = { priority = value },
                             shape = SegmentedButtonDefaults.itemShape(i, labels.size),
-                            label = { Text(label) },
+                            label = {
+                                Text(
+                                    label,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    style = MaterialTheme.typography.labelMedium,
+                                )
+                            },
                         )
                     }
                 }

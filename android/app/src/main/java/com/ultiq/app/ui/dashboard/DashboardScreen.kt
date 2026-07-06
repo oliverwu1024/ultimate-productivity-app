@@ -985,11 +985,22 @@ private fun QuickActionButton(label: String, icon: ImageVector, onClick: () -> U
     FilledTonalButton(
         onClick = onClick,
         modifier = modifier,
-        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 12.dp)
+        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 10.dp)
     ) {
-        Icon(icon, null, modifier = Modifier.size(18.dp))
-        Spacer(Modifier.width(4.dp))
-        Text(label, style = MaterialTheme.typography.labelMedium)
+        // Icon over label so the label gets the button's full width — long
+        // localized labels ("Iniciar concentración") don't fit beside the icon
+        // in a 1/3-width button, so a horizontal layout wrapped/clipped them.
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(icon, null, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.height(4.dp))
+            Text(
+                label,
+                style = MaterialTheme.typography.labelMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center,
+            )
+        }
     }
 }
 

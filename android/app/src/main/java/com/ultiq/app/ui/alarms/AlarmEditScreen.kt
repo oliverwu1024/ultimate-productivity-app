@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -585,13 +586,20 @@ private fun MissionPicker(current: String, onChange: (String) -> Unit) {
         "shake" to stringResource(R.string.mission_shake),
         "photo" to stringResource(R.string.mission_photo),
     )
-    SingleChoiceSegmentedButtonRow {
+    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
         options.forEachIndexed { idx, (kind, label) ->
             SegmentedButton(
                 selected = current == kind,
                 onClick = { onChange(kind) },
                 shape = SegmentedButtonDefaults.itemShape(index = idx, count = options.size),
-            ) { Text(label) }
+            ) {
+                Text(
+                    label,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.labelMedium,
+                )
+            }
         }
     }
 }
