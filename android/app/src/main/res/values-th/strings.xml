@@ -127,7 +127,7 @@
     <string name="warm_sleep_decent_short">พอใช้ แต่สั้นไปหน่อย</string>
     <string name="warm_sleep_rough">คืนยากๆ — วันนี้อย่าหักโหม</string>
     <string name="warm_sleep_empty_title">ยังไม่ได้บันทึกการนอน</string>
-    <string name="warm_sleep_empty_body">กด เริ่มนอนหลับ คืนนี้ แล้วเราจะดูแลส่วนที่เหลือให้</string>
+    <string name="warm_sleep_empty_body">กด เริ่มนอน คืนนี้ แล้วเราจะดูแลส่วนที่เหลือให้</string>
     <string name="warm_focus_ready">พร้อมโฟกัสแล้วหรือยัง?</string>
     <string name="warm_focus_starting">เพิ่งเริ่มต้น</string>
     <string name="warm_focus_momentum">ได้จังหวะดีแล้ว</string>
