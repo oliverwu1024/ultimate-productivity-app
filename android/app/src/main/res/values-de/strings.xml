@@ -17,6 +17,7 @@
 
     <string name="settings_language">Sprache</string>
     <string name="settings_language_system">Systemstandard</string>
+    <string name="settings_language_experimental">Experimentelle Sprachen</string>
     <string name="common_close">Schließen</string>
 
     <!-- ══════════════════ §13.1 Android sweep — dashboard + common ══════════════════ -->

@@ -33,6 +33,7 @@
     <!-- §13 (i18n) — settings language picker -->
     <string name="settings_language">Language</string>
     <string name="settings_language_system">System default</string>
+    <string name="settings_language_experimental">Experimental languages</string>
     <string name="common_close">Close</string>
 
     <!-- ══════════════════ §13.1 Android sweep — dashboard + common ══════════════════ -->

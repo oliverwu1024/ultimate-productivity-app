@@ -41,22 +41,29 @@ import com.ultiq.app.R
  * it to /auth/me. Endonyms are shown in each language's own script and are never
  * translated. The "" tag = follow the system, rendered from a localized string.
  * Tags mirror res/xml/locales_config.xml + LocaleManager.SUPPORTED.
+ *
+ * System default + English are the fully-reviewed options; the other 12 are
+ * machine-translated, so they're grouped under an "Experimental languages"
+ * header and annotated with their English name (`english`) to make them easy to
+ * identify. `english` is empty for System + English (which need no annotation).
  */
-private val LANGUAGES: List<Pair<String, String>> = listOf(
-    "" to "",
-    "en" to "English",
-    "es" to "Español",
-    "pt-BR" to "Português (Brasil)",
-    "fr" to "Français",
-    "de" to "Deutsch",
-    "ja" to "日本語",
-    "zh-Hans" to "简体中文",
-    "zh-Hant" to "繁體中文",
-    "ko" to "한국어",
-    "hi" to "हिन्दी",
-    "vi" to "Tiếng Việt",
-    "th" to "ไทย",
-    "ar" to "العربية",
+private data class Lang(val tag: String, val endonym: String, val english: String)
+
+private val LANGUAGES: List<Lang> = listOf(
+    Lang("", "", ""),
+    Lang("en", "English", ""),
+    Lang("es", "Español", "Spanish"),
+    Lang("pt-BR", "Português (Brasil)", "Portuguese (Brazil)"),
+    Lang("fr", "Français", "French"),
+    Lang("de", "Deutsch", "German"),
+    Lang("ja", "日本語", "Japanese"),
+    Lang("zh-Hans", "简体中文", "Chinese (Simplified)"),
+    Lang("zh-Hant", "繁體中文", "Chinese (Traditional)"),
+    Lang("ko", "한국어", "Korean"),
+    Lang("hi", "हिन्दी", "Hindi"),
+    Lang("vi", "Tiếng Việt", "Vietnamese"),
+    Lang("th", "ไทย", "Thai"),
+    Lang("ar", "العربية", "Arabic"),
 )
 
 @Composable
@@ -64,10 +71,13 @@ fun LanguageCard(currentTag: String, onSelect: (String) -> Unit) {
     var showDialog by remember { mutableStateOf(false) }
     val label = stringResource(R.string.settings_language)
     val systemDefault = stringResource(R.string.settings_language_system)
-    fun display(tag: String, endonym: String) = if (tag.isBlank()) systemDefault else endonym
 
-    val currentName = LANGUAGES.firstOrNull { it.first == currentTag }
-        ?.let { display(it.first, it.second) } ?: systemDefault
+    val current = LANGUAGES.firstOrNull { it.tag == currentTag }
+    val currentName = when {
+        current == null || current.tag.isBlank() -> systemDefault
+        current.english.isEmpty() -> current.endonym                 // English
+        else -> "${current.endonym} (${current.english})"            // experimental
+    }
 
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
@@ -118,26 +128,48 @@ fun LanguageCard(currentTag: String, onSelect: (String) -> Unit) {
                         .heightIn(max = 420.dp)
                         .verticalScroll(rememberScrollState()),
                 ) {
-                    LANGUAGES.forEach { (tag, endonym) ->
+                    LANGUAGES.forEachIndexed { index, lang ->
+                        val isExperimental = lang.english.isNotEmpty()
+                        // Section header once, above the first machine-translated language.
+                        if (isExperimental && LANGUAGES[index - 1].english.isEmpty()) {
+                            Text(
+                                stringResource(R.string.settings_language_experimental),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(start = 8.dp, top = 16.dp, bottom = 4.dp),
+                            )
+                        }
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
                                     showDialog = false
-                                    if (tag != currentTag) onSelect(tag)
+                                    if (lang.tag != currentTag) onSelect(lang.tag)
                                 }
                                 .padding(vertical = 10.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             RadioButton(
-                                selected = tag == currentTag,
+                                selected = lang.tag == currentTag,
                                 onClick = {
                                     showDialog = false
-                                    if (tag != currentTag) onSelect(tag)
+                                    if (lang.tag != currentTag) onSelect(lang.tag)
                                 },
                             )
                             Spacer(Modifier.width(8.dp))
-                            Text(display(tag, endonym), style = MaterialTheme.typography.bodyLarge)
+                            Column {
+                                Text(
+                                    if (lang.tag.isBlank()) systemDefault else lang.endonym,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                )
+                                if (isExperimental) {
+                                    Text(
+                                        lang.english,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
                         }
                     }
                 }
