@@ -63,6 +63,7 @@ private val LANGUAGES: List<Lang> = listOf(
     Lang("hi", "हिन्दी", "Hindi"),
     Lang("vi", "Tiếng Việt", "Vietnamese"),
     Lang("th", "ไทย", "Thai"),
+    Lang("id", "Bahasa Indonesia", "Indonesian"),
     Lang("ar", "العربية", "Arabic"),
 )
 

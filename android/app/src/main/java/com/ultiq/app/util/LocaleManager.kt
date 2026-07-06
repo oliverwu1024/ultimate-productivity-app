@@ -16,10 +16,14 @@ import java.util.Locale
  */
 object LocaleManager {
 
-    /** BCP-47 tags the app ships translations for — must match res/xml/locales_config.xml. */
+    /**
+     * BCP-47 tags the app ships translations for — must match res/xml/locales_config.xml.
+     * Note: Indonesian's tag is "id", but Java/Android normalizes it to the legacy code
+     * "in" for resource lookup, so its strings live in `res/values-in/` (verified on-device).
+     */
     val SUPPORTED: List<String> = listOf(
         "en", "es", "pt-BR", "fr", "de", "ja",
-        "zh-Hans", "zh-Hant", "ko", "hi", "vi", "th", "ar",
+        "zh-Hans", "zh-Hant", "ko", "hi", "vi", "th", "id", "ar",
     )
 
     /** Apply a language. Empty/blank tag = follow the system language. */

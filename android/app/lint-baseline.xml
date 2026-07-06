@@ -1246,4 +1246,13 @@
             column="13"/>
     </issue>
 
+    <issue
+        id="UnusedTranslation"
+        message="The language `in` (Indonesian) is present in this project, but not declared in the localeConfig resource">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="41"
+            column="9"/>
+    </issue>
+
 </issues>
