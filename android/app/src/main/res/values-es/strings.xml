@@ -1009,4 +1009,24 @@
     <string name="alarm_set_for">Programada para %1$s</string>
     <string name="alarm_dismiss">Apagar</string>
     <string name="alarm_force_dismiss">Apagar forzado</string>
+
+    <!-- §13.1 Android sweep — photo mission -->
+    <string name="photo_permission_title">Permiso de cámara requerido</string>
+    <string name="photo_permission_body">Ultiq necesita la cámara para configurar tu misión de foto para desactivar la alarma.</string>
+    <string name="photo_grant_access">Conceder acceso</string>
+    <string name="photo_reference">Foto de referencia</string>
+    <string name="photo_setup_body">Mantén la cámara fija en una escena estable — el lavabo del baño, la nevera, la puerta. Tendrás que apuntar a la misma escena para desactivar la alarma.</string>
+    <string name="photo_capture">Capturar</string>
+    <string name="photo_saving">Guardando…</string>
+    <string name="photo_camera_open_failed">No se pudo abrir la cámara</string>
+    <string name="photo_save_failed">No se pudo guardar la foto</string>
+    <string name="photo_capture_failed">Error al capturar</string>
+    <string name="photo_mission_title">Fotografía la escena</string>
+    <string name="photo_mission_body">Alinea la guía tenue con la escena real y luego captura.</string>
+    <string name="photo_attempt">Intento %1$d de %2$d</string>
+    <string name="photo_attempt_fallback">%1$d restantes antes de la misión de matemáticas</string>
+    <string name="photo_last_match">Último intento: %1$d%% similar (necesitas ≥ %2$d%%)</string>
+    <string name="photo_checking">Verificando…</string>
+    <string name="photo_preparing">Preparando…</string>
+    <string name="photo_process_failed">No se pudo procesar el fotograma</string>
 </resources>

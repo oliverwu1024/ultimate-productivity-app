@@ -45,6 +45,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import com.ultiq.app.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -72,6 +74,12 @@ fun PhotoMissionScreen(
     onComplete: () -> Unit,
 ) {
     val context = LocalContext.current
+    // Pre-resolved for the camera coroutines/callbacks below (dodges
+    // LocalContextGetResourceValueCall — can't call getString on
+    // LocalContext.current outside a composable).
+    val cameraOpenFailedMsg = stringResource(R.string.photo_camera_open_failed)
+    val processFailedMsg = stringResource(R.string.photo_process_failed)
+    val captureFailedMsg = stringResource(R.string.photo_capture_failed)
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
 
@@ -138,7 +146,7 @@ fun PhotoMissionScreen(
                 )
                 imageCapture = capture
             } catch (e: Exception) {
-                error = e.message ?: "Couldn't open the camera"
+                error = e.message ?: cameraOpenFailedMsg
             }
         }
         // §M6: unbind the camera when the mission screen leaves composition so
@@ -229,7 +237,7 @@ fun PhotoMissionScreen(
                 if (ref != null) {
                     Image(
                         bitmap = ref.asImageBitmap(),
-                        contentDescription = "Reference photo",
+                        contentDescription = stringResource(R.string.photo_reference),
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize(),
                     )
@@ -243,20 +251,20 @@ fun PhotoMissionScreen(
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    "Photograph the scene",
+                    stringResource(R.string.photo_mission_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text(
-                    "Line the faint guide up with the real scene, then capture.",
+                    stringResource(R.string.photo_mission_body),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 val remaining = FALLBACK_AFTER_FAILURES - failures
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "Attempt ${failures + 1} of $FALLBACK_AFTER_FAILURES" +
-                        if (failures > 0) " · $remaining left before math fallback" else "",
+                    stringResource(R.string.photo_attempt, failures + 1, FALLBACK_AFTER_FAILURES) +
+                        if (failures > 0) " · " + stringResource(R.string.photo_attempt_fallback, remaining) else "",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary,
                 )
@@ -296,8 +304,11 @@ fun PhotoMissionScreen(
         ) {
             val matchText = when (val s = lastSimilarity) {
                 null -> ""
-                else -> "Last match: ${(s * 100).roundToInt()}% similar " +
-                    "(need ≥ ${(config.threshold * 100).roundToInt()}%)"
+                else -> stringResource(
+                    R.string.photo_last_match,
+                    (s * 100).roundToInt(),
+                    (config.threshold * 100).roundToInt(),
+                )
             }
             if (matchText.isNotEmpty()) {
                 Text(
@@ -352,7 +363,7 @@ fun PhotoMissionScreen(
                                         }
                                     } catch (e: Exception) {
                                         capturing = false
-                                        error = e.message ?: "Couldn't process the frame"
+                                        error = e.message ?: processFailedMsg
                                     } finally {
                                         image.close()
                                     }
@@ -361,7 +372,7 @@ fun PhotoMissionScreen(
 
                             override fun onError(exc: ImageCaptureException) {
                                 capturing = false
-                                error = exc.message ?: "Capture failed"
+                                error = exc.message ?: captureFailedMsg
                             }
                         },
                     )
@@ -371,9 +382,9 @@ fun PhotoMissionScreen(
             ) {
                 Text(
                     when {
-                        capturing -> "Checking…"
-                        !referenceReady -> "Preparing…"
-                        else -> "Capture"
+                        capturing -> stringResource(R.string.photo_checking)
+                        !referenceReady -> stringResource(R.string.photo_preparing)
+                        else -> stringResource(R.string.photo_capture)
                     },
                 )
             }

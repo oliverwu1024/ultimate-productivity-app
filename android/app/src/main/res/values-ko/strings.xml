@@ -947,4 +947,24 @@
     <string name="alarm_set_for">%1$s에 설정됨</string>
     <string name="alarm_dismiss">해제</string>
     <string name="alarm_force_dismiss">강제 해제</string>
+
+    <!-- §13.1 Android sweep — photo mission -->
+    <string name="photo_permission_title">카메라 권한 필요</string>
+    <string name="photo_permission_body">Ultiq이 사진 해제 미션을 설정하려면 카메라가 필요합니다.</string>
+    <string name="photo_grant_access">접근 허용</string>
+    <string name="photo_reference">기준 사진</string>
+    <string name="photo_setup_body">고정된 장면에 카메라를 안정적으로 겨냥하세요 — 욕실 세면대, 냉장고, 현관문. 알람을 해제하려면 같은 장면을 촬영해야 합니다.</string>
+    <string name="photo_capture">촬영</string>
+    <string name="photo_saving">저장 중…</string>
+    <string name="photo_camera_open_failed">카메라를 열 수 없습니다</string>
+    <string name="photo_save_failed">사진을 저장할 수 없습니다</string>
+    <string name="photo_capture_failed">촬영 실패</string>
+    <string name="photo_mission_title">장면 촬영</string>
+    <string name="photo_mission_body">흐린 가이드를 실제 장면에 맞추고 촬영하세요.</string>
+    <string name="photo_attempt">%2$d번 중 %1$d번째 시도</string>
+    <string name="photo_attempt_fallback">수학 미션 전환까지 %1$d회 남음</string>
+    <string name="photo_last_match">마지막 일치율: %1$d%% (≥ %2$d%% 필요)</string>
+    <string name="photo_checking">확인 중…</string>
+    <string name="photo_preparing">준비 중…</string>
+    <string name="photo_process_failed">프레임을 처리할 수 없습니다</string>
 </resources>

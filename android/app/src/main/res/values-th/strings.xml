@@ -947,4 +947,24 @@
     <string name="alarm_set_for">ตั้งปลุกเวลา %1$s</string>
     <string name="alarm_dismiss">ปิด</string>
     <string name="alarm_force_dismiss">บังคับปิด</string>
+
+    <!-- §13.1 Android sweep — photo mission -->
+    <string name="photo_permission_title">ต้องการสิทธิ์กล้อง</string>
+    <string name="photo_permission_body">Ultiq ต้องการกล้องเพื่อตั้งค่าภารกิจถ่ายรูปเพื่อปิดนาฬิกา</string>
+    <string name="photo_grant_access">อนุญาตการเข้าถึง</string>
+    <string name="photo_reference">รูปอ้างอิง</string>
+    <string name="photo_setup_body">ถือกล้องนิ่งๆ ไว้ที่ฉากคงที่ — อ่างล้างหน้า ตู้เย็น หรือประตู คุณต้องชี้กล้องไปที่ฉากเดิมเพื่อปิดสัญญาณเตือน</string>
+    <string name="photo_capture">ถ่ายภาพ</string>
+    <string name="photo_saving">กำลังบันทึก…</string>
+    <string name="photo_camera_open_failed">ไม่สามารถเปิดกล้องได้</string>
+    <string name="photo_save_failed">ไม่สามารถบันทึกรูปภาพได้</string>
+    <string name="photo_capture_failed">การถ่ายภาพล้มเหลว</string>
+    <string name="photo_mission_title">ถ่ายรูปฉากนั้น</string>
+    <string name="photo_mission_body">จัดตำแหน่งเส้นนำจางๆ ให้ตรงกับฉากจริง แล้วถ่ายภาพ</string>
+    <string name="photo_attempt">ครั้งที่ %1$d จาก %2$d</string>
+    <string name="photo_attempt_fallback">เหลืออีก %1$d ครั้งก่อนเปลี่ยนเป็นโจทย์คณิต</string>
+    <string name="photo_last_match">การจับคู่ล่าสุด: คล้ายกัน %1$d%% (ต้องการ ≥ %2$d%%)</string>
+    <string name="photo_checking">กำลังตรวจสอบ…</string>
+    <string name="photo_preparing">กำลังเตรียม…</string>
+    <string name="photo_process_failed">ไม่สามารถประมวลผลเฟรมได้</string>
 </resources>

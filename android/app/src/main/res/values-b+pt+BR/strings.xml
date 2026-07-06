@@ -1009,4 +1009,24 @@
     <string name="alarm_set_for">Definido para %1$s</string>
     <string name="alarm_dismiss">Dispensar</string>
     <string name="alarm_force_dismiss">Forçar dispensa</string>
+
+    <!-- §13.1 Android sweep — photo mission -->
+    <string name="photo_permission_title">Permissão de câmera necessária</string>
+    <string name="photo_permission_body">O Ultiq precisa da câmera para configurar sua missão de dispensar com foto.</string>
+    <string name="photo_grant_access">Conceder acesso</string>
+    <string name="photo_reference">Foto de referência</string>
+    <string name="photo_setup_body">Mantenha a câmera firme em uma cena fixa — pia do banheiro, geladeira, porta de entrada. Você terá que apontar para a mesma cena para dispensar o alarme.</string>
+    <string name="photo_capture">Capturar</string>
+    <string name="photo_saving">Salvando…</string>
+    <string name="photo_camera_open_failed">Não foi possível abrir a câmera</string>
+    <string name="photo_save_failed">Não foi possível salvar a foto</string>
+    <string name="photo_capture_failed">Falha na captura</string>
+    <string name="photo_mission_title">Fotografe a cena</string>
+    <string name="photo_mission_body">Alinhe o guia tênue com a cena real e capture.</string>
+    <string name="photo_attempt">Tentativa %1$d de %2$d</string>
+    <string name="photo_attempt_fallback">%1$d restante antes da matemática</string>
+    <string name="photo_last_match">Última correspondência: %1$d%% similar (precisa ≥ %2$d%%)</string>
+    <string name="photo_checking">Verificando…</string>
+    <string name="photo_preparing">Preparando…</string>
+    <string name="photo_process_failed">Não foi possível processar o frame</string>
 </resources>

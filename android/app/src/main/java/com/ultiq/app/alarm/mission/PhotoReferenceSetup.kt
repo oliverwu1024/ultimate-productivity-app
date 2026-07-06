@@ -40,6 +40,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import com.ultiq.app.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -64,6 +66,11 @@ fun PhotoReferenceSetup(
     onCancel: () -> Unit,
 ) {
     val context = LocalContext.current
+    // Pre-resolved for the camera coroutines/callbacks below (dodges
+    // LocalContextGetResourceValueCall).
+    val cameraOpenFailedMsg = stringResource(R.string.photo_camera_open_failed)
+    val saveFailedMsg = stringResource(R.string.photo_save_failed)
+    val captureFailedMsg = stringResource(R.string.photo_capture_failed)
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
 
@@ -83,7 +90,7 @@ fun PhotoReferenceSetup(
 
     if (!hasCameraPermission) {
         PermissionGate(
-            message = "Ultiq needs the camera to set up your photo dismiss mission.",
+            message = stringResource(R.string.photo_permission_body),
             onRetry = { permissionLauncher.launch(Manifest.permission.CAMERA) },
             onCancel = onCancel,
         )
@@ -116,7 +123,7 @@ fun PhotoReferenceSetup(
                 )
                 imageCapture = capture
             } catch (e: Exception) {
-                error = e.message ?: "Couldn't open the camera"
+                error = e.message ?: cameraOpenFailedMsg
             }
         }
         // §M6: release the camera binding when the setup overlay closes so
@@ -127,12 +134,10 @@ fun PhotoReferenceSetup(
 
     CameraOverlay(
         previewView = previewView,
-        headerTitle = "Reference photo",
-        headerBody = "Hold the camera steady on a fixed scene — your bathroom sink, " +
-            "fridge, doorway. You'll have to point at the same scene to dismiss " +
-            "the alarm.",
+        headerTitle = stringResource(R.string.photo_reference),
+        headerBody = stringResource(R.string.photo_setup_body),
         captureEnabled = imageCapture != null && !capturing,
-        captureLabel = if (capturing) "Saving…" else "Capture",
+        captureLabel = if (capturing) stringResource(R.string.photo_saving) else stringResource(R.string.photo_capture),
         onCancel = onCancel,
         onCapture = {
             val capture = imageCapture ?: return@CameraOverlay
@@ -156,7 +161,7 @@ fun PhotoReferenceSetup(
                                 onCaptured(uri)
                             } catch (e: Exception) {
                                 capturing = false
-                                error = e.message ?: "Couldn't save the photo"
+                                error = e.message ?: saveFailedMsg
                             } finally {
                                 image.close()
                             }
@@ -165,7 +170,7 @@ fun PhotoReferenceSetup(
 
                     override fun onError(exc: ImageCaptureException) {
                         capturing = false
-                        error = exc.message ?: "Capture failed"
+                        error = exc.message ?: captureFailedMsg
                     }
                 },
             )
@@ -233,7 +238,7 @@ internal fun CameraOverlay(
                 OutlinedButton(
                     onClick = onCancel,
                     modifier = Modifier.weight(1f),
-                ) { Text("Cancel") }
+                ) { Text(stringResource(R.string.action_cancel)) }
                 Button(
                     onClick = onCapture,
                     enabled = captureEnabled,
@@ -259,7 +264,7 @@ private fun PermissionGate(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            "Camera permission needed",
+            stringResource(R.string.photo_permission_title),
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.SemiBold,
         )
@@ -270,9 +275,9 @@ private fun PermissionGate(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(Modifier.height(24.dp))
-        Button(onClick = onRetry, modifier = Modifier.fillMaxWidth()) { Text("Grant access") }
+        Button(onClick = onRetry, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.photo_grant_access)) }
         Spacer(Modifier.height(8.dp))
-        OutlinedButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) { Text("Cancel") }
+        OutlinedButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.action_cancel)) }
     }
 }
 

@@ -947,4 +947,24 @@
     <string name="alarm_set_for">Đặt lúc %1$s</string>
     <string name="alarm_dismiss">Tắt</string>
     <string name="alarm_force_dismiss">Buộc tắt</string>
+
+    <!-- §13.1 Android sweep — photo mission -->
+    <string name="photo_permission_title">Cần quyền truy cập camera</string>
+    <string name="photo_permission_body">Ultiq cần camera để thiết lập nhiệm vụ tắt báo thức bằng ảnh của bạn.</string>
+    <string name="photo_grant_access">Cấp quyền truy cập</string>
+    <string name="photo_reference">Ảnh tham chiếu</string>
+    <string name="photo_setup_body">Giữ camera ổn định hướng vào một cảnh cố định — bồn rửa mặt, tủ lạnh, cửa ra vào. Bạn phải hướng vào cùng cảnh đó để tắt báo thức.</string>
+    <string name="photo_capture">Chụp ảnh</string>
+    <string name="photo_saving">Đang lưu…</string>
+    <string name="photo_camera_open_failed">Không thể mở camera</string>
+    <string name="photo_save_failed">Không thể lưu ảnh</string>
+    <string name="photo_capture_failed">Chụp ảnh thất bại</string>
+    <string name="photo_mission_title">Chụp ảnh cảnh vật</string>
+    <string name="photo_mission_body">Căn chỉnh đường dẫn mờ với cảnh thực, sau đó chụp.</string>
+    <string name="photo_attempt">Lần thử %1$d / %2$d</string>
+    <string name="photo_attempt_fallback">Còn %1$d lần trước khi chuyển sang nhiệm vụ toán</string>
+    <string name="photo_last_match">Khớp gần nhất: %1$d%% tương đồng (cần ≥ %2$d%%)</string>
+    <string name="photo_checking">Đang kiểm tra…</string>
+    <string name="photo_preparing">Đang chuẩn bị…</string>
+    <string name="photo_process_failed">Không thể xử lý khung hình</string>
 </resources>

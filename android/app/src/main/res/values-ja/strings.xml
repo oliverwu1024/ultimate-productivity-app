@@ -947,4 +947,24 @@
     <string name="alarm_set_for">%1$s にセット</string>
     <string name="alarm_dismiss">停止</string>
     <string name="alarm_force_dismiss">強制停止</string>
+
+    <!-- §13.1 Android sweep — photo mission -->
+    <string name="photo_permission_title">カメラの許可が必要</string>
+    <string name="photo_permission_body">Ultiqは写真解除ミッションの設定にカメラが必要です。</string>
+    <string name="photo_grant_access">アクセスを許可</string>
+    <string name="photo_reference">参照写真</string>
+    <string name="photo_setup_body">洗面台・冷蔵庫・ドア口など、固定した場所にカメラを向けて静止させてください。アラームを解除するには、同じ場面を撮影する必要があります。</string>
+    <string name="photo_capture">撮影</string>
+    <string name="photo_saving">保存中…</string>
+    <string name="photo_camera_open_failed">カメラを開けませんでした</string>
+    <string name="photo_save_failed">写真を保存できませんでした</string>
+    <string name="photo_capture_failed">撮影に失敗しました</string>
+    <string name="photo_mission_title">場面を撮影</string>
+    <string name="photo_mission_body">薄いガイドを実際の場面に合わせて、撮影してください。</string>
+    <string name="photo_attempt">試行 %1$d / %2$d</string>
+    <string name="photo_attempt_fallback">数式ミッションまで残り%1$d回</string>
+    <string name="photo_last_match">前回の一致度: %1$d%%（≥ %2$d%%が必要）</string>
+    <string name="photo_checking">確認中…</string>
+    <string name="photo_preparing">準備中…</string>
+    <string name="photo_process_failed">フレームを処理できませんでした</string>
 </resources>

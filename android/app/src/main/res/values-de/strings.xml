@@ -978,4 +978,24 @@
     <string name="alarm_set_for">Auf %1$s gestellt</string>
     <string name="alarm_dismiss">Ausschalten</string>
     <string name="alarm_force_dismiss">Jetzt ausschalten</string>
+
+    <!-- §13.1 Android sweep — photo mission -->
+    <string name="photo_permission_title">Kameraberechtigung erforderlich</string>
+    <string name="photo_permission_body">Ultiq benötigt die Kamera, um deine Foto-Abbruchmission einzurichten.</string>
+    <string name="photo_grant_access">Zugriff gewähren</string>
+    <string name="photo_reference">Referenzfoto</string>
+    <string name="photo_setup_body">Halte die Kamera ruhig auf eine feste Szene — Waschbecken, Kühlschrank, Türrahmen. Du musst auf dieselbe Szene zeigen, um den Wecker zu deaktivieren.</string>
+    <string name="photo_capture">Aufnehmen</string>
+    <string name="photo_saving">Speichern…</string>
+    <string name="photo_camera_open_failed">Kamera konnte nicht geöffnet werden</string>
+    <string name="photo_save_failed">Foto konnte nicht gespeichert werden</string>
+    <string name="photo_capture_failed">Aufnahme fehlgeschlagen</string>
+    <string name="photo_mission_title">Szene fotografieren</string>
+    <string name="photo_mission_body">Richte die blasse Führungslinie an der echten Szene aus und fotografiere dann.</string>
+    <string name="photo_attempt">Versuch %1$d von %2$d</string>
+    <string name="photo_attempt_fallback">%1$d übrig vor Mathe-Fallback</string>
+    <string name="photo_last_match">Letzter Treffer: %1$d%% Ähnlichkeit (benötigt ≥ %2$d%%)</string>
+    <string name="photo_checking">Wird geprüft…</string>
+    <string name="photo_preparing">Wird vorbereitet…</string>
+    <string name="photo_process_failed">Bild konnte nicht verarbeitet werden</string>
 </resources>

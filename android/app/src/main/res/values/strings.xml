@@ -1029,4 +1029,27 @@
     <string name="alarm_set_for">Set for %1$s</string>
     <string name="alarm_dismiss">Dismiss</string>
     <string name="alarm_force_dismiss">Force dismiss</string>
+
+    <!-- §13.1 Android sweep — photo mission -->
+    <!-- PhotoReferenceSetup -->
+    <string name="photo_permission_title">Camera permission needed</string>
+    <string name="photo_permission_body">Ultiq needs the camera to set up your photo dismiss mission.</string>
+    <string name="photo_grant_access">Grant access</string>
+    <string name="photo_reference">Reference photo</string>
+    <string name="photo_setup_body">Hold the camera steady on a fixed scene — your bathroom sink, fridge, doorway. You\'ll have to point at the same scene to dismiss the alarm.</string>
+    <string name="photo_capture">Capture</string>
+    <string name="photo_saving">Saving…</string>
+    <string name="photo_camera_open_failed">Couldn\'t open the camera</string>
+    <string name="photo_save_failed">Couldn\'t save the photo</string>
+    <string name="photo_capture_failed">Capture failed</string>
+
+    <!-- PhotoMissionScreen -->
+    <string name="photo_mission_title">Photograph the scene</string>
+    <string name="photo_mission_body">Line the faint guide up with the real scene, then capture.</string>
+    <string name="photo_attempt">Attempt %1$d of %2$d</string>
+    <string name="photo_attempt_fallback">%1$d left before math fallback</string>
+    <string name="photo_last_match">Last match: %1$d%% similar (need ≥ %2$d%%)</string>
+    <string name="photo_checking">Checking…</string>
+    <string name="photo_preparing">Preparing…</string>
+    <string name="photo_process_failed">Couldn\'t process the frame</string>
 </resources>

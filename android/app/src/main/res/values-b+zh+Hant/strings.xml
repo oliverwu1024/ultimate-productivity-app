@@ -947,4 +947,24 @@
     <string name="alarm_set_for">設定為 %1$s</string>
     <string name="alarm_dismiss">關閉</string>
     <string name="alarm_force_dismiss">強制關閉</string>
+
+    <!-- §13.1 Android sweep — photo mission -->
+    <string name="photo_permission_title">需要相機權限</string>
+    <string name="photo_permission_body">Ultiq 需要相機來設定您的拍照解鎖任務。</string>
+    <string name="photo_grant_access">授予存取權限</string>
+    <string name="photo_reference">參考照片</string>
+    <string name="photo_setup_body">將相機對準固定場景並保持穩定——浴室水槽、冰箱或門口。解除鬧鐘時需對準同一場景拍攝。</string>
+    <string name="photo_capture">拍攝</string>
+    <string name="photo_saving">儲存中…</string>
+    <string name="photo_camera_open_failed">無法開啟相機</string>
+    <string name="photo_save_failed">無法儲存照片</string>
+    <string name="photo_capture_failed">拍攝失敗</string>
+    <string name="photo_mission_title">拍攝場景</string>
+    <string name="photo_mission_body">將淡色參考線對齊實際場景，然後拍攝。</string>
+    <string name="photo_attempt">第 %1$d 次，共 %2$d 次</string>
+    <string name="photo_attempt_fallback">剩 %1$d 次後改為數學任務</string>
+    <string name="photo_last_match">上次相符度：%1$d%%（需 ≥ %2$d%%）</string>
+    <string name="photo_checking">檢查中…</string>
+    <string name="photo_preparing">準備中…</string>
+    <string name="photo_process_failed">無法處理畫面</string>
 </resources>
