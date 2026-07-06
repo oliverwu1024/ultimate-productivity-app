@@ -992,4 +992,21 @@
         <item quantity="many">%1$d distracciones</item>
         <item quantity="other">%1$d distracciones</item>
     </plurals>
+
+    <!-- §13.1 Android sweep — nonui (nav/notifications/alarm) -->
+    <string name="nav_dashboard">Dashboard</string>
+    <string name="nav_checklist">Checklist</string>
+    <string name="nav_sleep">Sueño</string>
+    <string name="nav_focus">Enfoque</string>
+    <string name="nav_calendar">Calendario</string>
+    <string name="notif_tap_open">Toca para abrir</string>
+    <string name="notif_sleep_tracking">Seguimiento de sueño activo</string>
+    <string name="notif_sleep_tracking_audio">Registrando sueño + sonidos</string>
+    <string name="notif_snore_off_title">Seguimiento de ronquidos desactivado — permiso de micrófono necesario</string>
+    <string name="notif_snore_off_body">El seguimiento de ronquidos y tos está activado en Preferencias de sueño, pero este dispositivo no tiene permiso de micrófono. Toca para conceder — el audio se analiza en el dispositivo y nunca se sube.</string>
+    <string name="alarm_notif_title">Alarma</string>
+    <string name="alarm_wake_up">DESPIERTA</string>
+    <string name="alarm_set_for">Programada para %1$s</string>
+    <string name="alarm_dismiss">Apagar</string>
+    <string name="alarm_force_dismiss">Apagar forzado</string>
 </resources>

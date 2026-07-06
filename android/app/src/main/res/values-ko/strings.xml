@@ -930,4 +930,21 @@
     <plurals name="sessions_distractions">
         <item quantity="other">%1$d회 방해</item>
     </plurals>
+
+    <!-- §13.1 Android sweep — nonui (nav/notifications/alarm) -->
+    <string name="nav_dashboard">대시보드</string>
+    <string name="nav_checklist">할 일</string>
+    <string name="nav_sleep">수면</string>
+    <string name="nav_focus">집중</string>
+    <string name="nav_calendar">캘린더</string>
+    <string name="notif_tap_open">탭하여 앱 열기</string>
+    <string name="notif_sleep_tracking">수면 추적 중</string>
+    <string name="notif_sleep_tracking_audio">수면 + 소리 추적 중</string>
+    <string name="notif_snore_off_title">코골이 추적 꺼짐 — 마이크 권한 필요</string>
+    <string name="notif_snore_off_body">코골이 + 기침 추적이 수면 환경설정에서 활성화되어 있지만, 이 기기에서 마이크 접근 권한이 허용되지 않았습니다. 탭하여 허용 — 오디오는 기기에서 분석되며 업로드되지 않습니다.</string>
+    <string name="alarm_notif_title">알람</string>
+    <string name="alarm_wake_up">기상</string>
+    <string name="alarm_set_for">%1$s에 설정됨</string>
+    <string name="alarm_dismiss">해제</string>
+    <string name="alarm_force_dismiss">강제 해제</string>
 </resources>

@@ -930,4 +930,21 @@
     <plurals name="sessions_distractions">
         <item quantity="other">%1$d 次干扰</item>
     </plurals>
+
+    <!-- §13.1 Android sweep — nonui (nav/notifications/alarm) -->
+    <string name="nav_dashboard">首页</string>
+    <string name="nav_checklist">清单</string>
+    <string name="nav_sleep">睡眠</string>
+    <string name="nav_focus">专注</string>
+    <string name="nav_calendar">日历</string>
+    <string name="notif_tap_open">点击打开应用</string>
+    <string name="notif_sleep_tracking">睡眠追踪进行中</string>
+    <string name="notif_sleep_tracking_audio">追踪睡眠与声音</string>
+    <string name="notif_snore_off_title">鼾声追踪已关闭 — 需要麦克风权限</string>
+    <string name="notif_snore_off_body">鼾声与咳嗽追踪已在「睡眠偏好设置」中启用，但此设备尚未授予麦克风权限。点击授权 — 音频在设备本地分析，从不上传。</string>
+    <string name="alarm_notif_title">闹钟</string>
+    <string name="alarm_wake_up">起床</string>
+    <string name="alarm_set_for">定于 %1$s</string>
+    <string name="alarm_dismiss">关闭</string>
+    <string name="alarm_force_dismiss">强制关闭</string>
 </resources>

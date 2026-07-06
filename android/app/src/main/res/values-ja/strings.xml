@@ -930,4 +930,21 @@
     <plurals name="sessions_distractions">
         <item quantity="other">%1$d 回の気散り</item>
     </plurals>
+
+    <!-- §13.1 Android sweep — nonui (nav/notifications/alarm) -->
+    <string name="nav_dashboard">ホーム</string>
+    <string name="nav_checklist">チェックリスト</string>
+    <string name="nav_sleep">睡眠</string>
+    <string name="nav_focus">集中</string>
+    <string name="nav_calendar">カレンダー</string>
+    <string name="notif_tap_open">タップしてアプリを開く</string>
+    <string name="notif_sleep_tracking">睡眠トラッキング中</string>
+    <string name="notif_sleep_tracking_audio">睡眠 + 音声を記録中</string>
+    <string name="notif_snore_off_title">いびき検出オフ — マイク権限が必要</string>
+    <string name="notif_snore_off_body">いびき・咳の検出は睡眠設定で有効ですが、このデバイスはマイクへのアクセスを許可していません。タップして許可 — 音声はデバイス上で解析され、アップロードされません。</string>
+    <string name="alarm_notif_title">アラーム</string>
+    <string name="alarm_wake_up">起きて！</string>
+    <string name="alarm_set_for">%1$s にセット</string>
+    <string name="alarm_dismiss">停止</string>
+    <string name="alarm_force_dismiss">強制停止</string>
 </resources>

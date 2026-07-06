@@ -33,9 +33,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ultiq.app.R
+import com.ultiq.app.util.LocaleManager
 import com.ultiq.app.alarm.mission.MathMissionScreen
 import com.ultiq.app.alarm.mission.MissionConfig
 import com.ultiq.app.alarm.mission.PhotoMissionScreen
@@ -185,7 +188,7 @@ private fun ForceDismissOverlay(onForceDismiss: () -> Unit) {
             modifier = Modifier.padding(bottom = 12.dp),
         ) {
             Text(
-                "Force dismiss",
+                stringResource(R.string.alarm_force_dismiss),
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.labelLarge,
             )
@@ -221,7 +224,7 @@ private fun NoneMissionScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(
-                        text = "WAKE UP",
+                        text = stringResource(R.string.alarm_wake_up),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.SemiBold,
@@ -233,7 +236,7 @@ private fun NoneMissionScreen(
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    val label = alarm?.label?.takeIf { it.isNotBlank() } ?: "Ultiq alarm"
+                    val label = alarm?.label?.takeIf { it.isNotBlank() } ?: stringResource(R.string.alarm_default_label)
                     Text(
                         text = label,
                         style = MaterialTheme.typography.titleLarge,
@@ -241,8 +244,11 @@ private fun NoneMissionScreen(
                     )
                     alarm?.let {
                         Text(
-                            text = "Set for " + LocalTime.of(it.triggerHour, it.triggerMinute)
-                                .format(DateTimeFormatter.ofPattern("HH:mm")),
+                            text = stringResource(
+                                R.string.alarm_set_for,
+                                LocalTime.of(it.triggerHour, it.triggerMinute)
+                                    .format(DateTimeFormatter.ofPattern("HH:mm", LocaleManager.currentLocale())),
+                            ),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -260,7 +266,7 @@ private fun NoneMissionScreen(
                         contentColor = MaterialTheme.colorScheme.onPrimary,
                     ),
                 ) {
-                    Text("Dismiss", fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.alarm_dismiss), fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
         }

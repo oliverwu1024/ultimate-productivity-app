@@ -961,4 +961,21 @@
         <item quantity="one">%1$d विकर्षण</item>
         <item quantity="other">%1$d विकर्षण</item>
     </plurals>
+
+    <!-- §13.1 Android sweep — nonui (nav/notifications/alarm) -->
+    <string name="nav_dashboard">Dashboard</string>
+    <string name="nav_checklist">चेकलिस्ट</string>
+    <string name="nav_sleep">नींद</string>
+    <string name="nav_focus">Focus</string>
+    <string name="nav_calendar">कैलेंडर</string>
+    <string name="notif_tap_open">ऐप खोलने के लिए टैप करें</string>
+    <string name="notif_sleep_tracking">नींद ट्रैकिंग सक्रिय</string>
+    <string name="notif_sleep_tracking_audio">नींद + ध्वनि ट्रैकिंग</string>
+    <string name="notif_snore_off_title">खर्राटे ट्रैकिंग बंद — माइक अनुमति आवश्यक</string>
+    <string name="notif_snore_off_body">खर्राटे + खाँसी ट्रैकिंग नींद प्राथमिकताएँ में सक्षम है, लेकिन इस डिवाइस ने माइक्रोफ़ोन की अनुमति नहीं दी। अनुमति देने के लिए टैप करें — ऑडियो डिवाइस पर ही विश्लेषित होता है, कभी अपलोड नहीं होता।</string>
+    <string name="alarm_notif_title">अलार्म</string>
+    <string name="alarm_wake_up">उठो</string>
+    <string name="alarm_set_for">%1$s के लिए सेट</string>
+    <string name="alarm_dismiss">बंद करें</string>
+    <string name="alarm_force_dismiss">ज़बरदस्ती बंद करें</string>
 </resources>
