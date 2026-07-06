@@ -190,7 +190,6 @@
     <string name="date_tomorrow">Ngày mai</string>
     <string name="date_yesterday">Hôm qua</string>
     <string name="priority_high">Cao</string>
-    <string name="priority_med">Vừa</string>
     <string name="priority_low">Thấp</string>
     <string name="recur_every_day">Mỗi ngày</string>
     <string name="recur_weekdays">Ngày thường</string>

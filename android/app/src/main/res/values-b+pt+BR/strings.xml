@@ -206,7 +206,6 @@
     <string name="date_tomorrow">Amanhã</string>
     <string name="date_yesterday">Ontem</string>
     <string name="priority_high">Alta</string>
-    <string name="priority_med">Média</string>
     <string name="priority_low">Baixa</string>
     <string name="recur_every_day">Todo dia</string>
     <string name="recur_weekdays">Dias úteis</string>

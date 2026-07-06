@@ -214,7 +214,6 @@
     <string name="date_tomorrow">Tomorrow</string>
     <string name="date_yesterday">Yesterday</string>
     <string name="priority_high">High</string>
-    <string name="priority_med">Med</string>
     <string name="priority_low">Low</string>
     <string name="recur_every_day">Every day</string>
     <string name="recur_weekdays">Weekdays</string>

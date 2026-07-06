@@ -190,7 +190,6 @@
     <string name="date_tomorrow">พรุ่งนี้</string>
     <string name="date_yesterday">เมื่อวาน</string>
     <string name="priority_high">สูง</string>
-    <string name="priority_med">กลาง</string>
     <string name="priority_low">ต่ำ</string>
     <string name="recur_every_day">ทุกวัน</string>
     <string name="recur_weekdays">วันทำงาน</string>

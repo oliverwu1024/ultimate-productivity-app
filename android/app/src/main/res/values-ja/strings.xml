@@ -190,7 +190,6 @@
     <string name="date_tomorrow">明日</string>
     <string name="date_yesterday">昨日</string>
     <string name="priority_high">高</string>
-    <string name="priority_med">中</string>
     <string name="priority_low">低</string>
     <string name="recur_every_day">毎日</string>
     <string name="recur_weekdays">平日</string>

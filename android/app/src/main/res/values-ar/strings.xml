@@ -230,7 +230,6 @@
     <string name="date_tomorrow">غداً</string>
     <string name="date_yesterday">أمس</string>
     <string name="priority_high">عالية</string>
-    <string name="priority_med">متوسطة</string>
     <string name="priority_low">منخفضة</string>
     <string name="recur_every_day">كل يوم</string>
     <string name="recur_weekdays">أيام الأسبوع</string>

@@ -1,6 +1,7 @@
 package com.ultiq.app.ui.dashboard
 
 import android.app.Application
+import androidx.annotation.StringRes
 import android.provider.Settings
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.AndroidViewModel
@@ -52,13 +53,16 @@ data class SleepSummary(
     val phonePickups: Int,
     val vsLastWeek: String? = null,
     val rankPhrase: String? = null,
-    /// §sleep-card-audio — compact snore/cough/sleep-talk line mirroring the
-    /// Sleep tab's "Sleep sounds" data so the two surfaces agree. "Quiet
-    /// night" when monitored types were all 0; null when audio monitoring was
-    /// off (we never listened, so the card omits the line rather than
-    /// claiming the night was quiet).
-    val soundsSummary: String? = null,
+    /// §sleep-card-audio — raw snore/cough/sleep-talk counts mirroring the
+    /// Sleep tab's "Sleep sounds" data. Non-null (possibly all-zero → the
+    /// Composable renders "Quiet night") when audio monitoring was on OR any
+    /// event fired; null when monitoring was off (omit the line rather than
+    /// claim the night was quiet). §i18n — counts, not a pre-resolved string,
+    /// so the label follows a live language switch.
+    val soundsData: SleepSoundsData? = null,
 )
+
+data class SleepSoundsData(val snore: Int, val cough: Int, val talk: Int)
 
 data class FocusSummary(
     val totalMinutesToday: Int,
@@ -102,7 +106,11 @@ data class TodayChecklistSummary(
 
 data class AchievementBadge(
     val id: String,
-    val name: String,
+    /// §i18n — carry the string resource, NOT a pre-resolved name. Resolving
+    /// in this ViewModel would freeze the label to the language active at the
+    /// last DB change (the VM survives the Activity recreation a language
+    /// switch triggers). The Composable resolves it at render instead.
+    @StringRes val nameRes: Int,
     val icon: ImageVector,
     val earnedAt: Long,
 )
@@ -462,7 +470,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                     val def = byId[entity.id] ?: return@mapNotNull null
                     AchievementBadge(
                         id = entity.id,
-                        name = getApplication<Application>().getString(def.displayNameRes),
+                        nameRes = def.displayNameRes,
                         icon = def.icon,
                         earnedAt = entity.earnedAt,
                     )
@@ -559,7 +567,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         // §sleep-card-audio — mirror the Sleep tab's snore/cough/sleep-talk
         // data onto the Dashboard card so the verdict and the sounds never
         // tell different stories.
-        val soundsSummary = buildSoundsSummary(
+        val soundsData = buildSoundsSummary(
             recordId = last.id,
             audioOn = prefs.audioTrackingEnabled,
             talkOn = prefs.sleepTalkDetectionEnabled,
@@ -576,7 +584,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                 phonePickups = last.phonePickups,
                 vsLastWeek = vsLastWeek,
                 rankPhrase = rankPhrase,
-                soundsSummary = soundsSummary,
+                soundsData = soundsData,
             )
         )
     }
@@ -587,18 +595,16 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     /// always shown (they prove we were listening); an event-free night reads
     /// "Quiet night" only when monitoring was on, else the line is omitted
     /// (null) so we never claim a night was quiet when we weren't listening.
-    private suspend fun buildSoundsSummary(recordId: String, audioOn: Boolean, talkOn: Boolean): String? {
+    private suspend fun buildSoundsSummary(recordId: String, audioOn: Boolean, talkOn: Boolean): SleepSoundsData? {
         val dao = db.sleepAudioEventDao()
         val snore = runCatching { dao.countByType(recordId, "snore") }.getOrDefault(0)
         val cough = runCatching { dao.countByType(recordId, "cough") }.getOrDefault(0)
         val talk = runCatching { dao.countByType(recordId, "sleep_talk") }.getOrDefault(0)
-        val res = getApplication<Application>().resources
-        val parts = mutableListOf<String>()
-        if (snore > 0) parts += res.getQuantityString(R.plurals.dashboard_sound_snore, snore, snore)
-        if (cough > 0) parts += res.getQuantityString(R.plurals.dashboard_sound_cough, cough, cough)
-        if (talk > 0) parts += res.getQuantityString(R.plurals.dashboard_sound_talk, talk, talk)
-        if (parts.isNotEmpty()) return parts.joinToString(" · ")
-        return if (audioOn || talkOn) getApplication<Application>().getString(R.string.dashboard_quiet_night) else null
+        // Carry the raw counts when there's something to show OR monitoring was
+        // on (→ Composable renders "Quiet night"); null omits the line. The
+        // display strings are resolved at render so they follow a language switch.
+        val hasEvents = snore > 0 || cough > 0 || talk > 0
+        return if (hasEvents || audioOn || talkOn) SleepSoundsData(snore, cough, talk) else null
     }
 
     private suspend fun loadFocusSummary() {

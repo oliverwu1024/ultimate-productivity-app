@@ -198,7 +198,6 @@
     <string name="date_tomorrow">Morgen</string>
     <string name="date_yesterday">Gestern</string>
     <string name="priority_high">Hoch</string>
-    <string name="priority_med">Mittel</string>
     <string name="priority_low">Niedrig</string>
     <string name="recur_every_day">Täglich</string>
     <string name="recur_weekdays">Werktage</string>

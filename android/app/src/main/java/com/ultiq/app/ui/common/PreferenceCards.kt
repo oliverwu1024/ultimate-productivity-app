@@ -45,7 +45,7 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun SectionHeader(text: String, modifier: Modifier = Modifier) {
     Text(
-        text.uppercase(),
+        text.uppercase(LocaleManager.currentLocale()),
         style = MaterialTheme.typography.labelMedium,
         fontWeight = FontWeight.SemiBold,
         color = MaterialTheme.colorScheme.primary,
@@ -63,7 +63,7 @@ fun SectionHeaderWithSuffix(title: String, suffix: String, modifier: Modifier = 
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Text(
-            title.uppercase(),
+            title.uppercase(LocaleManager.currentLocale()),
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.primary,

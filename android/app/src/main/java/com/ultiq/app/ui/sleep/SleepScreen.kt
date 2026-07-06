@@ -1479,7 +1479,7 @@ private fun SetSessionTargetDialog(
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     var wakeTime by remember { mutableStateOf(initialWakeTime) }
-    val timeFormat = DateTimeFormatter.ofPattern("hh:mm a")
+    val timeFormat = DateTimeFormatter.ofPattern("hh:mm a", LocaleManager.currentLocale())
     val plannedDurationMins = run {
         val nowSecs = java.time.LocalTime.now().toSecondOfDay()
         val wakeSecs = wakeTime.toSecondOfDay()

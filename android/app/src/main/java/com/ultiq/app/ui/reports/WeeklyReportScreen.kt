@@ -142,7 +142,7 @@ private fun WeekSelector(start: LocalDate, onPrevious: () -> Unit, onNext: () ->
 @Composable
 private fun SectionHeader(text: String) {
     Text(
-        text.uppercase(),
+        text.uppercase(LocaleManager.currentLocale()),
         style = MaterialTheme.typography.labelMedium,
         fontWeight = FontWeight.SemiBold,
         color = MaterialTheme.colorScheme.primary,
