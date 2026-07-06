@@ -930,4 +930,21 @@
     <plurals name="sessions_distractions">
         <item quantity="other">%1$d lần xao nhãng</item>
     </plurals>
+
+    <!-- §13.1 Android sweep — nonui (nav/notifications/alarm) -->
+    <string name="nav_dashboard">Dashboard</string>
+    <string name="nav_checklist">Danh sách</string>
+    <string name="nav_sleep">Giấc ngủ</string>
+    <string name="nav_focus">Tập trung</string>
+    <string name="nav_calendar">Lịch</string>
+    <string name="notif_tap_open">Nhấn để mở ứng dụng</string>
+    <string name="notif_sleep_tracking">Đang theo dõi giấc ngủ</string>
+    <string name="notif_sleep_tracking_audio">Theo dõi giấc ngủ + âm thanh</string>
+    <string name="notif_snore_off_title">Theo dõi ngáy tắt — cần quyền micrô</string>
+    <string name="notif_snore_off_body">Theo dõi ngáy + ho đã bật trong Tùy chọn giấc ngủ, nhưng thiết bị này chưa cấp quyền micrô. Nhấn để cấp — âm thanh được phân tích trên thiết bị, không bao giờ tải lên.</string>
+    <string name="alarm_notif_title">Báo thức</string>
+    <string name="alarm_wake_up">THỨC DẬY</string>
+    <string name="alarm_set_for">Đặt lúc %1$s</string>
+    <string name="alarm_dismiss">Tắt</string>
+    <string name="alarm_force_dismiss">Buộc tắt</string>
 </resources>

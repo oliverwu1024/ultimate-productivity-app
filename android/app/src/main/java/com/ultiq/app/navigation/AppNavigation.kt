@@ -28,6 +28,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
+import androidx.annotation.StringRes
+import com.ultiq.app.R
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -96,16 +99,16 @@ sealed class Screen(val route: String) {
 
 data class BottomNavItem(
     val screen: Screen,
-    val label: String,
+    @StringRes val labelRes: Int,
     val icon: ImageVector
 )
 
 val bottomNavItems = listOf(
-    BottomNavItem(Screen.Dashboard, "Dashboard", Icons.Filled.Dashboard),
-    BottomNavItem(Screen.Checklist, "Checklist", Icons.Filled.Checklist),
-    BottomNavItem(Screen.Sleep, "Sleep", Icons.Filled.Nightlight),
-    BottomNavItem(Screen.Sessions, "Focus", Icons.Filled.Timer),
-    BottomNavItem(Screen.Calendar, "Calendar", Icons.Filled.CalendarMonth),
+    BottomNavItem(Screen.Dashboard, R.string.nav_dashboard, Icons.Filled.Dashboard),
+    BottomNavItem(Screen.Checklist, R.string.nav_checklist, Icons.Filled.Checklist),
+    BottomNavItem(Screen.Sleep, R.string.nav_sleep, Icons.Filled.Nightlight),
+    BottomNavItem(Screen.Sessions, R.string.nav_focus, Icons.Filled.Timer),
+    BottomNavItem(Screen.Calendar, R.string.nav_calendar, Icons.Filled.CalendarMonth),
 )
 
 @Composable
@@ -149,8 +152,8 @@ fun AppNavigation(
                         val selected = currentDestination?.hierarchy
                             ?.any { it.route == item.screen.route } == true
                         NavigationBarItem(
-                            icon = { Icon(item.icon, contentDescription = item.label) },
-                            label = { Text(item.label) },
+                            icon = { Icon(item.icon, contentDescription = stringResource(item.labelRes)) },
+                            label = { Text(stringResource(item.labelRes)) },
                             selected = selected,
                             onClick = {
                                 val reselecting = selected

@@ -196,16 +196,14 @@ object NotificationHelper {
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
-        val body = "Snore + cough tracking is enabled in Sleep Preferences, " +
-            "but this device hasn't granted microphone access. Tap to grant — " +
-            "audio is analysed on-device, never uploaded."
+        val body = context.getString(R.string.notif_snore_off_body)
         val notification = NotificationCompat.Builder(context, CHANNEL_REMINDERS)
             // §branding — monochrome silhouette; Android renders smallIcon
             // via alpha only so passing the launcher mipmap used to surface
             // as a solid white circle in the status bar.
             .setSmallIcon(R.drawable.ic_notification)
             .setColor(ContextCompat.getColor(context, R.color.ultiq_indigo))
-            .setContentTitle("Snore tracking off — mic permission needed")
+            .setContentTitle(context.getString(R.string.notif_snore_off_title))
             .setContentText(body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)

@@ -1007,4 +1007,26 @@
         <item quantity="one">%1$d distraction</item>
         <item quantity="other">%1$d distractions</item>
     </plurals>
+
+    <!-- §13.1 Android sweep — nonui (nav/notifications/alarm) -->
+    <!-- navigation bar -->
+    <string name="nav_dashboard">Dashboard</string>
+    <string name="nav_checklist">Checklist</string>
+    <string name="nav_sleep">Sleep</string>
+    <string name="nav_focus">Focus</string>
+    <string name="nav_calendar">Calendar</string>
+
+    <!-- foreground-service + permission notifications -->
+    <string name="notif_tap_open">Tap to open app</string>
+    <string name="notif_sleep_tracking">Sleep tracking active</string>
+    <string name="notif_sleep_tracking_audio">Tracking sleep + sounds</string>
+    <string name="notif_snore_off_title">Snore tracking off — mic permission needed</string>
+    <string name="notif_snore_off_body">Snore + cough tracking is enabled in Sleep Preferences, but this device hasn\'t granted microphone access. Tap to grant — audio is analysed on-device, never uploaded.</string>
+
+    <!-- alarm ring (AlarmActivity) -->
+    <string name="alarm_notif_title">Alarm</string>
+    <string name="alarm_wake_up">WAKE UP</string>
+    <string name="alarm_set_for">Set for %1$s</string>
+    <string name="alarm_dismiss">Dismiss</string>
+    <string name="alarm_force_dismiss">Force dismiss</string>
 </resources>

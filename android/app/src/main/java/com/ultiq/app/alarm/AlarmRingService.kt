@@ -226,8 +226,8 @@ class AlarmRingService : Service() {
             // collapses the smallIcon to its alpha channel.
             .setSmallIcon(R.drawable.ic_notification)
             .setColor(ContextCompat.getColor(this, R.color.ultiq_indigo))
-            .setContentTitle("Alarm")
-            .setContentText("Tap to dismiss")
+            .setContentTitle(getString(R.string.alarm_notif_title))
+            .setContentText(getString(R.string.notif_tap_open))
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setOngoing(true)

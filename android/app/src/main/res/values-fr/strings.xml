@@ -992,4 +992,21 @@
         <item quantity="many">%1$d distractions</item>
         <item quantity="other">%1$d distractions</item>
     </plurals>
+
+    <!-- §13.1 Android sweep — nonui (nav/notifications/alarm) -->
+    <string name="nav_dashboard">Dashboard</string>
+    <string name="nav_checklist">Checklist</string>
+    <string name="nav_sleep">Sommeil</string>
+    <string name="nav_focus">Focus</string>
+    <string name="nav_calendar">Calendrier</string>
+    <string name="notif_tap_open">Appuyez pour ouvrir l\'app</string>
+    <string name="notif_sleep_tracking">Suivi du sommeil actif</string>
+    <string name="notif_sleep_tracking_audio">Suivi sommeil + sons</string>
+    <string name="notif_snore_off_title">Suivi ronflements désactivé — permission micro requise</string>
+    <string name="notif_snore_off_body">Le suivi des ronflements + toux est activé dans Préférences sommeil, mais cet appareil n\'a pas accordé l\'accès au micro. Appuyez pour autoriser — l\'audio est analysé sur l\'appareil, jamais envoyé.</string>
+    <string name="alarm_notif_title">Alarme</string>
+    <string name="alarm_wake_up">RÉVEIL</string>
+    <string name="alarm_set_for">Réglée pour %1$s</string>
+    <string name="alarm_dismiss">Arrêter</string>
+    <string name="alarm_force_dismiss">Forcer l\'arrêt</string>
 </resources>

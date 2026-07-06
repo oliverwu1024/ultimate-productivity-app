@@ -303,8 +303,8 @@ class FocusTrackingService : Service() {
 
         val start = sessionStartTime.value
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Focus session active")
-            .setContentText("Tap to open app")
+            .setContentTitle(getString(R.string.lockout_focus_active))
+            .setContentText(getString(R.string.notif_tap_open))
             // §branding — see LockoutNotifier / NotificationHelper.
             .setSmallIcon(R.drawable.ic_notification)
             .setColor(ContextCompat.getColor(this, R.color.ultiq_indigo))

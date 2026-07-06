@@ -659,11 +659,11 @@ class SleepTrackingService : Service() {
             this, 0, tapIntent, PendingIntent.FLAG_IMMUTABLE
         )
 
-        val title = if (audioActive) "Tracking sleep + sounds" else "Sleep tracking active"
+        val title = if (audioActive) getString(R.string.notif_sleep_tracking_audio) else getString(R.string.notif_sleep_tracking)
         val start = sessionStartTime.value
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(title)
-            .setContentText("Tap to open app")
+            .setContentText(getString(R.string.notif_tap_open))
             // §branding — see LockoutNotifier / NotificationHelper.
             .setSmallIcon(R.drawable.ic_notification)
             .setColor(ContextCompat.getColor(this, R.color.ultiq_indigo))

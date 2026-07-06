@@ -930,4 +930,21 @@
     <plurals name="sessions_distractions">
         <item quantity="other">%1$d สิ่งรบกวน</item>
     </plurals>
+
+    <!-- §13.1 Android sweep — nonui (nav/notifications/alarm) -->
+    <string name="nav_dashboard">หน้าหลัก</string>
+    <string name="nav_checklist">รายการ</string>
+    <string name="nav_sleep">นอนหลับ</string>
+    <string name="nav_focus">โฟกัส</string>
+    <string name="nav_calendar">ปฏิทิน</string>
+    <string name="notif_tap_open">แตะเพื่อเปิดแอป</string>
+    <string name="notif_sleep_tracking">กำลังติดตามการนอน</string>
+    <string name="notif_sleep_tracking_audio">ติดตามการนอน + เสียง</string>
+    <string name="notif_snore_off_title">ปิดติดตามเสียงกรน — ต้องการสิทธิ์ไมโครโฟน</string>
+    <string name="notif_snore_off_body">การติดตามเสียงกรน + ไอ เปิดอยู่ใน การตั้งค่าการนอน แต่อุปกรณ์นี้ยังไม่ได้รับสิทธิ์เข้าถึงไมโครโฟน แตะเพื่ออนุญาต — เสียงวิเคราะห์บนอุปกรณ์ ไม่มีการอัปโหลด</string>
+    <string name="alarm_notif_title">ปลุก</string>
+    <string name="alarm_wake_up">ตื่นได้เลย!</string>
+    <string name="alarm_set_for">ตั้งปลุกเวลา %1$s</string>
+    <string name="alarm_dismiss">ปิด</string>
+    <string name="alarm_force_dismiss">บังคับปิด</string>
 </resources>

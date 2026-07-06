@@ -992,4 +992,21 @@
         <item quantity="many">%1$d distrações</item>
         <item quantity="other">%1$d distrações</item>
     </plurals>
+
+    <!-- §13.1 Android sweep — nonui (nav/notifications/alarm) -->
+    <string name="nav_dashboard">Dashboard</string>
+    <string name="nav_checklist">Checklist</string>
+    <string name="nav_sleep">Sono</string>
+    <string name="nav_focus">Foco</string>
+    <string name="nav_calendar">Agenda</string>
+    <string name="notif_tap_open">Toque para abrir o app</string>
+    <string name="notif_sleep_tracking">Rastreamento de sono ativo</string>
+    <string name="notif_sleep_tracking_audio">Rastreando sono + sons</string>
+    <string name="notif_snore_off_title">Rastreamento de ronco desativado — permissão de microfone necessária</string>
+    <string name="notif_snore_off_body">O rastreamento de ronco + tosse está ativado nas Preferências de Sono, mas este dispositivo não concedeu acesso ao microfone. Toque para conceder — o áudio é analisado no dispositivo, nunca enviado.</string>
+    <string name="alarm_notif_title">Alarme</string>
+    <string name="alarm_wake_up">ACORDE</string>
+    <string name="alarm_set_for">Definido para %1$s</string>
+    <string name="alarm_dismiss">Dispensar</string>
+    <string name="alarm_force_dismiss">Forçar dispensa</string>
 </resources>
