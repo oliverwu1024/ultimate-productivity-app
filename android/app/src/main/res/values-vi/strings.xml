@@ -967,4 +967,45 @@
     <string name="photo_checking">Đang kiểm tra…</string>
     <string name="photo_preparing">Đang chuẩn bị…</string>
     <string name="photo_process_failed">Không thể xử lý khung hình</string>
+
+    <!-- §13.1 Android sweep — auth + onboarding -->
+    <string name="action_continue">Tiếp tục</string>
+    <string name="auth_back_to_login">Quay lại đăng nhập</string>
+    <string name="reset_pw_title">Đặt mật khẩu mới</string>
+    <string name="reset_pw_no_token">Liên kết đặt lại này thiếu mã token. Vui lòng yêu cầu gửi lại email.</string>
+    <string name="reset_pw_success">Đã đặt lại mật khẩu. Đang chuyển bạn về trang đăng nhập…</string>
+    <string name="reset_pw_submit">Đặt mật khẩu mới</string>
+    <string name="verify_no_token">Liên kết này không có mã xác thực. Hãy mở trang trực tiếp từ email chúng tôi đã gửi.</string>
+    <string name="verify_loading">Đang xác thực…</string>
+    <string name="verify_success">Email đã được xác thực. Coach và các tính năng AI khác đã được mở khóa.</string>
+    <string name="verify_open_app">Mở Ultiq</string>
+    <string name="verify_expired_hint">Liên kết xác thực hết hạn sau 24 giờ. Đăng nhập và nhấn Gửi lại email xác thực trong Cài đặt để nhận liên kết mới.</string>
+    <string name="forgot_pw_title">Quên mật khẩu</string>
+    <string name="forgot_pw_body">Nhập email liên kết với tài khoản của bạn. Chúng tôi sẽ gửi liên kết đặt lại.</string>
+    <string name="forgot_pw_sent">Nếu email đó đã đăng ký, liên kết đặt lại đang được gửi. Kiểm tra hộp thư (và thư rác) — liên kết hết hạn sau 1 giờ.</string>
+    <string name="forgot_pw_paste_title">Liên kết đặt lại không mở được ứng dụng?</string>
+    <string name="forgot_pw_paste_body">Dán liên kết đầy đủ từ email bên dưới rồi nhấn Tiếp tục.</string>
+    <string name="forgot_pw_paste_continue">Tiếp tục với liên kết đã dán</string>
+    <string name="forgot_pw_sent_btn">Đã gửi</string>
+    <string name="forgot_pw_submit">Gửi liên kết đặt lại</string>
+    <string name="onboarding_welcome_title">Xin chào, tôi là Ultiq</string>
+    <string name="onboarding_welcome_body">Người bạn đồng hành hàng ngày cho giấc ngủ, tập trung và mọi thứ ở giữa. Hãy để tôi thiết lập cho bạn — chỉ mất khoảng một phút.</string>
+    <string name="onboarding_sleep_title">Bạn ngủ tốt nhất khi nào?</string>
+    <string name="onboarding_sleep_body">Chọn thời gian bạn muốn nghỉ ngơi và thức dậy. Chúng tôi sẽ theo dõi nhẹ nhàng xem bạn đạt gần đến mức nào.</string>
+    <string name="onboarding_focus_title">Bạn tập trung như thế nào?</string>
+    <string name="onboarding_focus_body">Chọn độ dài phiên tập trung mặc định. Điều chỉnh bất cứ lúc nào — đây chỉ là điểm bắt đầu.</string>
+    <string name="onboarding_perms_title">Một số quyền</string>
+    <string name="onboarding_perms_body">Tất cả đều tùy chọn — Ultiq chỉ hoạt động tốt hơn khi bật. Nhấn bất kỳ hàng nào để cấp.</string>
+    <string name="onboarding_perm_reminders_desc">Nhắc nhở giờ ngủ, gợi ý tập trung, tóm tắt hàng tuần</string>
+    <string name="onboarding_perm_usage_title">Sử dụng điện thoại</string>
+    <string name="onboarding_perm_usage_desc">Cho phép Ultiq đếm số lần cầm điện thoại khi ngủ + tập trung</string>
+    <string name="onboarding_perm_overlay_desc">Cho phép màn hình khóa chiếm toàn màn hình trong phiên tập trung</string>
+    <string name="onboarding_perm_overlay_hint">Nếu nút chuyển bị mờ (\"Cài đặt bị hạn chế\"), nhấn menu ⋮ trong Thông tin ứng dụng → Cho phép cài đặt bị hạn chế.</string>
+    <string name="onboarding_perm_alarms_title">Báo thức chính xác</string>
+    <string name="onboarding_perm_alarms_desc">Để nhắc nhở kích hoạt đúng phút, không phải 15 phút sau</string>
+    <string name="onboarding_granted">Đã cấp</string>
+    <string name="onboarding_tap_grant">Nhấn để cấp</string>
+    <string name="onboarding_done_title">Gối đã sẵn sàng</string>
+    <string name="onboarding_done_body">Bạn đã thiết lập xong. Mục tiêu, nhắc nhở và cài đặt khóa đều có trong Cài đặt bất cứ khi nào bạn muốn điều chỉnh.</string>
+    <string name="onboarding_lets_go">Bắt đầu thôi</string>
 </resources>

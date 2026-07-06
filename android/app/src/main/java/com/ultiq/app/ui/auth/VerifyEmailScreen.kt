@@ -17,8 +17,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.ultiq.app.R
 import com.ultiq.app.util.SecureWindow
 
 @Composable
@@ -52,7 +54,7 @@ fun VerifyEmailScreen(
             verticalArrangement = Arrangement.Center,
         ) {
             Text(
-                text = "Verify your email",
+                text = stringResource(R.string.chat_verify_title),
                 style = MaterialTheme.typography.headlineSmall,
                 textAlign = TextAlign.Center,
             )
@@ -61,32 +63,32 @@ fun VerifyEmailScreen(
             when {
                 token.isBlank() -> {
                     Text(
-                        text = "No verification token in this link. Open the page directly from the email we sent.",
+                        text = stringResource(R.string.verify_no_token),
                         style = MaterialTheme.typography.bodyMedium,
                         textAlign = TextAlign.Center,
                     )
                     Spacer(modifier = Modifier.height(24.dp))
-                    Button(onClick = onContinue) { Text("Continue") }
+                    Button(onClick = onContinue) { Text(stringResource(R.string.action_continue)) }
                 }
 
                 uiState.verifyEmailLoading -> {
                     CircularProgressIndicator()
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        text = "Verifying…",
+                        text = stringResource(R.string.verify_loading),
                         style = MaterialTheme.typography.bodyMedium,
                     )
                 }
 
                 uiState.verifyEmailSuccess -> {
                     Text(
-                        text = "Email verified. Coach and other AI features are now unlocked.",
+                        text = stringResource(R.string.verify_success),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.primary,
                         textAlign = TextAlign.Center,
                     )
                     Spacer(modifier = Modifier.height(24.dp))
-                    Button(onClick = onContinue) { Text("Open Ultiq") }
+                    Button(onClick = onContinue) { Text(stringResource(R.string.verify_open_app)) }
                 }
 
                 uiState.verifyEmailError != null -> {
@@ -98,12 +100,12 @@ fun VerifyEmailScreen(
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        text = "Verification links expire after 24 hours. Sign in and tap Resend verification email from Settings to get a fresh one.",
+                        text = stringResource(R.string.verify_expired_hint),
                         style = MaterialTheme.typography.bodySmall,
                         textAlign = TextAlign.Center,
                     )
                     Spacer(modifier = Modifier.height(24.dp))
-                    TextButton(onClick = onContinue) { Text("Continue") }
+                    TextButton(onClick = onContinue) { Text(stringResource(R.string.action_continue)) }
                 }
             }
         }

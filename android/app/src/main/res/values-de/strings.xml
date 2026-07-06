@@ -998,4 +998,45 @@
     <string name="photo_checking">Wird geprüft…</string>
     <string name="photo_preparing">Wird vorbereitet…</string>
     <string name="photo_process_failed">Bild konnte nicht verarbeitet werden</string>
+
+    <!-- §13.1 Android sweep — auth + onboarding -->
+    <string name="action_continue">Weiter</string>
+    <string name="auth_back_to_login">Zurück zum Login</string>
+    <string name="reset_pw_title">Neues Passwort festlegen</string>
+    <string name="reset_pw_no_token">Diesem Zurücksetz-Link fehlt das Token. Bitte fordere eine neue E-Mail an.</string>
+    <string name="reset_pw_success">Passwort zurückgesetzt. Du wirst zum Login weitergeleitet…</string>
+    <string name="reset_pw_submit">Neues Passwort festlegen</string>
+    <string name="verify_no_token">Kein Bestätigungs-Token in diesem Link. Öffne die Seite direkt aus der E-Mail, die wir gesendet haben.</string>
+    <string name="verify_loading">Wird überprüft…</string>
+    <string name="verify_success">E-Mail verifiziert. Coach und andere KI-Funktionen sind jetzt freigeschaltet.</string>
+    <string name="verify_open_app">Ultiq öffnen</string>
+    <string name="verify_expired_hint">Bestätigungs-Links laufen nach 24 Stunden ab. Melde dich an und tippe in den Einstellungen auf Bestätigungs-E-Mail erneut senden, um einen neuen zu erhalten.</string>
+    <string name="forgot_pw_title">Passwort vergessen</string>
+    <string name="forgot_pw_body">Gib die E-Mail-Adresse deines Kontos ein. Wir senden dir einen Zurücksetz-Link.</string>
+    <string name="forgot_pw_sent">Falls diese E-Mail registriert ist, ist ein Zurücksetz-Link unterwegs. Prüfe deinen Posteingang (und Spam) — der Link läuft in 1 Stunde ab.</string>
+    <string name="forgot_pw_paste_title">Zurücksetz-Link öffnet die App nicht?</string>
+    <string name="forgot_pw_paste_body">Füge den vollständigen Link aus der E-Mail unten ein und tippe auf Weiter.</string>
+    <string name="forgot_pw_paste_continue">Mit eingefügtem Link fortfahren</string>
+    <string name="forgot_pw_sent_btn">Gesendet</string>
+    <string name="forgot_pw_submit">Zurücksetz-Link senden</string>
+    <string name="onboarding_welcome_title">Hallo, ich bin Ultiq</string>
+    <string name="onboarding_welcome_body">Dein täglicher Begleiter für Schlaf, Fokus und alles dazwischen. Lass uns loslegen — dauert etwa eine Minute.</string>
+    <string name="onboarding_sleep_title">Wann schläfst du am besten?</string>
+    <string name="onboarding_sleep_body">Wähle deine Wunschzeiten zum Entspannen und Aufwachen. Wir verfolgen leise, wie nah du dranbleibst.</string>
+    <string name="onboarding_focus_title">Wie fokussierst du dich?</string>
+    <string name="onboarding_focus_body">Wähle deine Standard-Fokusblock-Dauer. Passe sie jederzeit an — nur ein Ausgangspunkt.</string>
+    <string name="onboarding_perms_title">Einige Berechtigungen</string>
+    <string name="onboarding_perms_body">Alle optional — Ultiq funktioniert damit einfach besser. Tippe auf eine Zeile, um sie zu erteilen.</string>
+    <string name="onboarding_perm_reminders_desc">Schlafzeit-Hinweise, Fokus-Erinnerungen, wöchentliche Zusammenfassungen</string>
+    <string name="onboarding_perm_usage_title">Telefonnutzung</string>
+    <string name="onboarding_perm_usage_desc">Lässt Ultiq Handy-Zugriffe während Schlaf + Fokus zählen</string>
+    <string name="onboarding_perm_overlay_desc">Ermöglicht der Sperre, den Bildschirm während Fokus-Sitzungen zu übernehmen</string>
+    <string name="onboarding_perm_overlay_hint">Falls der Schalter ausgegraut ist (\"Eingeschränkte Einstellung\"), tippe auf das ⋮-Menü in App-Info → Eingeschränkte Einstellungen erlauben.</string>
+    <string name="onboarding_perm_alarms_title">Genaue Alarme</string>
+    <string name="onboarding_perm_alarms_desc">Damit Erinnerungen zur richtigen Minute auslösen, nicht 15 Min. später</string>
+    <string name="onboarding_granted">Erteilt</string>
+    <string name="onboarding_tap_grant">Tippen zum Erteilen</string>
+    <string name="onboarding_done_title">Das Kissen ist bereit</string>
+    <string name="onboarding_done_body">Du bist eingerichtet. Ziele, Erinnerungen und Sperr-Einstellungen findest du jederzeit in den Einstellungen.</string>
+    <string name="onboarding_lets_go">Los geht\'s</string>
 </resources>

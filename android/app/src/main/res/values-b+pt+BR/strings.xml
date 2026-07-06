@@ -1029,4 +1029,45 @@
     <string name="photo_checking">Verificando…</string>
     <string name="photo_preparing">Preparando…</string>
     <string name="photo_process_failed">Não foi possível processar o frame</string>
+
+    <!-- §13.1 Android sweep — auth + onboarding -->
+    <string name="action_continue">Continuar</string>
+    <string name="auth_back_to_login">Voltar ao login</string>
+    <string name="reset_pw_title">Definir nova senha</string>
+    <string name="reset_pw_no_token">Este link de redefinição não contém token. Por favor, solicite um novo e-mail.</string>
+    <string name="reset_pw_success">Senha redefinida. Redirecionando para o login…</string>
+    <string name="reset_pw_submit">Definir nova senha</string>
+    <string name="verify_no_token">Nenhum token de verificação neste link. Abra a página diretamente pelo e-mail que enviamos.</string>
+    <string name="verify_loading">Verificando…</string>
+    <string name="verify_success">E-mail verificado. O Coach e outros recursos de IA foram desbloqueados.</string>
+    <string name="verify_open_app">Abrir Ultiq</string>
+    <string name="verify_expired_hint">Links de verificação expiram após 24 horas. Entre e toque em Reenviar e-mail de verificação em Configurações para obter um novo.</string>
+    <string name="forgot_pw_title">Esqueceu a senha</string>
+    <string name="forgot_pw_body">Insira o e-mail vinculado à sua conta. Enviaremos um link de redefinição.</string>
+    <string name="forgot_pw_sent">Se esse e-mail estiver cadastrado, um link de redefinição está a caminho. Verifique sua caixa de entrada (e spam) — o link expira em 1 hora.</string>
+    <string name="forgot_pw_paste_title">O link de redefinição não abre o app?</string>
+    <string name="forgot_pw_paste_body">Cole o link completo do e-mail abaixo e toque em Continuar.</string>
+    <string name="forgot_pw_paste_continue">Continuar com o link colado</string>
+    <string name="forgot_pw_sent_btn">Enviado</string>
+    <string name="forgot_pw_submit">Enviar link de redefinição</string>
+    <string name="onboarding_welcome_title">Olá, eu sou o Ultiq</string>
+    <string name="onboarding_welcome_body">Seu companheiro diário para sono, foco e tudo o mais. Vamos configurar tudo — leva cerca de um minuto.</string>
+    <string name="onboarding_sleep_title">Quando você dorme melhor?</string>
+    <string name="onboarding_sleep_body">Escolha os horários em que quer relaxar e acordar. Vamos acompanhar em silêncio o quanto você consegue seguir.</string>
+    <string name="onboarding_focus_title">Como você foca?</string>
+    <string name="onboarding_focus_body">Escolha o tempo padrão do bloco de foco. Ajuste quando quiser — é só um ponto de partida.</string>
+    <string name="onboarding_perms_title">Algumas permissões</string>
+    <string name="onboarding_perms_body">Todas opcionais — o Ultiq funciona melhor com elas ativas. Toque em qualquer linha para conceder.</string>
+    <string name="onboarding_perm_reminders_desc">Lembretes de dormir, avisos de foco, resumos semanais</string>
+    <string name="onboarding_perm_usage_title">Uso do celular</string>
+    <string name="onboarding_perm_usage_desc">Permite ao Ultiq contar desbloqueios durante sono + foco</string>
+    <string name="onboarding_perm_overlay_desc">Permite que o bloqueio ocupe a tela durante sessões de foco</string>
+    <string name="onboarding_perm_overlay_hint">Se o botão estiver acinzentado (\"Configuração restrita\"), toque no menu ⋮ em Informações do app → Permitir configurações restritas.</string>
+    <string name="onboarding_perm_alarms_title">Alarmes exatos</string>
+    <string name="onboarding_perm_alarms_desc">Para os lembretes dispararem no minuto certo, não 15 min depois</string>
+    <string name="onboarding_granted">Concedida</string>
+    <string name="onboarding_tap_grant">Toque para conceder</string>
+    <string name="onboarding_done_title">Travesseiro pronto</string>
+    <string name="onboarding_done_body">Você está configurado. Metas, lembretes e bloqueio estão em Configurações sempre que quiser ajustar.</string>
+    <string name="onboarding_lets_go">Vamos lá</string>
 </resources>

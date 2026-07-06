@@ -21,8 +21,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.ultiq.app.R
 import com.ultiq.app.util.SecureWindow
 
 @Composable
@@ -44,14 +46,14 @@ fun ForgotPasswordScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = "Forgot password",
+            text = stringResource(R.string.forgot_pw_title),
             style = MaterialTheme.typography.headlineLarge,
         )
 
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Enter the email tied to your account. We'll send a reset link.",
+            text = stringResource(R.string.forgot_pw_body),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -61,7 +63,7 @@ fun ForgotPasswordScreen(
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
-            label = { Text("Email") },
+            label = { Text(stringResource(R.string.auth_email)) },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
@@ -71,8 +73,7 @@ fun ForgotPasswordScreen(
         if (uiState.forgotPasswordEmailSent) {
             Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = "If that email is registered, a reset link is on the way. " +
-                    "Check your inbox (and spam) — the link expires in 1 hour.",
+                text = stringResource(R.string.forgot_pw_sent),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.primary,
             )
@@ -80,11 +81,11 @@ fun ForgotPasswordScreen(
             Spacer(modifier = Modifier.height(20.dp))
 
             Text(
-                text = "Reset link not opening the app?",
+                text = stringResource(R.string.forgot_pw_paste_title),
                 style = MaterialTheme.typography.titleSmall,
             )
             Text(
-                text = "Paste the full link from the email below and tap Continue.",
+                text = stringResource(R.string.forgot_pw_paste_body),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -111,7 +112,7 @@ fun ForgotPasswordScreen(
                 enabled = extractToken(pastedLink) != null,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("Continue with pasted link")
+                Text(stringResource(R.string.forgot_pw_paste_continue))
             }
         }
 
@@ -137,14 +138,14 @@ fun ForgotPasswordScreen(
                     color = MaterialTheme.colorScheme.onPrimary,
                 )
             } else {
-                Text(if (uiState.forgotPasswordEmailSent) "Sent" else "Send reset link")
+                Text(if (uiState.forgotPasswordEmailSent) stringResource(R.string.forgot_pw_sent_btn) else stringResource(R.string.forgot_pw_submit))
             }
         }
 
         Spacer(modifier = Modifier.height(12.dp))
 
         TextButton(onClick = onBack) {
-            Text("Back to login")
+            Text(stringResource(R.string.auth_back_to_login))
         }
     }
 }

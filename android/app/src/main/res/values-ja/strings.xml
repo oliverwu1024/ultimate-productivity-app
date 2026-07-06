@@ -967,4 +967,45 @@
     <string name="photo_checking">確認中…</string>
     <string name="photo_preparing">準備中…</string>
     <string name="photo_process_failed">フレームを処理できませんでした</string>
+
+    <!-- §13.1 Android sweep — auth + onboarding -->
+    <string name="action_continue">続ける</string>
+    <string name="auth_back_to_login">ログインに戻る</string>
+    <string name="reset_pw_title">新しいパスワードを設定</string>
+    <string name="reset_pw_no_token">このリセットリンクにはトークンがありません。新しいメールをリクエストしてください。</string>
+    <string name="reset_pw_success">パスワードをリセットしました。ログイン画面に戻ります…</string>
+    <string name="reset_pw_submit">新しいパスワードを設定する</string>
+    <string name="verify_no_token">このリンクに確認トークンがありません。送信したメールから直接ページを開いてください。</string>
+    <string name="verify_loading">確認中…</string>
+    <string name="verify_success">メールを確認しました。コーチとその他のAI機能が利用可能になりました。</string>
+    <string name="verify_open_app">Ultiqを開く</string>
+    <string name="verify_expired_hint">確認リンクは24時間で期限切れになります。サインインし、設定から「確認メールを再送信」をタップして新しいリンクを取得してください。</string>
+    <string name="forgot_pw_title">パスワードをお忘れですか</string>
+    <string name="forgot_pw_body">アカウントに登録したメールアドレスを入力してください。リセットリンクをお送りします。</string>
+    <string name="forgot_pw_sent">そのメールが登録済みであれば、リセットリンクを送信しました。受信トレイ（迷惑メールも）をご確認ください — リンクは1時間で期限切れになります。</string>
+    <string name="forgot_pw_paste_title">リセットリンクがアプリで開けない場合</string>
+    <string name="forgot_pw_paste_body">メールのリンク全体を以下に貼り付けて、続けるをタップしてください。</string>
+    <string name="forgot_pw_paste_continue">貼り付けたリンクで続ける</string>
+    <string name="forgot_pw_sent_btn">送信済み</string>
+    <string name="forgot_pw_submit">リセットリンクを送信</string>
+    <string name="onboarding_welcome_title">こんにちは、Ultiqです</string>
+    <string name="onboarding_welcome_body">睡眠・集中・その日常をサポートするコンパニオンです。セットアップは約1分で完了します。</string>
+    <string name="onboarding_sleep_title">理想の睡眠時間は？</string>
+    <string name="onboarding_sleep_body">就寝・起床の目標時間を選んでください。どのくらい近づけているか、こっそり記録します。</string>
+    <string name="onboarding_focus_title">どう集中しますか？</string>
+    <string name="onboarding_focus_body">デフォルトの集中時間を選んでください。いつでも変更できます — これは出発点です。</string>
+    <string name="onboarding_perms_title">いくつかの権限</string>
+    <string name="onboarding_perms_body">すべて任意 — オンにするとUltiqがより快適に動作します。行をタップして許可してください。</string>
+    <string name="onboarding_perm_reminders_desc">就寝リマインダー、集中プロンプト、週次サマリー</string>
+    <string name="onboarding_perm_usage_title">スマホ使用状況</string>
+    <string name="onboarding_perm_usage_desc">睡眠・集中中にスマホを手に取った回数を計測</string>
+    <string name="onboarding_perm_overlay_desc">集中セッション中にロックアウト画面を表示</string>
+    <string name="onboarding_perm_overlay_hint">トグルがグレーアウトしている場合（\"制限された設定\"）、アプリ情報の ⋮ メニュー → 制限された設定を許可 をタップしてください。</string>
+    <string name="onboarding_perm_alarms_title">正確なアラーム</string>
+    <string name="onboarding_perm_alarms_desc">リマインダーが15分遅れず、正確な時刻に通知されます</string>
+    <string name="onboarding_granted">許可済み</string>
+    <string name="onboarding_tap_grant">タップして許可</string>
+    <string name="onboarding_done_title">準備完了</string>
+    <string name="onboarding_done_body">セットアップ完了です。目標・リマインダー・ロックアウトの設定は、いつでも設定から変更できます。</string>
+    <string name="onboarding_lets_go">はじめよう</string>
 </resources>

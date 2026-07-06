@@ -1122,4 +1122,45 @@
     <string name="photo_checking">جارٍ الفحص…</string>
     <string name="photo_preparing">جارٍ التحضير…</string>
     <string name="photo_process_failed">تعذَّر معالجة الإطار</string>
+
+    <!-- §13.1 Android sweep — auth + onboarding -->
+    <string name="action_continue">متابعة</string>
+    <string name="auth_back_to_login">العودة إلى تسجيل الدخول</string>
+    <string name="reset_pw_title">تعيين كلمة مرور جديدة</string>
+    <string name="reset_pw_no_token">رابط إعادة التعيين هذا لا يحتوي على الرمز المطلوب. يُرجى طلب بريد إلكتروني جديد.</string>
+    <string name="reset_pw_success">تمّت إعادة تعيين كلمة المرور. جارٍ العودة إلى تسجيل الدخول…</string>
+    <string name="reset_pw_submit">تعيين كلمة مرور جديدة</string>
+    <string name="verify_no_token">لا يوجد رمز تحقق في هذا الرابط. افتح الصفحة مباشرةً من البريد الإلكتروني الذي أرسلناه.</string>
+    <string name="verify_loading">جارٍ التحقق…</string>
+    <string name="verify_success">تمّ التحقق من البريد الإلكتروني. أصبحت ميزات المساعد والذكاء الاصطناعي الأخرى متاحةً الآن.</string>
+    <string name="verify_open_app">فتح Ultiq</string>
+    <string name="verify_expired_hint">تنتهي صلاحية روابط التحقق بعد 24 ساعة. سجّل الدخول واضغط على إعادة إرسال بريد التحقق من الإعدادات للحصول على رابط جديد.</string>
+    <string name="forgot_pw_title">نسيت كلمة المرور</string>
+    <string name="forgot_pw_body">أدخل البريد الإلكتروني المرتبط بحسابك. سنرسل إليك رابط إعادة التعيين.</string>
+    <string name="forgot_pw_sent">إذا كان هذا البريد الإلكتروني مسجّلاً، فسيصلك رابط إعادة التعيين قريباً. تحقق من صندوق الوارد (والبريد العشوائي) — ينتهي الرابط خلال ساعة واحدة.</string>
+    <string name="forgot_pw_paste_title">هل لا يفتح رابط إعادة التعيين التطبيق؟</string>
+    <string name="forgot_pw_paste_body">الصق الرابط الكامل من البريد الإلكتروني أدناه واضغط على متابعة.</string>
+    <string name="forgot_pw_paste_continue">المتابعة بالرابط الملصق</string>
+    <string name="forgot_pw_sent_btn">تمّ الإرسال</string>
+    <string name="forgot_pw_submit">إرسال رابط إعادة التعيين</string>
+    <string name="onboarding_welcome_title">مرحباً، أنا Ultiq</string>
+    <string name="onboarding_welcome_body">رفيقك اليومي للنوم والتركيز وكل ما بينهما. دعنا نهيئ إعداداتك — لن يستغرق الأمر سوى دقيقة.</string>
+    <string name="onboarding_sleep_title">متى تنام على أفضل وجه؟</string>
+    <string name="onboarding_sleep_body">اختر أوقات النوم والاستيقاظ المفضلة لك. سنتابع بهدوء مدى التزامك بها.</string>
+    <string name="onboarding_focus_title">كيف تركّز؟</string>
+    <string name="onboarding_focus_body">اختر المدة الافتراضية لجلسة التركيز. يمكنك تعديلها في أي وقت — هذه مجرد نقطة بداية.</string>
+    <string name="onboarding_perms_title">بعض الأذونات</string>
+    <string name="onboarding_perms_body">جميعها اختيارية — يعمل Ultiq بشكل أفضل عند تفعيلها. اضغط على أي صف للمنح.</string>
+    <string name="onboarding_perm_reminders_desc">تذكيرات وقت النوم، ومطالبات التركيز، والملخصات الأسبوعية</string>
+    <string name="onboarding_perm_usage_title">استخدام الهاتف</string>
+    <string name="onboarding_perm_usage_desc">يتيح لـ Ultiq حساب مرات رفع الهاتف أثناء النوم والتركيز</string>
+    <string name="onboarding_perm_overlay_desc">يتيح للقفل الاستيلاء على الشاشة خلال جلسات التركيز</string>
+    <string name="onboarding_perm_overlay_hint">إذا كان المفتاح مُعطَّلاً (\"إعداد مقيّد\")، اضغط على قائمة ⋮ في معلومات التطبيق → السماح بالإعدادات المقيّدة.</string>
+    <string name="onboarding_perm_alarms_title">التنبيهات الدقيقة</string>
+    <string name="onboarding_perm_alarms_desc">لكي تُطلق التذكيرات في الوقت المحدد بالضبط، وليس بعده بـ 15 دقيقة</string>
+    <string name="onboarding_granted">ممنوح</string>
+    <string name="onboarding_tap_grant">اضغط للمنح</string>
+    <string name="onboarding_done_title">الوسادة جاهزة</string>
+    <string name="onboarding_done_body">إعداداتك جاهزة. يمكنك دائماً ضبط الأهداف والتذكيرات وإعدادات القفل من الإعدادات.</string>
+    <string name="onboarding_lets_go">هيا بنا</string>
 </resources>

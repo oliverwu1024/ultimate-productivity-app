@@ -30,7 +30,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.ultiq.app.R
 import com.ultiq.app.util.PasswordStrength
 import com.ultiq.app.util.SecureWindow
 
@@ -63,20 +65,20 @@ fun ResetPasswordScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = "Set a new password",
+            text = stringResource(R.string.reset_pw_title),
             style = MaterialTheme.typography.headlineLarge,
         )
 
         if (token.isBlank()) {
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "This reset link is missing its token. Please request a new email.",
+                text = stringResource(R.string.reset_pw_no_token),
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodyMedium,
             )
             Spacer(modifier = Modifier.height(24.dp))
             TextButton(onClick = onDoneNavigateBack) {
-                Text("Back to login")
+                Text(stringResource(R.string.auth_back_to_login))
             }
             return@Column
         }
@@ -89,14 +91,14 @@ fun ResetPasswordScreen(
                 password = it
                 passwordMismatch = false
             },
-            label = { Text("New password") },
+            label = { Text(stringResource(R.string.change_password_new)) },
             singleLine = true,
             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
                     Icon(
                         imageVector = if (passwordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                        contentDescription = if (passwordVisible) "Hide password" else "Show password",
+                        contentDescription = if (passwordVisible) stringResource(R.string.auth_hide_password) else stringResource(R.string.auth_show_password),
                     )
                 }
             },
@@ -118,12 +120,12 @@ fun ResetPasswordScreen(
                 confirmPassword = it
                 passwordMismatch = false
             },
-            label = { Text("Confirm new password") },
+            label = { Text(stringResource(R.string.change_password_confirm)) },
             singleLine = true,
             visualTransformation = PasswordVisualTransformation(),
             isError = passwordMismatch,
             supportingText = if (passwordMismatch) {
-                { Text("Passwords do not match") }
+                { Text(stringResource(R.string.change_password_mismatch)) }
             } else null,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
             modifier = Modifier.fillMaxWidth(),
@@ -133,7 +135,7 @@ fun ResetPasswordScreen(
         if (uiState.resetPasswordSuccess) {
             Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = "Password reset. Sending you back to login…",
+                text = stringResource(R.string.reset_pw_success),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.primary,
             )
@@ -170,14 +172,14 @@ fun ResetPasswordScreen(
                     color = MaterialTheme.colorScheme.onPrimary,
                 )
             } else {
-                Text("Set new password")
+                Text(stringResource(R.string.reset_pw_submit))
             }
         }
 
         if (!uiState.resetPasswordSuccess) {
             Spacer(modifier = Modifier.height(12.dp))
             TextButton(onClick = onDoneNavigateBack) {
-                Text("Cancel")
+                Text(stringResource(R.string.action_cancel))
             }
         }
     }
