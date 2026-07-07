@@ -120,7 +120,7 @@ async fn weekly_insight(
 
     // 5. Call Bedrock with a cache breakpoint on the static system prompt.
     //    Thread the user's language so the review comes back localized (§13.2).
-    let language = crate::i18n::user_language_name(&state.pool, user_id).await;
+    let language = crate::i18n::user_language(&state.pool, user_id).await;
     let (insight_text, usage) = call_weekly_insight_model(&state.ai, &data_card, language).await?;
 
     // 6. Anti-hallucination — log if model invented numerals not in the card.
@@ -579,7 +579,7 @@ struct CallUsage {
 async fn call_weekly_insight_model(
     ai: &crate::ai::AiClient,
     data_card: &str,
-    language: &str,
+    language: crate::i18n::Language,
 ) -> Result<(String, CallUsage), AppError> {
     // System: static instructions + cache breakpoint so the next call within
     // the 5-minute TTL pays ~10% of the input cost. The CachePointBlock must
@@ -996,7 +996,7 @@ async fn sleep_rating(
 
     state.ai.check_quota(&state.pool, user_id).await?;
 
-    let language = crate::i18n::user_language_name(&state.pool, user_id).await;
+    let language = crate::i18n::user_language(&state.pool, user_id).await;
     let (rating, reasoning, usage) = call_sleep_rating_haiku(&state.ai, &input, language).await?;
 
     state
@@ -1017,7 +1017,7 @@ async fn sleep_rating(
 async fn call_sleep_rating_haiku(
     ai: &crate::ai::AiClient,
     input: &SleepRatingRequest,
-    language: &str,
+    language: crate::i18n::Language,
 ) -> Result<(i32, String, CallUsage), AppError> {
     let actual_h = input.actual_minutes / 60;
     let actual_m = input.actual_minutes % 60;
@@ -1917,7 +1917,7 @@ pub(crate) async fn run_anomaly_check_for_user(
 
     state.ai.check_quota(&state.pool, user_id).await?;
 
-    let language = crate::i18n::user_language_name(&state.pool, user_id).await;
+    let language = crate::i18n::user_language(&state.pool, user_id).await;
     let daily = aggregate_daily(&state.pool, user_id).await?;
     let data_card = render_anomaly_card(&daily);
     let (verdict, usage) = call_anomaly_model(&state.ai, &data_card, language).await?;
@@ -2245,7 +2245,7 @@ HARD RULES (absolute):
 async fn call_anomaly_model(
     ai: &crate::ai::AiClient,
     data_card: &str,
-    language: &str,
+    language: crate::i18n::Language,
 ) -> Result<(AnomalyVerdict, CallUsage), AppError> {
     let system_text = SystemContentBlock::Text(ANOMALY_SYSTEM_PROMPT.to_string());
     let cache_breakpoint = SystemContentBlock::CachePoint(
@@ -2565,7 +2565,7 @@ async fn chat_send(
         .unwrap_or(false);
 
     // §13.2 — reply in the user's chosen language (one lookup, both paths).
-    let language = crate::i18n::user_language_name(&state.pool, user_id).await;
+    let language = crate::i18n::user_language(&state.pool, user_id).await;
 
     let assistant_text: String;
     let tool_invocations: Vec<ToolInvocationSurface>;
@@ -2782,7 +2782,7 @@ async fn call_chat_model(
     ai: &crate::ai::AiClient,
     history: &[ChatMessageDto],
     new_user_message: &str,
-    language: &str,
+    language: crate::i18n::Language,
 ) -> Result<(String, CallUsage), AppError> {
     let system_text = SystemContentBlock::Text(CHAT_SYSTEM_PROMPT.to_string());
     let cache_breakpoint = SystemContentBlock::CachePoint(
@@ -3054,7 +3054,7 @@ async fn call_chat_model_with_tools(
     history: &[ChatMessageDto],
     new_user_message: &str,
     now_local: &str,
-    language: &str,
+    language: crate::i18n::Language,
 ) -> Result<ChatToolLoopOutcome, AppError> {
     let system_text = SystemContentBlock::Text(CHAT_SYSTEM_PROMPT_TOOLS.to_string());
     let cache_breakpoint = SystemContentBlock::CachePoint(
