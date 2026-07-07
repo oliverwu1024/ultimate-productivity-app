@@ -5,6 +5,7 @@ mod email;
 mod error;
 mod event_bus;
 mod fcm;
+mod i18n;
 mod middleware;
 mod models;
 mod routes;
