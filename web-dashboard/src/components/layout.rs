@@ -5,6 +5,8 @@ use leptos_router::hooks::{use_location, use_navigate};
 use crate::api::sse::use_sse;
 use crate::auth::{use_auth, AuthContext};
 use crate::components::email_verification_banner::EmailVerificationBanner;
+use crate::components::language_picker::LanguagePicker;
+use crate::i18n::t;
 use crate::theme::{use_theme, Theme};
 
 #[component]
@@ -52,7 +54,7 @@ pub fn AppShell(children: Children) -> impl IntoView {
                     <button
                         on:click=move |_| mobile_open.set(true)
                         class="p-2 -ml-2 cursor-pointer"
-                        aria-label="Open menu"
+                        aria-label=move || t("common.open_menu")
                     >
                         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <line x1="4" y1="6" x2="20" y2="6"/>
@@ -95,16 +97,16 @@ fn SidebarNav() -> impl IntoView {
     let auth = use_auth();
     view! {
         <nav class="flex flex-col gap-1 text-sm">
-            <NavLink href="/" label="Overview" />
-            <NavLink href="/checklist" label="Checklist" />
-            <NavLink href="/calendar" label="Calendar" />
-            <NavLink href="/sleep" label="Sleep" />
-            <NavLink href="/focus" label="Focus" />
-            <NavLink href="/correlations" label="Correlations" />
-            <NavLink href="/reports" label="Reports" />
-            <NavLink href="/chat" label="Coach" />
+            <NavLink href="/" label_key="nav.overview" />
+            <NavLink href="/checklist" label_key="nav.checklist" />
+            <NavLink href="/calendar" label_key="nav.calendar" />
+            <NavLink href="/sleep" label_key="nav.sleep" />
+            <NavLink href="/focus" label_key="nav.focus" />
+            <NavLink href="/correlations" label_key="nav.correlations" />
+            <NavLink href="/reports" label_key="nav.reports" />
+            <NavLink href="/chat" label_key="nav.coach" />
             <Show when=move || auth.user.get().map(|u| u.is_admin).unwrap_or(false)>
-                <NavLink href="/admin" label="Admin" />
+                <NavLink href="/admin" label_key="nav.admin" />
             </Show>
         </nav>
     }
@@ -122,23 +124,24 @@ fn SidebarFooter(
             </div>
             <Show when=move || auth.user.get().map(|u| !u.email_verified).unwrap_or(false)>
                 <div class="mt-1 inline-block text-[10px] uppercase tracking-wider bg-ultiq-yellow/20 text-ultiq-yellow px-1.5 py-0.5 rounded">
-                    "Unverified"
+                    {move || t("common.unverified")}
                 </div>
             </Show>
             <ConnectionIndicator />
+            <LanguagePicker class="mt-3 w-full bg-ultiq-indigo text-ultiq-cream/90 text-[11px] uppercase tracking-wider border border-white/20 rounded px-1.5 py-1 cursor-pointer focus:outline-none focus:ring-1 focus:ring-white/40" />
             <ThemeToggle />
             <button
                 on:click=on_signout
                 class="mt-2 text-ultiq-yellow hover:underline cursor-pointer"
             >
-                "Sign out"
+                {move || t("common.sign_out")}
             </button>
         </div>
     }
 }
 
 #[component]
-fn NavLink(href: &'static str, label: &'static str) -> impl IntoView {
+fn NavLink(href: &'static str, label_key: &'static str) -> impl IntoView {
     let location = use_location();
     let is_active = move || {
         let path = location.pathname.get();
@@ -157,7 +160,7 @@ fn NavLink(href: &'static str, label: &'static str) -> impl IntoView {
     };
     view! {
         <A href=href attr:class=class>
-            {label}
+            {move || t(label_key)}
         </A>
     }
 }
@@ -173,16 +176,19 @@ fn ThemeToggle() -> impl IntoView {
         };
         ctx.theme.set(next);
     };
-    let label = move || match ctx.theme.get() {
-        Theme::Light => "☼ Light",
-        Theme::Dark => "☾ Dark",
-        Theme::System => "⚙ System",
+    let label = move || {
+        let (sym, key) = match ctx.theme.get() {
+            Theme::Light => ("☼", "theme.light"),
+            Theme::Dark => ("☾", "theme.dark"),
+            Theme::System => ("⚙", "theme.system"),
+        };
+        format!("{sym} {}", t(key))
     };
     view! {
         <button
             on:click=cycle
             class="mt-3 flex items-center gap-2 text-[11px] uppercase tracking-wider opacity-70 hover:opacity-100 cursor-pointer"
-            title="Cycle theme"
+            title=move || t("theme.cycle")
         >
             {label}
         </button>
@@ -201,9 +207,9 @@ fn ConnectionIndicator() -> impl IntoView {
     };
     let label = move || {
         if sse.connected.get() {
-            "Realtime sync"
+            t("conn.realtime")
         } else {
-            "Offline"
+            t("conn.offline")
         }
     };
     view! {

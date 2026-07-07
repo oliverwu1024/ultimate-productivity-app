@@ -20,8 +20,11 @@ DIRS=(
 BASE="en"
 
 # Emit the sorted multiset of placeholder tokens found in a string.
+# `grep` exits 1 on a placeholder-free string (the common case); the `|| true`
+# keeps that from tripping `set -o pipefail`/`set -e` and aborting the whole
+# check on the first plain string it sees.
 placeholders() {
-  grep -oE '\{\{[^}]+\}\}|\{[^}]+\}|%[0-9]*\$?[sd]' <<<"${1:-}" | sort | tr '\n' ' '
+  { grep -oE '\{\{[^}]+\}\}|\{[^}]+\}|%[0-9]*\$?[sd]' <<<"${1:-}" || true; } | sort | tr '\n' ' '
 }
 
 rc=0

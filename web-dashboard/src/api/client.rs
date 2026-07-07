@@ -72,6 +72,13 @@ pub async fn put<B: Serialize, T: DeserializeOwned>(
     json_body("PUT", path, body).await
 }
 
+pub async fn patch<B: Serialize, T: DeserializeOwned>(
+    path: &str,
+    body: &B,
+) -> Result<T, ApiError> {
+    json_body("PATCH", path, body).await
+}
+
 pub async fn delete(path: &str) -> Result<(), ApiError> {
     let url = format!("{}{}", api_base_url(), path);
     let mut req = Request::delete(&url);
@@ -99,6 +106,7 @@ async fn json_body<B: Serialize, T: DeserializeOwned>(
     let mut req = match method {
         "POST" => Request::post(&url),
         "PUT" => Request::put(&url),
+        "PATCH" => Request::patch(&url),
         _ => return Err(ApiError::other(format!("Unsupported method: {}", method))),
     };
     req = req.header("Content-Type", "application/json");

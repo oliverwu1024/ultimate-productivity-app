@@ -4,6 +4,7 @@ mod api;
 mod app;
 mod auth;
 mod components;
+mod i18n;
 mod pages;
 mod sleep_day;
 mod stats;

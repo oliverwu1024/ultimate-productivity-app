@@ -1,5 +1,6 @@
 use leptos::prelude::*;
 
+use crate::i18n::t;
 use crate::theme::{use_theme, Theme};
 
 /// Floating theme-toggle in the top-right corner.
@@ -21,15 +22,17 @@ pub fn ThemeCorner() -> impl IntoView {
         Theme::Dark => "☾",
         Theme::System => "⚙",
     };
-    let label = move || match ctx.theme.get() {
-        Theme::Light => "Light",
-        Theme::Dark => "Dark",
-        Theme::System => "System",
+    let label = move || {
+        t(match ctx.theme.get() {
+            Theme::Light => "theme.light",
+            Theme::Dark => "theme.dark",
+            Theme::System => "theme.system",
+        })
     };
     view! {
         <button
             on:click=cycle
-            title="Cycle theme"
+            title=move || t("theme.cycle")
             aria-label=label
             class="fixed top-4 right-4 z-20 flex items-center gap-1.5 rounded-full bg-white/70 dark:bg-ultiq-night-800/70 backdrop-blur px-3 py-1.5 text-xs font-medium text-ultiq-indigo shadow-sm hover:shadow cursor-pointer"
         >
