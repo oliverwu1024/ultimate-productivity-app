@@ -43,15 +43,21 @@ pub fn language_name(tag: &str) -> &'static str {
 /// `"English"`; a language lookup must never break the AI / email flow it
 /// feeds, so all errors collapse to the default.
 pub async fn user_language_name(pool: &PgPool, user_id: Uuid) -> &'static str {
-    let tag: Option<String> = sqlx::query_scalar::<_, Option<String>>(
+    let tag: Option<String> = match sqlx::query_scalar::<_, Option<String>>(
         "SELECT preferences->>'app_language' FROM users WHERE id = $1",
     )
     .bind(user_id)
     .fetch_optional(pool)
     .await
-    .ok()
-    .flatten() // row present?
-    .flatten(); // column non-null?
+    {
+        Ok(row) => row.flatten(), // Option<row>·Option<column> -> Option<String>
+        Err(e) => {
+            // Degrade to English, but leave a breadcrumb — a silent DB failure
+            // here would otherwise be indistinguishable from "user picked English".
+            tracing::debug!(target: "i18n", "app_language lookup by id failed ({e}); defaulting to English");
+            None
+        }
+    };
     language_name(tag.as_deref().unwrap_or("").trim())
 }
 
@@ -61,15 +67,19 @@ pub async fn user_language_name(pool: &PgPool, user_id: Uuid) -> &'static str {
 /// this is a single indexed lookup. Degrades to English on any miss (which is
 /// also the reality for a brand-new signup whose language hasn't synced yet).
 pub async fn user_language_name_by_email(pool: &PgPool, email: &str) -> &'static str {
-    let tag: Option<String> = sqlx::query_scalar::<_, Option<String>>(
+    let tag: Option<String> = match sqlx::query_scalar::<_, Option<String>>(
         "SELECT preferences->>'app_language' FROM users WHERE email = $1",
     )
     .bind(email)
     .fetch_optional(pool)
     .await
-    .ok()
-    .flatten()
-    .flatten();
+    {
+        Ok(row) => row.flatten(),
+        Err(e) => {
+            tracing::debug!(target: "i18n", "app_language lookup by email failed ({e}); defaulting to English");
+            None
+        }
+    };
     language_name(tag.as_deref().unwrap_or("").trim())
 }
 
@@ -148,5 +158,38 @@ mod tests {
             "Heads up — Ultiq spotted a pattern"
         );
         assert!(anomaly_push_title("Japanese").contains("Ultiq"));
+    }
+
+    /// Drift guard: `language_name`, `respond_in_directive` and
+    /// `anomaly_push_title` are three stringly-typed catalogs keyed by the same
+    /// English names. A rename in one that isn't mirrored in the others would
+    /// silently fall back to English with no compile error. This locks them in
+    /// step — every Android picker tag must resolve to a non-English name that
+    /// has BOTH a directive and a localized push title. (Email-subject parity
+    /// is covered by the sibling test in `email_templates`.)
+    #[test]
+    fn every_picker_tag_localizes_across_catalogs() {
+        // Mirrors LanguageCard.kt's LANGUAGES, minus "" (system) and "en".
+        let tags = [
+            "es", "pt-BR", "fr", "de", "ja", "zh-Hans", "zh-Hant", "ko", "hi", "vi", "th", "id",
+            "ar",
+        ];
+        let english_title = anomaly_push_title("English");
+        for tag in tags {
+            let name = language_name(tag);
+            assert_ne!(
+                name, "English",
+                "tag `{tag}` fell back to English (language_name gap)"
+            );
+            assert!(
+                respond_in_directive(name).is_some(),
+                "`{name}` has no respond-in directive"
+            );
+            assert_ne!(
+                anomaly_push_title(name),
+                english_title,
+                "`{name}` has no localized anomaly push title (catalog drift)"
+            );
+        }
     }
 }
