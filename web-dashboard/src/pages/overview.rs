@@ -5,36 +5,46 @@ use leptos_meta::Title;
 use leptos_router::components::A;
 
 use crate::api::ai::{fetch_weekly_insight, WeeklyInsight};
-use crate::api::calendar::{list_events, CalendarEvent};
+use crate::api::calendar::{list_events, CalendarEvent, EventCategory};
 use crate::api::checklist::{list_for_range, ChecklistItem};
 use crate::api::client::ApiError;
 use crate::api::sessions::{fetch_stats as fetch_session_stats, list_sessions, ProductivitySession, SessionStats};
 use crate::api::sleep::{list_records, SleepRecord};
 use crate::api::sse::{use_sse, SyncEvent};
 use crate::components::layout::AppShell;
+use crate::i18n::{current_locale, t, t_args};
 
 const ONBOARDING_KEY: &str = "ultiq_onboarding_dismissed";
 
-fn weekday_label(w: chrono::Weekday) -> &'static str {
-    match w {
-        chrono::Weekday::Mon => "Monday",
-        chrono::Weekday::Tue => "Tuesday",
-        chrono::Weekday::Wed => "Wednesday",
-        chrono::Weekday::Thu => "Thursday",
-        chrono::Weekday::Fri => "Friday",
-        chrono::Weekday::Sat => "Saturday",
-        chrono::Weekday::Sun => "Sunday",
+fn greeting_key(d: chrono::DateTime<Local>) -> &'static str {
+    let h = d.hour();
+    if h < 12 {
+        "ov.greeting_morning"
+    } else if h < 18 {
+        "ov.greeting_afternoon"
+    } else {
+        "ov.greeting_evening"
     }
 }
 
-const MONTH_NAMES: [&str; 12] = [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December",
-];
+fn category_label(c: EventCategory) -> String {
+    t(match c {
+        EventCategory::Study => "common.category_study",
+        EventCategory::Project => "common.category_project",
+        EventCategory::Exercise => "common.category_exercise",
+        EventCategory::Personal => "common.category_personal",
+        EventCategory::Other => "common.category_other",
+    })
+}
 
-fn greeting(d: chrono::DateTime<Local>) -> &'static str {
-    let h = d.hour();
-    if h < 12 { "Good morning" } else if h < 18 { "Good afternoon" } else { "Good evening" }
+fn fmt_header_date(d: NaiveDate) -> String {
+    let loc = current_locale().chrono();
+    format!(
+        "{}, {} {}",
+        d.format_localized("%A", loc),
+        d.day(),
+        d.format_localized("%B", loc)
+    )
 }
 
 #[component]
@@ -142,13 +152,6 @@ pub fn OverviewPage() -> impl IntoView {
         }
     });
 
-    let header_date = format!(
-        "{}, {} {}",
-        weekday_label(today.weekday()),
-        today.day(),
-        MONTH_NAMES[(today.month() - 1) as usize],
-    );
-
     view! {
         <Title text="Overview — Ultiq" />
         <AppShell>
@@ -156,25 +159,25 @@ pub fn OverviewPage() -> impl IntoView {
                 <header class="flex items-center justify-between mb-6">
                     <div>
                         <h1 class="text-3xl font-bold text-ultiq-indigo">
-                            {greeting(now)}
+                            {move || t(greeting_key(now))}
                         </h1>
-                        <p class="text-sm text-ultiq-indigo/60 mt-1">{header_date.clone()}</p>
+                        <p class="text-sm text-ultiq-indigo/60 mt-1">{move || fmt_header_date(today)}</p>
                     </div>
                 </header>
 
                 <Show when=move || !onboarding_dismissed.get()>
                     <div class="bg-ultiq-yellow/15 border border-ultiq-yellow/40 text-ultiq-indigo rounded-2xl p-4 mb-6 flex items-start gap-3">
                         <div class="flex-1 text-sm leading-relaxed">
-                            <p class="font-medium">"Calendar vs Checklist — quick guide"</p>
+                            <p class="font-medium">{move || t("ov.guide_title")}</p>
                             <p class="mt-1 text-ultiq-indigo/70">
-                                <strong>"Calendar"</strong>" = time slots (lectures, gym, study blocks). "
-                                <strong>"Checklist"</strong>" = todos with a due date but no specific time."
+                                <strong>{move || t("nav.calendar")}</strong>" = "{move || t("ov.guide_calendar_desc")}" "
+                                <strong>{move || t("nav.checklist")}</strong>" = "{move || t("ov.guide_checklist_desc")}
                             </p>
                         </div>
                         <button
                             on:click=dismiss_onboarding
                             class="text-ultiq-indigo/50 hover:text-ultiq-indigo px-2 cursor-pointer"
-                            aria-label="Dismiss"
+                            aria-label=move || t("common.dismiss")
                         >
                             "✕"
                         </button>
@@ -191,14 +194,14 @@ pub fn OverviewPage() -> impl IntoView {
                 <section class="mt-6 bg-white border border-ultiq-indigo/10 rounded-2xl p-6">
                     <div class="flex items-center justify-between mb-3">
                         <h2 class="text-sm font-semibold text-ultiq-indigo/70">
-                            "This week — AI summary"
+                            {move || t("ov.week_summary")}
                         </h2>
                         <button
                             on:click=move |_| load_insight()
                             disabled=move || insight_loading.get()
                             class="text-ultiq-indigo/50 hover:text-ultiq-indigo px-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                            title="Refresh"
-                            aria-label="Refresh weekly insight"
+                            title=move || t("common.refresh")
+                            aria-label=move || t("ov.refresh_insight")
                         >
                             "↻"
                         </button>
@@ -206,12 +209,12 @@ pub fn OverviewPage() -> impl IntoView {
                     {move || {
                         if insight_loading.get() {
                             return view! {
-                                <p class="text-sm text-ultiq-indigo/60">"Generating your week…"</p>
+                                <p class="text-sm text-ultiq-indigo/60">{move || t("ov.generating")}</p>
                             }.into_any();
                         }
                         match weekly_insight.get() {
                             None => view! {
-                                <p class="text-sm text-ultiq-indigo/60">"Generating your week…"</p>
+                                <p class="text-sm text-ultiq-indigo/60">{move || t("ov.generating")}</p>
                             }.into_any(),
                             Some(Ok(i)) => {
                                 let paragraphs: Vec<String> = i.content
@@ -227,7 +230,7 @@ pub fn OverviewPage() -> impl IntoView {
                                         }).collect::<Vec<_>>()}
                                         <Show when=move || cached>
                                             <p class="text-xs text-ultiq-indigo/40 pt-2">
-                                                "Refreshes every 24 hours — your next summary's on its way."
+                                                {move || t("ov.refresh_note")}
                                             </p>
                                         </Show>
                                     </div>
@@ -235,11 +238,11 @@ pub fn OverviewPage() -> impl IntoView {
                             }
                             Some(Err(e)) => {
                                 let msg = if e.status == 429 {
-                                    "Daily AI limit reached — back tomorrow".to_string()
+                                    t("ov.err_quota")
                                 } else if e.status == 401 {
-                                    "Sign in to see your weekly insight".to_string()
+                                    t("ov.err_signin")
                                 } else {
-                                    "Couldn't load your weekly insight".to_string()
+                                    t("ov.err_load")
                                 };
                                 view! { <p class="text-sm text-red-600">{msg}</p> }.into_any()
                             }
@@ -249,10 +252,10 @@ pub fn OverviewPage() -> impl IntoView {
 
                 <div class="mt-6 flex flex-wrap gap-3">
                     <A href="/checklist" attr:class="px-4 py-2 bg-ultiq-indigo text-ultiq-cream rounded-lg font-medium hover:opacity-90">
-                        "Open checklist"
+                        {move || t("ov.open_checklist")}
                     </A>
                     <A href="/calendar" attr:class="px-4 py-2 bg-white text-ultiq-indigo rounded-lg font-medium border border-ultiq-indigo/20 hover:bg-ultiq-indigo/5">
-                        "Open calendar"
+                        {move || t("ov.open_calendar")}
                     </A>
                 </div>
             </div>
@@ -284,9 +287,9 @@ fn LastNightCard(sleep: RwSignal<Vec<SleepRecord>>) -> impl IntoView {
     view! {
         <section class="bg-white rounded-2xl shadow p-6 flex flex-col">
             <header class="flex items-center justify-between mb-3">
-                <h2 class="text-lg font-semibold text-ultiq-indigo">"Last night"</h2>
+                <h2 class="text-lg font-semibold text-ultiq-indigo">{move || t("ov.last_night")}</h2>
                 <A href="/sleep" attr:class="text-sm text-ultiq-indigo/60 hover:text-ultiq-indigo">
-                    "Sleep analytics →"
+                    {move || t("ov.sleep_analytics")}" →"
                 </A>
             </header>
             {move || {
@@ -296,7 +299,7 @@ fn LastNightCard(sleep: RwSignal<Vec<SleepRecord>>) -> impl IntoView {
                 match latest {
                     None => view! {
                         <p class="text-sm text-ultiq-indigo/50">
-                            "No sleep records yet. Start tracking from the Android app."
+                            {move || t("ov.no_sleep")}
                         </p>
                     }.into_any(),
                     Some(r) => {
@@ -324,7 +327,10 @@ fn LastNightCard(sleep: RwSignal<Vec<SleepRecord>>) -> impl IntoView {
                                         {stars}<span class="text-ultiq-indigo/20">{dim_stars}</span>
                                     </span>
                                     <span class="text-ultiq-indigo/60">
-                                        {format!("· {} pickups", r.phone_pickups)}
+                                        {
+                                            let p = r.phone_pickups.to_string();
+                                            format!("· {}", t_args("ov.pickups", &[("count", p.as_str())]))
+                                        }
                                     </span>
                                 </div>
                             </div>
@@ -344,9 +350,9 @@ fn TodayFocusCard(
     view! {
         <section class="bg-white rounded-2xl shadow p-6 flex flex-col">
             <header class="flex items-center justify-between mb-3">
-                <h2 class="text-lg font-semibold text-ultiq-indigo">"Today's focus"</h2>
+                <h2 class="text-lg font-semibold text-ultiq-indigo">{move || t("ov.today_focus")}</h2>
                 <A href="/focus" attr:class="text-sm text-ultiq-indigo/60 hover:text-ultiq-indigo">
-                    "Focus analytics →"
+                    {move || t("ov.focus_analytics")}" →"
                 </A>
             </header>
             {move || {
@@ -362,11 +368,14 @@ fn TodayFocusCard(
                     view! {
                         <div class="space-y-3">
                             <p class="text-sm text-ultiq-indigo/50">
-                                "No focus sessions yet today."
+                                {move || t("ov.no_focus")}
                             </p>
                             <Show when=move || { streak > 0 }>
                                 <p class="text-xs text-ultiq-indigo/60">
-                                    {format!("Current streak: {} day(s)", streak)}
+                                    {
+                                        let s = streak.to_string();
+                                        t_args("ov.streak_days", &[("count", s.as_str())])
+                                    }
                                 </p>
                             </Show>
                         </div>
@@ -379,16 +388,29 @@ fn TodayFocusCard(
                                     {fmt_minutes(total_min as f64)}
                                 </span>
                                 <span class="text-sm text-ultiq-indigo/60">
-                                    {format!("{} session{}", n, if n == 1 { "" } else { "s" })}
+                                    {
+                                        let ns = n.to_string();
+                                        if n == 1 {
+                                            t_args("common.sessions_one", &[("count", ns.as_str())])
+                                        } else {
+                                            t_args("common.sessions_other", &[("count", ns.as_str())])
+                                        }
+                                    }
                                 </span>
                             </div>
                             <div class="flex items-center gap-3 text-sm text-ultiq-indigo/60">
                                 <span>
                                     "🔥 "
-                                    {format!("{} day streak", streak)}
+                                    {
+                                        let s = streak.to_string();
+                                        t_args("ov.day_streak", &[("count", s.as_str())])
+                                    }
                                 </span>
                                 <Show when=move || { pickups > 0 }>
-                                    <span>{format!("· {} pickups", pickups)}</span>
+                                    <span>{
+                                        let p = pickups.to_string();
+                                        format!("· {}", t_args("ov.pickups", &[("count", p.as_str())]))
+                                    }</span>
                                 </Show>
                             </div>
                         </div>
@@ -404,9 +426,9 @@ fn TodayChecklistCard(items: RwSignal<Vec<ChecklistItem>>) -> impl IntoView {
     view! {
         <section class="bg-white rounded-2xl shadow p-6 flex flex-col">
             <header class="flex items-center justify-between mb-3">
-                <h2 class="text-lg font-semibold text-ultiq-indigo">"Today's checklist"</h2>
+                <h2 class="text-lg font-semibold text-ultiq-indigo">{move || t("ov.today_checklist")}</h2>
                 <A href="/checklist" attr:class="text-sm text-ultiq-indigo/60 hover:text-ultiq-indigo">
-                    "View all →"
+                    {move || t("ov.view_all")}" →"
                 </A>
             </header>
             {move || {
@@ -419,7 +441,7 @@ fn TodayChecklistCard(items: RwSignal<Vec<ChecklistItem>>) -> impl IntoView {
                 if visible.is_empty() {
                     view! {
                         <p class="text-sm text-ultiq-indigo/50">
-                            "No items for today. Add one from the Checklist tab."
+                            {move || t("ov.no_items")}
                         </p>
                     }.into_any()
                 } else {
@@ -434,7 +456,11 @@ fn TodayChecklistCard(items: RwSignal<Vec<ChecklistItem>>) -> impl IntoView {
                         <div class="space-y-3">
                             <div>
                                 <div class="flex items-center justify-between text-sm text-ultiq-indigo/70 mb-1.5">
-                                    <span>{format!("{} of {} done", done, total)}</span>
+                                    <span>{
+                                        let d = done.to_string();
+                                        let tot = total.to_string();
+                                        t_args("common.progress_done", &[("done", d.as_str()), ("total", tot.as_str())])
+                                    }</span>
                                 </div>
                                 <div class="h-2 bg-ultiq-indigo/10 rounded-full overflow-hidden">
                                     <div
@@ -453,7 +479,10 @@ fn TodayChecklistCard(items: RwSignal<Vec<ChecklistItem>>) -> impl IntoView {
                             </ul>
                             <Show when=move || { more > 0 }>
                                 <p class="text-xs text-ultiq-indigo/50">
-                                    {format!("+ {} more open", more)}
+                                    {
+                                        let m = more.to_string();
+                                        t_args("ov.more_open", &[("count", m.as_str())])
+                                    }
                                 </p>
                             </Show>
                         </div>
@@ -471,9 +500,9 @@ fn TodayEventsCard(events: RwSignal<Vec<CalendarEvent>>) -> impl IntoView {
     view! {
         <section class="bg-white rounded-2xl shadow p-6 flex flex-col">
             <header class="flex items-center justify-between mb-3">
-                <h2 class="text-lg font-semibold text-ultiq-indigo">"Today's events"</h2>
+                <h2 class="text-lg font-semibold text-ultiq-indigo">{move || t("ov.today_events")}</h2>
                 <A href="/calendar" attr:class="text-sm text-ultiq-indigo/60 hover:text-ultiq-indigo">
-                    "Open calendar →"
+                    {move || t("ov.open_calendar")}" →"
                 </A>
             </header>
             {move || {
@@ -486,7 +515,7 @@ fn TodayEventsCard(events: RwSignal<Vec<CalendarEvent>>) -> impl IntoView {
                 if today_events.is_empty() {
                     view! {
                         <p class="text-sm text-ultiq-indigo/50">
-                            "No events scheduled for today."
+                            {move || t("ov.no_events")}
                         </p>
                     }.into_any()
                 } else {
@@ -496,6 +525,7 @@ fn TodayEventsCard(events: RwSignal<Vec<CalendarEvent>>) -> impl IntoView {
                                 let start = e.start_time.with_timezone(&Local).format("%H:%M").to_string();
                                 let end = e.end_time.with_timezone(&Local).format("%H:%M").to_string();
                                 let color = e.color.clone();
+                                let cat = e.category;
                                 view! {
                                     <li class="flex items-start gap-3">
                                         <span
@@ -507,7 +537,7 @@ fn TodayEventsCard(events: RwSignal<Vec<CalendarEvent>>) -> impl IntoView {
                                             <div class="text-xs text-ultiq-indigo/60">
                                                 {format!("{} – {}", start, end)}
                                                 " · "
-                                                {e.category.label()}
+                                                {move || category_label(cat)}
                                             </div>
                                         </div>
                                     </li>

@@ -404,7 +404,11 @@ fn ProgressBar(items: RwSignal<Vec<ChecklistItem>>, day: RwSignal<NaiveDate>) ->
             view! {
                 <div>
                     <div class="flex items-center justify-between text-sm text-ultiq-indigo/70 mb-1.5">
-                        <span>{format!("{} of {} done", done, total)}</span>
+                        <span>{
+                            let d = done.to_string();
+                            let tot = total.to_string();
+                            t_args("common.progress_done", &[("done", d.as_str()), ("total", tot.as_str())])
+                        }</span>
                     </div>
                     <div class="h-2 bg-ultiq-indigo/10 rounded-full overflow-hidden">
                         <div
