@@ -178,7 +178,7 @@ dependencies {
     // snore + cough detection during sleep sessions. Audio never leaves the
     // phone; only labels + timestamps + confidences are persisted. Model file
     // `yamnet.tflite` must live at `app/src/main/assets/yamnet.tflite`.
-    implementation("com.google.mediapipe:tasks-audio:0.10.35")
+    implementation("com.google.mediapipe:tasks-audio:0.20230731")
 
     // §8.9 (v2.18+) — MediaPipe Image Embedder with bundled MobileNet-V3-small
     // for the photo dismiss mission. Replaces the old DCT pHash: produces a
@@ -186,5 +186,5 @@ dependencies {
     // cosine similarity even across moderate angle / lighting changes. Same
     // version line as tasks-audio above; model `mobilenet_v3_small.tflite`
     // (~4 MB) lives at `app/src/main/assets/`. Imagery never leaves the phone.
-    implementation("com.google.mediapipe:tasks-vision:0.10.35")
+    implementation("com.google.mediapipe:tasks-vision:0.20230731")
 }
