@@ -617,7 +617,7 @@ async fn send_verification_email(state: &AppState, to: &str, token: &str) -> Res
     // §13.2 — localized to the recipient's saved app language. English when
     // unknown, which includes a brand-new signup whose language hasn't synced
     // yet (the JSONB pref only arrives once the client PATCHes /auth/me).
-    let language = crate::i18n::user_language_name_by_email(&state.pool, to).await;
+    let language = crate::i18n::user_language_by_email(&state.pool, to).await;
     let (subject, body_text, body_html) = crate::email_templates::verify_email(language, &link);
 
     state
@@ -638,7 +638,7 @@ async fn send_reset_email(state: &AppState, to: &str, token: &str) -> Result<(),
     // doesn't linger in browser history or get sent as a Referer.
     let link = format!("{}?token={}", state.config.reset_link_base, token);
     // §13.2 — localized to the recipient's saved app language (English if unset).
-    let language = crate::i18n::user_language_name_by_email(&state.pool, to).await;
+    let language = crate::i18n::user_language_by_email(&state.pool, to).await;
     let (subject, body_text, body_html) = crate::email_templates::reset_email(language, &link);
 
     state
