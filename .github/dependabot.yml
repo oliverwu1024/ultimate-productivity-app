@@ -28,13 +28,14 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
-    # vico compose-m3 is pinned at 2.0.0-beta.3: 3.x is a charting-API rewrite
-    # (SleepChart.kt — the whole core.* package + builders were renamed). Ignore
-    # MAJOR bumps until that migration is done + verified on-device; delete this
-    # entry to pick it back up. Minor/patch within the pinned major still flow.
+    # vico compose-m3 is pinned at 2.0.0-beta.3. Two reasons to hold: (1) 3.x is
+    # a charting-API rewrite (SleepChart.kt — core.* package + builders renamed);
+    # (2) even the 2.5.x MINORS now require compileSdk 37 + AGP 9.1 (they fail
+    # checkDebugAarMetadata on AGP 8). Ignore minor+major until the AGP 9
+    # migration; delete this entry then. Patch within 2.0.x still flows.
     ignore:
       - dependency-name: "com.patrykandpatrick.vico:compose-m3"
-        update-types: ["version-update:semver-major"]
+        update-types: ["version-update:semver-minor", "version-update:semver-major"]
       # Kotlin, KSP and AGP move as one toolchain. Held at the 2.2.x line until
       # the deliberate AGP 9 / Kotlin 2.3 migration (2.3+ needs newer KSP + AGP
       # than the plugin ecosystem currently ships). Bumped as its own task, not
@@ -50,6 +51,17 @@ updates:
       # until the AGP 9 migration; lift alongside the toolchain bump.
       - dependency-name: "androidx.lifecycle:*"
         update-types: ["version-update:semver-minor", "version-update:semver-major"]
+      # androidx.core 1.19+ also requires compileSdk 37 + AGP 9.1 (same wall).
+      # Hold core/core-ktx at 1.18.x until the AGP 9 migration.
+      - dependency-name: "androidx.core:*"
+        update-types: ["version-update:semver-minor", "version-update:semver-major"]
+      # The Gradle wrapper: 9.x is incompatible with AGP 8.x (AGP relies on a
+      # Gradle internal API removed in Gradle 9.6.0). Hold on 8.x until the AGP 9
+      # migration. Dependabot has named the wrapper both ways, so pin both.
+      - dependency-name: "gradle-wrapper"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "gradle"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "npm"
     directory: "/web-landing"
