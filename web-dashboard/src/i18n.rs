@@ -215,6 +215,15 @@ pub fn current_locale() -> Locale {
         .unwrap_or(Locale::En)
 }
 
+/// Read the current locale **untracked** (no subscription) — for capturing at
+/// render inside a reactive owner (e.g. a dialog component body) without making
+/// that owner re-run on a language switch.
+pub fn current_locale_untracked() -> Locale {
+    use_context::<I18nContext>()
+        .map(|c| c.locale.get_untracked())
+        .unwrap_or(Locale::En)
+}
+
 /// Translate a key against the active locale, falling back to English, then to
 /// the key itself (so a missing key is visible rather than silently blank).
 /// Reactive: call inside a view closure — `{move || t("nav.overview")}` — so it
