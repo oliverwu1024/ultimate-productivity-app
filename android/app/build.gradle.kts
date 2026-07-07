@@ -104,7 +104,7 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
 
     // Core
-    implementation("androidx.core:core-ktx:1.18.0")
+    implementation("androidx.core:core-ktx:1.19.0")
     implementation("androidx.activity:activity-compose:1.13.0")
     // §13 (i18n) — AppCompatDelegate.setApplicationLocales powers the in-app
     // language picker (per-app locales, backported below API 33). The three
