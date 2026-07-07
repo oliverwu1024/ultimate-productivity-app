@@ -2,6 +2,7 @@ mod ai;
 mod config;
 mod db;
 mod email;
+mod email_templates;
 mod error;
 mod event_bus;
 mod fcm;

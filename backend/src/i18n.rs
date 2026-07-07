@@ -55,6 +55,24 @@ pub async fn user_language_name(pool: &PgPool, user_id: Uuid) -> &'static str {
     language_name(tag.as_deref().unwrap_or("").trim())
 }
 
+/// Same as [`user_language_name`] but keyed by email address — the
+/// transactional-email flows (verify / reset) only have the recipient's
+/// address in hand, not their id. `email` is the unique login identity, so
+/// this is a single indexed lookup. Degrades to English on any miss (which is
+/// also the reality for a brand-new signup whose language hasn't synced yet).
+pub async fn user_language_name_by_email(pool: &PgPool, email: &str) -> &'static str {
+    let tag: Option<String> = sqlx::query_scalar::<_, Option<String>>(
+        "SELECT preferences->>'app_language' FROM users WHERE email = $1",
+    )
+    .bind(email)
+    .fetch_optional(pool)
+    .await
+    .ok()
+    .flatten()
+    .flatten();
+    language_name(tag.as_deref().unwrap_or("").trim())
+}
+
 /// Trailing system directive that forces the model's output language. Returns
 /// `None` for English so English requests keep a byte-identical prompt (full
 /// prompt-cache hit, no extra system block). Added *after* the cache
