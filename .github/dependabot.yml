@@ -35,6 +35,15 @@ updates:
     ignore:
       - dependency-name: "com.patrykandpatrick.vico:compose-m3"
         update-types: ["version-update:semver-major"]
+      # Kotlin, KSP and AGP move as one toolchain. Held at the 2.2.x line until
+      # the deliberate AGP 9 / Kotlin 2.3 migration (2.3+ needs newer KSP + AGP
+      # than the plugin ecosystem currently ships). Bumped as its own task, not
+      # via Dependabot — delete these two entries when starting that migration.
+      # Patch bumps within 2.2.x still flow.
+      - dependency-name: "org.jetbrains.kotlin.android"
+        update-types: ["version-update:semver-minor", "version-update:semver-major"]
+      - dependency-name: "com.google.devtools.ksp"
+        update-types: ["version-update:semver-minor", "version-update:semver-major"]
 
   - package-ecosystem: "npm"
     directory: "/web-landing"
@@ -47,4 +56,9 @@ updates:
     # Only the `eslint` core package is pinned — configs/plugins still update.
     ignore:
       - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
+      # @types/node tracks the Node runtime we build + deploy on (Node 20 in the
+      # CI runners and the deploy toolchain). Don't let the type defs run ahead
+      # of the runtime major — pin to 20.x; bump alongside an actual Node upgrade.
+      - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
