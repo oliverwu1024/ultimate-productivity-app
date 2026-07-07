@@ -98,6 +98,27 @@ impl Locale {
         matches!(self, Locale::Ar)
     }
 
+    /// Closest `chrono` locale, for locale-aware month/weekday names via
+    /// `format_localized` — so dates don't need hand-translated catalogs.
+    pub fn chrono(self) -> chrono::Locale {
+        match self {
+            Locale::En => chrono::Locale::en_US,
+            Locale::Es => chrono::Locale::es_ES,
+            Locale::PtBr => chrono::Locale::pt_BR,
+            Locale::Fr => chrono::Locale::fr_FR,
+            Locale::De => chrono::Locale::de_DE,
+            Locale::Ja => chrono::Locale::ja_JP,
+            Locale::ZhHans => chrono::Locale::zh_CN,
+            Locale::ZhHant => chrono::Locale::zh_TW,
+            Locale::Ko => chrono::Locale::ko_KR,
+            Locale::Hi => chrono::Locale::hi_IN,
+            Locale::Vi => chrono::Locale::vi_VN,
+            Locale::Th => chrono::Locale::th_TH,
+            Locale::Id => chrono::Locale::id_ID,
+            Locale::Ar => chrono::Locale::ar_SA,
+        }
+    }
+
     /// Resolve a stored/synced BCP-47 tag. Unknown/empty/`en` → English.
     /// `pt`/`in` are tolerated as legacy aliases (matches the backend).
     pub fn from_tag(tag: &str) -> Locale {
@@ -211,16 +232,33 @@ pub fn t(key: &str) -> String {
     key.to_string()
 }
 
-/// Like [`t`], with `{name}`-style placeholder substitution. Part of the i18n
-/// foundation; the first callers arrive with the interpolated strings in the
-/// 13.3 page sweep (e.g. "{count} left"), so it is unused in the proof slice.
-#[allow(dead_code)]
+/// Like [`t`], with `{name}`-style placeholder substitution.
 pub fn t_args(key: &str, args: &[(&str, &str)]) -> String {
     let mut s = t(key);
     for (name, value) in args {
         s = s.replace(&format!("{{{name}}}"), value);
     }
     s
+}
+
+/// Non-reactive translate: reads the locale **untracked**, so it can be called
+/// from event handlers or `spawn_local` futures — where the reactive owner is
+/// inactive and a normal `t()` would neither subscribe nor see the context —
+/// as long as the value is captured at render time. Also used for one-shot
+/// strings where re-running on a language switch is unwanted.
+pub fn tu(key: &str) -> String {
+    let loc = use_context::<I18nContext>()
+        .map(|c| c.locale.get_untracked())
+        .unwrap_or(Locale::En);
+    if let Some(v) = lookup(loc, key) {
+        return v;
+    }
+    if loc != Locale::En {
+        if let Some(v) = lookup(Locale::En, key) {
+            return v;
+        }
+    }
+    key.to_string()
 }
 
 /// Install the reactive locale context. Initial value: saved choice → browser
