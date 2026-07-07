@@ -614,20 +614,11 @@ async fn create_and_send_verification(state: &AppState, user: &User) -> Result<(
 
 async fn send_verification_email(state: &AppState, to: &str, token: &str) -> Result<(), AppError> {
     let link = format!("{}?token={}", state.config.verify_link_base, token);
-    let body_text = format!(
-        "Welcome to Ultiq!\n\nTap the link below to verify your email address. This protects your account and lets you reset your password if you ever forget it:\n\n{}\n\nThis link expires in 24 hours. If you didn't sign up for Ultiq, you can safely ignore this email.\n\n— Ultiq",
-        link
-    );
-    let body_html = format!(
-        "<div style=\"font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#2A1B6E;line-height:1.55;\">\
-         <p>Welcome to Ultiq!</p>\
-         <p>Tap the button below to verify your email address. This protects your account and lets you reset your password if you ever forget it:</p>\
-         <p style=\"margin:24px 0\"><a href=\"{link}\" style=\"display:inline-block;padding:12px 28px;background:#2A1B6E;color:#FFF4E6;border-radius:24px;text-decoration:none;font-weight:600;\">Verify email</a></p>\
-         <p style=\"font-size:14px;color:#2A1B6Eaa\">If the button doesn't work, paste this link into your browser:<br><code style=\"background:#FFF4E6;padding:4px 8px;border-radius:4px;\">{link}</code></p>\
-         <p style=\"font-size:14px;color:#2A1B6Eaa\">This link expires in 24 hours. If you didn't sign up for Ultiq, you can safely ignore this email.</p>\
-         <p style=\"margin-top:32px;color:#2A1B6E\">— Ultiq</p></div>",
-        link = link
-    );
+    // §13.2 — localized to the recipient's saved app language. English when
+    // unknown, which includes a brand-new signup whose language hasn't synced
+    // yet (the JSONB pref only arrives once the client PATCHes /auth/me).
+    let language = crate::i18n::user_language_name_by_email(&state.pool, to).await;
+    let (subject, body_text, body_html) = crate::email_templates::verify_email(language, &link);
 
     state
         .email
@@ -635,7 +626,7 @@ async fn send_verification_email(state: &AppState, to: &str, token: &str) -> Res
             &state.config.from_address,
             &state.config.reply_to,
             to,
-            "Verify your Ultiq email",
+            &subject,
             &body_text,
             &body_html,
         )
@@ -646,20 +637,9 @@ async fn send_reset_email(state: &AppState, to: &str, token: &str) -> Result<(),
     // Dashboard immediately scrubs ?token from window.history.replaceState so it
     // doesn't linger in browser history or get sent as a Referer.
     let link = format!("{}?token={}", state.config.reset_link_base, token);
-    let body_text = format!(
-        "Hi,\n\nWe received a request to reset your Ultiq password. Tap the link below to choose a new password:\n\n{}\n\nThis link expires in 1 hour. If you didn't request a reset, you can safely ignore this email.\n\n— Ultiq",
-        link
-    );
-    let body_html = format!(
-        "<div style=\"font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#2A1B6E;line-height:1.55;\">\
-         <p>Hi,</p>\
-         <p>We received a request to reset your Ultiq password. Tap the button below to choose a new password:</p>\
-         <p style=\"margin:24px 0\"><a href=\"{link}\" style=\"display:inline-block;padding:12px 28px;background:#2A1B6E;color:#FFF4E6;border-radius:24px;text-decoration:none;font-weight:600;\">Reset password</a></p>\
-         <p style=\"font-size:14px;color:#2A1B6Eaa\">If the button doesn't open the app, copy this link into Ultiq:<br><code style=\"background:#FFF4E6;padding:4px 8px;border-radius:4px;\">{link}</code></p>\
-         <p style=\"font-size:14px;color:#2A1B6Eaa\">This link expires in 1 hour. If you didn't request a reset, you can safely ignore this email.</p>\
-         <p style=\"margin-top:32px;color:#2A1B6E\">— Ultiq</p></div>",
-        link = link
-    );
+    // §13.2 — localized to the recipient's saved app language (English if unset).
+    let language = crate::i18n::user_language_name_by_email(&state.pool, to).await;
+    let (subject, body_text, body_html) = crate::email_templates::reset_email(language, &link);
 
     state
         .email
@@ -667,7 +647,7 @@ async fn send_reset_email(state: &AppState, to: &str, token: &str) -> Result<(),
             &state.config.from_address,
             &state.config.reply_to,
             to,
-            "Reset your Ultiq password",
+            &subject,
             &body_text,
             &body_html,
         )
