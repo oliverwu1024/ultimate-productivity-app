@@ -62,6 +62,13 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "gradle"
         update-types: ["version-update:semver-major"]
+      # MediaPipe ships TWO version lines: 0.10.x is the current semver line;
+      # 0.2023xxxx / 0.2024xxxx are an OLDER date-string line (e.g. 0.20230731 =
+      # 31 Jul 2023) that Maven/Gradle mis-sorts as "newer" than 0.10.x. Taking
+      # one DOWNGRADES the lib. Block the whole date-string range (>= 0.2000)
+      # while keeping the real 0.10.x/0.11.x bumps flowing.
+      - dependency-name: "com.google.mediapipe:*"
+        versions: ["[0.20000000,)"]
 
   - package-ecosystem: "npm"
     directory: "/web-landing"
