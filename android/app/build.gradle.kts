@@ -138,7 +138,7 @@ dependencies {
     // in EncryptedSharedPreferences (Keystore-rooted), so it never lives in
     // plaintext on disk.
     implementation("net.zetetic:sqlcipher-android:4.16.0")
-    implementation("androidx.sqlite:sqlite:2.6.2")
+    implementation("androidx.sqlite:sqlite:2.7.0")
 
     // Lifecycle / ViewModel
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.10.0")
