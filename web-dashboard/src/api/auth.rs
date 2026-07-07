@@ -1,7 +1,7 @@
 use gloo_net::http::Request;
 use serde::{Deserialize, Serialize};
 
-use crate::api::client::{api_base_url, get, post, ApiError};
+use crate::api::client::{api_base_url, get, patch, post, ApiError};
 use crate::auth::{AuthContext, User};
 
 #[derive(Debug, Serialize)]
@@ -29,6 +29,17 @@ pub async fn fetch_me() -> Result<User, ApiError> {
 
 pub fn logout() {
     AuthContext::clear_token();
+}
+
+/// §13.3 — persist the chosen UI language into the synced `preferences` blob.
+/// Mirrors the Android picker's `PATCH /auth/me` partial-merge write, so the
+/// same `app_language` tag is shared across every surface. The local signal
+/// updates independently, so a failed sync just leaves the server on its
+/// previous value until the next change.
+pub async fn update_language(tag: &str) -> Result<(), ApiError> {
+    let body = serde_json::json!({ "preferences": { "app_language": tag } });
+    let _: serde_json::Value = patch("/auth/me", &body).await?;
+    Ok(())
 }
 
 #[derive(Debug, Serialize)]

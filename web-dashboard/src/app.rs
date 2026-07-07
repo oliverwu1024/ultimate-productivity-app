@@ -23,6 +23,7 @@ use crate::pages::verify_email::VerifyEmailPage;
 pub fn App() -> impl IntoView {
     provide_meta_context();
     crate::theme::provide_theme();
+    crate::i18n::provide_i18n();
     provide_auth();
     sse::provide_sse();
 
@@ -41,7 +42,7 @@ pub fn App() -> impl IntoView {
     view! {
         <Title text="Ultiq" />
         <Router>
-            <Routes fallback=|| view! { <p class="p-8">"Page not found"</p> }>
+            <Routes fallback=|| view! { <p class="p-8">{move || crate::i18n::t("common.page_not_found")}</p> }>
                 <Route path=path!("/login") view=LoginPage />
                 <Route path=path!("/forgot-password") view=ForgotPasswordPage />
                 <Route path=path!("/reset") view=ResetPasswordPage />
