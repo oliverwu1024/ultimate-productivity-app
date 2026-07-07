@@ -44,6 +44,12 @@ updates:
         update-types: ["version-update:semver-minor", "version-update:semver-major"]
       - dependency-name: "com.google.devtools.ksp"
         update-types: ["version-update:semver-minor", "version-update:semver-major"]
+      # androidx.lifecycle 2.11+ requires compileSdk 37 + AGP 9.1 (its AAR
+      # metadata fails checkDebugAarMetadata on AGP 8) — the same AGP-9 wall as
+      # the Kotlin/KSP toolchain above. Hold all lifecycle artifacts at 2.10.x
+      # until the AGP 9 migration; lift alongside the toolchain bump.
+      - dependency-name: "androidx.lifecycle:*"
+        update-types: ["version-update:semver-minor", "version-update:semver-major"]
 
   - package-ecosystem: "npm"
     directory: "/web-landing"
