@@ -13,6 +13,7 @@ use crate::api::calendar::{
 use crate::api::sse::{use_sse, SyncEvent};
 use crate::components::ai_parse_dialog::{AiParsePromptDialog, AiSurface};
 use crate::components::layout::AppShell;
+use crate::i18n::{current_locale, t, t_args, tu};
 
 #[derive(Clone)]
 enum DialogState {
@@ -24,13 +25,6 @@ enum DialogState {
     /// `Add` apart from the initial form state.
     AddPrefilled(ParsedCalendarFields),
 }
-
-const MONTH_NAMES: [&str; 12] = [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December",
-];
-
-const DOW_LABELS: [&str; 7] = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 fn first_of(date: NaiveDate) -> NaiveDate {
     NaiveDate::from_ymd_opt(date.year(), date.month(), 1).unwrap()
@@ -138,6 +132,9 @@ pub fn CalendarPage() -> impl IntoView {
     let ai_open = RwSignal::new(false);
     let ai_loading = RwSignal::new(false);
     let ai_error = RwSignal::new(None::<String>);
+    // StoredValue (Copy) so the AI dialog's Copy-bound on_submit closure can
+    // still hold this localized message without capturing a bare String.
+    let ai_parse_failed = StoredValue::new(tu("common.ai_parse_failed"));
 
     let refresh = move || {
         let month = current_month.get_untracked();
@@ -181,7 +178,7 @@ pub fn CalendarPage() -> impl IntoView {
 
     let header_title = move || {
         let m = current_month.get();
-        format!("{} {}", MONTH_NAMES[(m.month() - 1) as usize], m.year())
+        m.format_localized("%B %Y", current_locale().chrono()).to_string()
     };
 
     view! {
@@ -189,7 +186,7 @@ pub fn CalendarPage() -> impl IntoView {
         <AppShell>
             <div class="p-4 md:p-8 max-w-6xl mx-auto">
                 <header class="flex items-center justify-between mb-6">
-                    <h1 class="text-3xl font-bold text-ultiq-indigo">"Calendar"</h1>
+                    <h1 class="text-3xl font-bold text-ultiq-indigo">{move || t("nav.calendar")}</h1>
                     <div class="flex items-center gap-2">
                         <button
                             on:click=move |_| {
@@ -198,13 +195,13 @@ pub fn CalendarPage() -> impl IntoView {
                             }
                             class="px-3 py-2 border border-ultiq-indigo/30 text-ultiq-indigo rounded-lg font-medium hover:bg-ultiq-indigo/5 cursor-pointer"
                         >
-                            "✨ AI"
+                            {move || format!("✨ {}", t("common.ai"))}
                         </button>
                         <button
                             on:click=move |_| dialog.set(DialogState::Add)
                             class="px-4 py-2 bg-ultiq-indigo text-ultiq-cream rounded-lg font-medium hover:opacity-90 cursor-pointer"
                         >
-                            "+ Add event"
+                            {move || format!("+ {}", t("cal.add_event"))}
                         </button>
                     </div>
                 </header>
@@ -231,7 +228,7 @@ pub fn CalendarPage() -> impl IntoView {
                                 on:click=goto_today
                                 class="text-xs px-2 py-1 rounded border border-ultiq-indigo/20 text-ultiq-indigo hover:bg-ultiq-indigo/5 cursor-pointer"
                             >
-                                "Today"
+                                {move || t("common.today")}
                             </button>
                         </div>
                         <button
@@ -243,9 +240,16 @@ pub fn CalendarPage() -> impl IntoView {
                     </div>
 
                     <div class="grid grid-cols-7 gap-px text-xs font-medium text-ultiq-indigo/50 mb-1">
-                        {DOW_LABELS.iter().map(|d| view! {
-                            <div class="text-center py-1">{*d}</div>
-                        }).collect_view()}
+                        {move || {
+                            let loc = current_locale().chrono();
+                            (0..7).map(|i| {
+                                let lbl = (NaiveDate::from_ymd_opt(2024, 1, 1).unwrap()
+                                    + Duration::days(i))
+                                .format_localized("%a", loc)
+                                .to_string();
+                                view! { <div class="text-center py-1">{lbl}</div> }
+                            }).collect_view()
+                        }}
                     </div>
 
                     <div class="grid grid-cols-7 gap-px bg-ultiq-indigo/10 rounded overflow-hidden">
@@ -292,7 +296,13 @@ pub fn CalendarPage() -> impl IntoView {
                     <h2 class="text-lg font-semibold text-ultiq-indigo mb-3">
                         {move || {
                             let d = selected_day.get();
-                            format!("{} {}, {}", weekday_label(d.weekday()), d.day(), MONTH_NAMES[(d.month() - 1) as usize])
+                            let loc = current_locale().chrono();
+                            format!(
+                                "{}, {} {}",
+                                d.format_localized("%A", loc),
+                                d.day(),
+                                d.format_localized("%B", loc)
+                            )
                         }}
                     </h2>
                     <DayEvents
@@ -306,24 +316,28 @@ pub fn CalendarPage() -> impl IntoView {
                     <h2 class="text-lg font-semibold text-ultiq-indigo mb-4">
                         {move || {
                             let m = current_month.get();
-                            format!("Analytics — {} {}", MONTH_NAMES[(m.month() - 1) as usize], m.year())
+                            format!(
+                                "{} — {}",
+                                t("cal.analytics"),
+                                m.format_localized("%B %Y", current_locale().chrono())
+                            )
                         }}
                     </h2>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="bg-white rounded-2xl shadow p-6">
-                            <h3 class="text-base font-semibold text-ultiq-indigo mb-4">"Time by category"</h3>
+                            <h3 class="text-base font-semibold text-ultiq-indigo mb-4">{move || t("cal.chart_time_by_category")}</h3>
                             <CategoryDonut events=events />
                         </div>
                         <div class="bg-white rounded-2xl shadow p-6">
-                            <h3 class="text-base font-semibold text-ultiq-indigo mb-4">"Events per day"</h3>
+                            <h3 class="text-base font-semibold text-ultiq-indigo mb-4">{move || t("cal.chart_events_per_day")}</h3>
                             <EventsPerDayBar events=events current_month=current_month />
                         </div>
                         <div class="bg-white rounded-2xl shadow p-6">
-                            <h3 class="text-base font-semibold text-ultiq-indigo mb-4">"Priority distribution"</h3>
+                            <h3 class="text-base font-semibold text-ultiq-indigo mb-4">{move || t("cal.chart_priority_distribution")}</h3>
                             <PriorityBars events=events />
                         </div>
                         <div class="bg-white rounded-2xl shadow p-6">
-                            <h3 class="text-base font-semibold text-ultiq-indigo mb-4">"By day of week"</h3>
+                            <h3 class="text-base font-semibold text-ultiq-indigo mb-4">{move || t("cal.chart_by_day_of_week")}</h3>
                             <DayOfWeekBar events=events />
                         </div>
                     </div>
@@ -388,9 +402,7 @@ pub fn CalendarPage() -> impl IntoView {
                                                 dialog.set(DialogState::AddPrefilled(cal));
                                             } else {
                                                 ai_loading.set(false);
-                                                ai_error.set(Some(
-                                                    "Couldn't parse that — try rephrasing.".into(),
-                                                ));
+                                                ai_error.set(Some(ai_parse_failed.get_value()));
                                             }
                                         }
                                         Err(e) => {
@@ -411,18 +423,6 @@ pub fn CalendarPage() -> impl IntoView {
     }
 }
 
-fn weekday_label(w: chrono::Weekday) -> &'static str {
-    match w {
-        chrono::Weekday::Mon => "Monday",
-        chrono::Weekday::Tue => "Tuesday",
-        chrono::Weekday::Wed => "Wednesday",
-        chrono::Weekday::Thu => "Thursday",
-        chrono::Weekday::Fri => "Friday",
-        chrono::Weekday::Sat => "Saturday",
-        chrono::Weekday::Sun => "Sunday",
-    }
-}
-
 #[component]
 fn DayCell(
     day: NaiveDate,
@@ -434,7 +434,12 @@ fn DayCell(
     on_click: impl Fn() + Send + Sync + 'static,
 ) -> impl IntoView {
     let count = events.len();
-    let label = format!("{} {}", count, if count == 1 { "event" } else { "events" });
+    let cs = count.to_string();
+    let label = if count == 1 {
+        t_args("cal.events_one", &[("count", cs.as_str())])
+    } else {
+        t_args("cal.events_other", &[("count", cs.as_str())])
+    };
     let has_ribbons = !ribbon_colors.is_empty();
 
     let bg_class = if is_selected {
@@ -510,7 +515,7 @@ fn DayEvents(
 
             if day_events.is_empty() {
                 view! {
-                    <p class="text-ultiq-indigo/50 text-sm">"No events on this day."</p>
+                    <p class="text-ultiq-indigo/50 text-sm">{move || t("cal.no_events_day")}</p>
                 }.into_any()
             } else {
                 let now = Utc::now();
@@ -525,24 +530,27 @@ fn DayEvents(
                             // v2.12.x — Adaptive time text for multi-day events
                             // depending on which day is being viewed. Single-day
                             // events keep the original "HH:MM – HH:MM" format.
+                            let cal_loc = current_locale().chrono();
                             let time_range = if start_date == end_date {
                                 format!("{} – {}", start_local.format("%H:%M"), end_local.format("%H:%M"))
                             } else if day == start_date {
-                                format!("{} → ends {} {}",
-                                    start_local.format("%H:%M"),
-                                    end_local.format("%a"),
-                                    end_local.format("%H:%M"))
+                                let st = start_local.format("%H:%M").to_string();
+                                let wd = end_local.format_localized("%a", cal_loc).to_string();
+                                let tm = end_local.format("%H:%M").to_string();
+                                t_args("cal.time_multi_start", &[("start", st.as_str()), ("day", wd.as_str()), ("time", tm.as_str())])
                             } else if day == end_date {
-                                format!("Ends {} · started {} {}",
-                                    end_local.format("%H:%M"),
-                                    start_local.format("%a"),
-                                    start_local.format("%H:%M"))
+                                let tm = end_local.format("%H:%M").to_string();
+                                let wd = start_local.format_localized("%a", cal_loc).to_string();
+                                let st = start_local.format("%H:%M").to_string();
+                                t_args("cal.time_multi_end", &[("time", tm.as_str()), ("day", wd.as_str()), ("start", st.as_str())])
                             } else {
-                                format!("All day · started {} {}",
-                                    start_local.format("%a"),
-                                    start_local.format("%H:%M"))
+                                let wd = start_local.format_localized("%a", cal_loc).to_string();
+                                let tm = start_local.format("%H:%M").to_string();
+                                t_args("cal.time_multi_all_day", &[("day", wd.as_str()), ("time", tm.as_str())])
                             };
                             let color = e.color.clone();
+                            let cat = e.category;
+                            let pr = e.priority;
                             // Mark-done only applies once the slot has actually
                             // finished. Future events stay clean / no checkbox.
                             let is_past = e.end_time < now;
@@ -568,10 +576,10 @@ fn DayEvents(
                                             <div class="flex items-center gap-2 flex-wrap">
                                                 <span class=title_class>{e.title.clone()}</span>
                                                 <span class="text-xs px-2 py-0.5 rounded bg-ultiq-indigo/5 text-ultiq-indigo/70">
-                                                    {e.category.label()}
+                                                    {move || category_label(cat)}
                                                 </span>
                                                 <span class="text-xs text-ultiq-indigo/50">
-                                                    {priority_label(e.priority)}
+                                                    {move || priority_label(pr)}
                                                 </span>
                                             </div>
                                             <div class="text-sm text-ultiq-indigo/60 mt-1">{time_range}</div>
@@ -588,7 +596,7 @@ fn DayEvents(
                                     <Show when=move || is_past>
                                         <label
                                             class="flex items-center pr-4 cursor-pointer"
-                                            title=if is_done { "Mark not done" } else { "Mark done" }
+                                            title=move || if is_done { t("cal.mark_not_done") } else { t("cal.mark_done") }
                                         >
                                             <input
                                                 type="checkbox"
@@ -661,12 +669,26 @@ fn DayEvents(
     }
 }
 
-fn priority_label(p: EventPriority) -> &'static str {
-    match p {
-        EventPriority::High => "● High",
-        EventPriority::Medium => "● Medium",
-        EventPriority::Low => "● Low",
-    }
+fn priority_word(p: EventPriority) -> String {
+    t(match p {
+        EventPriority::High => "common.priority_high",
+        EventPriority::Medium => "common.priority_medium",
+        EventPriority::Low => "common.priority_low",
+    })
+}
+
+fn priority_label(p: EventPriority) -> String {
+    format!("● {}", priority_word(p))
+}
+
+fn category_label(c: EventCategory) -> String {
+    t(match c {
+        EventCategory::Study => "common.category_study",
+        EventCategory::Project => "common.category_project",
+        EventCategory::Exercise => "common.category_exercise",
+        EventCategory::Personal => "common.category_personal",
+        EventCategory::Other => "common.category_other",
+    })
 }
 
 /// §9.5 — Map the lowercase category strings the AI tool returns (matching
@@ -816,22 +838,33 @@ fn EventDialog(
     let existing_events_store = StoredValue::new(existing_events);
 
     let event_id_store = StoredValue::new(event_id.clone());
+    // Captured at render (context is live here) with the non-reactive `tu()`,
+    // so the event handlers / futures below emit them in the right language.
+    let err_title_required = tu("cal.err_title_required");
+    let err_invalid_start = tu("cal.err_invalid_start");
+    let err_invalid_end = tu("cal.err_invalid_end");
+    let err_start_before_end = tu("cal.err_start_before_end");
+    // StoredValue (Copy) — `on_delete` lives inside a `<Show>`, whose children
+    // closure must be Copy, so it can't capture bare Strings.
+    let confirm_delete_occurrence = StoredValue::new(tu("cal.confirm_delete_occurrence"));
+    let confirm_delete_series = StoredValue::new(tu("cal.confirm_delete_series"));
+    let confirm_delete_one = StoredValue::new(tu("cal.confirm_delete_one"));
     let on_submit = move |ev: leptos::ev::SubmitEvent| {
         ev.prevent_default();
         if submitting.get_untracked() { return; }
 
         let t = title.get_untracked();
         if t.trim().is_empty() {
-            dialog_error.set(Some("Title is required".into()));
+            dialog_error.set(Some(err_title_required.clone()));
             return;
         }
         let mut st = match input_to_dt(&start_time.get_untracked()) {
             Some(dt) => dt,
-            None => { dialog_error.set(Some("Invalid start time".into())); return; }
+            None => { dialog_error.set(Some(err_invalid_start.clone())); return; }
         };
         let mut et = match input_to_dt(&end_time.get_untracked()) {
             Some(dt) => dt,
-            None => { dialog_error.set(Some("Invalid end time".into())); return; }
+            None => { dialog_error.set(Some(err_invalid_end.clone())); return; }
         };
         // v2.12.4 — All-day events: snap start to local midnight and end
         // to 23:59 of its local date. Mirrors the Android save behavior
@@ -851,7 +884,7 @@ fn EventDialog(
             }
         }
         if st >= et {
-            dialog_error.set(Some("Start time must be before end time".into()));
+            dialog_error.set(Some(err_start_before_end.clone()));
             return;
         }
 
@@ -908,10 +941,8 @@ fn EventDialog(
             let just_this = win
                 .as_ref()
                 .and_then(|w| {
-                    w.confirm_with_message(
-                        "This event repeats. Click OK to delete just this occurrence, or Cancel to choose 'delete all'.",
-                    )
-                    .ok()
+                    w.confirm_with_message(&confirm_delete_occurrence.get_value())
+                        .ok()
                 })
                 .unwrap_or(false);
             if just_this {
@@ -930,10 +961,7 @@ fn EventDialog(
             }
             let confirmed_all = win
                 .and_then(|w| {
-                    w.confirm_with_message(
-                        "Delete the entire recurring series? This cannot be undone.",
-                    )
-                    .ok()
+                    w.confirm_with_message(&confirm_delete_series.get_value()).ok()
                 })
                 .unwrap_or(false);
             if !confirmed_all { return; }
@@ -950,7 +978,7 @@ fn EventDialog(
             return;
         }
         let confirmed = win
-            .and_then(|w| w.confirm_with_message("Delete this event? This cannot be undone.").ok())
+            .and_then(|w| w.confirm_with_message(&confirm_delete_one.get_value()).ok())
             .unwrap_or(false);
         if !confirmed { return; }
         submitting.set(true);
@@ -1007,7 +1035,7 @@ fn EventDialog(
                 class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md space-y-4 max-h-[90vh] overflow-auto"
             >
                 <h3 class="text-xl font-semibold text-ultiq-indigo">
-                    {if is_edit { "Edit event" } else { "New event" }}
+                    {move || if is_edit { t("cal.edit_event") } else { t("cal.new_event") }}
                 </h3>
 
                 <Show when=move || show_discard_confirm.get()>
@@ -1015,18 +1043,18 @@ fn EventDialog(
                         on:click=move |_| show_discard_confirm.set(false)>
                         <div class="bg-white rounded-xl shadow-xl p-5 w-full max-w-xs space-y-3"
                             on:click=|ev| ev.stop_propagation()>
-                            <h4 class="text-base font-semibold text-ultiq-indigo">"Discard changes?"</h4>
-                            <p class="text-sm text-ultiq-indigo/70">"You'll lose what you've typed."</p>
+                            <h4 class="text-base font-semibold text-ultiq-indigo">{move || t("cal.discard_q")}</h4>
+                            <p class="text-sm text-ultiq-indigo/70">{move || t("cal.discard_body")}</p>
                             <div class="flex justify-end gap-2 pt-1">
                                 <button type="button"
                                     on:click=move |_| show_discard_confirm.set(false)
                                     class="px-3 py-1.5 text-sm text-ultiq-indigo hover:bg-ultiq-indigo/5 rounded cursor-pointer">
-                                    "Keep editing"
+                                    {move || t("cal.keep_editing")}
                                 </button>
                                 <button type="button"
                                     on:click=move |_| { show_discard_confirm.set(false); on_close(); }
                                     class="px-3 py-1.5 text-sm text-ultiq-red hover:bg-ultiq-red/5 rounded cursor-pointer">
-                                    "Discard"
+                                    {move || t("cal.discard")}
                                 </button>
                             </div>
                         </div>
@@ -1034,7 +1062,7 @@ fn EventDialog(
                 </Show>
 
                 <label class="block">
-                    <span class="text-sm font-medium text-ultiq-indigo">"Title"</span>
+                    <span class="text-sm font-medium text-ultiq-indigo">{move || t("cal.field_title")}</span>
                     <input
                         type="text"
                         class="mt-1 w-full px-3 py-2 border border-ultiq-indigo/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-ultiq-indigo"
@@ -1045,7 +1073,7 @@ fn EventDialog(
                 </label>
 
                 <label class="block">
-                    <span class="text-sm font-medium text-ultiq-indigo">"Description"</span>
+                    <span class="text-sm font-medium text-ultiq-indigo">{move || t("cal.field_description")}</span>
                     <textarea
                         rows="2"
                         class="mt-1 w-full px-3 py-2 border border-ultiq-indigo/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-ultiq-indigo"
@@ -1059,7 +1087,7 @@ fn EventDialog(
                 // end-of-day on submit. Toggling off restores the explicit
                 // times the user last picked.
                 <label class="flex items-center justify-between">
-                    <span class="text-sm font-medium text-ultiq-indigo">"All day"</span>
+                    <span class="text-sm font-medium text-ultiq-indigo">{move || t("cal.field_all_day")}</span>
                     <input
                         type="checkbox"
                         class="w-5 h-5 accent-ultiq-indigo cursor-pointer"
@@ -1080,7 +1108,7 @@ fn EventDialog(
 
                 <div class="grid grid-cols-2 gap-3">
                     <label class="block">
-                        <span class="text-sm font-medium text-ultiq-indigo">"Start"</span>
+                        <span class="text-sm font-medium text-ultiq-indigo">{move || t("cal.field_start")}</span>
                         <input
                             type=move || if is_all_day.get() { "date" } else { "datetime-local" }
                             class="mt-1 w-full px-3 py-2 border border-ultiq-indigo/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-ultiq-indigo"
@@ -1094,7 +1122,7 @@ fn EventDialog(
                         />
                     </label>
                     <label class="block">
-                        <span class="text-sm font-medium text-ultiq-indigo">"End"</span>
+                        <span class="text-sm font-medium text-ultiq-indigo">{move || t("cal.field_end")}</span>
                         <input
                             type=move || if is_all_day.get() { "date" } else { "datetime-local" }
                             class="mt-1 w-full px-3 py-2 border border-ultiq-indigo/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-ultiq-indigo"
@@ -1132,7 +1160,15 @@ fn EventDialog(
                         view! {
                             <div class="bg-ultiq-yellow/10 border border-ultiq-yellow/30 rounded-lg px-3 py-2 text-sm">
                                 <p class="font-medium text-ultiq-indigo/80 mb-1">
-                                    {format!("Conflicts with {} event{}:", conflicts.len(), if conflicts.len() == 1 { "" } else { "s" })}
+                                    {
+                                        let n = conflicts.len();
+                                        let ns = n.to_string();
+                                        if n == 1 {
+                                            t_args("cal.conflicts_one", &[("count", ns.as_str())])
+                                        } else {
+                                            t_args("cal.conflicts_other", &[("count", ns.as_str())])
+                                        }
+                                    }
                                 </p>
                                 <ul class="space-y-0.5 text-ultiq-indigo/70">
                                     {shown.into_iter().map(|c| {
@@ -1141,7 +1177,10 @@ fn EventDialog(
                                         view! { <li>{format!("• {} ({}–{})", c.title, s, e)}</li> }
                                     }).collect_view()}
                                     <Show when=move || { extra > 0 }>
-                                        <li class="italic">{format!("+ {} more", extra)}</li>
+                                        <li class="italic">{
+                                            let es = extra.to_string();
+                                            t_args("cal.more", &[("count", es.as_str())])
+                                        }</li>
                                     </Show>
                                 </ul>
                             </div>
@@ -1152,7 +1191,7 @@ fn EventDialog(
                 }}
 
                 <label class="block">
-                    <span class="text-sm font-medium text-ultiq-indigo">"Category"</span>
+                    <span class="text-sm font-medium text-ultiq-indigo">{move || t("cal.field_category")}</span>
                     <select
                         class="mt-1 w-full px-3 py-2 border border-ultiq-indigo/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-ultiq-indigo bg-white"
                         prop:value=move || category.get().variant_str().to_string()
@@ -1164,13 +1203,14 @@ fn EventDialog(
                     >
                         {EventCategory::ALL.iter().map(|c| {
                             let v = c.variant_str();
-                            view! { <option value=v>{c.label()}</option> }
+                            let cat = *c;
+                            view! { <option value=v>{move || category_label(cat)}</option> }
                         }).collect_view()}
                     </select>
                 </label>
 
                 <label class="block">
-                    <span class="text-sm font-medium text-ultiq-indigo">"Priority"</span>
+                    <span class="text-sm font-medium text-ultiq-indigo">{move || t("cal.field_priority")}</span>
                     <select
                         class="mt-1 w-full px-3 py-2 border border-ultiq-indigo/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-ultiq-indigo bg-white"
                         prop:value=move || priority.get().variant_str().to_string()
@@ -1182,7 +1222,8 @@ fn EventDialog(
                     >
                         {EventPriority::ALL.iter().map(|p| {
                             let v = p.variant_str();
-                            view! { <option value=v>{p.label()}</option> }
+                            let pr = *p;
+                            view! { <option value=v>{move || priority_word(pr)}</option> }
                         }).collect_view()}
                     </select>
                 </label>
@@ -1194,7 +1235,7 @@ fn EventDialog(
                 // Selecting a per-offset chip clears Default/None;
                 // selecting Default/None clears the explicit list.
                 <div>
-                    <span class="text-sm font-medium text-ultiq-indigo">"Reminders"</span>
+                    <span class="text-sm font-medium text-ultiq-indigo">{move || t("cal.field_reminders")}</span>
                     <div class="mt-1 flex flex-wrap gap-2">
                         {move || {
                             let current = reminder_minutes.get();
@@ -1207,22 +1248,22 @@ fn EventDialog(
                                     "px-3 py-1 rounded-full text-sm bg-ultiq-indigo/10 text-ultiq-indigo hover:bg-ultiq-indigo/20 cursor-pointer"
                                 }
                             };
-                            let options: &[(i32, &str)] = &[
-                                (5, "5 min"),
-                                (15, "15 min"),
-                                (30, "30 min"),
-                                (60, "1 hr"),
-                                (120, "2 hr"),
-                                (240, "4 hr"),
-                                (1440, "1 day"),
-                                (2880, "2 days"),
-                                (10080, "1 week"),
+                            let options: &[(i32, &'static str)] = &[
+                                (5, "cal.reminder_5m"),
+                                (15, "cal.reminder_15m"),
+                                (30, "cal.reminder_30m"),
+                                (60, "cal.reminder_1h"),
+                                (120, "cal.reminder_2h"),
+                                (240, "cal.reminder_4h"),
+                                (1440, "cal.reminder_1d"),
+                                (2880, "cal.reminder_2d"),
+                                (10080, "cal.reminder_1w"),
                             ];
                             view! {
                                 <button type="button" class=chip_class(is_default)
-                                    on:click=move |_| reminder_minutes.set(None)>"Default"</button>
+                                    on:click=move |_| reminder_minutes.set(None)>{move || t("cal.reminder_default")}</button>
                                 <button type="button" class=chip_class(is_none)
-                                    on:click=move |_| reminder_minutes.set(Some(vec![]))>"None"</button>
+                                    on:click=move |_| reminder_minutes.set(Some(vec![]))>{move || t("cal.reminder_none")}</button>
                                 {options.iter().map(|&(mins, label)| {
                                     let checked = matches!(&current, Some(v) if v.contains(&mins));
                                     view! {
@@ -1239,7 +1280,7 @@ fn EventDialog(
                                                 }
                                                 reminder_minutes.set(Some(base));
                                             }>
-                                            {label}
+                                            {move || t(label)}
                                         </button>
                                     }
                                 }).collect_view()}
@@ -1262,7 +1303,7 @@ fn EventDialog(
                             class="px-3 py-2 text-ultiq-red hover:bg-ultiq-red/5 rounded-lg cursor-pointer"
                             prop:disabled=move || submitting.get()
                         >
-                            "Delete"
+                            {move || t("common.delete")}
                         </button>
                     </Show>
                     <div class="flex gap-2 ml-auto">
@@ -1272,14 +1313,14 @@ fn EventDialog(
                             class="px-4 py-2 text-ultiq-indigo hover:bg-ultiq-indigo/5 rounded-lg cursor-pointer"
                             prop:disabled=move || submitting.get()
                         >
-                            "Cancel"
+                            {move || t("common.cancel")}
                         </button>
                         <button
                             type="submit"
                             class="px-4 py-2 bg-ultiq-indigo text-ultiq-cream rounded-lg font-medium hover:opacity-90 disabled:opacity-50 cursor-pointer"
                             prop:disabled=move || submitting.get()
                         >
-                            {move || if submitting.get() { "Saving…" } else { "Save" }}
+                            {move || if submitting.get() { t("common.saving") } else { t("common.save") }}
                         </button>
                     </div>
                 </div>
@@ -1298,7 +1339,7 @@ fn CategoryDonut(events: RwSignal<Vec<CalendarEvent>>) -> impl IntoView {
             if evs.is_empty() {
                 return view! {
                     <p class="text-sm text-ultiq-indigo/50 py-6 text-center">
-                        "No events this month."
+                        {move || t("cal.no_events_month")}
                     </p>
                 }.into_any();
             }
@@ -1311,7 +1352,7 @@ fn CategoryDonut(events: RwSignal<Vec<CalendarEvent>>) -> impl IntoView {
             if total == 0 {
                 return view! {
                     <p class="text-sm text-ultiq-indigo/50 py-6 text-center">
-                        "All events have zero duration."
+                        {move || t("cal.all_zero_duration")}
                     </p>
                 }.into_any();
             }
@@ -1351,7 +1392,7 @@ fn CategoryDonut(events: RwSignal<Vec<CalendarEvent>>) -> impl IntoView {
                                 class="w-2.5 h-2.5 rounded-full flex-shrink-0"
                                 style:background-color=color
                             />
-                            <span class="truncate text-ultiq-indigo">{cat.label()}</span>
+                            <span class="truncate text-ultiq-indigo">{move || category_label(cat)}</span>
                         </div>
                         <span class="text-ultiq-indigo/60 text-xs">
                             {format!("{} · {}%", format_duration(mins), pct)}
@@ -1406,7 +1447,7 @@ fn EventsPerDayBar(
             if max == 0 {
                 return view! {
                     <p class="text-sm text-ultiq-indigo/50 py-6 text-center">
-                        "No events this month."
+                        {move || t("cal.no_events_month")}
                     </p>
                 }.into_any();
             }
@@ -1414,7 +1455,13 @@ fn EventsPerDayBar(
                 <div class="flex items-end gap-px h-32">
                     {counts.into_iter().enumerate().map(|(i, c)| {
                         let pct = (c as f64 / max as f64) * 100.0;
-                        let title = format!("Day {}: {} event{}", i + 1, c, if c == 1 { "" } else { "s" });
+                        let day_n = (i + 1).to_string();
+                        let cs = c.to_string();
+                        let title = if c == 1 {
+                            t_args("cal.per_day_one", &[("day", day_n.as_str()), ("count", cs.as_str())])
+                        } else {
+                            t_args("cal.per_day_other", &[("day", day_n.as_str()), ("count", cs.as_str())])
+                        };
                         view! {
                             <div
                                 class="flex-1 bg-ultiq-indigo/70 rounded-t hover:bg-ultiq-indigo transition-colors"
@@ -1437,7 +1484,7 @@ fn PriorityBars(events: RwSignal<Vec<CalendarEvent>>) -> impl IntoView {
             if evs.is_empty() {
                 return view! {
                     <p class="text-sm text-ultiq-indigo/50 py-6 text-center">
-                        "No events this month."
+                        {move || t("cal.no_events_month")}
                     </p>
                 }.into_any();
             }
@@ -1450,6 +1497,7 @@ fn PriorityBars(events: RwSignal<Vec<CalendarEvent>>) -> impl IntoView {
                 <ul class="space-y-3">
                     {EventPriority::ALL.iter().map(|p| {
                         let c = *counts.get(p).unwrap_or(&0);
+                        let pr = *p;
                         let pct = (c as f64 / max as f64) * 100.0;
                         let color = match p {
                             EventPriority::High => "#D9474C",
@@ -1459,9 +1507,13 @@ fn PriorityBars(events: RwSignal<Vec<CalendarEvent>>) -> impl IntoView {
                         view! {
                             <li>
                                 <div class="flex items-center justify-between text-sm mb-1">
-                                    <span class="font-medium text-ultiq-indigo">{p.label()}</span>
+                                    <span class="font-medium text-ultiq-indigo">{move || priority_word(pr)}</span>
                                     <span class="text-ultiq-indigo/60 text-xs">
-                                        {format!("{} event{}", c, if c == 1 { "" } else { "s" })}
+                                        {
+                                            let cs = c.to_string();
+                                            if c == 1 { t_args("cal.events_one", &[("count", cs.as_str())]) }
+                                            else { t_args("cal.events_other", &[("count", cs.as_str())]) }
+                                        }
                                     </span>
                                 </div>
                                 <div class="h-2 bg-ultiq-indigo/10 rounded-full overflow-hidden">
@@ -1482,14 +1534,21 @@ fn PriorityBars(events: RwSignal<Vec<CalendarEvent>>) -> impl IntoView {
 
 #[component]
 fn DayOfWeekBar(events: RwSignal<Vec<CalendarEvent>>) -> impl IntoView {
-    let dow_labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
     view! {
         {move || {
             let evs = events.get();
+            let dow_loc = current_locale().chrono();
+            let dow_labels: Vec<String> = (0..7)
+                .map(|i| {
+                    (NaiveDate::from_ymd_opt(2024, 1, 1).unwrap() + Duration::days(i))
+                        .format_localized("%a", dow_loc)
+                        .to_string()
+                })
+                .collect();
             if evs.is_empty() {
                 return view! {
                     <p class="text-sm text-ultiq-indigo/50 py-6 text-center">
-                        "No events this month."
+                        {move || t("cal.no_events_month")}
                     </p>
                 }.into_any();
             }
@@ -1514,7 +1573,7 @@ fn DayOfWeekBar(events: RwSignal<Vec<CalendarEvent>>) -> impl IntoView {
                                     class="w-full rounded-t bg-ultiq-indigo/70"
                                     style:height=format!("{}%", if c == 0 { 0.0 } else { pct.max(4.0) })
                                 />
-                                <span class="text-xs text-ultiq-indigo/70 mt-1">{dow_labels[i]}</span>
+                                <span class="text-xs text-ultiq-indigo/70 mt-1">{dow_labels[i].clone()}</span>
                             </div>
                         }
                     }).collect_view()}
