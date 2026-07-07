@@ -119,7 +119,9 @@ async fn weekly_insight(
     let data_card = render_data_card(&summary);
 
     // 5. Call Bedrock with a cache breakpoint on the static system prompt.
-    let (insight_text, usage) = call_weekly_insight_model(&state.ai, &data_card).await?;
+    //    Thread the user's language so the review comes back localized (§13.2).
+    let language = crate::i18n::user_language_name(&state.pool, user_id).await;
+    let (insight_text, usage) = call_weekly_insight_model(&state.ai, &data_card, language).await?;
 
     // 6. Anti-hallucination — log if model invented numerals not in the card.
     let unverifiable = validate_numerals(&insight_text, &data_card);
@@ -577,6 +579,7 @@ struct CallUsage {
 async fn call_weekly_insight_model(
     ai: &crate::ai::AiClient,
     data_card: &str,
+    language: &str,
 ) -> Result<(String, CallUsage), AppError> {
     // System: static instructions + cache breakpoint so the next call within
     // the 5-minute TTL pays ~10% of the input cost. The CachePointBlock must
@@ -610,12 +613,16 @@ async fn call_weekly_insight_model(
         .temperature(0.6)
         .build();
 
-    let response = ai
+    let mut converse = ai
         .bedrock()
         .converse()
         .model_id(MODEL_SONNET)
         .system(system_text)
-        .system(cache_breakpoint)
+        .system(cache_breakpoint);
+    if let Some(dir) = crate::i18n::respond_in_directive(language) {
+        converse = converse.system(SystemContentBlock::Text(dir));
+    }
+    let response = converse
         .messages(user_message)
         .inference_config(inference)
         .send()
@@ -989,7 +996,8 @@ async fn sleep_rating(
 
     state.ai.check_quota(&state.pool, user_id).await?;
 
-    let (rating, reasoning, usage) = call_sleep_rating_haiku(&state.ai, &input).await?;
+    let language = crate::i18n::user_language_name(&state.pool, user_id).await;
+    let (rating, reasoning, usage) = call_sleep_rating_haiku(&state.ai, &input, language).await?;
 
     state
         .ai
@@ -1009,6 +1017,7 @@ async fn sleep_rating(
 async fn call_sleep_rating_haiku(
     ai: &crate::ai::AiClient,
     input: &SleepRatingRequest,
+    language: &str,
 ) -> Result<(i32, String, CallUsage), AppError> {
     let actual_h = input.actual_minutes / 60;
     let actual_m = input.actual_minutes % 60;
@@ -1079,11 +1088,15 @@ was on its own terms; do NOT penalise it for being far shorter than the nightly 
         .temperature(0.2)
         .build();
 
-    let response = ai
+    let mut converse = ai
         .bedrock()
         .converse()
         .model_id(MODEL_HAIKU)
-        .system(system)
+        .system(system);
+    if let Some(dir) = crate::i18n::respond_in_directive(language) {
+        converse = converse.system(SystemContentBlock::Text(dir));
+    }
+    let response = converse
         .messages(user_msg)
         .inference_config(inference)
         .send()
@@ -1904,9 +1917,10 @@ pub(crate) async fn run_anomaly_check_for_user(
 
     state.ai.check_quota(&state.pool, user_id).await?;
 
+    let language = crate::i18n::user_language_name(&state.pool, user_id).await;
     let daily = aggregate_daily(&state.pool, user_id).await?;
     let data_card = render_anomaly_card(&daily);
-    let (verdict, usage) = call_anomaly_model(&state.ai, &data_card).await?;
+    let (verdict, usage) = call_anomaly_model(&state.ai, &data_card, language).await?;
 
     state
         .ai
@@ -1957,7 +1971,7 @@ pub(crate) async fn run_anomaly_check_for_user(
                 .send_to_user(
                     &state.pool,
                     user_id,
-                    "Heads up — Ultiq spotted a pattern",
+                    crate::i18n::anomaly_push_title(language),
                     &verdict.reason,
                     Some(json!({
                         "kind": "anomaly",
@@ -2231,6 +2245,7 @@ HARD RULES (absolute):
 async fn call_anomaly_model(
     ai: &crate::ai::AiClient,
     data_card: &str,
+    language: &str,
 ) -> Result<(AnomalyVerdict, CallUsage), AppError> {
     let system_text = SystemContentBlock::Text(ANOMALY_SYSTEM_PROMPT.to_string());
     let cache_breakpoint = SystemContentBlock::CachePoint(
@@ -2262,12 +2277,16 @@ async fn call_anomaly_model(
         .temperature(0.0)
         .build();
 
-    let response = ai
+    let mut converse = ai
         .bedrock()
         .converse()
         .model_id(MODEL_HAIKU)
         .system(system_text)
-        .system(cache_breakpoint)
+        .system(cache_breakpoint);
+    if let Some(dir) = crate::i18n::respond_in_directive(language) {
+        converse = converse.system(SystemContentBlock::Text(dir));
+    }
+    let response = converse
         .messages(user_message)
         .inference_config(inference)
         .send()
@@ -2545,6 +2564,9 @@ async fn chat_send(
         .map(|v| v == "true" || v == "1")
         .unwrap_or(false);
 
+    // §13.2 — reply in the user's chosen language (one lookup, both paths).
+    let language = crate::i18n::user_language_name(&state.pool, user_id).await;
+
     let assistant_text: String;
     let tool_invocations: Vec<ToolInvocationSurface>;
     let clarification_options: Option<Vec<String>>;
@@ -2552,7 +2574,8 @@ async fn chat_send(
     let total_output: i64;
     if tools_enabled {
         let outcome =
-            call_chat_model_with_tools(&state, user_id, &history, content, &now_local).await?;
+            call_chat_model_with_tools(&state, user_id, &history, content, &now_local, language)
+                .await?;
         assistant_text = outcome.text;
         tool_invocations = outcome.invocations;
         clarification_options = outcome.clarification_options;
@@ -2561,7 +2584,7 @@ async fn chat_send(
         // `record_usage` was already called per-iteration inside the loop;
         // nothing left to do quota-side here.
     } else {
-        let (text, usage) = call_chat_model(&state.ai, &history, content).await?;
+        let (text, usage) = call_chat_model(&state.ai, &history, content, language).await?;
         assistant_text = text;
         tool_invocations = Vec::new();
         clarification_options = None;
@@ -2734,7 +2757,7 @@ const CHAT_SYSTEM_PROMPT: &str = r#"You are Ultiq's productivity coach, talking 
 PERSONA:
 - Warm, direct, never gushing. Picture a smart older friend who actually knows what they're doing — confident, encouraging, but allergic to bullshit.
 - Use second person ("you", "your"). Don't refer to yourself as "I am an AI" unless directly asked — it's a chat, the user knows.
-- Plain English. No corporate wellness language. No "level up". No "growth mindset". No "embrace the journey". No "you crushed it".
+- Plain, direct language. No corporate wellness language. No "level up". No "growth mindset". No "embrace the journey". No "you crushed it".
 
 ANSWER SHAPE:
 - Default to under 150 words. Detailed plans can be longer if the user asks for them explicitly ("walk me through a full schedule…").
@@ -2759,6 +2782,7 @@ async fn call_chat_model(
     ai: &crate::ai::AiClient,
     history: &[ChatMessageDto],
     new_user_message: &str,
+    language: &str,
 ) -> Result<(String, CallUsage), AppError> {
     let system_text = SystemContentBlock::Text(CHAT_SYSTEM_PROMPT.to_string());
     let cache_breakpoint = SystemContentBlock::CachePoint(
@@ -2817,6 +2841,9 @@ async fn call_chat_model(
         .system(system_text)
         .system(cache_breakpoint)
         .inference_config(inference);
+    if let Some(dir) = crate::i18n::respond_in_directive(language) {
+        converse = converse.system(SystemContentBlock::Text(dir));
+    }
     for m in messages {
         converse = converse.messages(m);
     }
@@ -2953,7 +2980,7 @@ const CHAT_SYSTEM_PROMPT_TOOLS: &str = r#"You are Ultiq's productivity coach, ta
 PERSONA:
 - Warm, direct, never gushing. Picture a smart older friend who actually knows what they're doing — confident, encouraging, but allergic to bullshit.
 - Use second person ("you", "your"). Don't introduce yourself as an AI unless directly asked — it's a chat, the user knows.
-- Plain English. No corporate wellness language. No "level up". No "growth mindset". No "embrace the journey". No "you crushed it". No emojis.
+- Plain, direct language. No corporate wellness language. No "level up". No "growth mindset". No "embrace the journey". No "you crushed it". No emojis.
 
 YOU HAVE TOOLS. USE THEM.
 
@@ -3027,6 +3054,7 @@ async fn call_chat_model_with_tools(
     history: &[ChatMessageDto],
     new_user_message: &str,
     now_local: &str,
+    language: &str,
 ) -> Result<ChatToolLoopOutcome, AppError> {
     let system_text = SystemContentBlock::Text(CHAT_SYSTEM_PROMPT_TOOLS.to_string());
     let cache_breakpoint = SystemContentBlock::CachePoint(
@@ -3091,6 +3119,10 @@ async fn call_chat_model_with_tools(
     let mut final_text: Option<String> = None;
     let mut clarification_options: Option<Vec<String>> = None;
 
+    // §13.2 — force the reply language; built once, cloned into each turn.
+    let lang_directive: Option<SystemContentBlock> =
+        crate::i18n::respond_in_directive(language).map(SystemContentBlock::Text);
+
     for iteration in 0..MAX_TOOL_ITERATIONS {
         let mut converse = state
             .ai
@@ -3101,6 +3133,9 @@ async fn call_chat_model_with_tools(
             .system(cache_breakpoint.clone())
             .tool_config(tool_config.clone())
             .inference_config(inference.clone());
+        if let Some(dir) = &lang_directive {
+            converse = converse.system(dir.clone());
+        }
         for m in &messages {
             converse = converse.messages(m.clone());
         }
