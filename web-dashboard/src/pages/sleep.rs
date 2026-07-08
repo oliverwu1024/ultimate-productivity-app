@@ -9,6 +9,7 @@ use crate::api::sleep::{
 };
 use crate::api::sse::{use_sse, SyncEvent};
 use crate::components::layout::AppShell;
+use crate::i18n::{current_locale, t, t_args};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Range {
@@ -20,9 +21,9 @@ enum Range {
 impl Range {
     fn label(&self) -> &'static str {
         match self {
-            Self::Week => "Week",
-            Self::Month => "Month",
-            Self::Quarter => "90d",
+            Self::Week => "common.range_week",
+            Self::Month => "common.range_month",
+            Self::Quarter => "common.range_90d",
         }
     }
     fn stats_param(&self) -> &'static str {
@@ -124,7 +125,7 @@ pub fn SleepPage() -> impl IntoView {
         <AppShell>
             <div class="p-4 md:p-8 max-w-5xl mx-auto">
                 <header class="flex items-center justify-between mb-6 flex-wrap gap-3">
-                    <h1 class="text-3xl font-bold text-ultiq-indigo">"Sleep"</h1>
+                    <h1 class="text-3xl font-bold text-ultiq-indigo">{move || t("nav.sleep")}</h1>
                     <RangeToggle range=range />
                 </header>
 
@@ -138,11 +139,10 @@ pub fn SleepPage() -> impl IntoView {
                     (Some(s), _) => Either::Left(view! {
                         <StatRow stats=s />
                     }),
-                    (None, true) => Either::Right(view! {
-                        <p class="text-ultiq-indigo/50 text-sm">"Loading…"</p>
-                    }),
-                    (None, false) => Either::Right(view! {
-                        <p class="text-ultiq-indigo/50 text-sm">"No data yet."</p>
+                    (None, is_loading) => Either::Right(view! {
+                        <p class="text-ultiq-indigo/50 text-sm">
+                            {move || t(if is_loading { "common.loading" } else { "common.no_data" })}
+                        </p>
                     }),
                 }}
 
@@ -154,9 +154,12 @@ pub fn SleepPage() -> impl IntoView {
 
                 <section class="bg-white rounded-2xl shadow p-6 mt-6">
                     <header class="flex items-center justify-between mb-4">
-                        <h2 class="text-lg font-semibold text-ultiq-indigo">"Duration over time"</h2>
+                        <h2 class="text-lg font-semibold text-ultiq-indigo">{move || t("slp.duration_over_time")}</h2>
                         <p class="text-xs text-ultiq-indigo/50">
-                            {move || format!("Last {} nights", range.get().days())}
+                            {move || {
+                                let n = range.get().days().to_string();
+                                t_args("slp.last_n_nights", &[("count", n.as_str())])
+                            }}
                         </p>
                     </header>
                     <DurationChart records=records stats=stats today=today range=range />
@@ -165,14 +168,14 @@ pub fn SleepPage() -> impl IntoView {
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
                     <section class="bg-white rounded-2xl shadow p-6">
                         <h2 class="text-lg font-semibold text-ultiq-indigo mb-4">
-                            "Quality distribution"
+                            {move || t("slp.quality_distribution")}
                         </h2>
                         <QualityHistogram records=records />
                     </section>
 
                     <section class="bg-white rounded-2xl shadow p-6">
                         <h2 class="text-lg font-semibold text-ultiq-indigo mb-4">
-                            "Phone pickups during sleep"
+                            {move || t("slp.pickups_title")}
                         </h2>
                         <PickupsBar records=records today=today range=range />
                     </section>
@@ -213,14 +216,14 @@ fn LastNightSoundsCard(
                     let now = chrono::Utc::now();
                     let age = now - r.actual_bedtime;
                     if age.num_hours() <= 36 {
-                        "Last night".to_string()
+                        t("slp.last_night")
                     } else {
                         crate::sleep_day::sleep_day_for(r.actual_bedtime)
-                            .format("%a, %b %d")
+                            .format_localized("%a, %b %d", current_locale().chrono())
                             .to_string()
                     }
                 })
-                .unwrap_or_else(|| "Last night".to_string());
+                .unwrap_or_else(|| t("slp.last_night"));
 
             let any_clips = evs.iter().any(|e| e.has_clip);
             let snore_count = evs.iter().filter(|e| e.event_type == "snore").count();
@@ -231,22 +234,22 @@ fn LastNightSoundsCard(
                 <section class="bg-white rounded-2xl shadow p-6 mt-6">
                     <header class="flex items-center justify-between mb-3 flex-wrap gap-2">
                         <h2 class="text-lg font-semibold text-ultiq-indigo">
-                            "Sleep sounds — " {label}
+                            {t("slp.sleep_sounds")}" — "{label}
                         </h2>
                         <p class="text-xs text-ultiq-indigo/50">
-                            {if any_clips { "Clips auto-expire after 30 days" } else { "Detection only · audio not uploaded" }}
+                            {if any_clips { t("slp.clips_expire") } else { t("slp.detection_only") }}
                         </p>
                     </header>
 
                     <div class="flex flex-wrap gap-x-4 gap-y-1 mb-4 text-sm text-ultiq-indigo/70">
                         {(snore_count > 0).then(|| view! {
-                            <span><span class="inline-block w-2 h-2 rounded-full mr-1.5" style="background:#7C8AFC"></span>{format!("{} snore", snore_count)}</span>
+                            <span><span class="inline-block w-2 h-2 rounded-full mr-1.5" style="background:#7C8AFC"></span>{let c = snore_count.to_string(); t_args("slp.count_snore", &[("count", c.as_str())])}</span>
                         })}
                         {(cough_count > 0).then(|| view! {
-                            <span><span class="inline-block w-2 h-2 rounded-full mr-1.5" style="background:#FFC83D"></span>{format!("{} cough", cough_count)}</span>
+                            <span><span class="inline-block w-2 h-2 rounded-full mr-1.5" style="background:#FFC83D"></span>{let c = cough_count.to_string(); t_args("slp.count_cough", &[("count", c.as_str())])}</span>
                         })}
                         {(talk_count > 0).then(|| view! {
-                            <span><span class="inline-block w-2 h-2 rounded-full mr-1.5" style="background:#2ECC71"></span>{format!("{} sleep-talk", talk_count)}</span>
+                            <span><span class="inline-block w-2 h-2 rounded-full mr-1.5" style="background:#2ECC71"></span>{let c = talk_count.to_string(); t_args("slp.count_talk", &[("count", c.as_str())])}</span>
                         })}
                     </div>
 
@@ -282,10 +285,10 @@ fn LastNightSoundsCard(
 
 fn event_label(event_type: &str) -> &'static str {
     match event_type {
-        "snore" => "Snore",
-        "cough" => "Cough",
-        "sleep_talk" => "Sleep-talk",
-        _ => "Event",
+        "snore" => "slp.event_snore",
+        "cough" => "slp.event_cough",
+        "sleep_talk" => "slp.event_talk",
+        _ => "slp.event_other",
     }
 }
 
@@ -422,7 +425,7 @@ where
                         style=format!("background:{}", color)
                     />
                     <span class="font-mono text-sm text-ultiq-indigo/80 tabular-nums">{time_label.clone()}</span>
-                    <span class="text-sm text-ultiq-indigo">{label}</span>
+                    <span class="text-sm text-ultiq-indigo">{move || t(label)}</span>
                 </div>
                 <div class="flex items-center gap-3 text-sm text-ultiq-indigo/60">
                     {if has_clip {
@@ -433,7 +436,7 @@ where
                         })
                     } else {
                         Either::Right(view! {
-                            <span class="text-xs italic text-ultiq-indigo/40">"no clip"</span>
+                            <span class="text-xs italic text-ultiq-indigo/40">{move || t("slp.no_clip")}</span>
                         })
                     }}
                 </div>
@@ -559,36 +562,39 @@ where
                     <p class="text-xs text-ultiq-red px-1 py-2">{err}</p>
                 })),
                 (None, None) => Either::Right(Either::Right(view! {
-                    <p class="text-xs text-ultiq-indigo/50 px-1 py-2">"Loading clip…"</p>
+                    <p class="text-xs text-ultiq-indigo/50 px-1 py-2">{move || t("slp.loading_clip")}</p>
                 })),
             }}
             <div class="flex items-center justify-between mt-2 px-1">
                 <span class="text-xs text-ultiq-indigo/60">
-                    {format!("Detection confidence {}%", confidence_pct)}
+                    {move || {
+                        let p = confidence_pct.to_string();
+                        t_args("slp.confidence", &[("pct", p.as_str())])
+                    }}
                 </span>
                 <Show when=move || !confirming_delete.get()>
                     <button
                         class="text-xs text-ultiq-red hover:underline cursor-pointer"
                         on:click=move |_| confirming_delete.set(true)
                     >
-                        "Delete clip"
+                        {move || t("slp.delete_clip")}
                     </button>
                 </Show>
                 <Show when=move || confirming_delete.get()>
                     <div class="flex items-center gap-2">
-                        <span class="text-xs text-ultiq-indigo/70">"Delete this recording?"</span>
+                        <span class="text-xs text-ultiq-indigo/70">{move || t("slp.delete_confirm")}</span>
                         <button
                             class="text-xs text-ultiq-red font-medium hover:underline cursor-pointer disabled:opacity-50"
                             disabled=move || deleting.get()
                             on:click=confirm_delete.clone()
                         >
-                            {move || if deleting.get() { "Deleting…" } else { "Confirm" }}
+                            {move || if deleting.get() { t("slp.deleting") } else { t("common.confirm") }}
                         </button>
                         <button
                             class="text-xs text-ultiq-indigo/60 hover:underline cursor-pointer"
                             on:click=move |_| confirming_delete.set(false)
                         >
-                            "Cancel"
+                            {move || t("common.cancel")}
                         </button>
                     </div>
                 </Show>
@@ -616,7 +622,7 @@ fn RangeToggle(range: RwSignal<Range>) -> impl IntoView {
                             }
                         }
                     >
-                        {r.label()}
+                        {move || t(r.label())}
                     </button>
                 }
             }).collect_view()}
@@ -652,25 +658,25 @@ fn StatRow(stats: SleepStats) -> impl IntoView {
 
     view! {
         <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
-            <Stat label="Avg duration" value=avg_duration sub=Some(format!("target {}", target)) />
-            <Stat label="Avg quality" value=avg_quality sub=None />
-            <Stat label="Sleep debt" value=debt sub=None />
-            <Stat label="Extra sleep" value=extra sub=None />
-            <Stat label="Avg pickups" value=pickups sub=None />
-            {(nap_count > 0).then(|| view! { <Stat label="Naps" value=nap_count.to_string() sub=None /> })}
+            <Stat label_key="slp.stat_avg_duration" value=avg_duration sub=Some(t_args("slp.stat_target", &[("value", target.as_str())])) />
+            <Stat label_key="slp.stat_avg_quality" value=avg_quality sub=None />
+            <Stat label_key="slp.stat_sleep_debt" value=debt sub=None />
+            <Stat label_key="slp.stat_extra_sleep" value=extra sub=None />
+            <Stat label_key="slp.stat_avg_pickups" value=pickups sub=None />
+            {(nap_count > 0).then(|| view! { <Stat label_key="slp.stat_naps" value=nap_count.to_string() sub=None /> })}
         </div>
     }
 }
 
 #[component]
 fn Stat(
-    label: &'static str,
+    label_key: &'static str,
     value: String,
     sub: Option<String>,
 ) -> impl IntoView {
     view! {
         <div class="bg-white rounded-2xl p-4 shadow-sm">
-            <p class="text-xs text-ultiq-indigo/60 font-medium uppercase tracking-wider">{label}</p>
+            <p class="text-xs text-ultiq-indigo/60 font-medium uppercase tracking-wider">{move || t(label_key)}</p>
             <p class="text-2xl font-bold text-ultiq-indigo mt-1">{value}</p>
             <Show when={
                 let s = sub.clone();
@@ -748,7 +754,7 @@ fn DurationChart(
             if points.is_empty() {
                 return view! {
                     <p class="text-sm text-ultiq-indigo/50 py-12 text-center">
-                        "No sleep records in this range."
+                        {move || t("slp.no_records_range")}
                     </p>
                 }.into_any();
             }
@@ -805,7 +811,11 @@ fn DurationChart(
                         fill=quality_color(q)
                     >
                         <title>
-                            {format!("{} · quality {}/5", format_minutes(dur), q)}
+                            {
+                                let d = format_minutes(dur);
+                                let qs = q.to_string();
+                                t_args("slp.chart_bar_tooltip", &[("duration", d.as_str()), ("quality", qs.as_str())])
+                            }
                         </title>
                     </rect>
                 }
@@ -866,7 +876,10 @@ fn DurationChart(
                             x=pad_l + plot_w - 4.0 y=target_y - 6.0
                             text-anchor="end" font-size="10" fill="currentColor" opacity="0.7"
                         >
-                            {format!("target {}", format_minutes(target_min))}
+                            {
+                                let v = format_minutes(target_min);
+                                t_args("slp.chart_target", &[("value", v.as_str())])
+                            }
                         </text>
                     </svg>
                 </div>
@@ -883,7 +896,7 @@ fn QualityHistogram(records: RwSignal<Vec<SleepRecord>>) -> impl IntoView {
             if recs.is_empty() {
                 return view! {
                     <p class="text-sm text-ultiq-indigo/50 py-6 text-center">
-                        "No nights recorded."
+                        {move || t("slp.no_nights")}
                     </p>
                 }.into_any();
             }
@@ -936,7 +949,7 @@ fn PickupsBar(
             if recs.is_empty() {
                 return view! {
                     <p class="text-sm text-ultiq-indigo/50 py-6 text-center">
-                        "No nights recorded."
+                        {move || t("slp.no_nights")}
                     </p>
                 }.into_any();
             }
@@ -974,13 +987,17 @@ fn PickupsBar(
                                 <div
                                     class="flex-1 bg-ultiq-red/70 rounded-t hover:bg-ultiq-red transition-colors"
                                     style:height=format!("{}%", pct.max(2.0))
-                                    title=format!("{} pickups", count)
+                                    title=move || { let c = count.to_string(); t_args("ov.pickups", &[("count", c.as_str())]) }
                                 />
                             }
                         }).collect_view()}
                     </div>
                     <p class="text-xs text-ultiq-indigo/60">
-                        {format!("Avg {:.1} pickups/night · max {} on a single night", avg, max)}
+                        {
+                            let a = format!("{:.1}", avg);
+                            let m = max.to_string();
+                            t_args("slp.pickups_summary", &[("avg", a.as_str()), ("max", m.as_str())])
+                        }
                     </p>
                 </div>
             }.into_any()
