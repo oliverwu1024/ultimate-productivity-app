@@ -5,6 +5,7 @@ use leptos_router::hooks::use_query_map;
 
 use crate::api::auth::verify_email;
 use crate::components::theme_corner::ThemeCorner;
+use crate::i18n::t;
 
 #[derive(Clone, Copy, PartialEq)]
 enum Status {
@@ -63,19 +64,19 @@ pub fn VerifyEmailPage() -> impl IntoView {
         <ThemeCorner />
         <div class="min-h-screen flex items-center justify-center bg-ultiq-cream px-4">
             <div class="bg-white rounded-2xl shadow-lg p-8 w-full max-w-sm space-y-4 text-center">
-                <h1 class="text-2xl font-bold text-ultiq-indigo">"Verify your email"</h1>
+                <h1 class="text-2xl font-bold text-ultiq-indigo">{move || t("auth.verify_title")}</h1>
 
                 <Show when=move || status.get() == Status::Pending>
-                    <p class="text-sm text-ultiq-indigo/70">"Verifying…"</p>
+                    <p class="text-sm text-ultiq-indigo/70">{move || t("auth.verifying")}</p>
                 </Show>
 
                 <Show when=move || status.get() == Status::Success>
                     <div class="space-y-3">
                         <p class="text-sm text-emerald-700 bg-emerald-500/10 px-3 py-2 rounded">
-                            "Email verified. AI features are now unlocked."
+                            {move || t("auth.verify_success")}
                         </p>
                         <A href="/" attr:class="block text-sm text-ultiq-indigo/70 hover:text-ultiq-indigo pt-2">
-                            "Open dashboard →"
+                            {move || format!("{} →", t("auth.open_dashboard"))}
                         </A>
                     </div>
                 </Show>
@@ -83,15 +84,13 @@ pub fn VerifyEmailPage() -> impl IntoView {
                 <Show when=move || status.get() == Status::Failure>
                     <div class="space-y-3">
                         <p class="text-sm text-ultiq-red bg-ultiq-red/5 px-3 py-2 rounded">
-                            {move || error_message.get().unwrap_or_else(|| "Invalid or expired link.".into())}
+                            {move || error_message.get().unwrap_or_else(|| t("auth.invalid_or_expired"))}
                         </p>
                         <p class="text-xs text-ultiq-indigo/60">
-                            "Verification links expire after 24 hours. Sign in and tap "
-                            <em>"Resend verification email"</em>
-                            " to get a fresh one."
+                            {move || t("auth.verify_failed_hint")}
                         </p>
                         <A href="/login" attr:class="block text-sm text-ultiq-indigo/70 hover:text-ultiq-indigo pt-2">
-                            "Go to sign in →"
+                            {move || format!("{} →", t("auth.go_to_sign_in"))}
                         </A>
                     </div>
                 </Show>
@@ -99,13 +98,13 @@ pub fn VerifyEmailPage() -> impl IntoView {
                 <Show when=move || status.get() == Status::MissingToken>
                     <div class="space-y-3">
                         <p class="text-sm text-ultiq-red bg-ultiq-red/5 px-3 py-2 rounded">
-                            "No verification token in the link."
+                            {move || t("auth.verify_no_token")}
                         </p>
                         <p class="text-xs text-ultiq-indigo/60">
-                            "Open this page from the link in the verification email we sent."
+                            {move || t("auth.verify_no_token_hint")}
                         </p>
                         <A href="/login" attr:class="block text-sm text-ultiq-indigo/70 hover:text-ultiq-indigo pt-2">
-                            "Go to sign in →"
+                            {move || format!("{} →", t("auth.go_to_sign_in"))}
                         </A>
                     </div>
                 </Show>
