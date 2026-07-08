@@ -263,5 +263,21 @@
   "rep.cal_busiest": "Hari tersibuk",
   "rep.by_category": "Per kategori",
   "rep.n_events": "{count} acara",
-  "rep.busiest_value": "{day} ({count} acara)"
+  "rep.busiest_value": "{day} ({count} acara)",
+  "chat.start_fresh": "Mulai dari awal",
+  "chat.empty_title": "Bicara dengan coach-mu",
+  "chat.empty_body": "Tanyakan tentang tidur, blok fokus, atau perencanaan mingguan. Coach dapat melihat datamu, menambahkan item checklist untukmu, dan membuat draf acara kalender yang kamu konfirmasi sebelum ditambahkan.",
+  "chat.thinking": "berpikir…",
+  "chat.undo": "Batalkan",
+  "chat.composer_placeholder": "Pesan ke coach-mu…",
+  "chat.send": "Kirim",
+  "chat.reset_title": "Mulai obrolan baru?",
+  "chat.reset_body": "Percakapan saat ini akan diarsipkan (kami menyimpannya untuk catatanmu, tetapi coach tidak akan melihatnya mulai sekarang).",
+  "chat.proposed_event": "Acara yang diusulkan",
+  "chat.create": "Buat",
+  "chat.creating": "Membuat…",
+  "chat.added_to_calendar": "Ditambahkan ke Kalendermu",
+  "chat.cancelled": "Dibatalkan",
+  "chat.err_create_event": "Tidak dapat membuat acara: {error}",
+  "chat.err_undo_failed": "Batalkan gagal: {error} — kamu mungkin perlu menghapusnya secara manual."
 }

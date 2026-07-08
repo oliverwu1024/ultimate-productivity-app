@@ -263,5 +263,21 @@
   "rep.cal_busiest": "सबसे व्यस्त दिन",
   "rep.by_category": "श्रेणी अनुसार",
   "rep.n_events": "{count} इवेंट",
-  "rep.busiest_value": "{day} ({count} इवेंट)"
+  "rep.busiest_value": "{day} ({count} इवेंट)",
+  "chat.start_fresh": "नए सिरे से शुरू करें",
+  "chat.empty_title": "अपने कोच से बात करें",
+  "chat.empty_body": "नींद, फोकस ब्लॉक, या साप्ताहिक योजना के बारे में पूछें। कोच आपका डेटा देख सकता है, आपके लिए चेकलिस्ट आइटम जोड़ सकता है, और कैलेंडर इवेंट का मसौदा तैयार कर सकता है जिसे आप जोड़ने से पहले पुष्टि करते हैं।",
+  "chat.thinking": "सोच रहे हैं…",
+  "chat.undo": "पूर्ववत करें",
+  "chat.composer_placeholder": "कोच को संदेश भेजें…",
+  "chat.send": "भेजें",
+  "chat.reset_title": "नई चैट शुरू करें?",
+  "chat.reset_body": "आपकी वर्तमान बातचीत संग्रहीत हो जाएगी (हम इसे आपके रिकॉर्ड के लिए रखते हैं, लेकिन कोच अब इसे यहाँ से नहीं देख पाएगा)।",
+  "chat.proposed_event": "प्रस्तावित इवेंट",
+  "chat.create": "बनाएं",
+  "chat.creating": "बना रहे हैं…",
+  "chat.added_to_calendar": "कैलेंडर में जोड़ा गया",
+  "chat.cancelled": "रद्द किया",
+  "chat.err_create_event": "इवेंट नहीं बनाया जा सका: {error}",
+  "chat.err_undo_failed": "पूर्ववत करना विफल हुआ: {error} — आपको इसे मैन्युअल रूप से हटाना पड़ सकता है।"
 }

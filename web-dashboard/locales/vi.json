@@ -263,5 +263,21 @@
   "rep.cal_busiest": "Ngày bận nhất",
   "rep.by_category": "Theo danh mục",
   "rep.n_events": "{count} sự kiện",
-  "rep.busiest_value": "{day} ({count} sự kiện)"
+  "rep.busiest_value": "{day} ({count} sự kiện)",
+  "chat.start_fresh": "Bắt đầu lại",
+  "chat.empty_title": "Trò chuyện với coach",
+  "chat.empty_body": "Hỏi về giấc ngủ, khối tập trung, hoặc kế hoạch tuần. Coach có thể xem dữ liệu của bạn, thêm mục checklist và soạn thảo sự kiện lịch để bạn xác nhận trước khi lưu.",
+  "chat.thinking": "đang suy nghĩ…",
+  "chat.undo": "Hoàn tác",
+  "chat.composer_placeholder": "Nhắn tin cho coach…",
+  "chat.send": "Gửi",
+  "chat.reset_title": "Bắt đầu cuộc trò chuyện mới?",
+  "chat.reset_body": "Cuộc trò chuyện hiện tại sẽ được lưu trữ (chúng tôi giữ lại để bạn tham khảo nhưng coach sẽ không xem từ đây nữa).",
+  "chat.proposed_event": "Sự kiện đề xuất",
+  "chat.create": "Tạo",
+  "chat.creating": "Đang tạo…",
+  "chat.added_to_calendar": "Đã thêm vào lịch",
+  "chat.cancelled": "Đã hủy",
+  "chat.err_create_event": "Không thể tạo sự kiện: {error}",
+  "chat.err_undo_failed": "Hoàn tác thất bại: {error} — bạn có thể cần xóa thủ công."
 }

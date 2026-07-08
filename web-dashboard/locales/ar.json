@@ -263,5 +263,21 @@
   "rep.cal_busiest": "أكثر يوم ازدحاماً",
   "rep.by_category": "حسب الفئة",
   "rep.n_events": "{count} أحداث",
-  "rep.busiest_value": "{day} ({count} أحداث)"
+  "rep.busiest_value": "{day} ({count} أحداث)",
+  "chat.start_fresh": "ابدأ من جديد",
+  "chat.empty_title": "تحدّث مع مدرّبك",
+  "chat.empty_body": "اسأل عن النوم أو فترات التركيز أو التخطيط الأسبوعي. يستطيع المدرب الاطلاع على بياناتك، وإضافة مهام إلى قائمتك، وصياغة أحداث في التقويم تؤكدها قبل حفظها.",
+  "chat.thinking": "يفكّر…",
+  "chat.undo": "تراجع",
+  "chat.composer_placeholder": "راسل مدرّبك…",
+  "chat.send": "إرسال",
+  "chat.reset_title": "هل تريد بدء محادثة جديدة؟",
+  "chat.reset_body": "ستُحفظ محادثتك الحالية في الأرشيف (نحتفظ بها في سجلاتك، لكن المدرب لن يراها من الآن فصاعداً).",
+  "chat.proposed_event": "حدث مقترح",
+  "chat.create": "إنشاء",
+  "chat.creating": "جارٍ الإنشاء…",
+  "chat.added_to_calendar": "أُضيف إلى تقويمك",
+  "chat.cancelled": "ملغى",
+  "chat.err_create_event": "تعذّر إنشاء الحدث: {error}",
+  "chat.err_undo_failed": "فشل التراجع: {error} — قد تحتاج إلى الحذف يدوياً."
 }

@@ -263,5 +263,21 @@
   "rep.cal_busiest": "วันที่ยุ่งที่สุด",
   "rep.by_category": "ตามหมวดหมู่",
   "rep.n_events": "{count} กิจกรรม",
-  "rep.busiest_value": "{day} ({count} กิจกรรม)"
+  "rep.busiest_value": "{day} ({count} กิจกรรม)",
+  "chat.start_fresh": "เริ่มใหม่",
+  "chat.empty_title": "คุยกับโค้ชของคุณ",
+  "chat.empty_body": "ถามเกี่ยวกับการนอน บล็อกโฟกัส หรือการวางแผนรายสัปดาห์ โค้ชสามารถดูข้อมูลของคุณ เพิ่มรายการในรายการตรวจสอบ และร่างกิจกรรมในปฏิทินที่คุณยืนยันก่อนบันทึก",
+  "chat.thinking": "กำลังคิด…",
+  "chat.undo": "เลิกทำ",
+  "chat.composer_placeholder": "ส่งข้อความถึงโค้ช…",
+  "chat.send": "ส่ง",
+  "chat.reset_title": "เริ่มแชทใหม่?",
+  "chat.reset_body": "บทสนทนาปัจจุบันจะถูกเก็บถาวร (เราเก็บไว้ในบันทึกของคุณ แต่โค้ชจะไม่เห็นจากนี้ไป)",
+  "chat.proposed_event": "กิจกรรมที่เสนอ",
+  "chat.create": "สร้าง",
+  "chat.creating": "กำลังสร้าง…",
+  "chat.added_to_calendar": "เพิ่มในปฏิทินแล้ว",
+  "chat.cancelled": "ยกเลิกแล้ว",
+  "chat.err_create_event": "ไม่สามารถสร้างกิจกรรมได้: {error}",
+  "chat.err_undo_failed": "เลิกทำไม่สำเร็จ: {error} — คุณอาจต้องลบด้วยตนเอง"
 }

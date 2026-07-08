@@ -263,5 +263,21 @@
   "rep.cal_busiest": "Aktivster Tag",
   "rep.by_category": "Nach Kategorie",
   "rep.n_events": "{count} Ereignisse",
-  "rep.busiest_value": "{day} ({count} Ereignisse)"
+  "rep.busiest_value": "{day} ({count} Ereignisse)",
+  "chat.start_fresh": "Neu starten",
+  "chat.empty_title": "Sprich mit deinem Coach",
+  "chat.empty_body": "Frag nach Schlaf, Fokusblöcken oder Wochenplanung. Der Coach kann deine Daten einsehen, Checklistenpunkte für dich hinzufügen und Kalendereinträge vorschlagen, die du vor dem Speichern bestätigst.",
+  "chat.thinking": "denkt nach…",
+  "chat.undo": "Rückgängig",
+  "chat.composer_placeholder": "Nachricht an deinen Coach…",
+  "chat.send": "Senden",
+  "chat.reset_title": "Neues Gespräch starten?",
+  "chat.reset_body": "Dein aktuelles Gespräch wird archiviert (wir behalten es für deine Unterlagen, aber der Coach sieht es von nun an nicht mehr).",
+  "chat.proposed_event": "Vorgeschlagenes Ereignis",
+  "chat.create": "Erstellen",
+  "chat.creating": "Wird erstellt…",
+  "chat.added_to_calendar": "Zum Kalender hinzugefügt",
+  "chat.cancelled": "Abgebrochen",
+  "chat.err_create_event": "Ereignis konnte nicht erstellt werden: {error}",
+  "chat.err_undo_failed": "Rückgängig fehlgeschlagen: {error} — möglicherweise muss es manuell gelöscht werden."
 }

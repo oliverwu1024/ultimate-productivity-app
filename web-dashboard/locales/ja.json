@@ -263,5 +263,21 @@
   "rep.cal_busiest": "最も忙しい日",
   "rep.by_category": "カテゴリ別",
   "rep.n_events": "{count}件のイベント",
-  "rep.busiest_value": "{day} ({count}件のイベント)"
+  "rep.busiest_value": "{day} ({count}件のイベント)",
+  "chat.start_fresh": "最初から始める",
+  "chat.empty_title": "コーチに相談する",
+  "chat.empty_body": "睡眠、集中ブロック、週間計画についてご相談いただけます。コーチはデータを確認し、チェックリストの追加やカレンダーイベントの下書きを行います（確認後に登録されます）。",
+  "chat.thinking": "考え中…",
+  "chat.undo": "元に戻す",
+  "chat.composer_placeholder": "コーチへメッセージ…",
+  "chat.send": "送信",
+  "chat.reset_title": "新しいチャットを開始しますか？",
+  "chat.reset_body": "現在の会話はアーカイブされます（記録として保存されますが、コーチは今後これを参照しません）。",
+  "chat.proposed_event": "提案されたイベント",
+  "chat.create": "作成",
+  "chat.creating": "作成中…",
+  "chat.added_to_calendar": "カレンダーに追加しました",
+  "chat.cancelled": "キャンセル済み",
+  "chat.err_create_event": "イベントを作成できませんでした：{error}",
+  "chat.err_undo_failed": "元に戻す操作に失敗しました：{error} — 手動で削除してください。"
 }
