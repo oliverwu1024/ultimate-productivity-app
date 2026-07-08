@@ -350,5 +350,15 @@
   "admin.revoking": "취소하는 중…",
   "admin.revoke_tokens": "세션 토큰 취소",
   "admin.revoke_confirm": "이 사용자의 모든 세션 토큰을 취소하시겠습니까? 모든 기기에서 로그아웃됩니다.",
-  "admin.tokens_revoked": "토큰이 취소되었습니다. 사용자는 다음 요청 시 로그아웃됩니다."
+  "admin.tokens_revoked": "토큰이 취소되었습니다. 사용자는 다음 요청 시 로그아웃됩니다.",
+  "ai.title_event": "이벤트 빠르게 추가",
+  "ai.title_task": "할 일 빠르게 추가",
+  "ai.ph_event": "예: 내일 오후 1시 Sarah와 점심",
+  "ai.ph_task": "예: 금요일에 장 보기",
+  "ai.prompt_hint": "문장을 입력하면 세부 내용을 채워드릴게요.",
+  "ai.generating": "생성 중…",
+  "ai.generate": "생성",
+  "auth.banner_body": "확인 링크를 보낸 주소를 확인할 때까지 코치 및 기타 AI 기능이 잠겨 있습니다.",
+  "auth.banner_sent": "발송됨 — 받은 편지함을 확인하세요",
+  "auth.resend_email": "인증 이메일 재발송"
 }

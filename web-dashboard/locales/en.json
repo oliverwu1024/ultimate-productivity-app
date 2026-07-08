@@ -350,5 +350,15 @@
   "admin.revoking": "Revoking…",
   "admin.revoke_tokens": "Revoke session tokens",
   "admin.revoke_confirm": "Revoke ALL session tokens for this user? They'll be logged out on every device.",
-  "admin.tokens_revoked": "Tokens revoked. User will be logged out on next request."
+  "admin.tokens_revoked": "Tokens revoked. User will be logged out on next request.",
+  "ai.title_event": "Quick add event",
+  "ai.title_task": "Quick add task",
+  "ai.ph_event": "e.g. lunch with Sarah tomorrow at 1pm",
+  "ai.ph_task": "e.g. buy groceries on friday",
+  "ai.prompt_hint": "Type a sentence and we'll fill in the details for you to review.",
+  "ai.generating": "Generating…",
+  "ai.generate": "Generate",
+  "auth.banner_body": "Coach and other AI features stay locked until you confirm the address we sent the verification link to.",
+  "auth.banner_sent": "Sent — check your inbox",
+  "auth.resend_email": "Resend verification email"
 }

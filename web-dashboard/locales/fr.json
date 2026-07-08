@@ -350,5 +350,15 @@
   "admin.revoking": "Révocation…",
   "admin.revoke_tokens": "Révoquer les jetons de session",
   "admin.revoke_confirm": "Révoquer TOUS les jetons de session de cet utilisateur ? Il sera déconnecté sur tous les appareils.",
-  "admin.tokens_revoked": "Jetons révoqués. L'utilisateur sera déconnecté à la prochaine requête."
+  "admin.tokens_revoked": "Jetons révoqués. L'utilisateur sera déconnecté à la prochaine requête.",
+  "ai.title_event": "Ajout rapide d'événement",
+  "ai.title_task": "Ajout rapide de tâche",
+  "ai.ph_event": "ex. déjeuner avec Sarah demain à 13h",
+  "ai.ph_task": "ex. acheter des courses vendredi",
+  "ai.prompt_hint": "Tapez une phrase et nous remplirons les détails à vérifier.",
+  "ai.generating": "Génération…",
+  "ai.generate": "Générer",
+  "auth.banner_body": "Coach et les autres fonctionnalités AI restent verrouillés jusqu'à ce que vous confirmiez l'adresse à laquelle nous avons envoyé le lien de vérification.",
+  "auth.banner_sent": "Envoyé — vérifiez votre boîte de réception",
+  "auth.resend_email": "Renvoyer l'e-mail de vérification"
 }

@@ -350,5 +350,15 @@
   "admin.revoking": "Wird widerrufen…",
   "admin.revoke_tokens": "Sitzungs-Tokens widerrufen",
   "admin.revoke_confirm": "ALLE Sitzungs-Tokens dieses Nutzers widerrufen? Er wird auf allen Geräten abgemeldet.",
-  "admin.tokens_revoked": "Tokens widerrufen. Der Nutzer wird bei der nächsten Anfrage abgemeldet."
+  "admin.tokens_revoked": "Tokens widerrufen. Der Nutzer wird bei der nächsten Anfrage abgemeldet.",
+  "ai.title_event": "Event schnell hinzufügen",
+  "ai.title_task": "Aufgabe schnell hinzufügen",
+  "ai.ph_event": "z. B. Mittagessen mit Sarah morgen 13 Uhr",
+  "ai.ph_task": "z. B. Lebensmittel kaufen am Freitag",
+  "ai.prompt_hint": "Satz eingeben, wir füllen die Details zur Überprüfung aus.",
+  "ai.generating": "Wird erstellt…",
+  "ai.generate": "Erstellen",
+  "auth.banner_body": "Coach und andere AI-Funktionen bleiben gesperrt, bis du die Adresse bestätigst, an die wir den Bestätigungslink gesendet haben.",
+  "auth.banner_sent": "Gesendet — prüfe deinen Posteingang",
+  "auth.resend_email": "Bestätigungs-E-Mail erneut senden"
 }

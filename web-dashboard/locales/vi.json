@@ -350,5 +350,15 @@
   "admin.revoking": "Đang thu hồi…",
   "admin.revoke_tokens": "Thu hồi token phiên",
   "admin.revoke_confirm": "Thu hồi TẤT CẢ token phiên của người dùng này? Họ sẽ bị đăng xuất trên mọi thiết bị.",
-  "admin.tokens_revoked": "Đã thu hồi token. Người dùng sẽ bị đăng xuất ở yêu cầu tiếp theo."
+  "admin.tokens_revoked": "Đã thu hồi token. Người dùng sẽ bị đăng xuất ở yêu cầu tiếp theo.",
+  "ai.title_event": "Thêm sự kiện nhanh",
+  "ai.title_task": "Thêm nhiệm vụ nhanh",
+  "ai.ph_event": "vd. ăn trưa với Sarah ngày mai lúc 1 giờ chiều",
+  "ai.ph_task": "vd. mua đồ tạp hóa vào thứ Sáu",
+  "ai.prompt_hint": "Nhập một câu và chúng tôi sẽ điền thông tin để bạn xem xét.",
+  "ai.generating": "Đang tạo…",
+  "ai.generate": "Tạo",
+  "auth.banner_body": "Coach và các tính năng AI khác bị khóa cho đến khi bạn xác nhận địa chỉ mà chúng tôi đã gửi liên kết xác minh.",
+  "auth.banner_sent": "Đã gửi — kiểm tra hộp thư đến",
+  "auth.resend_email": "Gửi lại email xác minh"
 }

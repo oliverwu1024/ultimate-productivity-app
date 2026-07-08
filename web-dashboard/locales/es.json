@@ -350,5 +350,15 @@
   "admin.revoking": "Revocando…",
   "admin.revoke_tokens": "Revocar tokens de sesión",
   "admin.revoke_confirm": "¿Revocar TODOS los tokens de sesión de este usuario? Se cerrará su sesión en todos los dispositivos.",
-  "admin.tokens_revoked": "Tokens revocados. El usuario cerrará sesión en la próxima solicitud."
+  "admin.tokens_revoked": "Tokens revocados. El usuario cerrará sesión en la próxima solicitud.",
+  "ai.title_event": "Añadir evento rápido",
+  "ai.title_task": "Añadir tarea rápida",
+  "ai.ph_event": "ej. almuerzo con Sara mañana a la 1pm",
+  "ai.ph_task": "ej. comprar víveres el viernes",
+  "ai.prompt_hint": "Escribe una oración y completaremos los detalles para que los revises.",
+  "ai.generating": "Generando…",
+  "ai.generate": "Generar",
+  "auth.banner_body": "El Coach y otras funciones de AI permanecen bloqueados hasta que confirmes la dirección a la que enviamos el enlace de verificación.",
+  "auth.banner_sent": "Enviado — revisa tu bandeja de entrada",
+  "auth.resend_email": "Reenviar correo de verificación"
 }
