@@ -49,25 +49,33 @@ pub fn linear_fit(pairs: &[(f64, f64)]) -> Option<(f64, f64)> {
 
 /// Qualitative summary of a Pearson r value with sample-size caveat.
 pub fn interpret_r(r: f64, n: usize) -> String {
-    let direction = if r > 0.0 { "positive" } else { "negative" };
+    use crate::i18n::{t, t_args};
     let mag = r.abs();
-    let strength = if mag < 0.2 {
-        "no clear"
-    } else if mag < 0.5 {
-        "weak"
-    } else if mag < 0.8 {
-        "moderate"
+    // Whole-phrase keys (not fragment-composed) so each translates with correct
+    // adjective/word order in every language.
+    let phrase_key = if mag < 0.2 {
+        "cor.phrase_none"
     } else {
-        "strong"
+        let pos = r > 0.0;
+        match (mag < 0.5, mag < 0.8, pos) {
+            (true, _, true) => "cor.phrase_weak_pos",
+            (true, _, false) => "cor.phrase_weak_neg",
+            (false, true, true) => "cor.phrase_moderate_pos",
+            (false, true, false) => "cor.phrase_moderate_neg",
+            (false, false, true) => "cor.phrase_strong_pos",
+            (false, false, false) => "cor.phrase_strong_neg",
+        }
     };
+    let phrase = t(phrase_key);
+    let rs = format!("{:.2}", r);
     let caveat = if n < 10 {
-        format!(" (only {} pairs — interpret cautiously)", n)
+        let ns = n.to_string();
+        t_args("cor.caveat", &[("count", ns.as_str())])
     } else {
         String::new()
     };
-    if mag < 0.2 {
-        format!("r = {:.2} — {} trend{}", r, strength, caveat)
-    } else {
-        format!("r = {:.2} — {} {} correlation{}", r, strength, direction, caveat)
-    }
+    t_args(
+        "cor.interp",
+        &[("r", rs.as_str()), ("phrase", phrase.as_str()), ("caveat", caveat.as_str())],
+    )
 }

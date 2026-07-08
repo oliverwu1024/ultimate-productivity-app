@@ -7,6 +7,7 @@ use leptos_meta::Title;
 use crate::api::sessions::{list_sessions, ProductivitySession};
 use crate::api::sleep::{list_records, SleepRecord};
 use crate::components::layout::AppShell;
+use crate::i18n::{t, t_args};
 use crate::stats::{interpret_r, linear_fit, pearson};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -19,9 +20,9 @@ enum Range {
 impl Range {
     fn label(&self) -> &'static str {
         match self {
-            Self::Month => "Month",
-            Self::Quarter => "90d",
-            Self::Year => "Year",
+            Self::Month => "common.range_month",
+            Self::Quarter => "common.range_90d",
+            Self::Year => "common.range_year",
         }
     }
     fn days(&self) -> i64 {
@@ -76,9 +77,9 @@ pub fn CorrelationsPage() -> impl IntoView {
             <div class="p-4 md:p-8 max-w-5xl mx-auto">
                 <header class="flex items-center justify-between mb-6 flex-wrap gap-3">
                     <div>
-                        <h1 class="text-3xl font-bold text-ultiq-indigo">"Correlations"</h1>
+                        <h1 class="text-3xl font-bold text-ultiq-indigo">{move || t("nav.correlations")}</h1>
                         <p class="text-sm text-ultiq-indigo/60 mt-1">
-                            "Cross-feature trends across your sleep + focus history."
+                            {move || t("cor.subtitle")}
                         </p>
                     </div>
                     <RangeToggle range=range />
@@ -96,7 +97,7 @@ pub fn CorrelationsPage() -> impl IntoView {
                     if s_recs.is_empty() || f_recs.is_empty() {
                         return view! {
                             <p class="text-ultiq-indigo/50 text-sm">
-                                {if loading.get() { "Loading…" } else { "Need at least a few sleep + focus records to compute correlations." }}
+                                {move || if loading.get() { t("common.loading") } else { t("cor.need_records") }}
                             </p>
                         }.into_any();
                     }
@@ -122,23 +123,23 @@ pub fn CorrelationsPage() -> impl IntoView {
                     view! {
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <CorrelationPanel
-                                title="Sleep duration → next-day focus"
-                                x_label="Sleep duration (hours)"
-                                y_label="Focus (minutes)"
+                                title_key="cor.title_duration"
+                                x_label_key="cor.x_duration"
+                                y_label_key="cor.y_focus"
                                 pairs=duration_pairs
                                 x_unit_divisor=60.0
                             />
                             <CorrelationPanel
-                                title="Pickups during sleep → next-day focus"
-                                x_label="Phone pickups overnight"
-                                y_label="Focus (minutes)"
+                                title_key="cor.title_pickups"
+                                x_label_key="cor.x_pickups"
+                                y_label_key="cor.y_focus"
                                 pairs=pickup_pairs
                                 x_unit_divisor=1.0
                             />
                             <CorrelationPanel
-                                title="Sleep quality → next-day focus"
-                                x_label="Quality rating (1–5)"
-                                y_label="Focus (minutes)"
+                                title_key="cor.title_quality"
+                                x_label_key="cor.x_quality"
+                                y_label_key="cor.y_focus"
                                 pairs=quality_pairs
                                 x_unit_divisor=1.0
                             />
@@ -199,7 +200,7 @@ fn RangeToggle(range: RwSignal<Range>) -> impl IntoView {
                             }
                         }
                     >
-                        {r.label()}
+                        {move || t(r.label())}
                     </button>
                 }
             }).collect_view()}
@@ -209,9 +210,9 @@ fn RangeToggle(range: RwSignal<Range>) -> impl IntoView {
 
 #[component]
 fn CorrelationPanel(
-    title: &'static str,
-    x_label: &'static str,
-    y_label: &'static str,
+    title_key: &'static str,
+    x_label_key: &'static str,
+    y_label_key: &'static str,
     pairs: Vec<(f64, f64)>,
     /// Display divisor for x-axis (e.g., 60 to show hours instead of minutes).
     x_unit_divisor: f64,
@@ -219,18 +220,20 @@ fn CorrelationPanel(
     let n = pairs.len();
     let r = pearson(&pairs);
     let fit = linear_fit(&pairs);
-    let interpretation = match r {
-        Some(rv) => interpret_r(rv, n),
-        None => format!("Need at least 2 paired days (have {})", n),
-    };
 
     view! {
         <section class="bg-white rounded-2xl shadow p-6">
             <header class="mb-3">
-                <h3 class="text-base font-semibold text-ultiq-indigo">{title}</h3>
-                <p class="text-xs text-ultiq-indigo/60 mt-1">{interpretation}</p>
+                <h3 class="text-base font-semibold text-ultiq-indigo">{move || t(title_key)}</h3>
+                <p class="text-xs text-ultiq-indigo/60 mt-1">{move || match r {
+                    Some(rv) => interpret_r(rv, n),
+                    None => {
+                        let ns = n.to_string();
+                        t_args("cor.need_pairs", &[("count", ns.as_str())])
+                    }
+                }}</p>
             </header>
-            <ScatterChart pairs=pairs fit=fit x_label=x_label y_label=y_label x_unit_divisor=x_unit_divisor />
+            <ScatterChart pairs=pairs fit=fit x_label_key=x_label_key y_label_key=y_label_key x_unit_divisor=x_unit_divisor />
         </section>
     }
 }
@@ -239,14 +242,14 @@ fn CorrelationPanel(
 fn ScatterChart(
     pairs: Vec<(f64, f64)>,
     fit: Option<(f64, f64)>,
-    x_label: &'static str,
-    y_label: &'static str,
+    x_label_key: &'static str,
+    y_label_key: &'static str,
     x_unit_divisor: f64,
 ) -> impl IntoView {
     if pairs.is_empty() {
         return view! {
             <p class="text-sm text-ultiq-indigo/50 py-12 text-center">
-                "Not enough data."
+                {move || t("cor.not_enough")}
             </p>
         }.into_any();
     }
@@ -353,13 +356,13 @@ fn ScatterChart(
                     x=pad_l + plot_w / 2.0 y=h - 2.0
                     text-anchor="middle" font-size="11" fill="currentColor" opacity="0.7"
                 >
-                    {x_label}
+                    {move || t(x_label_key)}
                 </text>
                 <text
                     transform=format!("translate({}, {}) rotate(-90)", 12.0, pad_t + plot_h / 2.0)
                     text-anchor="middle" font-size="11" fill="currentColor" opacity="0.7"
                 >
-                    {y_label}
+                    {move || t(y_label_key)}
                 </text>
             </svg>
         </div>
