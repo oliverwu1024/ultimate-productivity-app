@@ -205,5 +205,22 @@
   "slp.chart_bar_tooltip": "{duration} · chất lượng {quality}/5",
   "slp.chart_target": "mục tiêu {value}",
   "slp.no_nights": "Chưa có đêm nào được ghi lại.",
-  "slp.pickups_summary": "TB {avg} lần cầm máy/đêm · tối đa {max} trong một đêm"
+  "slp.pickups_summary": "TB {avg} lần cầm máy/đêm · tối đa {max} trong một đêm",
+  "foc.daily_focus": "Tập trung hằng ngày",
+  "foc.daily_sub": "{days} ngày qua · đã hoàn thành vs đã hủy",
+  "foc.top_tags": "Thẻ hàng đầu",
+  "foc.pickups_per_session": "Số lần cầm máy mỗi phiên",
+  "foc.pickups_caption": "số lần cầm máy mỗi phiên",
+  "foc.stat_focus_range": "Tập trung (khoảng)",
+  "foc.stat_streak": "Chuỗi ngày",
+  "foc.stat_avg_pickups": "Cầm máy TB",
+  "foc.stat_pickups_today": "Cầm máy hôm nay",
+  "foc.longest": "dài nhất {count} ngày",
+  "foc.per_session": "mỗi phiên",
+  "foc.daily_tooltip": "{day}: {completed} (đã hủy {cancelled})",
+  "foc.no_sessions_range": "Không có phiên tập trung trong khoảng này.",
+  "foc.completed": "Đã hoàn thành",
+  "foc.cancelled": "Đã hủy",
+  "foc.no_tags": "Chưa có thẻ nào.",
+  "foc.no_sessions": "Chưa có phiên nào."
 }

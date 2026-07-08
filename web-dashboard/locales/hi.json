@@ -205,5 +205,22 @@
   "slp.chart_bar_tooltip": "{duration} · गुणवत्ता {quality}/5",
   "slp.chart_target": "लक्ष्य {value}",
   "slp.no_nights": "कोई रात दर्ज नहीं।",
-  "slp.pickups_summary": "औसत {avg} पिकअप/रात · एक ही रात में अधिकतम {max}"
+  "slp.pickups_summary": "औसत {avg} पिकअप/रात · एक ही रात में अधिकतम {max}",
+  "foc.daily_focus": "दैनिक फ़ोकस",
+  "foc.daily_sub": "पिछले {days} दिन · पूर्ण बनाम रद्द",
+  "foc.top_tags": "शीर्ष टैग",
+  "foc.pickups_per_session": "प्रति सत्र पिकअप",
+  "foc.pickups_caption": "प्रति सत्र पिकअप",
+  "foc.stat_focus_range": "फ़ोकस (अवधि)",
+  "foc.stat_streak": "स्ट्रीक",
+  "foc.stat_avg_pickups": "औसत पिकअप",
+  "foc.stat_pickups_today": "आज पिकअप",
+  "foc.longest": "सबसे लंबी {count} दिन",
+  "foc.per_session": "प्रति सत्र",
+  "foc.daily_tooltip": "{day}: {completed} (रद्द {cancelled})",
+  "foc.no_sessions_range": "इस अवधि में कोई फ़ोकस सत्र नहीं।",
+  "foc.completed": "पूर्ण",
+  "foc.cancelled": "रद्द किया",
+  "foc.no_tags": "अभी कोई टैग नहीं।",
+  "foc.no_sessions": "अभी कोई सत्र नहीं।"
 }

@@ -205,5 +205,22 @@
   "slp.chart_bar_tooltip": "{duration} · 质量 {quality}/5",
   "slp.chart_target": "目标 {value}",
   "slp.no_nights": "没有记录的夜晚。",
-  "slp.pickups_summary": "平均每晚 {avg} 次拿起 · 单晚最多 {max} 次"
+  "slp.pickups_summary": "平均每晚 {avg} 次拿起 · 单晚最多 {max} 次",
+  "foc.daily_focus": "每日专注",
+  "foc.daily_sub": "最近 {days} 天 · 已完成 vs 已取消",
+  "foc.top_tags": "热门标签",
+  "foc.pickups_per_session": "每次专注拿起次数",
+  "foc.pickups_caption": "每次专注拿起次数",
+  "foc.stat_focus_range": "专注（区间）",
+  "foc.stat_streak": "连续",
+  "foc.stat_avg_pickups": "平均拿起次数",
+  "foc.stat_pickups_today": "今日拿起次数",
+  "foc.longest": "最长 {count} 天",
+  "foc.per_session": "每次专注",
+  "foc.daily_tooltip": "{day}：{completed}（已取消 {cancelled}）",
+  "foc.no_sessions_range": "此区间内没有专注记录。",
+  "foc.completed": "已完成",
+  "foc.cancelled": "已取消",
+  "foc.no_tags": "暂无标签。",
+  "foc.no_sessions": "暂无专注记录。"
 }

@@ -205,5 +205,22 @@
   "slp.chart_bar_tooltip": "{duration} · Qualität {quality}/5",
   "slp.chart_target": "Ziel {value}",
   "slp.no_nights": "Keine Nächte aufgezeichnet.",
-  "slp.pickups_summary": "Ø {avg} Aktivierungen/Nacht · max. {max} in einer Nacht"
+  "slp.pickups_summary": "Ø {avg} Aktivierungen/Nacht · max. {max} in einer Nacht",
+  "foc.daily_focus": "Täglicher Fokus",
+  "foc.daily_sub": "Letzte {days} Tage · abgeschlossen vs. abgebrochen",
+  "foc.top_tags": "Top-Tags",
+  "foc.pickups_per_session": "Aktivierungen pro Sitzung",
+  "foc.pickups_caption": "Aktivierungen pro Sitzung",
+  "foc.stat_focus_range": "Fokus (Zeitraum)",
+  "foc.stat_streak": "Serie",
+  "foc.stat_avg_pickups": "Ø Aktivierungen",
+  "foc.stat_pickups_today": "Aktivierungen heute",
+  "foc.longest": "längste {count} T",
+  "foc.per_session": "pro Sitzung",
+  "foc.daily_tooltip": "{day}: {completed} (abgebrochen {cancelled})",
+  "foc.no_sessions_range": "Keine Fokus-Sitzungen in diesem Zeitraum.",
+  "foc.completed": "Abgeschlossen",
+  "foc.cancelled": "Abgebrochen",
+  "foc.no_tags": "Noch keine Tags.",
+  "foc.no_sessions": "Noch keine Sitzungen."
 }

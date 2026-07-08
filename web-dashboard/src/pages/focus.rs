@@ -10,6 +10,7 @@ use crate::api::sessions::{
 };
 use crate::api::sse::{use_sse, SyncEvent};
 use crate::components::layout::AppShell;
+use crate::i18n::{current_locale, t, t_args};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Range {
@@ -21,9 +22,9 @@ enum Range {
 impl Range {
     fn label(&self) -> &'static str {
         match self {
-            Self::Week => "Week",
-            Self::Month => "Month",
-            Self::Quarter => "90d",
+            Self::Week => "common.range_week",
+            Self::Month => "common.range_month",
+            Self::Quarter => "common.range_90d",
         }
     }
     fn stats_param(&self) -> &'static str {
@@ -38,6 +39,15 @@ impl Range {
             Self::Month => 30,
             Self::Quarter => 90,
         }
+    }
+}
+
+fn sessions_sub(n: i64) -> String {
+    let s = n.to_string();
+    if n == 1 {
+        t_args("common.sessions_one", &[("count", s.as_str())])
+    } else {
+        t_args("common.sessions_other", &[("count", s.as_str())])
     }
 }
 
@@ -106,7 +116,7 @@ pub fn FocusPage() -> impl IntoView {
         <AppShell>
             <div class="p-4 md:p-8 max-w-5xl mx-auto">
                 <header class="flex items-center justify-between mb-6 flex-wrap gap-3">
-                    <h1 class="text-3xl font-bold text-ultiq-indigo">"Focus"</h1>
+                    <h1 class="text-3xl font-bold text-ultiq-indigo">{move || t("nav.focus")}</h1>
                     <RangeToggle range=range />
                 </header>
 
@@ -120,19 +130,21 @@ pub fn FocusPage() -> impl IntoView {
                     (Some(s), _) => Either::Left(view! {
                         <StatRow stats=s sessions=sessions />
                     }),
-                    (None, true) => Either::Right(view! {
-                        <p class="text-ultiq-indigo/50 text-sm">"Loading…"</p>
-                    }),
-                    (None, false) => Either::Right(view! {
-                        <p class="text-ultiq-indigo/50 text-sm">"No data yet."</p>
+                    (None, is_loading) => Either::Right(view! {
+                        <p class="text-ultiq-indigo/50 text-sm">
+                            {move || t(if is_loading { "common.loading" } else { "common.no_data" })}
+                        </p>
                     }),
                 }}
 
                 <section class="bg-white rounded-2xl shadow p-6 mt-6">
                     <header class="flex items-center justify-between mb-4">
-                        <h2 class="text-lg font-semibold text-ultiq-indigo">"Daily focus"</h2>
+                        <h2 class="text-lg font-semibold text-ultiq-indigo">{move || t("foc.daily_focus")}</h2>
                         <p class="text-xs text-ultiq-indigo/50">
-                            {move || format!("Last {} days · completed vs cancelled", range.get().days())}
+                            {move || {
+                                let d = range.get().days().to_string();
+                                t_args("foc.daily_sub", &[("days", d.as_str())])
+                            }}
                         </p>
                     </header>
                     <DailyFocus sessions=sessions today=today range=range />
@@ -141,14 +153,14 @@ pub fn FocusPage() -> impl IntoView {
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
                     <section class="bg-white rounded-2xl shadow p-6">
                         <h2 class="text-lg font-semibold text-ultiq-indigo mb-4">
-                            "Top tags"
+                            {move || t("foc.top_tags")}
                         </h2>
                         {move || stats.get().map(|s| view! { <TopTags tags=s.top_tags /> })}
                     </section>
 
                     <section class="bg-white rounded-2xl shadow p-6">
                         <h2 class="text-lg font-semibold text-ultiq-indigo mb-4">
-                            "Pickups per session"
+                            {move || t("foc.pickups_per_session")}
                         </h2>
                         <PickupsHistogram sessions=sessions />
                     </section>
@@ -177,7 +189,7 @@ fn RangeToggle(range: RwSignal<Range>) -> impl IntoView {
                             }
                         }
                     >
-                        {r.label()}
+                        {move || t(r.label())}
                     </button>
                 }
             }).collect_view()}
@@ -200,27 +212,27 @@ fn StatRow(
     view! {
         <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
             <Stat
-                label="Focus (range)"
+                label_key="foc.stat_focus_range"
                 value=format_minutes(total_minutes)
-                sub=Some(format!("{} sessions", completed_count))
+                sub=Some(sessions_sub(completed_count))
             />
             <Stat
-                label="Today"
+                label_key="common.today"
                 value=format_minutes(stats.total_focus_minutes_today)
-                sub=Some(format!("{} sessions", stats.sessions_completed_today))
+                sub=Some(sessions_sub(stats.sessions_completed_today as i64))
             />
             <Stat
-                label="Streak"
+                label_key="foc.stat_streak"
                 value=format!("{}d", stats.current_streak_days)
-                sub=Some(format!("longest {}d", stats.longest_streak_days))
+                sub=Some({ let s = stats.longest_streak_days.to_string(); t_args("foc.longest", &[("count", s.as_str())]) })
             />
             <Stat
-                label="Avg pickups"
+                label_key="foc.stat_avg_pickups"
                 value=format!("{:.1}", stats.avg_phone_pickups_per_session)
-                sub=Some("per session".to_string())
+                sub=Some(t("foc.per_session"))
             />
             <Stat
-                label="Pickups today"
+                label_key="foc.stat_pickups_today"
                 value=stats.total_phone_pickups_today.to_string()
                 sub=None
             />
@@ -230,13 +242,13 @@ fn StatRow(
 
 #[component]
 fn Stat(
-    label: &'static str,
+    label_key: &'static str,
     value: String,
     sub: Option<String>,
 ) -> impl IntoView {
     view! {
         <div class="bg-white rounded-2xl p-4 shadow-sm">
-            <p class="text-xs text-ultiq-indigo/60 font-medium uppercase tracking-wider">{label}</p>
+            <p class="text-xs text-ultiq-indigo/60 font-medium uppercase tracking-wider">{move || t(label_key)}</p>
             <p class="text-2xl font-bold text-ultiq-indigo mt-1">{value}</p>
             <Show when={
                 let s = sub.clone();
@@ -289,7 +301,7 @@ fn DailyFocus(
             if recs.is_empty() {
                 return view! {
                     <p class="text-sm text-ultiq-indigo/50 py-12 text-center">
-                        "No focus sessions in this range."
+                        {move || t("foc.no_sessions_range")}
                     </p>
                 }.into_any();
             }
@@ -305,7 +317,12 @@ fn DailyFocus(
                             let total = c + x;
                             let day = start + Duration::days(i as i64);
                             view! {
-                                <div class="flex-1 flex flex-col justify-end gap-px h-full" title=format!("{}: {} (cancelled {})", day, format_minutes(c), format_minutes(x))>
+                                <div class="flex-1 flex flex-col justify-end gap-px h-full" title={
+                                    let d = day.format_localized("%b %d", current_locale().chrono()).to_string();
+                                    let cm = format_minutes(c);
+                                    let xm = format_minutes(x);
+                                    t_args("foc.daily_tooltip", &[("day", d.as_str()), ("completed", cm.as_str()), ("cancelled", xm.as_str())])
+                                }>
                                     <Show when=move || { x > 0 }>
                                         <div
                                             class="bg-ultiq-indigo/30 rounded-t"
@@ -323,11 +340,11 @@ fn DailyFocus(
                     <div class="flex items-center gap-4 text-xs text-ultiq-indigo/60">
                         <span class="flex items-center gap-1.5">
                             <span class="w-2.5 h-2.5 rounded-sm bg-ultiq-indigo" />
-                            "Completed"
+                            {move || t("foc.completed")}
                         </span>
                         <span class="flex items-center gap-1.5">
                             <span class="w-2.5 h-2.5 rounded-sm bg-ultiq-indigo/30" />
-                            "Cancelled"
+                            {move || t("foc.cancelled")}
                         </span>
                     </div>
                 </div>
@@ -341,7 +358,7 @@ fn TopTags(tags: Vec<TagStat>) -> impl IntoView {
     if tags.is_empty() {
         return view! {
             <p class="text-sm text-ultiq-indigo/50 py-6 text-center">
-                "No tags yet."
+                {move || t("foc.no_tags")}
             </p>
         }.into_any();
     }
@@ -358,7 +375,11 @@ fn TopTags(tags: Vec<TagStat>) -> impl IntoView {
                         <div class="flex items-center justify-between text-sm mb-1">
                             <span class="font-medium text-ultiq-indigo truncate">{t.tag.clone()}</span>
                             <span class="text-ultiq-indigo/60 text-xs">
-                                {format!("{} · {} sessions", format_minutes(t.total_minutes), t.session_count)}
+                                {
+                                    let dur = format_minutes(t.total_minutes);
+                                    let sess = sessions_sub(t.session_count as i64);
+                                    format!("{} · {}", dur, sess)
+                                }
                             </span>
                         </div>
                         <div class="h-2 bg-ultiq-indigo/10 rounded-full overflow-hidden">
@@ -382,7 +403,7 @@ fn PickupsHistogram(sessions: RwSignal<Vec<ProductivitySession>>) -> impl IntoVi
             if recs.is_empty() {
                 return view! {
                     <p class="text-sm text-ultiq-indigo/50 py-6 text-center">
-                        "No sessions yet."
+                        {move || t("foc.no_sessions")}
                     </p>
                 }.into_any();
             }
@@ -416,7 +437,7 @@ fn PickupsHistogram(sessions: RwSignal<Vec<ProductivitySession>>) -> impl IntoVi
                             }
                         }).collect_view()}
                     </div>
-                    <p class="text-xs text-ultiq-indigo/50 text-center">"pickups per session"</p>
+                    <p class="text-xs text-ultiq-indigo/50 text-center">{move || t("foc.pickups_caption")}</p>
                 </div>
             }.into_any()
         }}

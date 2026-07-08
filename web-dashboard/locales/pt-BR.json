@@ -205,5 +205,22 @@
   "slp.chart_bar_tooltip": "{duration} · qualidade {quality}/5",
   "slp.chart_target": "meta {value}",
   "slp.no_nights": "Nenhuma noite registrada.",
-  "slp.pickups_summary": "Média de {avg} capturas/noite · máx. {max} em uma única noite"
+  "slp.pickups_summary": "Média de {avg} capturas/noite · máx. {max} em uma única noite",
+  "foc.daily_focus": "Foco diário",
+  "foc.daily_sub": "Últimos {days} dias · concluído vs cancelado",
+  "foc.top_tags": "Principais tags",
+  "foc.pickups_per_session": "Capturas por sessão",
+  "foc.pickups_caption": "capturas por sessão",
+  "foc.stat_focus_range": "Foco (intervalo)",
+  "foc.stat_streak": "Sequência",
+  "foc.stat_avg_pickups": "Capturas Médias",
+  "foc.stat_pickups_today": "Capturas hoje",
+  "foc.longest": "máx. {count} d",
+  "foc.per_session": "por sessão",
+  "foc.daily_tooltip": "{day}: {completed} (cancelado {cancelled})",
+  "foc.no_sessions_range": "Nenhuma sessão de foco neste intervalo.",
+  "foc.completed": "Concluído",
+  "foc.cancelled": "Cancelado",
+  "foc.no_tags": "Ainda não há tags.",
+  "foc.no_sessions": "Ainda não há sessões."
 }

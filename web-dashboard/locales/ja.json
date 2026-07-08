@@ -205,5 +205,22 @@
   "slp.chart_bar_tooltip": "{duration} · 品質 {quality}/5",
   "slp.chart_target": "目標 {value}",
   "slp.no_nights": "記録された夜がありません。",
-  "slp.pickups_summary": "平均{avg}回/夜 · 単一の夜で最大{max}回"
+  "slp.pickups_summary": "平均{avg}回/夜 · 単一の夜で最大{max}回",
+  "foc.daily_focus": "日別の集中",
+  "foc.daily_sub": "過去{days}日間 · 完了 vs キャンセル",
+  "foc.top_tags": "トップタグ",
+  "foc.pickups_per_session": "セッションあたりの手持ち回数",
+  "foc.pickups_caption": "セッションあたりの手持ち回数",
+  "foc.stat_focus_range": "集中（期間）",
+  "foc.stat_streak": "連続",
+  "foc.stat_avg_pickups": "平均手持ち回数",
+  "foc.stat_pickups_today": "今日の手持ち回数",
+  "foc.longest": "最長{count}日",
+  "foc.per_session": "セッションあたり",
+  "foc.daily_tooltip": "{day}: {completed}（キャンセル {cancelled}）",
+  "foc.no_sessions_range": "この期間のフォーカスセッションはありません。",
+  "foc.completed": "完了",
+  "foc.cancelled": "キャンセル済み",
+  "foc.no_tags": "タグはまだありません。",
+  "foc.no_sessions": "セッションはまだありません。"
 }
