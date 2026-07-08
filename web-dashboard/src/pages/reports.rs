@@ -8,6 +8,7 @@ use crate::api::calendar::{list_events, CalendarEvent, EventCategory};
 use crate::api::sessions::{list_sessions, ProductivitySession};
 use crate::api::sleep::{list_records, SleepRecord};
 use crate::components::layout::AppShell;
+use crate::i18n::{current_locale, t, t_args};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Period {
@@ -20,10 +21,10 @@ enum Period {
 impl Period {
     fn label(&self) -> &'static str {
         match self {
-            Self::ThisWeek => "This week",
-            Self::LastWeek => "Last week",
-            Self::ThisMonth => "This month",
-            Self::LastMonth => "Last month",
+            Self::ThisWeek => "rep.period_this_week",
+            Self::LastWeek => "rep.period_last_week",
+            Self::ThisMonth => "rep.period_this_month",
+            Self::LastMonth => "rep.period_last_month",
         }
     }
     fn range(&self, today: NaiveDate) -> (NaiveDate, NaiveDate) {
@@ -76,22 +77,33 @@ fn fmt_minutes_i(m: i64) -> String {
 }
 
 fn fmt_date(d: NaiveDate) -> String {
-    const MONTHS: [&str; 12] = [
-        "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-    ];
-    format!("{} {} {}", MONTHS[(d.month() - 1) as usize], d.day(), d.year())
+    d.format_localized("%b %d %Y", current_locale().chrono()).to_string()
 }
 
-fn weekday_short(w: Weekday) -> &'static str {
-    match w {
-        Weekday::Mon => "Mon",
-        Weekday::Tue => "Tue",
-        Weekday::Wed => "Wed",
-        Weekday::Thu => "Thu",
-        Weekday::Fri => "Fri",
-        Weekday::Sat => "Sat",
-        Weekday::Sun => "Sun",
+fn weekday_short_localized(w: Weekday) -> String {
+    // Reference week (2024-01-01 is a Monday) → format the matching weekday.
+    let d = NaiveDate::from_ymd_opt(2024, 1, 1).unwrap()
+        + Duration::days(w.num_days_from_monday() as i64);
+    d.format_localized("%a", current_locale().chrono()).to_string()
+}
+
+fn sessions_sub(n: i64) -> String {
+    let s = n.to_string();
+    if n == 1 {
+        t_args("common.sessions_one", &[("count", s.as_str())])
+    } else {
+        t_args("common.sessions_other", &[("count", s.as_str())])
     }
+}
+
+fn category_label(c: EventCategory) -> String {
+    t(match c {
+        EventCategory::Study => "common.category_study",
+        EventCategory::Project => "common.category_project",
+        EventCategory::Exercise => "common.category_exercise",
+        EventCategory::Personal => "common.category_personal",
+        EventCategory::Other => "common.category_other",
+    })
 }
 
 fn duration_minutes(record: &SleepRecord) -> f64 {
@@ -147,14 +159,14 @@ pub fn ReportsPage() -> impl IntoView {
         <AppShell>
             <div class="p-4 md:p-8 max-w-4xl mx-auto print:p-0 print:max-w-none">
                 <header class="flex items-center justify-between mb-6 flex-wrap gap-3 print:hidden">
-                    <h1 class="text-3xl font-bold text-ultiq-indigo">"Reports"</h1>
+                    <h1 class="text-3xl font-bold text-ultiq-indigo">{move || t("nav.reports")}</h1>
                     <div class="flex items-center gap-2 flex-wrap">
                         <PeriodToggle period=period />
                         <button
                             on:click=on_print
                             class="px-4 py-1.5 bg-ultiq-indigo text-ultiq-cream rounded-full text-sm font-medium hover:opacity-90 cursor-pointer"
                         >
-                            "Print / Save PDF"
+                            {move || t("rep.print")}
                         </button>
                     </div>
                 </header>
@@ -167,11 +179,11 @@ pub fn ReportsPage() -> impl IntoView {
 
                 <article class="bg-white rounded-2xl shadow p-8 print:shadow-none print:rounded-none print:p-0 space-y-8">
                     <header class="border-b border-ultiq-indigo/10 pb-4">
-                        <h2 class="text-2xl font-bold text-ultiq-indigo">"Ultiq report"</h2>
+                        <h2 class="text-2xl font-bold text-ultiq-indigo">{move || t("rep.report_title")}</h2>
                         <p class="text-sm text-ultiq-indigo/60 mt-1">
                             {move || {
                                 let (s, e) = period.get().range(today);
-                                format!("{} · {} – {}", period.get().label(), fmt_date(s), fmt_date(e))
+                                format!("{} · {} – {}", t(period.get().label()), fmt_date(s), fmt_date(e))
                             }}
                         </p>
                     </header>
@@ -191,7 +203,10 @@ pub fn ReportsPage() -> impl IntoView {
                     }}
 
                     <footer class="text-xs text-ultiq-indigo/50 border-t border-ultiq-indigo/10 pt-4">
-                        {move || format!("Generated {} · ultiqapp.com", fmt_date(today))}
+                        {move || {
+                            let d = fmt_date(today);
+                            t_args("rep.generated", &[("date", d.as_str())])
+                        }}
                     </footer>
                 </article>
             </div>
@@ -218,7 +233,7 @@ fn PeriodToggle(period: RwSignal<Period>) -> impl IntoView {
                             }
                         }
                     >
-                        {p.label()}
+                        {move || t(p.label())}
                     </button>
                 }
             }).collect_view()}
@@ -255,19 +270,19 @@ fn SleepSection(records: Vec<SleepRecord>) -> impl IntoView {
 
     view! {
         <section>
-            <h3 class="text-lg font-semibold text-ultiq-indigo mb-3">"Sleep"</h3>
+            <h3 class="text-lg font-semibold text-ultiq-indigo mb-3">{move || t("nav.sleep")}</h3>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
-                <ReportStat label="Nights logged" value=n.to_string() />
-                <ReportStat label="Avg duration" value=fmt_minutes(avg) />
+                <ReportStat label_key="rep.sleep_nights" value=n.to_string() />
+                <ReportStat label_key="slp.stat_avg_duration" value=fmt_minutes(avg) />
                 <ReportStat
-                    label="Avg quality"
+                    label_key="slp.stat_avg_quality"
                     value=if n == 0 { "—".to_string() } else { format!("{:.1}/5", avg_quality) }
                 />
-                <ReportStat label="Total pickups" value=total_pickups.to_string() />
-                {(nap_count > 0).then(|| view! { <ReportStat label="Naps" value=nap_count.to_string() /> })}
+                <ReportStat label_key="rep.sleep_total_pickups" value=total_pickups.to_string() />
+                {(nap_count > 0).then(|| view! { <ReportStat label_key="slp.stat_naps" value=nap_count.to_string() /> })}
             </div>
             <p class="text-sm text-ultiq-indigo/70">
-                <strong>"Best night: "</strong>{best}
+                <strong>{move || t("rep.best_night")}</strong>" "{best}
             </p>
         </section>
     }
@@ -297,31 +312,32 @@ fn FocusSection(records: Vec<ProductivitySession>) -> impl IntoView {
 
     view! {
         <section>
-            <h3 class="text-lg font-semibold text-ultiq-indigo mb-3">"Focus"</h3>
+            <h3 class="text-lg font-semibold text-ultiq-indigo mb-3">{move || t("nav.focus")}</h3>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
-                <ReportStat label="Sessions" value=session_count.to_string() />
-                <ReportStat label="Total focus" value=fmt_minutes_i(total_minutes) />
+                <ReportStat label_key="rep.focus_sessions" value=session_count.to_string() />
+                <ReportStat label_key="rep.focus_total" value=fmt_minutes_i(total_minutes) />
                 <ReportStat
-                    label="Avg session"
+                    label_key="rep.focus_avg_session"
                     value=if session_count == 0 {
                         "—".to_string()
                     } else {
                         fmt_minutes_i(total_minutes / session_count as i64)
                     }
                 />
-                <ReportStat label="Pickups" value=total_pickups.to_string() />
+                <ReportStat label_key="rep.focus_pickups" value=total_pickups.to_string() />
             </div>
             <Show when=move || has_top>
                 <div>
-                    <p class="text-sm font-medium text-ultiq-indigo mb-2">"Top tags"</p>
+                    <p class="text-sm font-medium text-ultiq-indigo mb-2">{move || t("foc.top_tags")}</p>
                     <ul class="text-sm space-y-1 text-ultiq-indigo/80">
-                        {top.iter().map(|(tag, m, c)| view! {
-                            <li class="flex items-center justify-between gap-3">
-                                <span class="font-medium">{tag.clone()}</span>
-                                <span class="text-ultiq-indigo/60 text-xs">
-                                    {format!("{} · {} sessions", fmt_minutes_i(*m), c)}
-                                </span>
-                            </li>
+                        {top.iter().map(|(tag, m, c)| {
+                            let stat = format!("{} · {}", fmt_minutes_i(*m), sessions_sub(*c));
+                            view! {
+                                <li class="flex items-center justify-between gap-3">
+                                    <span class="font-medium">{tag.clone()}</span>
+                                    <span class="text-ultiq-indigo/60 text-xs">{stat}</span>
+                                </li>
+                            }
                         }).collect_view()}
                     </ul>
                 </div>
@@ -339,12 +355,11 @@ fn CalendarSection(
     let n = records.len();
 
     // Category breakdown
-    let mut by_category: HashMap<&'static str, i32> = HashMap::new();
+    let mut by_category: HashMap<EventCategory, i32> = HashMap::new();
     for e in &records {
-        let label = e.category.label();
-        *by_category.entry(label).or_insert(0) += 1;
+        *by_category.entry(e.category).or_insert(0) += 1;
     }
-    let mut cats: Vec<(&'static str, i32)> = by_category.into_iter().collect();
+    let mut cats: Vec<(EventCategory, i32)> = by_category.into_iter().collect();
     cats.sort_by_key(|(_, c)| std::cmp::Reverse(*c));
 
     // Busiest day-of-week
@@ -356,7 +371,11 @@ fn CalendarSection(
     let busiest = by_dow
         .iter()
         .max_by_key(|(_, c)| **c)
-        .map(|(d, c)| format!("{} ({} events)", weekday_short(*d), c))
+        .map(|(d, c)| {
+            let wd = weekday_short_localized(*d);
+            let cs = c.to_string();
+            t_args("rep.busiest_value", &[("day", wd.as_str()), ("count", cs.as_str())])
+        })
         .unwrap_or_else(|| "—".to_string());
 
     // Total scheduled hours (start_time → end_time)
@@ -370,23 +389,26 @@ fn CalendarSection(
 
     view! {
         <section>
-            <h3 class="text-lg font-semibold text-ultiq-indigo mb-3">"Calendar"</h3>
+            <h3 class="text-lg font-semibold text-ultiq-indigo mb-3">{move || t("nav.calendar")}</h3>
             <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
-                <ReportStat label="Events" value=n.to_string() />
-                <ReportStat label="Scheduled time" value=fmt_minutes(total_minutes) />
-                <ReportStat label="Busiest day" value=busiest />
+                <ReportStat label_key="rep.cal_events" value=n.to_string() />
+                <ReportStat label_key="rep.cal_scheduled" value=fmt_minutes(total_minutes) />
+                <ReportStat label_key="rep.cal_busiest" value=busiest />
             </div>
             <Show when=move || has_cats>
                 <div>
-                    <p class="text-sm font-medium text-ultiq-indigo mb-2">"By category"</p>
+                    <p class="text-sm font-medium text-ultiq-indigo mb-2">{move || t("rep.by_category")}</p>
                     <ul class="text-sm space-y-1 text-ultiq-indigo/80">
-                        {cats.iter().map(|(label, c)| view! {
-                            <li class="flex items-center justify-between gap-3">
-                                <span class="font-medium">{*label}</span>
-                                <span class="text-ultiq-indigo/60 text-xs">
-                                    {format!("{} events", c)}
-                                </span>
-                            </li>
+                        {cats.iter().map(|(cat, c)| {
+                            let cat = *cat;
+                            let cs = c.to_string();
+                            let ev = t_args("rep.n_events", &[("count", cs.as_str())]);
+                            view! {
+                                <li class="flex items-center justify-between gap-3">
+                                    <span class="font-medium">{move || category_label(cat)}</span>
+                                    <span class="text-ultiq-indigo/60 text-xs">{ev}</span>
+                                </li>
+                            }
                         }).collect_view()}
                     </ul>
                 </div>
@@ -396,17 +418,11 @@ fn CalendarSection(
 }
 
 #[component]
-fn ReportStat(label: &'static str, value: String) -> impl IntoView {
+fn ReportStat(label_key: &'static str, value: String) -> impl IntoView {
     view! {
         <div class="bg-ultiq-cream/50 rounded-xl p-3 print:bg-white print:border print:border-ultiq-indigo/15">
-            <p class="text-xs text-ultiq-indigo/60 uppercase tracking-wider font-medium">{label}</p>
+            <p class="text-xs text-ultiq-indigo/60 uppercase tracking-wider font-medium">{move || t(label_key)}</p>
             <p class="text-xl font-bold text-ultiq-indigo mt-1">{value}</p>
         </div>
     }
-}
-
-// Suppress unused-variant warning on EventCategory imports
-#[allow(dead_code)]
-fn _force_use_event_category(c: EventCategory) -> &'static str {
-    c.label()
 }
