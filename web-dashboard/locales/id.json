@@ -205,5 +205,22 @@
   "slp.chart_bar_tooltip": "{duration} · kualitas {quality}/5",
   "slp.chart_target": "target {value}",
   "slp.no_nights": "Tidak ada malam yang tercatat.",
-  "slp.pickups_summary": "Rata-rata {avg} ambilan/malam · maks {max} dalam satu malam"
+  "slp.pickups_summary": "Rata-rata {avg} ambilan/malam · maks {max} dalam satu malam",
+  "foc.daily_focus": "Fokus harian",
+  "foc.daily_sub": "{days} hari terakhir · selesai vs dibatalkan",
+  "foc.top_tags": "Tag teratas",
+  "foc.pickups_per_session": "Ambilan HP per sesi",
+  "foc.pickups_caption": "ambilan HP per sesi",
+  "foc.stat_focus_range": "Fokus (rentang)",
+  "foc.stat_streak": "rentetan",
+  "foc.stat_avg_pickups": "Rata-rata Ambilan HP",
+  "foc.stat_pickups_today": "Ambilan HP hari ini",
+  "foc.longest": "terpanjang {count} hr",
+  "foc.per_session": "per sesi",
+  "foc.daily_tooltip": "{day}: {completed} (dibatalkan {cancelled})",
+  "foc.no_sessions_range": "Tidak ada sesi fokus dalam rentang ini.",
+  "foc.completed": "Selesai",
+  "foc.cancelled": "Dibatalkan",
+  "foc.no_tags": "Belum ada tag.",
+  "foc.no_sessions": "Belum ada sesi."
 }

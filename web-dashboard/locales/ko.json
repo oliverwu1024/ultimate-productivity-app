@@ -205,5 +205,22 @@
   "slp.chart_bar_tooltip": "{duration} · 품질 {quality}/5",
   "slp.chart_target": "목표 {value}",
   "slp.no_nights": "기록된 밤이 없습니다.",
-  "slp.pickups_summary": "하룻밤 평균 {avg}회 픽업 · 하루 최대 {max}회"
+  "slp.pickups_summary": "하룻밤 평균 {avg}회 픽업 · 하루 최대 {max}회",
+  "foc.daily_focus": "일일 집중",
+  "foc.daily_sub": "지난 {days}일 · 완료 vs 취소",
+  "foc.top_tags": "상위 태그",
+  "foc.pickups_per_session": "세션당 픽업",
+  "foc.pickups_caption": "세션당 픽업",
+  "foc.stat_focus_range": "집중 (기간)",
+  "foc.stat_streak": "연속",
+  "foc.stat_avg_pickups": "평균 픽업 횟수",
+  "foc.stat_pickups_today": "오늘 픽업",
+  "foc.longest": "최장 {count}일",
+  "foc.per_session": "세션당",
+  "foc.daily_tooltip": "{day}: {completed} (취소 {cancelled})",
+  "foc.no_sessions_range": "이 기간에 집중 세션이 없습니다.",
+  "foc.completed": "완료",
+  "foc.cancelled": "취소됨",
+  "foc.no_tags": "아직 태그가 없습니다.",
+  "foc.no_sessions": "아직 세션이 없습니다."
 }

@@ -205,5 +205,22 @@
   "slp.chart_bar_tooltip": "{duration} · الجودة {quality}/5",
   "slp.chart_target": "الهدف {value}",
   "slp.no_nights": "لا ليالٍ مسجّلة.",
-  "slp.pickups_summary": "متوسط {avg} التقاطات/ليلة · بحد أقصى {max} في ليلة واحدة"
+  "slp.pickups_summary": "متوسط {avg} التقاطات/ليلة · بحد أقصى {max} في ليلة واحدة",
+  "foc.daily_focus": "التركيز اليومي",
+  "foc.daily_sub": "آخر {days} أيام · مكتمل مقابل ملغى",
+  "foc.top_tags": "أبرز الوسوم",
+  "foc.pickups_per_session": "الالتقاطات لكل جلسة",
+  "foc.pickups_caption": "الالتقاطات لكل جلسة",
+  "foc.stat_focus_range": "التركيز (النطاق)",
+  "foc.stat_streak": "السلسلة",
+  "foc.stat_avg_pickups": "متوسط الالتقاطات",
+  "foc.stat_pickups_today": "التقاطات اليوم",
+  "foc.longest": "الأطول {count} يوم",
+  "foc.per_session": "لكل جلسة",
+  "foc.daily_tooltip": "{day}: {completed} (ملغى {cancelled})",
+  "foc.no_sessions_range": "لا توجد جلسات تركيز في هذا النطاق.",
+  "foc.completed": "مكتمل",
+  "foc.cancelled": "ملغى",
+  "foc.no_tags": "لا توجد وسوم بعد.",
+  "foc.no_sessions": "لا توجد جلسات بعد."
 }

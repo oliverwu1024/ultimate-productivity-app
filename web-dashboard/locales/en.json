@@ -205,5 +205,22 @@
   "slp.chart_bar_tooltip": "{duration} · quality {quality}/5",
   "slp.chart_target": "target {value}",
   "slp.no_nights": "No nights recorded.",
-  "slp.pickups_summary": "Avg {avg} pickups/night · max {max} on a single night"
+  "slp.pickups_summary": "Avg {avg} pickups/night · max {max} on a single night",
+  "foc.daily_focus": "Daily focus",
+  "foc.daily_sub": "Last {days} days · completed vs cancelled",
+  "foc.top_tags": "Top tags",
+  "foc.pickups_per_session": "Pickups per session",
+  "foc.pickups_caption": "pickups per session",
+  "foc.stat_focus_range": "Focus (range)",
+  "foc.stat_streak": "Streak",
+  "foc.stat_avg_pickups": "Avg pickups",
+  "foc.stat_pickups_today": "Pickups today",
+  "foc.longest": "longest {count}d",
+  "foc.per_session": "per session",
+  "foc.daily_tooltip": "{day}: {completed} (cancelled {cancelled})",
+  "foc.no_sessions_range": "No focus sessions in this range.",
+  "foc.completed": "Completed",
+  "foc.cancelled": "Cancelled",
+  "foc.no_tags": "No tags yet.",
+  "foc.no_sessions": "No sessions yet."
 }

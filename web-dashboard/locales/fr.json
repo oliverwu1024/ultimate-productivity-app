@@ -205,5 +205,22 @@
   "slp.chart_bar_tooltip": "{duration} · qualité {quality}/5",
   "slp.chart_target": "objectif {value}",
   "slp.no_nights": "Aucune nuit enregistrée.",
-  "slp.pickups_summary": "Moy. {avg} prises en main/nuit · max {max} sur une seule nuit"
+  "slp.pickups_summary": "Moy. {avg} prises en main/nuit · max {max} sur une seule nuit",
+  "foc.daily_focus": "Focus quotidien",
+  "foc.daily_sub": "{days} derniers jours · terminé vs annulé",
+  "foc.top_tags": "Meilleurs tags",
+  "foc.pickups_per_session": "Prises en main par session",
+  "foc.pickups_caption": "prises en main par session",
+  "foc.stat_focus_range": "Focus (période)",
+  "foc.stat_streak": "Série",
+  "foc.stat_avg_pickups": "Prises en main moy.",
+  "foc.stat_pickups_today": "Prises en main auj.",
+  "foc.longest": "max {count} j",
+  "foc.per_session": "par session",
+  "foc.daily_tooltip": "{day} : {completed} (annulé {cancelled})",
+  "foc.no_sessions_range": "Aucune session Focus dans cette période.",
+  "foc.completed": "Terminé",
+  "foc.cancelled": "Annulé",
+  "foc.no_tags": "Aucun tag pour l'instant.",
+  "foc.no_sessions": "Aucune session pour l'instant."
 }

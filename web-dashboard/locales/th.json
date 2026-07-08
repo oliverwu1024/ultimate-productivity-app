@@ -205,5 +205,22 @@
   "slp.chart_bar_tooltip": "{duration} · คุณภาพ {quality}/5",
   "slp.chart_target": "เป้าหมาย {value}",
   "slp.no_nights": "ไม่มีคืนที่บันทึกไว้",
-  "slp.pickups_summary": "เฉลี่ย {avg} ครั้ง/คืน · สูงสุด {max} ครั้งในคืนเดียว"
+  "slp.pickups_summary": "เฉลี่ย {avg} ครั้ง/คืน · สูงสุด {max} ครั้งในคืนเดียว",
+  "foc.daily_focus": "โฟกัสรายวัน",
+  "foc.daily_sub": "{days} วันล่าสุด · เสร็จแล้ว vs ยกเลิกแล้ว",
+  "foc.top_tags": "แท็กยอดนิยม",
+  "foc.pickups_per_session": "การหยิบโทรศัพท์ต่อเซสชัน",
+  "foc.pickups_caption": "การหยิบโทรศัพท์ต่อเซสชัน",
+  "foc.stat_focus_range": "โฟกัส (ช่วง)",
+  "foc.stat_streak": "ต่อเนื่อง",
+  "foc.stat_avg_pickups": "การหยิบโทรศัพท์เฉลี่ย",
+  "foc.stat_pickups_today": "การหยิบโทรศัพท์วันนี้",
+  "foc.longest": "นานสุด {count} วัน",
+  "foc.per_session": "ต่อเซสชัน",
+  "foc.daily_tooltip": "{day}: {completed} (ยกเลิก {cancelled})",
+  "foc.no_sessions_range": "ไม่มีเซสชันโฟกัสในช่วงนี้",
+  "foc.completed": "เสร็จแล้ว",
+  "foc.cancelled": "ยกเลิกแล้ว",
+  "foc.no_tags": "ยังไม่มีแท็ก",
+  "foc.no_sessions": "ยังไม่มีเซสชัน"
 }
