@@ -15,6 +15,7 @@ use crate::api::checklist::{
 use crate::api::sse::{use_sse, SyncEvent};
 use crate::components::ai_parse_dialog::{AiParsePromptDialog, AiSurface};
 use crate::components::layout::AppShell;
+use crate::i18n::{current_locale, current_locale_untracked, t, t_args, tu};
 
 /// Thin wrapper to keep the call sites tidy; logic lives on the model.
 fn shows_on(item: &ChecklistItem, day: NaiveDate) -> bool {
@@ -38,36 +39,46 @@ enum ScheduleMode {
     UntilDue,
 }
 
-fn weekday_label(w: chrono::Weekday) -> &'static str {
-    match w {
-        chrono::Weekday::Mon => "Monday",
-        chrono::Weekday::Tue => "Tuesday",
-        chrono::Weekday::Wed => "Wednesday",
-        chrono::Weekday::Thu => "Thursday",
-        chrono::Weekday::Fri => "Friday",
-        chrono::Weekday::Sat => "Saturday",
-        chrono::Weekday::Sun => "Sunday",
+fn fmt_day_header(d: NaiveDate, today: NaiveDate) -> String {
+    let loc = current_locale().chrono();
+    let base = format!(
+        "{}, {} {}",
+        d.format_localized("%A", loc),
+        d.day(),
+        d.format_localized("%b", loc)
+    );
+    let rel = match (d - today).num_days() {
+        0 => Some(t("common.today")),
+        1 => Some(t("chk.rel_tomorrow")),
+        -1 => Some(t("chk.rel_yesterday")),
+        _ => None,
+    };
+    match rel {
+        Some(r) => format!("{base} · {r}"),
+        None => base,
     }
 }
 
-const MONTH_NAMES: [&str; 12] = [
-    "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-];
+fn priority_label_chk(p: Priority) -> String {
+    t(match p {
+        Priority::High => "common.priority_high",
+        Priority::Medium => "common.priority_medium",
+        Priority::Low => "common.priority_low",
+    })
+}
 
-fn fmt_day_header(d: NaiveDate, today: NaiveDate) -> String {
-    let suffix = match (d - today).num_days() {
-        0 => " · Today".to_string(),
-        1 => " · Tomorrow".to_string(),
-        -1 => " · Yesterday".to_string(),
-        _ => String::new(),
-    };
-    format!(
-        "{}, {} {}{}",
-        weekday_label(d.weekday()),
-        d.day(),
-        MONTH_NAMES[(d.month() - 1) as usize],
-        suffix,
-    )
+/// Localized single-letter weekday initial. `i`: 0=Sun … 6=Sat (matches the
+/// recurrence-mask bit order). Uses the first character of the locale's
+/// abbreviated weekday name, uppercased.
+fn weekday_initial(i: usize) -> String {
+    let loc = current_locale().chrono();
+    let name = (NaiveDate::from_ymd_opt(2023, 12, 31).unwrap() + Duration::days(i as i64))
+        .format_localized("%a", loc)
+        .to_string();
+    name.chars()
+        .next()
+        .map(|c| c.to_uppercase().to_string())
+        .unwrap_or_default()
 }
 
 #[component]
@@ -84,6 +95,7 @@ pub fn ChecklistPage() -> impl IntoView {
     let ai_open = RwSignal::new(false);
     let ai_loading = RwSignal::new(false);
     let ai_error = RwSignal::new(None::<String>);
+    let ai_parse_failed = StoredValue::new(tu("common.ai_parse_failed"));
 
     let refresh = move || {
         let day = selected_day.get_untracked();
@@ -165,7 +177,7 @@ pub fn ChecklistPage() -> impl IntoView {
         <AppShell>
             <div class="p-4 md:p-8 max-w-4xl mx-auto">
                 <header class="flex items-center justify-between mb-6">
-                    <h1 class="text-3xl font-bold text-ultiq-indigo">"Checklist"</h1>
+                    <h1 class="text-3xl font-bold text-ultiq-indigo">{move || t("nav.checklist")}</h1>
                     <div class="flex items-center gap-2">
                         <button
                             on:click=move |_| {
@@ -174,13 +186,13 @@ pub fn ChecklistPage() -> impl IntoView {
                             }
                             class="px-3 py-2 border border-ultiq-indigo/30 text-ultiq-indigo rounded-lg font-medium hover:bg-ultiq-indigo/5 cursor-pointer"
                         >
-                            "✨ AI"
+                            {move || format!("✨ {}", t("common.ai"))}
                         </button>
                         <button
                             on:click=move |_| dialog.set(DialogState::Add)
                             class="px-4 py-2 bg-ultiq-indigo text-ultiq-cream rounded-lg font-medium hover:opacity-90 cursor-pointer"
                         >
-                            "+ Add item"
+                            {move || format!("+ {}", t("chk.add_item"))}
                         </button>
                     </div>
                 </header>
@@ -196,7 +208,7 @@ pub fn ChecklistPage() -> impl IntoView {
                         <button
                             on:click=goto_prev
                             class="px-3 py-1 rounded hover:bg-ultiq-indigo/5 cursor-pointer"
-                            aria-label="Previous day"
+                            aria-label=move || t("chk.prev_day")
                         >
                             "←"
                         </button>
@@ -208,13 +220,13 @@ pub fn ChecklistPage() -> impl IntoView {
                                 on:click=goto_today
                                 class="text-xs px-2 py-1 rounded border border-ultiq-indigo/20 text-ultiq-indigo hover:bg-ultiq-indigo/5 cursor-pointer"
                             >
-                                "Today"
+                                {move || t("common.today")}
                             </button>
                         </div>
                         <button
                             on:click=goto_next
                             class="px-3 py-1 rounded hover:bg-ultiq-indigo/5 cursor-pointer"
-                            aria-label="Next day"
+                            aria-label=move || t("chk.next_day")
                         >
                             "→"
                         </button>
@@ -234,7 +246,7 @@ pub fn ChecklistPage() -> impl IntoView {
                             if day_items.is_empty() {
                                 view! {
                                     <p class="text-sm text-ultiq-indigo/50 py-4 text-center">
-                                        "Nothing open for this day."
+                                        {move || t("chk.nothing_open")}
                                     </p>
                                 }.into_any()
                             } else {
@@ -271,7 +283,8 @@ pub fn ChecklistPage() -> impl IntoView {
                                     .filter(|i| shows_on(i, day) && i.is_done_on(day))
                                     .count();
                                 let arrow = if show_completed.get() { "▼" } else { "▶" };
-                                format!("{} Completed ({})", arrow, n)
+                                let ns = n.to_string();
+                                format!("{} {}", arrow, t_args("chk.completed", &[("count", ns.as_str())]))
                             }}
                         </button>
                         <Show when=move || show_completed.get()>
@@ -358,9 +371,7 @@ pub fn ChecklistPage() -> impl IntoView {
                                                 dialog.set(DialogState::AddPrefilled(cl));
                                             } else {
                                                 ai_loading.set(false);
-                                                ai_error.set(Some(
-                                                    "Couldn't parse that — try rephrasing.".into(),
-                                                ));
+                                                ai_error.set(Some(ai_parse_failed.get_value()));
                                             }
                                         }
                                         Err(e) => {
@@ -431,7 +442,7 @@ fn ItemRow(
     let title = item.title.clone();
     let estimated = item.estimated_minutes;
     let description = item.description.clone();
-    let schedule = schedule_label(&item);
+    let sched_item = item.clone();
 
     view! {
         <li class="flex items-start gap-3 bg-ultiq-cream/40 rounded-xl p-3 hover:bg-ultiq-cream/70 transition-colors">
@@ -445,7 +456,7 @@ fn ItemRow(
                         "border-ultiq-indigo/40 hover:border-ultiq-indigo bg-white"
                     }
                 )
-                aria-label="Toggle complete"
+                aria-label=move || t("chk.toggle_complete")
             >
                 <Show when=move || is_done_now>
                     <span class="text-ultiq-cream text-xs leading-none">"✓"</span>
@@ -458,11 +469,14 @@ fn ItemRow(
                 <div class="flex items-center gap-2 flex-wrap">
                     <span class=format!("font-medium {}", title_class)>{title}</span>
                     <span class=format!("text-[10px] px-2 py-0.5 rounded-full font-medium {}", priority_color)>
-                        {priority.label()}
+                        {move || priority_label_chk(priority)}
                     </span>
                     <Show when=move || estimated.is_some()>
                         <span class="text-xs text-ultiq-indigo/50">
-                            {format!("~{} min", estimated.unwrap_or(0))}
+                            {move || {
+                                let m = estimated.unwrap_or(0).to_string();
+                                t_args("chk.est_min", &[("min", m.as_str())])
+                            }}
                         </span>
                     </Show>
                 </div>
@@ -475,11 +489,14 @@ fn ItemRow(
                     </p>
                 </Show>
                 <Show when={
-                    let s = schedule.clone();
-                    move || s.is_some()
+                    let it = sched_item.clone();
+                    move || schedule_label(&it).is_some()
                 }>
                     <p class="text-xs text-ultiq-indigo/50 mt-1">
-                        {schedule.clone().unwrap_or_default()}
+                        {
+                            let it = sched_item.clone();
+                            move || schedule_label(&it).unwrap_or_default()
+                        }
                     </p>
                 </Show>
             </button>
@@ -492,23 +509,31 @@ fn ItemRow(
 fn schedule_label(item: &ChecklistItem) -> Option<String> {
     if item.recurrence_days_mask != 0 {
         if item.recurrence_days_mask == 0b1111111 {
-            return Some("Every day".into());
+            return Some(t("chk.every_day"));
         }
         if item.recurrence_days_mask == 0b0111110 {
-            return Some("Weekdays".into());
+            return Some(t("chk.weekdays"));
         }
         if item.recurrence_days_mask == 0b1000001 {
-            return Some("Weekends".into());
+            return Some(t("chk.weekends"));
         }
-        let names = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-        let picked: Vec<&str> = (0..7)
+        let loc = current_locale().chrono();
+        // Reference Sunday (2023-12-31); bit i (0=Sun … 6=Sat) → that weekday.
+        let picked: Vec<String> = (0..7)
             .filter(|i| (item.recurrence_days_mask >> i) & 1 == 1)
-            .map(|i| names[i as usize])
+            .map(|i| {
+                (NaiveDate::from_ymd_opt(2023, 12, 31).unwrap() + Duration::days(i as i64))
+                    .format_localized("%a", loc)
+                    .to_string()
+            })
             .collect();
-        return Some(format!("Repeats: {}", picked.join(", ")));
+        let days = picked.join(", ");
+        return Some(t_args("chk.repeats", &[("days", days.as_str())]));
     }
     if item.show_until_due {
-        return Some(format!("Due {}", item.due_date.format("%b %d")));
+        let loc = current_locale().chrono();
+        let date = item.due_date.format_localized("%b %d", loc).to_string();
+        return Some(t_args("chk.due_summary", &[("date", date.as_str())]));
     }
     None
 }
@@ -588,6 +613,16 @@ fn ItemDialog(
 
     let item_id_store = StoredValue::new(item_id);
     let existing_is_some = StoredValue::new(existing.is_some());
+    // Captured at render with non-reactive `tu()`/untracked locale, so the
+    // handlers + futures below emit them in the right language without
+    // re-rendering (and stay Copy for closures used inside `<Show>`).
+    let err_est_positive = StoredValue::new(tu("chk.err_est_positive"));
+    let err_title_required = StoredValue::new(tu("cal.err_title_required"));
+    let err_title_before_schedule = StoredValue::new(tu("chk.err_title_before_schedule"));
+    let err_start_time = StoredValue::new(tu("chk.err_start_time"));
+    let confirm_delete = StoredValue::new(tu("chk.confirm_delete"));
+    let scheduled_tpl = StoredValue::new(tu("chk.scheduled_msg"));
+    let sched_loc = current_locale_untracked().chrono();
 
     /// Inner save shared between the direct path and the "include today"
     /// follow-up. `also_today` is only honored on new recurring items.
@@ -600,7 +635,7 @@ fn ItemDialog(
             match est_str.trim().parse::<i32>() {
                 Ok(n) if n > 0 => Some(n),
                 _ => {
-                    dialog_error.set(Some("Estimated minutes must be a positive number".into()));
+                    dialog_error.set(Some(err_est_positive.get_value()));
                     submitting.set(false);
                     return;
                 }
@@ -687,7 +722,7 @@ fn ItemDialog(
             return;
         }
         if title.get_untracked().trim().is_empty() {
-            dialog_error.set(Some("Title is required".into()));
+            dialog_error.set(Some(err_title_required.get_value()));
             return;
         }
 
@@ -715,7 +750,7 @@ fn ItemDialog(
         if submitting.get_untracked() { return; }
         let t = title.get_untracked();
         if t.trim().is_empty() {
-            dialog_error.set(Some("Add a title before scheduling".into()));
+            dialog_error.set(Some(err_title_before_schedule.get_value()));
             return;
         }
         let dd = due_date.get_untracked();
@@ -730,7 +765,7 @@ fn ItemDialog(
         {
             Some(d) => d,
             None => {
-                dialog_error.set(Some("Could not compute a start time".into()));
+                dialog_error.set(Some(err_start_time.get_value()));
                 return;
             }
         };
@@ -763,11 +798,10 @@ fn ItemDialog(
         wasm_bindgen_futures::spawn_local(async move {
             match create_calendar_event(&body).await {
                 Ok(_) => {
-                    let when = start_local.format("%a, %b %d at %H:%M").to_string();
-                    scheduled_msg.set(Some(format!(
-                        "Scheduled for {} — open Calendar to fine-tune.",
-                        when
-                    )));
+                    let when = start_local
+                        .format_localized("%a, %b %d, %H:%M", sched_loc)
+                        .to_string();
+                    scheduled_msg.set(Some(scheduled_tpl.get_value().replace("{when}", &when)));
                     submitting.set(false);
                 }
                 Err(e) => {
@@ -782,7 +816,7 @@ fn ItemDialog(
         let Some(id) = item_id_store.get_value() else { return };
         let confirmed = web_sys::window()
             .and_then(|w| {
-                w.confirm_with_message("Delete this item? This cannot be undone.")
+                w.confirm_with_message(&confirm_delete.get_value())
                     .ok()
             })
             .unwrap_or(false);
@@ -812,11 +846,11 @@ fn ItemDialog(
                 class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md space-y-4 max-h-[90vh] overflow-auto"
             >
                 <h3 class="text-xl font-semibold text-ultiq-indigo">
-                    {if is_edit { "Edit item" } else { "New item" }}
+                    {move || if is_edit { t("chk.edit_item") } else { t("chk.new_item") }}
                 </h3>
 
                 <label class="block">
-                    <span class="text-sm font-medium text-ultiq-indigo">"Title"</span>
+                    <span class="text-sm font-medium text-ultiq-indigo">{move || t("cal.field_title")}</span>
                     <input
                         type="text"
                         class="mt-1 w-full px-3 py-2 border border-ultiq-indigo/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-ultiq-indigo"
@@ -827,7 +861,7 @@ fn ItemDialog(
                 </label>
 
                 <label class="block">
-                    <span class="text-sm font-medium text-ultiq-indigo">"Description"</span>
+                    <span class="text-sm font-medium text-ultiq-indigo">{move || t("cal.field_description")}</span>
                     <textarea
                         rows="2"
                         class="mt-1 w-full px-3 py-2 border border-ultiq-indigo/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-ultiq-indigo"
@@ -839,12 +873,12 @@ fn ItemDialog(
                 // §1 — schedule mode + recurrence picker. Mirrors the
                 // Android dialog's One-off / Repeat / By due segments.
                 <div>
-                    <span class="text-sm font-medium text-ultiq-indigo">"Schedule"</span>
+                    <span class="text-sm font-medium text-ultiq-indigo">{move || t("chk.schedule")}</span>
                     <div class="mt-1 grid grid-cols-3 gap-1 bg-ultiq-indigo/5 rounded-lg p-1">
                         {[
-                            (ScheduleMode::OneOff, "Today"),
-                            (ScheduleMode::Recurring, "Repeat"),
-                            (ScheduleMode::UntilDue, "By due"),
+                            (ScheduleMode::OneOff, "common.today"),
+                            (ScheduleMode::Recurring, "chk.mode_repeat"),
+                            (ScheduleMode::UntilDue, "chk.mode_by_due"),
                         ].into_iter().map(|(m, label)| {
                             view! {
                                 <button
@@ -859,25 +893,25 @@ fn ItemDialog(
                                         }
                                     }
                                 >
-                                    {label}
+                                    {move || t(label)}
                                 </button>
                             }
                         }).collect_view()}
                     </div>
                     <p class="text-xs text-ultiq-indigo/60 mt-1">
-                        {move || match schedule_mode.get() {
-                            ScheduleMode::OneOff => "Shows on the picked day only.",
-                            ScheduleMode::Recurring => "Repeats on the weekdays you pick below.",
-                            ScheduleMode::UntilDue => "Shows every day until the due date.",
-                        }}
+                        {move || t(match schedule_mode.get() {
+                            ScheduleMode::OneOff => "chk.mode_desc_oneoff",
+                            ScheduleMode::Recurring => "chk.mode_desc_recurring",
+                            ScheduleMode::UntilDue => "chk.mode_desc_untildue",
+                        })}
                     </p>
                 </div>
 
                 <Show when=move || schedule_mode.get() == ScheduleMode::Recurring>
                     <div>
-                        <span class="text-sm font-medium text-ultiq-indigo">"Days"</span>
+                        <span class="text-sm font-medium text-ultiq-indigo">{move || t("chk.days")}</span>
                         <div class="mt-1 flex gap-1">
-                            {["S", "M", "T", "W", "T", "F", "S"].into_iter().enumerate().map(|(i, letter)| {
+                            {(0..7).map(|i| {
                                 let bit_idx = i as i16;
                                 view! {
                                     <button
@@ -894,7 +928,7 @@ fn ItemDialog(
                                             }
                                         }
                                     >
-                                        {letter}
+                                        {move || weekday_initial(i)}
                                     </button>
                                 }
                             }).collect_view()}
@@ -904,17 +938,17 @@ fn ItemDialog(
                                 type="button"
                                 on:click=move |_| recurrence_mask.set(0b1111111)
                                 class="text-ultiq-indigo/60 hover:text-ultiq-indigo cursor-pointer"
-                            >"Every day"</button>
+                            >{move || t("chk.every_day")}</button>
                             <button
                                 type="button"
                                 on:click=move |_| recurrence_mask.set(0b0111110)
                                 class="text-ultiq-indigo/60 hover:text-ultiq-indigo cursor-pointer"
-                            >"Weekdays"</button>
+                            >{move || t("chk.weekdays")}</button>
                             <button
                                 type="button"
                                 on:click=move |_| recurrence_mask.set(0b1000001)
                                 class="text-ultiq-indigo/60 hover:text-ultiq-indigo cursor-pointer"
-                            >"Weekends"</button>
+                            >{move || t("chk.weekends")}</button>
                         </div>
                     </div>
                 </Show>
@@ -922,11 +956,11 @@ fn ItemDialog(
                 <div class="grid grid-cols-2 gap-3">
                     <label class="block">
                         <span class="text-sm font-medium text-ultiq-indigo">
-                            {move || match schedule_mode.get() {
-                                ScheduleMode::OneOff => "On",
-                                ScheduleMode::Recurring => "Starts",
-                                ScheduleMode::UntilDue => "Due",
-                            }}
+                            {move || t(match schedule_mode.get() {
+                                ScheduleMode::OneOff => "chk.field_on",
+                                ScheduleMode::Recurring => "chk.field_starts",
+                                ScheduleMode::UntilDue => "chk.field_due",
+                            })}
                         </span>
                         <input
                             type="date"
@@ -941,20 +975,20 @@ fn ItemDialog(
                         />
                     </label>
                     <label class="block">
-                        <span class="text-sm font-medium text-ultiq-indigo">"Est. minutes"</span>
+                        <span class="text-sm font-medium text-ultiq-indigo">{move || t("chk.est_minutes")}</span>
                         <input
                             type="number"
                             min="0"
                             class="mt-1 w-full px-3 py-2 border border-ultiq-indigo/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-ultiq-indigo"
                             prop:value=move || estimated_minutes_str.get()
                             on:input=move |ev| estimated_minutes_str.set(event_target_value(&ev))
-                            placeholder="e.g. 30"
+                            placeholder=move || t("chk.est_placeholder")
                         />
                     </label>
                 </div>
 
                 <label class="block">
-                    <span class="text-sm font-medium text-ultiq-indigo">"Priority"</span>
+                    <span class="text-sm font-medium text-ultiq-indigo">{move || t("cal.field_priority")}</span>
                     <select
                         class="mt-1 w-full px-3 py-2 border border-ultiq-indigo/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-ultiq-indigo bg-white"
                         prop:value=move || priority.get().variant_str().to_string()
@@ -966,7 +1000,8 @@ fn ItemDialog(
                     >
                         {Priority::ALL.iter().map(|p| {
                             let v = p.variant_str();
-                            view! { <option value=v>{p.label()}</option> }
+                            let pr = *p;
+                            view! { <option value=v>{move || priority_label_chk(pr)}</option> }
                         }).collect_view()}
                     </select>
                 </label>
@@ -992,7 +1027,7 @@ fn ItemDialog(
                                 class="px-3 py-2 text-ultiq-red hover:bg-ultiq-red/5 rounded-lg cursor-pointer"
                                 prop:disabled=move || submitting.get()
                             >
-                                "Delete"
+                                {move || t("common.delete")}
                             </button>
                         </Show>
                         <button
@@ -1000,9 +1035,9 @@ fn ItemDialog(
                             on:click=on_schedule
                             class="px-3 py-2 text-ultiq-indigo hover:bg-ultiq-indigo/5 rounded-lg cursor-pointer border border-ultiq-indigo/20"
                             prop:disabled=move || submitting.get()
-                            title="Create a calendar event from this todo"
+                            title=move || t("chk.schedule_tooltip")
                         >
-                            "Schedule…"
+                            {move || t("chk.schedule_btn")}
                         </button>
                     </div>
                     <div class="flex gap-2 ml-auto">
@@ -1012,14 +1047,14 @@ fn ItemDialog(
                             class="px-4 py-2 text-ultiq-indigo hover:bg-ultiq-indigo/5 rounded-lg cursor-pointer"
                             prop:disabled=move || submitting.get()
                         >
-                            "Cancel"
+                            {move || t("common.cancel")}
                         </button>
                         <button
                             type="submit"
                             class="px-4 py-2 bg-ultiq-indigo text-ultiq-cream rounded-lg font-medium hover:opacity-90 disabled:opacity-50 cursor-pointer"
                             prop:disabled=move || submitting.get()
                         >
-                            {move || if submitting.get() { "Saving…" } else { "Save" }}
+                            {move || if submitting.get() { t("common.saving") } else { t("common.save") }}
                         </button>
                     </div>
                 </div>
@@ -1034,15 +1069,14 @@ fn ItemDialog(
                     on:click=|ev| ev.stop_propagation()
                 >
                     <div class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm space-y-4">
-                        <h3 class="text-lg font-semibold text-ultiq-indigo">"Include today?"</h3>
+                        <h3 class="text-lg font-semibold text-ultiq-indigo">{move || t("chk.include_today_q")}</h3>
                         <p class="text-sm text-ultiq-indigo/70">
                             {move || {
                                 let today = Local::now().date_naive();
-                                format!(
-                                    "Today is {}, which isn't in this task's repeat schedule. \
-Add it to today's list as well?",
-                                    weekday_label(today.weekday()),
-                                )
+                                let wd = today
+                                    .format_localized("%A", current_locale().chrono())
+                                    .to_string();
+                                t_args("chk.include_today_body", &[("weekday", wd.as_str())])
                             }}
                         </p>
                         <div class="flex gap-2 justify-end">
@@ -1054,7 +1088,7 @@ Add it to today's list as well?",
                                 }
                                 class="px-3 py-2 text-ultiq-indigo hover:bg-ultiq-indigo/5 rounded-lg cursor-pointer"
                             >
-                                "No, future only"
+                                {move || t("chk.include_no")}
                             </button>
                             <button
                                 type="button"
@@ -1064,7 +1098,7 @@ Add it to today's list as well?",
                                 }
                                 class="px-3 py-2 bg-ultiq-indigo text-ultiq-cream rounded-lg font-medium hover:opacity-90 cursor-pointer"
                             >
-                                "Yes, add today"
+                                {move || t("chk.include_yes")}
                             </button>
                         </div>
                     </div>

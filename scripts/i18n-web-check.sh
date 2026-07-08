@@ -43,8 +43,11 @@ for dir in "${DIRS[@]}"; do
     loc="$(basename "$f" .json)"
     [[ "$loc" == "$BASE" ]] && continue
 
-    missing="$(comm -23 <(printf '%s\n' "${base_keys[@]}" | sort) <(jq -r 'keys[]' "$f" | sort) || true)"
-    extra="$(comm -13 <(printf '%s\n' "${base_keys[@]}" | sort) <(jq -r 'keys[]' "$f" | sort) || true)"
+    # LC_ALL=C so `sort` and `comm` share byte-order collation — otherwise a
+    # UTF-8 locale can make `sort`'s output look "unsorted" to `comm` (noisy
+    # warnings, and risks an unreliable diff on collation-ambiguous keys).
+    missing="$(LC_ALL=C comm -23 <(printf '%s\n' "${base_keys[@]}" | LC_ALL=C sort) <(jq -r 'keys[]' "$f" | LC_ALL=C sort) || true)"
+    extra="$(LC_ALL=C comm -13 <(printf '%s\n' "${base_keys[@]}" | LC_ALL=C sort) <(jq -r 'keys[]' "$f" | LC_ALL=C sort) || true)"
     if [[ -n "$missing" ]]; then echo "::error::[$dir/$loc] missing keys:"; echo "$missing"; rc=1; fi
     if [[ -n "$extra"   ]]; then echo "::error::[$dir/$loc] extra keys:";   echo "$extra";   rc=1; fi
 
