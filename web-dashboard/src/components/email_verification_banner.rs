@@ -2,6 +2,7 @@ use leptos::prelude::*;
 
 use crate::api::auth::resend_verification_email;
 use crate::auth::use_auth;
+use crate::i18n::t;
 
 #[component]
 pub fn EmailVerificationBanner() -> impl IntoView {
@@ -37,15 +38,15 @@ pub fn EmailVerificationBanner() -> impl IntoView {
             <div class="bg-amber-50 border-b border-amber-200 px-4 py-3 print:hidden">
                 <div class="max-w-5xl mx-auto flex flex-col md:flex-row md:items-center gap-2 md:gap-4">
                     <div class="flex-1 text-sm text-amber-900">
-                        <span class="font-medium">"Verify your email"</span>
-                        " — Coach and other AI features stay locked until you confirm the address we sent the verification link to."
+                        <span class="font-medium">{move || t("auth.verify_title")}</span>
+                        {move || format!(" — {}", t("auth.banner_body"))}
                     </div>
                     <div class="flex items-center gap-3">
                         <Show when=move || {
                             matches!(result.get(), Some(Ok(())))
                         }>
                             <span class="text-xs text-emerald-700 bg-emerald-500/10 px-2 py-1 rounded">
-                                "Sent — check your inbox"
+                                {move || t("auth.banner_sent")}
                             </span>
                         </Show>
                         <Show when=move || {
@@ -63,7 +64,7 @@ pub fn EmailVerificationBanner() -> impl IntoView {
                             prop:disabled=move || sending.get()
                             class="text-sm font-medium px-3 py-1.5 rounded border border-amber-300 bg-white text-amber-900 hover:bg-amber-100 disabled:opacity-50 cursor-pointer whitespace-nowrap"
                         >
-                            {move || if sending.get() { "Sending…" } else { "Resend verification email" }}
+                            {move || if sending.get() { t("auth.sending") } else { t("auth.resend_email") }}
                         </button>
                     </div>
                 </div>

@@ -5,6 +5,8 @@
 use leptos::ev::SubmitEvent;
 use leptos::prelude::*;
 
+use crate::i18n::t;
+
 /// Which surface the user is on. Drives the title and placeholder text and
 /// is passed back to the caller to forward to the backend as a hint.
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -14,17 +16,17 @@ pub enum AiSurface {
 }
 
 impl AiSurface {
-    fn title(self) -> &'static str {
+    fn title_key(self) -> &'static str {
         match self {
-            Self::Calendar => "Quick add event",
-            Self::Checklist => "Quick add task",
+            Self::Calendar => "ai.title_event",
+            Self::Checklist => "ai.title_task",
         }
     }
 
-    fn placeholder(self) -> &'static str {
+    fn placeholder_key(self) -> &'static str {
         match self {
-            Self::Calendar => "e.g. lunch with Sarah tomorrow at 1pm",
-            Self::Checklist => "e.g. buy groceries on friday",
+            Self::Calendar => "ai.ph_event",
+            Self::Checklist => "ai.ph_task",
         }
     }
 }
@@ -63,16 +65,16 @@ pub fn AiParsePromptDialog(
                 class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md space-y-4"
             >
                 <h3 class="text-xl font-semibold text-ultiq-indigo">
-                    {surface.title()}
+                    {move || t(surface.title_key())}
                 </h3>
                 <p class="text-sm text-ultiq-indigo/60">
-                    "Type a sentence and we'll fill in the details for you to review."
+                    {move || t("ai.prompt_hint")}
                 </p>
 
                 <textarea
                     autofocus
                     rows="3"
-                    placeholder=surface.placeholder()
+                    placeholder=move || t(surface.placeholder_key())
                     class="w-full px-3 py-2 border border-ultiq-indigo/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-ultiq-indigo text-ultiq-indigo"
                     prop:value=move || text.get()
                     on:input=move |ev| text.set(event_target_value(&ev))
@@ -92,14 +94,14 @@ pub fn AiParsePromptDialog(
                         class="px-4 py-2 text-ultiq-indigo hover:bg-ultiq-indigo/5 rounded-lg cursor-pointer"
                         prop:disabled=move || loading.get()
                     >
-                        "Cancel"
+                        {move || t("common.cancel")}
                     </button>
                     <button
                         type="submit"
                         class="px-4 py-2 bg-ultiq-indigo text-ultiq-cream rounded-lg font-medium hover:opacity-90 disabled:opacity-50 cursor-pointer"
                         prop:disabled=move || loading.get() || text.get().trim().is_empty()
                     >
-                        {move || if loading.get() { "Generating…" } else { "Generate" }}
+                        {move || if loading.get() { t("ai.generating") } else { t("ai.generate") }}
                     </button>
                 </div>
             </form>

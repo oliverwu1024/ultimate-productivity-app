@@ -350,5 +350,15 @@
   "admin.revoking": "取り消し中…",
   "admin.revoke_tokens": "セッショントークンを取り消す",
   "admin.revoke_confirm": "このユーザーのすべてのセッショントークンを取り消しますか？すべてのデバイスでログアウトされます。",
-  "admin.tokens_revoked": "トークンを取り消しました。次のリクエストでユーザーはログアウトされます。"
+  "admin.tokens_revoked": "トークンを取り消しました。次のリクエストでユーザーはログアウトされます。",
+  "ai.title_event": "イベントをクイック追加",
+  "ai.title_task": "タスクをクイック追加",
+  "ai.ph_event": "例：明日午後1時にサラとランチ",
+  "ai.ph_task": "例：金曜日に食料品を買う",
+  "ai.prompt_hint": "文章を入力すると、詳細を自動入力します。確認してください。",
+  "ai.generating": "生成中…",
+  "ai.generate": "生成",
+  "auth.banner_body": "確認リンクを送信したアドレスを確認するまで、コーチとその他のAI機能はロックされたままです。",
+  "auth.banner_sent": "送信済み — 受信トレイを確認してください",
+  "auth.resend_email": "確認メールを再送信"
 }

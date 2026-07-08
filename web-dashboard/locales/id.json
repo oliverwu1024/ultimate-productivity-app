@@ -350,5 +350,15 @@
   "admin.revoking": "Mencabut…",
   "admin.revoke_tokens": "Cabut token sesi",
   "admin.revoke_confirm": "Cabut SEMUA token sesi pengguna ini? Mereka akan keluar di semua perangkat.",
-  "admin.tokens_revoked": "Token dicabut. Pengguna akan keluar pada permintaan berikutnya."
+  "admin.tokens_revoked": "Token dicabut. Pengguna akan keluar pada permintaan berikutnya.",
+  "ai.title_event": "Tambah acara cepat",
+  "ai.title_task": "Tambah tugas cepat",
+  "ai.ph_event": "mis. makan siang dengan Sarah besok jam 1 siang",
+  "ai.ph_task": "mis. beli bahan makanan hari Jumat",
+  "ai.prompt_hint": "Ketik kalimat dan kami akan mengisi detailnya untuk kamu tinjau.",
+  "ai.generating": "Membuat…",
+  "ai.generate": "Buat",
+  "auth.banner_body": "Coach dan fitur AI lainnya tetap terkunci sampai kamu mengonfirmasi alamat tujuan kami mengirim tautan verifikasi.",
+  "auth.banner_sent": "Terkirim — periksa kotak masukmu",
+  "auth.resend_email": "Kirim ulang email verifikasi"
 }

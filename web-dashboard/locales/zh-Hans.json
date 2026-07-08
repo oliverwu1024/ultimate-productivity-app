@@ -350,5 +350,15 @@
   "admin.revoking": "正在撤销…",
   "admin.revoke_tokens": "撤销会话令牌",
   "admin.revoke_confirm": "撤销该用户的所有会话令牌？其将在所有设备上退出登录。",
-  "admin.tokens_revoked": "已撤销令牌。用户将在下次请求时退出登录。"
+  "admin.tokens_revoked": "已撤销令牌。用户将在下次请求时退出登录。",
+  "ai.title_event": "快速添加日程",
+  "ai.title_task": "快速添加任务",
+  "ai.ph_event": "例如：明天下午 1 点和 Sarah 吃午饭",
+  "ai.ph_task": "例如：周五买菜",
+  "ai.prompt_hint": "输入一句话，我们帮你填好详情供你确认。",
+  "ai.generating": "正在生成…",
+  "ai.generate": "生成",
+  "auth.banner_body": "在你确认我们发送验证链接的邮箱地址前，教练及其他 AI 功能将保持锁定。",
+  "auth.banner_sent": "已发送 — 请检查收件箱",
+  "auth.resend_email": "重新发送验证邮件"
 }

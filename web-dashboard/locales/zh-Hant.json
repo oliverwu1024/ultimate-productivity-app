@@ -350,5 +350,15 @@
   "admin.revoking": "正在撤銷…",
   "admin.revoke_tokens": "撤銷工作階段權杖",
   "admin.revoke_confirm": "撤銷此使用者的所有工作階段權杖？其將在所有裝置上登出。",
-  "admin.tokens_revoked": "已撤銷權杖。使用者將在下次請求時登出。"
+  "admin.tokens_revoked": "已撤銷權杖。使用者將在下次請求時登出。",
+  "ai.title_event": "快速新增活動",
+  "ai.title_task": "快速新增任務",
+  "ai.ph_event": "例如：明天下午一點和 Sarah 吃午飯",
+  "ai.ph_task": "例如：週五買食材",
+  "ai.prompt_hint": "輸入一句話，我們會自動填入細節供您確認。",
+  "ai.generating": "正在生成…",
+  "ai.generate": "生成",
+  "auth.banner_body": "在您確認我們寄送驗證連結的地址前，教練及其他 AI 功能將保持鎖定。",
+  "auth.banner_sent": "已發送——請檢查收件匣",
+  "auth.resend_email": "重新傳送驗證郵件"
 }
