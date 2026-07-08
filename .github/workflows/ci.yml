@@ -158,6 +158,11 @@ jobs:
       # Hard gate: the WASM app must build.
       - name: trunk build
         run: trunk build
+      # Hard gate: pure-logic unit tests (the i18n contract — tag mapping,
+      # fallback chain, placeholder substitution, catalog parity) run on the
+      # host target; they need no browser/WASM runtime.
+      - name: cargo test (host)
+        run: cargo test --target x86_64-unknown-linux-gnu --locked
       - name: cargo audit (advisory)
         continue-on-error: true
         run: |

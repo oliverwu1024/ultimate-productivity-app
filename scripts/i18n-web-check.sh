@@ -63,6 +63,28 @@ for dir in "${DIRS[@]}"; do
   done
 done
 
+# (web-dashboard only) every i18n key REFERENCED in Rust source must exist in
+# the base catalog. Catches typos like `t("nav.overvyew")` that compile and pass
+# `trunk build` but silently render the raw key string in the UI. Keys off the
+# namespaces present in en.json, so it covers `t()/tu()/t_args()` calls,
+# `label_key="…"` props, and `=> "ns.key"` match arms alike. (A misspelled
+# *namespace* isn't caught — rare, and it fails to resolve loudly in testing.)
+dash_base="web-dashboard/locales/en.json"
+dash_src="web-dashboard/src"
+if [[ -f "$dash_base" && -d "$dash_src" ]]; then
+  ns="$(jq -r 'keys[]' "$dash_base" | sed -E 's/\..*//' | LC_ALL=C sort -u | paste -sd'|' -)"
+  if [[ -n "$ns" ]]; then
+    used="$( { grep -rhoE "\"(${ns})\.[a-zA-Z0-9_]+\"" "$dash_src" --include='*.rs' || true; } | tr -d '"' | LC_ALL=C sort -u)"
+    have="$(jq -r 'keys[]' "$dash_base" | LC_ALL=C sort -u)"
+    unknown="$(LC_ALL=C comm -23 <(printf '%s\n' "$used") <(printf '%s\n' "$have") || true)"
+    if [[ -n "$unknown" ]]; then
+      echo "::error::[web-dashboard] i18n keys referenced in Rust src but missing from en.json (would render the raw key):"
+      echo "$unknown"
+      rc=1
+    fi
+  fi
+fi
+
 if [[ "$checked_any" == "0" ]]; then
   echo "i18n-web: no catalogs present yet — nothing to check (expected until 13.3 / 13.4)."
 fi

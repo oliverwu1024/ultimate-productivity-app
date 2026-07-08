@@ -9,7 +9,7 @@
 //! so a language chosen on any surface round-trips through the common
 //! `preferences.app_language` blob.
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 
 use gloo_storage::{LocalStorage, Storage};
@@ -191,6 +191,19 @@ thread_local! {
         RefCell::new(HashMap::new());
 }
 
+thread_local! {
+    /// Untracked mirror of the active locale, kept in sync by `provide_i18n`'s
+    /// Effect. Lets `tu()` / `current_locale_untracked()` resolve the locale
+    /// from event handlers and `spawn_local` futures — where `use_context` runs
+    /// outside the reactive owner and returns `None` (→ silent English). WASM is
+    /// single-threaded, so a `Cell` is safe (same assumption as `CATALOGS`).
+    static ACTIVE_LOCALE: Cell<Locale> = Cell::new(Locale::En);
+}
+
+fn set_active_locale(loc: Locale) {
+    ACTIVE_LOCALE.with(|c| c.set(loc));
+}
+
 fn lookup(loc: Locale, key: &str) -> Option<String> {
     CATALOGS.with(|c| {
         let mut cache = c.borrow_mut();
@@ -219,9 +232,32 @@ pub fn current_locale() -> Locale {
 /// render inside a reactive owner (e.g. a dialog component body) without making
 /// that owner re-run on a language switch.
 pub fn current_locale_untracked() -> Locale {
-    use_context::<I18nContext>()
-        .map(|c| c.locale.get_untracked())
-        .unwrap_or(Locale::En)
+    ACTIVE_LOCALE.with(|c| c.get())
+}
+
+/// Owner-free lookup with the active→English→raw-key fallback chain. Split out
+/// so the reactive and untracked entry points share one implementation and it
+/// is unit-testable without a Leptos runtime.
+fn translate(loc: Locale, key: &str) -> String {
+    if let Some(v) = lookup(loc, key) {
+        return v;
+    }
+    if loc != Locale::En {
+        if let Some(v) = lookup(Locale::En, key) {
+            return v;
+        }
+    }
+    key.to_string()
+}
+
+/// `{name}`-style placeholder substitution. Ordered replace: a substituted
+/// value is not re-scanned, so pass any value that could itself contain a
+/// `{token}` (e.g. server error text) in the LAST position.
+fn subst(mut s: String, args: &[(&str, &str)]) -> String {
+    for (name, value) in args {
+        s = s.replace(&format!("{{{name}}}"), value);
+    }
+    s
 }
 
 /// Translate a key against the active locale, falling back to English, then to
@@ -229,56 +265,38 @@ pub fn current_locale_untracked() -> Locale {
 /// Reactive: call inside a view closure — `{move || t("nav.overview")}` — so it
 /// re-runs when the locale changes.
 pub fn t(key: &str) -> String {
-    let loc = current_locale();
-    if let Some(v) = lookup(loc, key) {
-        return v;
-    }
-    if loc != Locale::En {
-        if let Some(v) = lookup(Locale::En, key) {
-            return v;
-        }
-    }
-    key.to_string()
+    translate(current_locale(), key)
 }
 
 /// Like [`t`], with `{name}`-style placeholder substitution.
 pub fn t_args(key: &str, args: &[(&str, &str)]) -> String {
-    let mut s = t(key);
-    for (name, value) in args {
-        s = s.replace(&format!("{{{name}}}"), value);
-    }
-    s
+    subst(t(key), args)
 }
 
-/// Non-reactive translate: reads the locale **untracked**, so it can be called
-/// from event handlers or `spawn_local` futures — where the reactive owner is
-/// inactive and a normal `t()` would neither subscribe nor see the context —
-/// as long as the value is captured at render time. Also used for one-shot
-/// strings where re-running on a language switch is unwanted.
+/// Non-reactive translate: reads the active locale from the untracked
+/// `thread_local` mirror (not the reactive context), so it resolves correctly
+/// from event handlers and `spawn_local` futures — where `use_context` runs
+/// outside the owner and would silently fall back to English. Does not
+/// subscribe, so a value rendered straight from `tu()` won't re-run on a live
+/// language switch (fine for handlers/futures and one-shot render helpers).
 pub fn tu(key: &str) -> String {
-    let loc = use_context::<I18nContext>()
-        .map(|c| c.locale.get_untracked())
-        .unwrap_or(Locale::En);
-    if let Some(v) = lookup(loc, key) {
-        return v;
-    }
-    if loc != Locale::En {
-        if let Some(v) = lookup(Locale::En, key) {
-            return v;
-        }
-    }
-    key.to_string()
+    translate(current_locale_untracked(), key)
 }
 
 /// Install the reactive locale context. Initial value: saved choice → browser
 /// language → English. A synced server pref (via [`adopt`]) overrides this once
 /// `/auth/me` resolves.
 pub fn provide_i18n() {
-    let locale = RwSignal::new(resolve_initial());
+    let initial = resolve_initial();
+    // Seed the untracked mirror eagerly so `tu()` is correct even before this
+    // Effect first runs (Effects run on a later microtask).
+    set_active_locale(initial);
+    let locale = RwSignal::new(initial);
     provide_context(I18nContext { locale });
 
     Effect::new(move |_| {
         let loc = locale.get();
+        set_active_locale(loc);
         apply_document(loc);
         let _ = LocalStorage::set(KEY, loc.tag());
     });
@@ -330,5 +348,127 @@ fn apply_document(loc: Locale) {
     {
         let _ = el.set_attribute("lang", loc.tag());
         let _ = el.set_attribute("dir", if loc.is_rtl() { "rtl" } else { "ltr" });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    //! Pure-logic tests — no Leptos runtime / no browser. Run on the host with
+    //! `cargo test` (see the `web-dashboard` CI job). They lock the i18n
+    //! contract the compiler and `trunk build` cannot: tag mapping, the
+    //! fallback chain, placeholder substitution, and catalog integrity.
+    use super::*;
+
+    const ALL: [Locale; 14] = [
+        Locale::En,
+        Locale::Es,
+        Locale::PtBr,
+        Locale::Fr,
+        Locale::De,
+        Locale::Ja,
+        Locale::ZhHans,
+        Locale::ZhHant,
+        Locale::Ko,
+        Locale::Hi,
+        Locale::Vi,
+        Locale::Th,
+        Locale::Id,
+        Locale::Ar,
+    ];
+
+    #[test]
+    fn from_tag_maps_shipped_tags_and_legacy_aliases() {
+        assert_eq!(Locale::from_tag("es"), Locale::Es);
+        assert_eq!(Locale::from_tag("pt-BR"), Locale::PtBr);
+        assert_eq!(Locale::from_tag("pt"), Locale::PtBr); // legacy alias
+        assert_eq!(Locale::from_tag("zh-Hans"), Locale::ZhHans);
+        assert_eq!(Locale::from_tag("zh-Hant"), Locale::ZhHant);
+        assert_eq!(Locale::from_tag("id"), Locale::Id);
+        assert_eq!(Locale::from_tag("in"), Locale::Id); // legacy Indonesian code
+        assert_eq!(Locale::from_tag("ar"), Locale::Ar);
+        assert_eq!(Locale::from_tag("  fr  "), Locale::Fr); // trimmed
+        assert_eq!(Locale::from_tag("qq"), Locale::En); // unknown → English
+        assert_eq!(Locale::from_tag(""), Locale::En); // empty → English
+    }
+
+    #[test]
+    fn tag_round_trips_through_from_tag() {
+        for loc in ALL {
+            assert_eq!(
+                Locale::from_tag(loc.tag()),
+                loc,
+                "tag {:?} did not round-trip",
+                loc.tag()
+            );
+        }
+    }
+
+    #[test]
+    fn from_browser_resolves_region_and_script() {
+        assert_eq!(Locale::from_browser("zh-CN"), Locale::ZhHans);
+        assert_eq!(Locale::from_browser("zh"), Locale::ZhHans);
+        assert_eq!(Locale::from_browser("zh-TW"), Locale::ZhHant);
+        assert_eq!(Locale::from_browser("zh-HK"), Locale::ZhHant);
+        assert_eq!(Locale::from_browser("zh-Hant"), Locale::ZhHant);
+        assert_eq!(Locale::from_browser("pt-PT"), Locale::PtBr);
+        assert_eq!(Locale::from_browser("es-ES"), Locale::Es);
+        assert_eq!(Locale::from_browser("en_US"), Locale::En); // underscore + region
+        assert_eq!(Locale::from_browser("de"), Locale::De);
+        assert_eq!(Locale::from_browser("xx"), Locale::En);
+    }
+
+    #[test]
+    fn is_rtl_only_for_arabic() {
+        for loc in ALL {
+            assert_eq!(loc.is_rtl(), loc == Locale::Ar);
+        }
+    }
+
+    #[test]
+    fn chrono_maps_without_panic_for_all() {
+        for loc in ALL {
+            let _ = loc.chrono();
+        }
+    }
+
+    #[test]
+    fn every_catalog_parses_and_matches_english_keys() {
+        // Defense-in-depth beside scripts/i18n-web-check.sh: the include_str!-
+        // bundled catalogs must be valid JSON with the exact English key set.
+        let en: HashMap<String, String> =
+            serde_json::from_str(Locale::En.catalog_json()).expect("en.json must parse");
+        assert!(!en.is_empty());
+        for loc in ALL {
+            let cat: HashMap<String, String> = serde_json::from_str(loc.catalog_json())
+                .unwrap_or_else(|e| panic!("{} catalog is invalid JSON: {e}", loc.tag()));
+            assert_eq!(
+                cat.len(),
+                en.len(),
+                "{} has {} keys, en has {}",
+                loc.tag(),
+                cat.len(),
+                en.len()
+            );
+            for k in en.keys() {
+                assert!(cat.contains_key(k), "{} missing key {k}", loc.tag());
+            }
+        }
+    }
+
+    #[test]
+    fn translate_falls_back_english_then_raw_key() {
+        assert_eq!(translate(Locale::En, "common.cancel"), "Cancel");
+        assert_eq!(translate(Locale::Es, "common.cancel"), "Cancelar"); // real es value
+        // A missing key surfaces the raw key (visible), never blank or a panic.
+        assert_eq!(translate(Locale::Es, "no.such.key"), "no.such.key");
+    }
+
+    #[test]
+    fn subst_replaces_all_and_keeps_unknown_tokens() {
+        assert_eq!(subst("hi {name}".into(), &[("name", "Sam")]), "hi Sam");
+        // repeated token → every occurrence replaced
+        assert_eq!(subst("{x}-{x}".into(), &[("x", "9")]), "9-9");
+        // missing arg → token left literal (surfaces the mistake instead of blanking)
+        assert_eq!(subst("{count} left".into(), &[("wrong", "3")]), "{count} left");
     }
 }
