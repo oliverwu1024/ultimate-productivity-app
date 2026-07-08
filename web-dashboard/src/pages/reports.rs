@@ -189,6 +189,12 @@ pub fn ReportsPage() -> impl IntoView {
                     </header>
 
                     {move || {
+                        // Subscribe to the locale so a live language switch rebuilds the
+                        // sections: their derived strings (event/session counts, busiest
+                        // day) are computed in #[component] bodies that run untracked, so
+                        // without this they'd stay in the old language until the next data
+                        // change (period toggle / refresh).
+                        let _ = current_locale();
                         let p = period.get();
                         let (start, end) = p.range(today);
                         let sleep_recs = sleep.get();

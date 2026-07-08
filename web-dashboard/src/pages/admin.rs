@@ -3,8 +3,8 @@ use leptos::prelude::*;
 use leptos_meta::Title;
 
 use crate::api::admin::{
-    fetch_metrics, fetch_stats, fetch_user_summary, fetch_users, revoke_user_tokens, ActiveUsers,
-    AdminMetrics, AdminStats, AdminUserEntry, AdminUserSummary, SignupCount, TopAiUser, UserCounts,
+    fetch_metrics, fetch_stats, fetch_user_summary, fetch_users, revoke_user_tokens, AdminMetrics,
+    AdminStats, AdminUserEntry, AdminUserSummary, SignupCount, TopAiUser,
 };
 use crate::auth::use_auth;
 use crate::components::layout::AppShell;
