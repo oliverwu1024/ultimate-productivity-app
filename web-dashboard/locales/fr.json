@@ -263,5 +263,21 @@
   "rep.cal_busiest": "Jour le plus chargé",
   "rep.by_category": "Par catégorie",
   "rep.n_events": "{count} événements",
-  "rep.busiest_value": "{day} ({count} événements)"
+  "rep.busiest_value": "{day} ({count} événements)",
+  "chat.start_fresh": "Recommencer",
+  "chat.empty_title": "Parlez à votre coach",
+  "chat.empty_body": "Posez des questions sur le sommeil, les blocs de concentration ou la planification hebdomadaire. Le coach peut consulter vos données, ajouter des éléments à votre liste et rédiger des événements de calendrier que vous confirmez avant leur enregistrement.",
+  "chat.thinking": "réflexion…",
+  "chat.undo": "Annuler",
+  "chat.composer_placeholder": "Message à votre coach…",
+  "chat.send": "Envoyer",
+  "chat.reset_title": "Nouvelle conversation ?",
+  "chat.reset_body": "Votre conversation actuelle sera archivée (nous la conservons pour vos dossiers, mais le coach ne la verra plus désormais).",
+  "chat.proposed_event": "Événement proposé",
+  "chat.create": "Créer",
+  "chat.creating": "Création…",
+  "chat.added_to_calendar": "Ajouté à votre agenda",
+  "chat.cancelled": "Annulé",
+  "chat.err_create_event": "Impossible de créer l'événement : {error}",
+  "chat.err_undo_failed": "Annulation échouée : {error} — vous devrez peut-être le supprimer manuellement."
 }

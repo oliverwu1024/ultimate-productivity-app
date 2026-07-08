@@ -263,5 +263,21 @@
   "rep.cal_busiest": "最忙一天",
   "rep.by_category": "按分類",
   "rep.n_events": "{count} 個活動",
-  "rep.busiest_value": "{day} ({count} 個活動)"
+  "rep.busiest_value": "{day} ({count} 個活動)",
+  "chat.start_fresh": "重新開始",
+  "chat.empty_title": "與教練對話",
+  "chat.empty_body": "詢問睡眠、專注時段或每週計畫。教練可查看您的數據、為您新增待辦事項，並草擬日曆活動供您確認後加入。",
+  "chat.thinking": "思考中…",
+  "chat.undo": "復原",
+  "chat.composer_placeholder": "傳訊給教練…",
+  "chat.send": "傳送",
+  "chat.reset_title": "開始新對話？",
+  "chat.reset_body": "您目前的對話將被封存（我們會保留以供記錄，但教練此後將不會看到）。",
+  "chat.proposed_event": "建議活動",
+  "chat.create": "建立",
+  "chat.creating": "建立中…",
+  "chat.added_to_calendar": "已新增至日曆",
+  "chat.cancelled": "已取消",
+  "chat.err_create_event": "無法建立活動：{error}",
+  "chat.err_undo_failed": "復原失敗：{error} — 您可能需要手動刪除。"
 }

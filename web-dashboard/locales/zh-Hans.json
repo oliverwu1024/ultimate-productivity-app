@@ -263,5 +263,21 @@
   "rep.cal_busiest": "最忙碌的一天",
   "rep.by_category": "按类别",
   "rep.n_events": "{count} 个活动",
-  "rep.busiest_value": "{day} ({count} 个活动)"
+  "rep.busiest_value": "{day} ({count} 个活动)",
+  "chat.start_fresh": "重新开始",
+  "chat.empty_title": "与您的教练对话",
+  "chat.empty_body": "询问睡眠、专注时段或每周计划。教练可以查看您的数据、为您添加待办事项，并起草日历日程，待您确认后再添加。",
+  "chat.thinking": "思考中…",
+  "chat.undo": "撤销",
+  "chat.composer_placeholder": "向您的教练发送消息…",
+  "chat.send": "发送",
+  "chat.reset_title": "开始新对话？",
+  "chat.reset_body": "当前对话将被存档（我们会为您保留记录，但教练此后将不会看到它）。",
+  "chat.proposed_event": "建议日程",
+  "chat.create": "创建",
+  "chat.creating": "创建中…",
+  "chat.added_to_calendar": "已添加到日历",
+  "chat.cancelled": "已取消",
+  "chat.err_create_event": "无法创建日程：{error}",
+  "chat.err_undo_failed": "撤销失败：{error} — 您可能需要手动删除。"
 }

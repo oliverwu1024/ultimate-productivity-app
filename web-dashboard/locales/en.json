@@ -263,5 +263,21 @@
   "rep.cal_busiest": "Busiest day",
   "rep.by_category": "By category",
   "rep.n_events": "{count} events",
-  "rep.busiest_value": "{day} ({count} events)"
+  "rep.busiest_value": "{day} ({count} events)",
+  "chat.start_fresh": "Start fresh",
+  "chat.empty_title": "Talk to your coach",
+  "chat.empty_body": "Ask about sleep, focus blocks, or weekly planning. The coach can look at your data, add checklist items, and draft calendar events you confirm before they land.",
+  "chat.thinking": "thinking…",
+  "chat.undo": "Undo",
+  "chat.composer_placeholder": "Message your coach…",
+  "chat.send": "Send",
+  "chat.reset_title": "Start a new chat?",
+  "chat.reset_body": "Your current conversation will be archived (we keep it for your records but the coach won't see it from here on).",
+  "chat.proposed_event": "Proposed event",
+  "chat.create": "Create",
+  "chat.creating": "Creating…",
+  "chat.added_to_calendar": "Added to your calendar",
+  "chat.cancelled": "Cancelled",
+  "chat.err_create_event": "Couldn't create the event: {error}",
+  "chat.err_undo_failed": "Undo failed: {error} — you may need to remove it manually."
 }

@@ -263,5 +263,21 @@
   "rep.cal_busiest": "Dia mais agitado",
   "rep.by_category": "Por categoria",
   "rep.n_events": "{count} eventos",
-  "rep.busiest_value": "{day} ({count} eventos)"
+  "rep.busiest_value": "{day} ({count} eventos)",
+  "chat.start_fresh": "Começar do zero",
+  "chat.empty_title": "Fale com seu coach",
+  "chat.empty_body": "Pergunte sobre sono, blocos de foco ou planejamento semanal. O Coach pode analisar seus dados, adicionar itens à lista de tarefas e rascunhar eventos de calendário que você confirma antes de salvar.",
+  "chat.thinking": "pensando…",
+  "chat.undo": "Desfazer",
+  "chat.composer_placeholder": "Mensagem para o coach…",
+  "chat.send": "Enviar",
+  "chat.reset_title": "Iniciar nova conversa?",
+  "chat.reset_body": "Sua conversa atual será arquivada (mantemos para seus registros, mas o Coach não a verá mais a partir daqui).",
+  "chat.proposed_event": "Evento proposto",
+  "chat.create": "Criar",
+  "chat.creating": "Criando…",
+  "chat.added_to_calendar": "Adicionado ao seu calendário",
+  "chat.cancelled": "Cancelado",
+  "chat.err_create_event": "Não foi possível criar o evento: {error}",
+  "chat.err_undo_failed": "Desfazer falhou: {error} — talvez seja necessário excluir manualmente."
 }

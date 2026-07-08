@@ -263,5 +263,21 @@
   "rep.cal_busiest": "Día más ocupado",
   "rep.by_category": "Por categoría",
   "rep.n_events": "{count} eventos",
-  "rep.busiest_value": "{day} ({count} eventos)"
+  "rep.busiest_value": "{day} ({count} eventos)",
+  "chat.start_fresh": "Empezar de cero",
+  "chat.empty_title": "Habla con tu coach",
+  "chat.empty_body": "Pregunta sobre el sueño, bloques de enfoque o planificación semanal. El coach puede revisar tus datos, añadir elementos a tu lista y crear eventos en el calendario que confirmas antes de guardarlos.",
+  "chat.thinking": "pensando…",
+  "chat.undo": "Deshacer",
+  "chat.composer_placeholder": "Escribe al coach…",
+  "chat.send": "Enviar",
+  "chat.reset_title": "¿Iniciar nuevo chat?",
+  "chat.reset_body": "Tu conversación actual se archivará (la guardamos como registro, pero el coach no la verá a partir de ahora).",
+  "chat.proposed_event": "Evento propuesto",
+  "chat.create": "Crear",
+  "chat.creating": "Creando…",
+  "chat.added_to_calendar": "Añadido a tu calendario",
+  "chat.cancelled": "Cancelado",
+  "chat.err_create_event": "No se pudo crear el evento: {error}",
+  "chat.err_undo_failed": "Error al deshacer: {error} — es posible que debas eliminarlo manualmente."
 }

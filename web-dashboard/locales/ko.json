@@ -263,5 +263,21 @@
   "rep.cal_busiest": "가장 바쁜 날",
   "rep.by_category": "카테고리별",
   "rep.n_events": "{count}개의 일정",
-  "rep.busiest_value": "{day} ({count}개의 일정)"
+  "rep.busiest_value": "{day} ({count}개의 일정)",
+  "chat.start_fresh": "새로 시작",
+  "chat.empty_title": "코치와 대화하기",
+  "chat.empty_body": "수면, 집중 블록, 주간 계획에 대해 물어보세요. 코치가 데이터를 살펴보고, 체크리스트 항목을 추가하며, 확인 후 등록되는 캘린더 일정을 초안으로 만들어 드릴 수 있습니다.",
+  "chat.thinking": "생각 중…",
+  "chat.undo": "실행 취소",
+  "chat.composer_placeholder": "코치에게 메시지 보내기…",
+  "chat.send": "보내기",
+  "chat.reset_title": "새 대화를 시작할까요?",
+  "chat.reset_body": "현재 대화가 보관됩니다(기록을 위해 저장되지만, 코치는 앞으로 이 대화를 볼 수 없습니다).",
+  "chat.proposed_event": "제안된 일정",
+  "chat.create": "생성",
+  "chat.creating": "생성 중…",
+  "chat.added_to_calendar": "캘린더에 추가됨",
+  "chat.cancelled": "취소됨",
+  "chat.err_create_event": "일정을 생성할 수 없습니다: {error}",
+  "chat.err_undo_failed": "실행 취소에 실패했습니다: {error} — 직접 삭제해야 할 수 있습니다."
 }

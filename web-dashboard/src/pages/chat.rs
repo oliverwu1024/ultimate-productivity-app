@@ -25,6 +25,7 @@ use crate::api::calendar::{
 };
 use crate::api::checklist::{delete_item, uncomplete_item};
 use crate::components::layout::AppShell;
+use crate::i18n::{current_locale_untracked, t, tu};
 
 #[derive(Debug, Clone)]
 enum ChatTurn {
@@ -296,7 +297,7 @@ pub fn ChatPage() -> impl IntoView {
                             }
                         }
                     });
-                    error.set(Some(format!("Couldn't create the event: {}", e.message)));
+                    error.set(Some(tu("chat.err_create_event").replace("{error}", &e.message)));
                 }
             }
         });
@@ -332,10 +333,9 @@ pub fn ChatPage() -> impl IntoView {
                 _ => Ok(()),
             };
             if let Err(e) = res {
-                error.set(Some(format!(
-                    "Undo failed: {} — you may need to remove it manually.",
-                    e.message
-                )));
+                error.set(Some(
+                    tu("chat.err_undo_failed").replace("{error}", &e.message),
+                ));
             }
         });
     };
@@ -345,13 +345,13 @@ pub fn ChatPage() -> impl IntoView {
         <AppShell>
             <div class="flex flex-col h-screen max-h-screen">
                 <header class="flex items-center justify-between px-4 md:px-8 py-4 border-b border-ultiq-indigo/10 bg-white">
-                    <h1 class="text-2xl font-bold text-ultiq-indigo">"Coach"</h1>
+                    <h1 class="text-2xl font-bold text-ultiq-indigo">{move || t("nav.coach")}</h1>
                     <button
                         on:click=move |_| confirm_reset.set(true)
                         class="text-sm px-3 py-1.5 border border-ultiq-indigo/20 text-ultiq-indigo rounded hover:bg-ultiq-indigo/5 cursor-pointer disabled:opacity-50"
                         prop:disabled=move || sending.get() || turns.with(|m| m.is_empty())
                     >
-                        "Start fresh"
+                        {move || t("chat.start_fresh")}
                     </button>
                 </header>
 
@@ -365,14 +365,14 @@ pub fn ChatPage() -> impl IntoView {
                     {move || {
                         if loading_history.get() {
                             view! {
-                                <div class="flex justify-center py-8 text-ultiq-indigo/50">"Loading…"</div>
+                                <div class="flex justify-center py-8 text-ultiq-indigo/50">{move || t("common.loading")}</div>
                             }.into_any()
                         } else if turns.with(|m| m.is_empty()) {
                             view! {
                                 <div class="max-w-md mx-auto mt-12 p-6 bg-white rounded-2xl shadow text-ultiq-indigo">
-                                    <h2 class="text-lg font-semibold mb-2">"Talk to your coach"</h2>
+                                    <h2 class="text-lg font-semibold mb-2">{move || t("chat.empty_title")}</h2>
                                     <p class="text-sm text-ultiq-indigo/70">
-                                        "Ask about sleep, focus blocks, or weekly planning. The coach can look at your data, add checklist items, and draft calendar events you confirm before they land."
+                                        {move || t("chat.empty_body")}
                                     </p>
                                 </div>
                             }.into_any()
@@ -404,7 +404,7 @@ pub fn ChatPage() -> impl IntoView {
                                     <Show when=move || sending.get()>
                                         <div class="flex coach-turn-in">
                                             <div class="mr-auto bg-white text-ultiq-indigo/60 rounded-2xl rounded-bl-sm shadow px-4 py-2.5 text-sm italic">
-                                                "thinking…"
+                                                {move || t("chat.thinking")}
                                             </div>
                                         </div>
                                     </Show>
@@ -425,12 +425,12 @@ pub fn ChatPage() -> impl IntoView {
                                 on:click=move |_| do_undo()
                                 class="font-semibold underline hover:opacity-80 cursor-pointer"
                             >
-                                "Undo"
+                                {move || t("chat.undo")}
                             </button>
                             <button
                                 on:click=move |_| undo_banner.set(None)
                                 class="text-ultiq-indigo/50 hover:opacity-80 cursor-pointer"
-                                aria-label="Dismiss"
+                                aria-label=move || t("common.dismiss")
                             >
                                 "✕"
                             </button>
@@ -445,7 +445,7 @@ pub fn ChatPage() -> impl IntoView {
                     <input
                         type="text"
                         class="flex-1 px-4 py-2.5 border border-ultiq-indigo/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-ultiq-indigo text-ultiq-indigo"
-                        placeholder="Message your coach…"
+                        placeholder=move || t("chat.composer_placeholder")
                         prop:value=move || input.get()
                         on:input=move |ev| input.set(event_target_value(&ev))
                         prop:disabled=move || sending.get()
@@ -455,7 +455,7 @@ pub fn ChatPage() -> impl IntoView {
                         class="px-4 py-2.5 bg-ultiq-indigo text-ultiq-cream rounded-lg font-medium hover:opacity-90 disabled:opacity-50 cursor-pointer"
                         prop:disabled=move || sending.get() || input.with(|s| s.trim().is_empty())
                     >
-                        "Send"
+                        {move || t("chat.send")}
                     </button>
                 </form>
             </div>
@@ -470,22 +470,22 @@ pub fn ChatPage() -> impl IntoView {
                         on:click=|ev| ev.stop_propagation()
                         class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md space-y-4"
                     >
-                        <h3 class="text-lg font-semibold text-ultiq-indigo">"Start a new chat?"</h3>
+                        <h3 class="text-lg font-semibold text-ultiq-indigo">{move || t("chat.reset_title")}</h3>
                         <p class="text-sm text-ultiq-indigo/70">
-                            "Your current conversation will be archived (we keep it for your records but the coach won't see it from here on)."
+                            {move || t("chat.reset_body")}
                         </p>
                         <div class="flex justify-end gap-2">
                             <button
                                 on:click=move |_| confirm_reset.set(false)
                                 class="px-4 py-2 text-ultiq-indigo hover:bg-ultiq-indigo/5 rounded-lg cursor-pointer"
                             >
-                                "Cancel"
+                                {move || t("common.cancel")}
                             </button>
                             <button
                                 on:click=move |_| { confirm_reset.set(false); do_reset(); }
                                 class="px-4 py-2 bg-ultiq-indigo text-ultiq-cream rounded-lg font-medium hover:opacity-90 cursor-pointer"
                             >
-                                "Start fresh"
+                                {move || t("chat.start_fresh")}
                             </button>
                         </div>
                     </div>
@@ -680,7 +680,7 @@ where
         <div class="flex coach-turn-in" data-key=key>
             <div class="mr-auto max-w-[80%] bg-white border-2 border-ultiq-indigo/20 rounded-2xl p-4 space-y-2">
                 <div class="text-xs uppercase tracking-wide font-semibold text-ultiq-indigo/70">
-                    "Proposed event"
+                    {move || t("chat.proposed_event")}
                 </div>
                 <div class="text-base font-semibold text-ultiq-indigo">{event.title.clone()}</div>
                 <div class="text-sm text-ultiq-indigo/70">{body}</div>
@@ -691,24 +691,24 @@ where
                                 class="flex-1 px-3 py-1.5 border border-ultiq-indigo/20 text-ultiq-indigo rounded-lg text-sm hover:bg-ultiq-indigo/5 cursor-pointer"
                                 on:click=move |_| on_cancel(inv_id_for_cancel.clone())
                             >
-                                "Cancel"
+                                {move || t("common.cancel")}
                             </button>
                             <button
                                 class="flex-1 px-3 py-1.5 bg-ultiq-indigo text-ultiq-cream rounded-lg text-sm font-medium hover:opacity-90 cursor-pointer"
                                 on:click=move |_| on_create(inv_id_for_create.clone())
                             >
-                                "Create"
+                                {move || t("chat.create")}
                             </button>
                         </div>
                     }.into_any(),
                     ProposalState::Creating => view! {
-                        <div class="text-sm text-ultiq-indigo/60 pt-1">"Creating…"</div>
+                        <div class="text-sm text-ultiq-indigo/60 pt-1">{move || t("chat.creating")}</div>
                     }.into_any(),
                     ProposalState::Created => view! {
-                        <div class="text-sm text-emerald-700 font-medium pt-1">"✓ Added to your calendar"</div>
+                        <div class="text-sm text-emerald-700 font-medium pt-1">{move || format!("✓ {}", t("chat.added_to_calendar"))}</div>
                     }.into_any(),
                     ProposalState::Cancelled => view! {
-                        <div class="text-sm text-ultiq-indigo/50 pt-1">"Cancelled"</div>
+                        <div class="text-sm text-ultiq-indigo/50 pt-1">{move || t("chat.cancelled")}</div>
                     }.into_any(),
                 }}
             </div>
@@ -718,29 +718,47 @@ where
 }
 
 fn format_proposal_body(fields: &ParsedCalendarFields) -> String {
-    // Display in the user's local TZ via chrono::Local conversion. Failing
-    // to parse falls back to the raw UTC strings.
+    // Display in the user's local TZ via chrono::Local conversion. Weekday and
+    // month names render in the active locale; times stay 24h (locale-neutral).
+    // Read untracked — this runs inside a one-shot render helper.
+    let loc = current_locale_untracked().chrono();
     let start_local = fields.start_time.with_timezone(&chrono::Local);
     let end_local = fields.end_time.with_timezone(&chrono::Local);
     let same_day = start_local.date_naive() == end_local.date_naive();
+    let cat = category_label_u(&fields.category);
     if same_day {
         format!(
             "{} · {} – {} · {}",
-            start_local.format("%a %d %b"),
+            start_local.format_localized("%a %d %b", loc),
             start_local.format("%H:%M"),
             end_local.format("%H:%M"),
-            fields.category
+            cat
         )
     } else {
         format!(
             "{} {} → {} {} · {}",
-            start_local.format("%a %d %b"),
+            start_local.format_localized("%a %d %b", loc),
             start_local.format("%H:%M"),
-            end_local.format("%a %d %b"),
+            end_local.format_localized("%a %d %b", loc),
             end_local.format("%H:%M"),
-            fields.category
+            cat
         )
     }
+}
+
+/// Map a backend category token ("study"/"project"/…) to its localized label,
+/// read untracked (called from the one-shot proposal-card render). Unknown
+/// tokens pass through unchanged.
+fn category_label_u(cat: &str) -> String {
+    let key = match cat.to_ascii_lowercase().as_str() {
+        "study" => "common.category_study",
+        "project" => "common.category_project",
+        "exercise" => "common.category_exercise",
+        "personal" => "common.category_personal",
+        "other" => "common.category_other",
+        _ => return cat.to_string(),
+    };
+    tu(key)
 }
 
 fn parsed_to_create(fields: &ParsedCalendarFields) -> CreateCalendarEvent {
