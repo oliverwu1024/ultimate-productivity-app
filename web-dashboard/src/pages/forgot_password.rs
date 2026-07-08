@@ -6,6 +6,7 @@ use serde::Serialize;
 
 use crate::api::client::{api_base_url, ApiError};
 use crate::components::theme_corner::ThemeCorner;
+use crate::i18n::t;
 
 #[derive(Serialize)]
 struct ForgotRequest<'a> {
@@ -62,29 +63,29 @@ pub fn ForgotPasswordPage() -> impl IntoView {
         <ThemeCorner />
         <div class="min-h-screen flex items-center justify-center bg-ultiq-cream px-4">
             <div class="bg-white rounded-2xl shadow-lg p-8 w-full max-w-sm space-y-4">
-                <h1 class="text-2xl font-bold text-ultiq-indigo text-center">"Reset your password"</h1>
+                <h1 class="text-2xl font-bold text-ultiq-indigo text-center">{move || t("auth.forgot_title")}</h1>
 
                 <Show
                     when=move || !sent.get()
                     fallback=|| view! {
                         <div class="space-y-3 text-center">
                             <p class="text-sm text-ultiq-indigo/80">
-                                "If that email is registered, a reset link is on its way. Check your inbox."
+                                {move || t("auth.forgot_sent_body")}
                             </p>
-                            <p class="text-xs text-ultiq-indigo/50">"The link expires in 1 hour."</p>
+                            <p class="text-xs text-ultiq-indigo/50">{move || t("auth.link_expires_1h")}</p>
                             <A href="/login" attr:class="block text-ultiq-indigo hover:underline text-sm pt-2">
-                                "← Back to sign in"
+                                {move || format!("← {}", t("auth.back_to_sign_in"))}
                             </A>
                         </div>
                     }
                 >
                     <p class="text-sm text-ultiq-indigo/60 text-center">
-                        "Enter your email and we'll send you a reset link."
+                        {move || t("auth.forgot_prompt")}
                     </p>
 
                     <form on:submit=on_submit class="space-y-3">
                         <label class="block">
-                            <span class="text-sm font-medium text-ultiq-indigo">"Email"</span>
+                            <span class="text-sm font-medium text-ultiq-indigo">{move || t("auth.email")}</span>
                             <input
                                 type="email"
                                 class="mt-1 w-full px-3 py-2 border border-ultiq-indigo/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-ultiq-indigo"
@@ -106,11 +107,11 @@ pub fn ForgotPasswordPage() -> impl IntoView {
                             class="w-full px-4 py-2 bg-ultiq-indigo text-ultiq-cream rounded-lg font-medium hover:opacity-90 disabled:opacity-50 cursor-pointer"
                             prop:disabled=move || submitting.get()
                         >
-                            {move || if submitting.get() { "Sending…" } else { "Send reset link" }}
+                            {move || if submitting.get() { t("auth.sending") } else { t("auth.send_reset_link") }}
                         </button>
 
                         <A href="/login" attr:class="block text-center text-sm text-ultiq-indigo/70 hover:text-ultiq-indigo pt-2">
-                            "← Back to sign in"
+                            {move || format!("← {}", t("auth.back_to_sign_in"))}
                         </A>
                     </form>
                 </Show>

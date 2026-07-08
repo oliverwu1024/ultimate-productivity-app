@@ -7,6 +7,7 @@ use serde::Serialize;
 
 use crate::api::client::{api_base_url, ApiError};
 use crate::components::theme_corner::ThemeCorner;
+use crate::i18n::{t, tu};
 
 #[derive(Serialize)]
 struct ResetRequest<'a> {
@@ -77,14 +78,12 @@ pub fn ResetPasswordPage() -> impl IntoView {
         let p1 = new_password.get_untracked();
         let p2 = confirm_password.get_untracked();
         if p1 != p2 {
-            error.set(Some("Passwords don't match".into()));
+            error.set(Some(tu("auth.err_passwords_mismatch")));
             return;
         }
         let t = token();
         if t.is_empty() {
-            error.set(Some(
-                "Reset token missing. Open the reset link from the email.".into(),
-            ));
+            error.set(Some(tu("auth.err_token_missing")));
             return;
         }
         submitting.set(true);
@@ -109,21 +108,21 @@ pub fn ResetPasswordPage() -> impl IntoView {
         <ThemeCorner />
         <div class="min-h-screen flex items-center justify-center bg-ultiq-cream px-4">
             <div class="bg-white rounded-2xl shadow-lg p-8 w-full max-w-sm space-y-4">
-                <h1 class="text-2xl font-bold text-ultiq-indigo text-center">"Choose a new password"</h1>
+                <h1 class="text-2xl font-bold text-ultiq-indigo text-center">{move || t("auth.reset_title")}</h1>
 
                 <Show
                     when=move || !success.get()
                     fallback=|| view! {
                         <div class="space-y-3 text-center">
                             <p class="text-sm text-emerald-700 bg-emerald-500/10 px-3 py-2 rounded">
-                                "Password updated. Redirecting to sign in…"
+                                {move || t("auth.reset_success")}
                             </p>
                         </div>
                     }
                 >
                     <form on:submit=on_submit class="space-y-3">
                         <label class="block">
-                            <span class="text-sm font-medium text-ultiq-indigo">"New password"</span>
+                            <span class="text-sm font-medium text-ultiq-indigo">{move || t("auth.new_password")}</span>
                             <input
                                 type="password"
                                 class="mt-1 w-full px-3 py-2 border border-ultiq-indigo/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-ultiq-indigo"
@@ -136,7 +135,7 @@ pub fn ResetPasswordPage() -> impl IntoView {
                         </label>
 
                         <label class="block">
-                            <span class="text-sm font-medium text-ultiq-indigo">"Confirm new password"</span>
+                            <span class="text-sm font-medium text-ultiq-indigo">{move || t("auth.confirm_new_password")}</span>
                             <input
                                 type="password"
                                 class="mt-1 w-full px-3 py-2 border border-ultiq-indigo/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-ultiq-indigo"
@@ -149,7 +148,7 @@ pub fn ResetPasswordPage() -> impl IntoView {
                         </label>
 
                         <p class="text-xs text-ultiq-indigo/50">
-                            "8+ chars including upper, lower, digit, and a special character."
+                            {move || t("auth.password_hint")}
                         </p>
 
                         <Show when=move || error.get().is_some()>
@@ -163,11 +162,11 @@ pub fn ResetPasswordPage() -> impl IntoView {
                             class="w-full px-4 py-2 bg-ultiq-indigo text-ultiq-cream rounded-lg font-medium hover:opacity-90 disabled:opacity-50 cursor-pointer"
                             prop:disabled=move || submitting.get()
                         >
-                            {move || if submitting.get() { "Saving…" } else { "Update password" }}
+                            {move || if submitting.get() { t("common.saving") } else { t("auth.update_password") }}
                         </button>
 
                         <A href="/login" attr:class="block text-center text-sm text-ultiq-indigo/70 hover:text-ultiq-indigo pt-2">
-                            "← Back to sign in"
+                            {move || format!("← {}", t("auth.back_to_sign_in"))}
                         </A>
                     </form>
                 </Show>
