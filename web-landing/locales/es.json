@@ -23,7 +23,7 @@
   "feat.sleep.title": "Seguimiento del sueño",
   "feat.sleep.body": "Inicia una noche con un toque. Detección de capturas de móvil, deuda de sueño + descanso extra, y monitoreo opcional de ronquidos + tos en el dispositivo — el audio se queda en tu teléfono.",
   "feat.wake.title": "Misiones de despertar",
-  "feat.wake.body": "Alarmas estilo Alarmy con misiones de matemáticas, sacudida o fotografía de escena fija para desactivarlas. Para que realmente te levantes de la cama.",
+  "feat.wake.body": "Alarmas exigentes con misiones de matemáticas, sacudida o fotografía de escena fija para desactivarlas. Para que realmente te levantes de la cama.",
   "feat.focus.title": "Sesiones de enfoque",
   "feat.focus.body": "Pomodoro con bloqueo de pantalla y un indicador de tiempo extra prominente. Nota cada captura de móvil sin juzgarte. La IA etiqueta automáticamente en qué trabajaste.",
   "feat.checklist.title": "Lista de tareas diaria",
@@ -50,7 +50,7 @@
   "shot.insight.title": "Resumen de IA",
   "shot.insight.body": "Reflexión semanal + alertas diarias de anomalías. Silencioso por defecto, útil cuando habla.",
   "shot.alarm.title": "Alarma",
-  "shot.alarm.body": "Misiones de despertar estilo Alarmy — resuelve matemáticas, sacude el teléfono o fotografía una escena fija para silenciarla.",
+  "shot.alarm.body": "Misiones de despertar exigentes — resuelve matemáticas, sacude el teléfono o fotografía una escena fija para silenciarla.",
 
   "a11y.shot_alt": "Pantalla de {title}",
   "a11y.shot_show": "Mostrar {title}",
@@ -63,7 +63,7 @@
   "tour.day.subtitle": "Una lista corta, un Pomodoro tranquilo y una vista mensual única — diseñados para superar el día sin ruido.",
   "tour.night.eyebrow": "Tu noche",
   "tour.night.title": "Duerme profundo. Despierta a tu manera.",
-  "tour.night.subtitle": "Inicia una noche con un toque. La detección de ronquidos + tos se ejecuta en el dispositivo. Misiones de despertar estilo Alarmy — matemáticas, sacudida o una foto de escena fija — para que realmente te levantes de la cama.",
+  "tour.night.subtitle": "Inicia una noche con un toque. La detección de ronquidos + tos se ejecuta en el dispositivo. Misiones de despertar exigentes — matemáticas, sacudida o una foto de escena fija — para que realmente te levantes de la cama.",
 
   "quote.text": "Duerme profundo, enfócate claro, descansa, repite.",
   "quote.attrib": "— el deseo diario de un libro dormido para ti",

@@ -23,7 +23,7 @@
   "feat.sleep.title": "Suivi du sommeil",
   "feat.sleep.body": "Démarrez une nuit d'un seul tap. Détection des prises en main, dette de sommeil + repos supplémentaire, et surveillance locale optionnelle des ronflements + toux — l'audio reste sur votre téléphone.",
   "feat.wake.title": "Missions de réveil",
-  "feat.wake.body": "Alarmes style Alarmy avec des missions maths, secousses ou photo d'une scène fixe pour les désactiver. Pour vraiment vous lever.",
+  "feat.wake.body": "Alarmes coriaces avec des missions maths, secousses ou photo d'une scène fixe pour les désactiver. Pour vraiment vous lever.",
   "feat.focus.title": "Sessions de Focus",
   "feat.focus.body": "Pomodoro avec verrouillage du téléphone et indicateur de dépassement bien visible. Note discrètement chaque prise en main, sans jugement. L'IA tague automatiquement ce sur quoi vous avez travaillé.",
   "feat.checklist.title": "Checklist quotidienne",
@@ -50,7 +50,7 @@
   "shot.insight.title": "Insight IA",
   "shot.insight.body": "Bilan hebdomadaire + alertes quotidiennes. Discret par défaut, utile quand il s'exprime.",
   "shot.alarm.title": "Alarme",
-  "shot.alarm.body": "Missions de réveil style Alarmy — résolvez des calculs, secouez le téléphone ou photographiez une scène fixe pour couper l'alarme.",
+  "shot.alarm.body": "Missions de réveil coriaces — résolvez des calculs, secouez le téléphone ou photographiez une scène fixe pour couper l'alarme.",
 
   "a11y.shot_alt": "Écran {title}",
   "a11y.shot_show": "Afficher {title}",
@@ -63,7 +63,7 @@
   "tour.day.subtitle": "Une courte checklist, un Pomodoro discret et une vue mensuelle unique — conçus pour traverser la journée sans bruit.",
   "tour.night.eyebrow": "Votre nuit",
   "tour.night.title": "Dormez profondément. Réveillez-vous à votre rythme.",
-  "tour.night.subtitle": "Démarrez une nuit d'un seul tap. Détection des ronflements + toux en local. Missions de réveil style Alarmy — calculs, secousses ou photo d'une scène fixe — pour vraiment vous lever.",
+  "tour.night.subtitle": "Démarrez une nuit d'un seul tap. Détection des ronflements + toux en local. Missions de réveil coriaces — calculs, secousses ou photo d'une scène fixe — pour vraiment vous lever.",
 
   "quote.text": "Dormez profondément, concentrez-vous pleinement, reposez-vous, recommencez.",
   "quote.attrib": "— le vœu quotidien d'un livre de chevet pour vous",

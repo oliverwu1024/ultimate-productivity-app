@@ -23,7 +23,7 @@
   "feat.sleep.title": "Monitoramento de sono",
   "feat.sleep.body": "Comece uma noite com um toque. Detecção de uso do celular, déficit de sono + descanso extra e monitoramento opcional de ronco + tosse no dispositivo — o áudio fica no seu celular.",
   "feat.wake.title": "Missões de despertar",
-  "feat.wake.body": "Alarmes estilo Alarmy com missões de matemática, agitação ou fotografia de um local fixo para desligar. Para você realmente sair da cama.",
+  "feat.wake.body": "Alarmes exigentes com missões de matemática, agitação ou fotografia de um local fixo para desligar. Para você realmente sair da cama.",
   "feat.focus.title": "Sessões de foco",
   "feat.focus.body": "Pomodoro com bloqueio de tela e indicador de hora extra em destaque. Registra cada uso do celular discretamente, sem julgamentos. IA identifica automaticamente no que você trabalhou.",
   "feat.checklist.title": "Lista diária",
@@ -50,7 +50,7 @@
   "shot.insight.title": "Insight de IA",
   "shot.insight.body": "Reflexão semanal + alertas diários de anomalias. Silencioso por padrão, útil quando fala.",
   "shot.alarm.title": "Alarme",
-  "shot.alarm.body": "Missões de despertar estilo Alarmy — resolva cálculos, agite o celular ou fotografe um local fixo para silenciar.",
+  "shot.alarm.body": "Missões de despertar exigentes — resolva cálculos, agite o celular ou fotografe um local fixo para silenciar.",
 
   "a11y.shot_alt": "Tela {title}",
   "a11y.shot_show": "Mostrar {title}",
@@ -63,7 +63,7 @@
   "tour.day.subtitle": "Uma lista curta, um Pomodoro tranquilo e uma única visão mensal — feito para passar o dia sem distrações.",
   "tour.night.eyebrow": "Sua noite",
   "tour.night.title": "Durma profundamente. Acorde no seu ritmo.",
-  "tour.night.subtitle": "Comece uma noite com um toque. Detecção de ronco + tosse no dispositivo. Missões de despertar estilo Alarmy — cálculos, agitação ou foto de um local fixo — para você realmente sair da cama.",
+  "tour.night.subtitle": "Comece uma noite com um toque. Detecção de ronco + tosse no dispositivo. Missões de despertar exigentes — cálculos, agitação ou foto de um local fixo — para você realmente sair da cama.",
 
   "quote.text": "Durma profundamente, foque com clareza, descanse, repita.",
   "quote.attrib": "— o desejo diário de um livro adormecido para você",

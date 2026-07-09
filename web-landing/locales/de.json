@@ -23,7 +23,7 @@
   "feat.sleep.title": "Schlaf-Tracking",
   "feat.sleep.body": "Eine Nacht mit einem Tippen starten. Handy-Aufnahme-Erkennung, Schlafdefizit + Extraschlaf und optionale Schnarchen- und Husterkennung auf dem Gerät – Audio bleibt auf deinem Handy.",
   "feat.wake.title": "Aufwach-Missionen",
-  "feat.wake.body": "Alarmy-ähnliche Wecker mit Mathe-, Schüttel- oder Foto-Missionen zum Deaktivieren. Damit du wirklich aufstehst.",
+  "feat.wake.body": "Hartnäckige Wecker mit Mathe-, Schüttel- oder Foto-Missionen zum Deaktivieren. Damit du wirklich aufstehst.",
   "feat.focus.title": "Fokus-Sitzungen",
   "feat.focus.body": "Pomodoro mit Handysperrung und deutlicher Überzeitanzeige. Bemerkt leise jede Handy-Nutzung – ohne Vorwürfe. AI markiert automatisch, woran du gearbeitet hast.",
   "feat.checklist.title": "Tägliche Checkliste",
@@ -50,7 +50,7 @@
   "shot.insight.title": "AI Einblick",
   "shot.insight.body": "Wöchentliche Reflexion + tägliche Anomalie-Hinweise. Standardmäßig ruhig, nützlich wenn er spricht.",
   "shot.alarm.title": "Wecker",
-  "shot.alarm.body": "Alarmy-ähnliche Aufwach-Missionen – Mathe lösen, Handy schütteln oder eine feste Szene fotografieren zum Ausschalten.",
+  "shot.alarm.body": "Hartnäckige Aufwach-Missionen – Mathe lösen, Handy schütteln oder eine feste Szene fotografieren zum Ausschalten.",
 
   "a11y.shot_alt": "{title}-Bildschirm",
   "a11y.shot_show": "{title} anzeigen",
@@ -63,7 +63,7 @@
   "tour.day.subtitle": "Eine kurze Checkliste, ein ruhiger Pomodoro und eine Monatsansicht – gemacht, um den Tag ohne Ablenkung zu meistern.",
   "tour.night.eyebrow": "Deine Nacht",
   "tour.night.title": "Tief schlafen. Aufwachen nach deinen Regeln.",
-  "tour.night.subtitle": "Eine Nacht mit einem Tippen starten. Schnarchen- und Husterkennung läuft auf dem Gerät. Alarmy-ähnliche Aufwach-Missionen – Mathe, Schütteln oder ein Foto einer festen Szene – damit du wirklich aufstehst.",
+  "tour.night.subtitle": "Eine Nacht mit einem Tippen starten. Schnarchen- und Husterkennung läuft auf dem Gerät. Hartnäckige Aufwach-Missionen – Mathe, Schütteln oder ein Foto einer festen Szene – damit du wirklich aufstehst.",
 
   "quote.text": "Tief schlafen, fokussiert bleiben, erholen, wiederholen.",
   "quote.attrib": "— der tägliche Wunsch eines Schlafbuchs für dich",

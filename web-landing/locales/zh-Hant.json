@@ -23,7 +23,7 @@
   "feat.sleep.title": "睡眠追蹤",
   "feat.sleep.body": "一鍵開始夜間記錄。偵測拿起手機次數、睡眠債與額外休息，選用裝置端鼾聲＋咳嗽監測——音訊不離開你的手機。",
   "feat.wake.title": "起床任務",
-  "feat.wake.body": "Alarmy 風格鬧鐘，需完成解數學、搖動手機或拍攝指定場景等任務才能關閉。讓你真正起床。",
+  "feat.wake.body": "硬派鬧鐘，需完成解數學、搖動手機或拍攝指定場景等任務才能關閉。讓你真正起床。",
   "feat.focus.title": "專注時段",
   "feat.focus.body": "Pomodoro 計時器附鎖定遮罩與顯眼的超時提示。靜靜記錄每次拿起手機，不加評判。AI 自動標記你的工作內容。",
   "feat.checklist.title": "每日清單",
@@ -33,7 +33,7 @@
   "feat.coach.title": "AI 教練",
   "feat.coach.body": "具備工具呼叫能力的助手，讀取你的睡眠、專注與清單資料。提案日曆與清單內容，一鍵確認。透過對話記錄睡眠、設定鬧鐘。",
   "feat.insight.title": "AI 洞察與睡眠評分",
-  "feat.insight.body": "過去 7 天的每週回顧。發現緩慢累積的異常模式（短眠、專注崩潰、睡前刷手機）時主動提醒。每晚結束後一鍵 AI 睡眠品質評分。",
+  "feat.insight.body": "過去 7 天的每週回顧。發現緩慢累積的異常模式（短眠、專注崩潰、睡前滑手機）時主動提醒。每晚結束後一鍵 AI 睡眠品質評分。",
 
   "shot.dashboard.title": "儀表板",
   "shot.dashboard.body": "昨晚情況、今日計畫與專注進度，一目瞭然。",
@@ -50,7 +50,7 @@
   "shot.insight.title": "AI 洞察",
   "shot.insight.body": "每週回顧＋每日異常提醒。平日靜默，出聲即有用。",
   "shot.alarm.title": "鬧鐘",
-  "shot.alarm.body": "Alarmy 風格起床任務——解數學、搖手機或拍攝指定場景才能關閉鬧鐘。",
+  "shot.alarm.body": "硬派起床任務——解數學、搖手機或拍攝指定場景才能關閉鬧鐘。",
 
   "a11y.shot_alt": "{title} 畫面",
   "a11y.shot_show": "顯示 {title}",
@@ -63,7 +63,7 @@
   "tour.day.subtitle": "簡短清單、寧靜 Pomodoro 與單一月視圖——為不受干擾地度過每一天而生。",
   "tour.night.eyebrow": "你的夜晚",
   "tour.night.title": "深度睡眠，按你的方式醒來。",
-  "tour.night.subtitle": "一鍵開始夜間記錄。鼾聲＋咳嗽偵測在裝置端運行。Alarmy 風格起床任務——解數學、搖手機或拍攝指定場景——讓你真正起床。",
+  "tour.night.subtitle": "一鍵開始夜間記錄。鼾聲＋咳嗽偵測在裝置端運行。硬派起床任務——解數學、搖手機或拍攝指定場景——讓你真正起床。",
 
   "quote.text": "深度睡眠，清晰專注，好好休息，周而復始。",
   "quote.attrib": "——一本睡眠日誌對你的每日祝願",
