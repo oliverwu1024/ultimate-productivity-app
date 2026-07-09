@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { LocaleProvider } from "./i18n";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -61,8 +62,19 @@ export default function RootLayout({
             __html: `(function(){try{var s=localStorage.getItem('ultiq_theme');if(s==='light'){return;}document.documentElement.classList.add('dark');}catch(e){document.documentElement.classList.add('dark');}})();`,
           }}
         />
+        {/* Pre-paint locale application: sets <html lang/dir> from the stored
+            `ultiq_lang` (shared with the dashboard) before render so RTL locales
+            don't flip layout after hydration. The exported markup text stays
+            English; LocaleProvider swaps the visible copy on the client. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var l=localStorage.getItem('ultiq_lang');if(l){document.documentElement.setAttribute('lang',l);document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');}}catch(e){}})();`,
+          }}
+        />
       </head>
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <LocaleProvider>{children}</LocaleProvider>
+      </body>
     </html>
   );
 }

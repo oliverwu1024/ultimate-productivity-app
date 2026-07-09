@@ -15,7 +15,17 @@ import {
   MessagesSquare,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ComponentType } from "react";
+
+import { LanguageSwitcher, TemplateText, useI18n, usePageTitle } from "./i18n";
+
+/** Single source of truth for the shipped APK. Bump on release — the download
+ *  href, the install-step filename, and every visible "v…"/size label derive
+ *  from these, so the copy and locale catalogs never hardcode a version. */
+const APP_VERSION = "2.22.8";
+const APK_SIZE = "85 MB";
+
+type IconType = ComponentType<{ size?: number; strokeWidth?: number; className?: string }>;
 
 type Theme = "light" | "dark" | "system";
 
@@ -39,6 +49,7 @@ function applyTheme(t: Theme) {
 }
 
 function ThemeToggle() {
+  const { t } = useI18n();
   const [theme, setTheme] = useState<Theme>("system");
 
   useEffect(() => {
@@ -57,13 +68,14 @@ function ThemeToggle() {
   };
 
   const Icon = theme === "light" ? Sun : theme === "dark" ? Moon : MonitorCog;
-  const label = theme === "light" ? "Light" : theme === "dark" ? "Dark" : "Auto";
+  const label =
+    theme === "light" ? t("theme.light") : theme === "dark" ? t("theme.dark") : t("theme.auto");
 
   return (
     <button
       onClick={cycle}
-      title="Cycle theme"
-      aria-label="Toggle theme"
+      title={t("theme.cycle")}
+      aria-label={t("theme.toggle")}
       className="rounded-full p-2 text-ultiq-indigo/70 transition hover:bg-ultiq-indigo/5 hover:text-ultiq-indigo"
     >
       <Icon size={18} aria-hidden="true" />
@@ -72,78 +84,50 @@ function ThemeToggle() {
   );
 }
 
-const features = [
-  {
-    icon: Moon,
-    title: "Sleep tracking",
-    body: "Start a night with one tap. Phone-pickup detection, sleep debt + extra rest, and optional on-device snore + cough monitoring — audio stays on your phone.",
-    bg: "bg-ultiq-blue/40",
-    iconColor: "text-ultiq-indigo",
-  },
-  {
-    icon: AlarmClock,
-    title: "Wake missions",
-    body: "Alarmy-style alarms with math, shake, or photograph-a-fixed-scene missions to dismiss. So you actually get out of bed.",
-    bg: "bg-ultiq-yellow/30",
-    iconColor: "text-ultiq-indigo",
-  },
-  {
-    icon: Timer,
-    title: "Focus sessions",
-    body: "Pomodoro with phone-lockout overlay and prominent overtime indicator. Quietly notices each pickup, no shaming. AI auto-tags what you worked on.",
-    bg: "bg-ultiq-red/15",
-    iconColor: "text-ultiq-red",
-  },
-  {
-    icon: ListChecks,
-    title: "Daily checklist",
-    body: "A short list of intentions for today. Recurrence by days-of-week or due date, carry-over for what didn't get done, drop straight into a focus session from any task.",
-    bg: "bg-ultiq-indigo/10",
-    iconColor: "text-ultiq-indigo",
-  },
-  {
-    icon: CalendarDays,
-    title: "Calendar",
-    body: "Events, sleep, and focus sessions on a single monthly view. Natural-language create — type 'lunch with Sarah tomorrow at 1pm'; AI parses, you confirm.",
-    bg: "bg-ultiq-blue/40",
-    iconColor: "text-ultiq-indigo",
-  },
-  {
-    icon: MessagesSquare,
-    title: "AI coach",
-    body: "Tool-using assistant reads your sleep + focus + checklist data. Proposes calendar + checklist writes you confirm with a tap. Logs sleep + sets alarms via chat.",
-    bg: "bg-ultiq-indigo/10",
-    iconColor: "text-ultiq-indigo",
-  },
-  {
-    icon: Sparkles,
-    title: "AI insight + sleep rating",
-    body: "Weekly reflection on the past 7 days. Daily anomaly nudges if slow-burn patterns appear (short nights, focus collapse, sleep-window phone spirals). One-tap AI sleep quality rating after each night.",
-    bg: "bg-ultiq-yellow/30",
-    iconColor: "text-ultiq-indigo",
-  },
+type FeatureId = "sleep" | "wake" | "focus" | "checklist" | "calendar" | "coach" | "insight";
+
+/** Structural only — the title/body text lives in the locale catalogs under
+ *  `feat.<id>.title` / `feat.<id>.body`. */
+const features: { id: FeatureId; icon: IconType; bg: string; iconColor: string }[] = [
+  { id: "sleep", icon: Moon, bg: "bg-ultiq-blue/40", iconColor: "text-ultiq-indigo" },
+  { id: "wake", icon: AlarmClock, bg: "bg-ultiq-yellow/30", iconColor: "text-ultiq-indigo" },
+  { id: "focus", icon: Timer, bg: "bg-ultiq-red/15", iconColor: "text-ultiq-red" },
+  { id: "checklist", icon: ListChecks, bg: "bg-ultiq-indigo/10", iconColor: "text-ultiq-indigo" },
+  { id: "calendar", icon: CalendarDays, bg: "bg-ultiq-blue/40", iconColor: "text-ultiq-indigo" },
+  { id: "coach", icon: MessagesSquare, bg: "bg-ultiq-indigo/10", iconColor: "text-ultiq-indigo" },
+  { id: "insight", icon: Sparkles, bg: "bg-ultiq-yellow/30", iconColor: "text-ultiq-indigo" },
 ];
 
-type Screenshot = { src: string; title: string; body: string };
+type ShotId =
+  | "dashboard"
+  | "checklist"
+  | "sleep"
+  | "focus"
+  | "calendar"
+  | "coach"
+  | "insight"
+  | "alarm";
 
-const screenshots: Screenshot[] = [
-  { src: "/screenshots/dashboard.png", title: "Dashboard", body: "Last night, today's plan, and the day's focus at a glance." },
-  { src: "/screenshots/checklist.png", title: "Checklist", body: "Plan tomorrow or carry today forward — one short list, no nags." },
-  { src: "/screenshots/sleep.png", title: "Sleep", body: "Start a night with one tap. Duration, quality, debt — at a glance." },
-  { src: "/screenshots/focus.png", title: "Focus", body: "A Pomodoro timer that pulls from today's checklist." },
-  { src: "/screenshots/calendar.png", title: "Calendar", body: "Sessions, sleep, and events on a single monthly view." },
-  { src: "/screenshots/coach.png", title: "Coach", body: "Tool-using AI coach reads your data and proposes writes you confirm with a tap." },
-  { src: "/screenshots/insight.png", title: "AI insight", body: "Weekly reflection + daily anomaly nudges. Quiet by default, useful when it speaks." },
-  { src: "/screenshots/alarm.png", title: "Alarm", body: "Alarmy-style wake missions — solve math, shake the phone, or photograph a fixed scene to silence." },
+/** Screenshot titles/bodies come from `shot.<id>.title` / `shot.<id>.body`; the
+ *  `id` is the stable lookup key (referenced by the tour sections). */
+const screenshots: { id: ShotId; src: string }[] = [
+  { id: "dashboard", src: "/screenshots/dashboard.png" },
+  { id: "checklist", src: "/screenshots/checklist.png" },
+  { id: "sleep", src: "/screenshots/sleep.png" },
+  { id: "focus", src: "/screenshots/focus.png" },
+  { id: "calendar", src: "/screenshots/calendar.png" },
+  { id: "coach", src: "/screenshots/coach.png" },
+  { id: "insight", src: "/screenshots/insight.png" },
+  { id: "alarm", src: "/screenshots/alarm.png" },
 ];
+
+const shotById = (id: ShotId) => screenshots.find((s) => s.id === id) ?? screenshots[0];
 
 /** §landing-redesign — Three themed groups of screens for the tour. Phone
  *  mockup in the hero still cycles through the full screenshots array. */
 type TourSection = {
-  eyebrow: string;
-  title: string;
-  subtitle: string;
-  keys: string[];
+  id: "home" | "day" | "night";
+  keys: ShotId[];
   emoji: string;
   /** Drives the per-emoji motion: float = gentle vertical bob (home);
    *  spin = slow continuous rotation (sun); sway = side-to-side rock (moon). */
@@ -151,37 +135,19 @@ type TourSection = {
 };
 
 const tourSections: TourSection[] = [
-  {
-    eyebrow: "Home page",
-    title: "A calm overview, with an AI coach beside it.",
-    subtitle: "Dashboard shows last night, today's plan, and the day's focus at a glance. The week's AI reflection appears when there's something to say. Coach reads your data and proposes calendar + checklist writes you confirm with one tap.",
-    keys: ["Dashboard", "AI insight", "Coach"],
-    emoji: "🏠",
-    motion: "float",
-  },
-  {
-    eyebrow: "Your day",
-    title: "Plan, focus, schedule.",
-    subtitle: "A short checklist, a quiet Pomodoro, and a single monthly view — built for getting through the day without noise.",
-    keys: ["Checklist", "Focus", "Calendar"],
-    emoji: "☀️",
-    motion: "spin",
-  },
-  {
-    eyebrow: "Your night",
-    title: "Sleep deeply. Wake on your terms.",
-    subtitle: "Start a night with one tap. Snore + cough detection runs on-device. Alarmy-style wake missions — math, shake, or a photo of a fixed scene — so you actually get out of bed.",
-    keys: ["Sleep", "Alarm"],
-    emoji: "🌙",
-    motion: "sway",
-  },
+  { id: "home", keys: ["dashboard", "insight", "coach"], emoji: "🏠", motion: "float" },
+  { id: "day", keys: ["checklist", "focus", "calendar"], emoji: "☀️", motion: "spin" },
+  { id: "night", keys: ["sleep", "alarm"], emoji: "🌙", motion: "sway" },
 ];
 
 /** Per-section emoji animation. Subtle "this part of the day is happening"
  *  signal without being a Slack-emoji-rave. */
 const sectionEmojiVariants: Record<
   TourSection["motion"],
-  { animate: Record<string, number[]>; transition: { duration: number; repeat: number; ease: "easeInOut" | "linear" } }
+  {
+    animate: Record<string, number[]>;
+    transition: { duration: number; repeat: number; ease: "easeInOut" | "linear" };
+  }
 > = {
   float: {
     animate: { y: [0, -8, 0] },
@@ -196,9 +162,6 @@ const sectionEmojiVariants: Record<
     transition: { duration: 5, repeat: Infinity, ease: "easeInOut" },
   },
 };
-
-const screenshotByTitle = (t: string): Screenshot =>
-  screenshots.find((s) => s.title === t) ?? screenshots[0];
 
 /** §landing-redesign — Three slow-drifting gradient blobs behind the hero.
  *  Provides the "炫炮" backdrop motion without burning the GPU. */
@@ -225,14 +188,16 @@ function AnimatedGradientMesh() {
  *  screenshots. The single highest-impact element on the page; takes the
  *  hero from "nice landing" to "I want to install this right now". */
 function PhoneMockup() {
+  const { t, ta } = useI18n();
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
-    const t = setInterval(() => setIndex((i) => (i + 1) % screenshots.length), 3500);
-    return () => clearInterval(t);
+    const timer = setInterval(() => setIndex((i) => (i + 1) % screenshots.length), 3500);
+    return () => clearInterval(timer);
   }, []);
 
   const current = screenshots[index];
+  const currentTitle = t(`shot.${current.id}.title`);
 
   return (
     <div className="relative mx-auto w-[260px] sm:w-[300px] md:w-[330px]">
@@ -249,7 +214,7 @@ function PhoneMockup() {
               <motion.img
                 key={current.src}
                 src={current.src}
-                alt={`${current.title} screen`}
+                alt={ta("a11y.shot_alt", { title: currentTitle })}
                 initial={{ opacity: 0, scale: 1.03 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.97 }}
@@ -269,14 +234,14 @@ function PhoneMockup() {
         {/* Floating label of the current screen */}
         <AnimatePresence mode="wait">
           <motion.div
-            key={current.title}
+            key={current.id}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.35 }}
             className="absolute -bottom-12 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border border-ultiq-indigo/15 bg-ultiq-cream/80 px-4 py-1.5 text-sm font-medium text-ultiq-indigo backdrop-blur dark:border-white/10 dark:bg-ultiq-night-800/80 dark:text-ultiq-cream"
           >
-            {current.title}
+            {currentTitle}
           </motion.div>
         </AnimatePresence>
       </div>
@@ -285,11 +250,13 @@ function PhoneMockup() {
       <div className="absolute -bottom-24 left-1/2 flex -translate-x-1/2 gap-1.5">
         {screenshots.map((s, i) => (
           <button
-            key={s.title}
+            key={s.id}
             onClick={() => setIndex(i)}
-            aria-label={`Show ${s.title}`}
+            aria-label={ta("a11y.shot_show", { title: t(`shot.${s.id}.title`) })}
             className={`h-1.5 rounded-full transition-all ${
-              i === index ? "w-6 bg-ultiq-indigo dark:bg-ultiq-cream" : "w-1.5 bg-ultiq-indigo/30 dark:bg-ultiq-cream/30"
+              i === index
+                ? "w-6 bg-ultiq-indigo dark:bg-ultiq-cream"
+                : "w-1.5 bg-ultiq-indigo/30 dark:bg-ultiq-cream/30"
             }`}
           />
         ))}
@@ -299,6 +266,9 @@ function PhoneMockup() {
 }
 
 export default function Home() {
+  const { t, ta } = useI18n();
+  usePageTitle("meta.home");
+
   return (
     <div className="relative flex flex-1 flex-col bg-ultiq-cream text-ultiq-indigo">
       {/* Page-level subtle dotted grid (sits below the gradient meshes) */}
@@ -314,19 +284,20 @@ export default function Home() {
             </span>
             <span className="text-xl font-semibold tracking-tight">Ultiq</span>
           </Link>
-          <div className="flex items-center gap-2 sm:gap-4">
+          <div className="flex items-center gap-1 sm:gap-3">
+            <LanguageSwitcher />
             <ThemeToggle />
             <a
               href="https://app.ultiqapp.com"
               className="text-sm font-medium text-ultiq-indigo/80 transition hover:text-ultiq-indigo"
             >
-              Sign in
+              {t("nav.signin")}
             </a>
             <a
               href="#get-the-app"
               className="rounded-full bg-ultiq-indigo px-4 py-2 text-sm font-medium text-ultiq-cream transition hover:bg-ultiq-indigo/90"
             >
-              Get the app
+              {t("nav.get_app")}
             </a>
           </div>
         </div>
@@ -355,9 +326,9 @@ export default function Home() {
               transition={{ delay: 0.1, duration: 0.6 }}
               className="text-5xl font-bold leading-[1.05] tracking-tight md:text-7xl"
             >
-              <span className="text-gradient-hero block">Sleep deeply.</span>
-              <span className="text-gradient-hero block">Focus clearly.</span>
-              <span className="block text-ultiq-indigo/85">Rest, repeat.</span>
+              <span className="text-gradient-hero block">{t("hero.line1")}</span>
+              <span className="text-gradient-hero block">{t("hero.line2")}</span>
+              <span className="block text-ultiq-indigo/85">{t("hero.line3")}</span>
             </motion.h1>
 
             <motion.p
@@ -366,7 +337,7 @@ export default function Home() {
               transition={{ delay: 0.25, duration: 0.6 }}
               className="mt-8 max-w-xl text-lg leading-relaxed text-ultiq-indigo/75 md:mx-0 md:text-xl"
             >
-              Ultiq is a calm productivity companion for Android. Sleep tracking with on-device snore + cough detection, focus sessions, daily checklist, and an AI coach that proposes writes you confirm with one tap.
+              {t("hero.subtitle")}
             </motion.p>
 
             <motion.div
@@ -379,10 +350,10 @@ export default function Home() {
                 href="#get-the-app"
                 className="ultiq-glow group inline-flex items-center gap-2 rounded-full bg-ultiq-indigo px-7 py-3.5 text-base font-medium text-ultiq-cream transition hover:translate-y-[-1px] hover:bg-ultiq-indigo/90"
               >
-                Get the app
+                {t("nav.get_app")}
                 <ArrowRight size={18} strokeWidth={2.2} className="transition group-hover:translate-x-0.5" />
               </a>
-              <p className="text-sm text-ultiq-indigo/60">Free · Android 8.0+ · v2.22.8</p>
+              <p className="text-sm text-ultiq-indigo/60">{ta("hero.meta", { version: APP_VERSION })}</p>
             </motion.div>
           </div>
 
@@ -408,14 +379,10 @@ export default function Home() {
           className="text-center"
         >
           <p className="mb-3 text-sm font-medium uppercase tracking-[0.18em] text-ultiq-indigo/55">
-            What it does
+            {t("feat.eyebrow")}
           </p>
-          <h2 className="text-3xl font-bold tracking-tight md:text-5xl">
-            Seven small things, woven into your day.
-          </h2>
-          <p className="mx-auto mt-5 max-w-2xl text-lg text-ultiq-indigo/70">
-            Ultiq doesn&apos;t demand attention. It notices, encourages, and gets out of the way.
-          </p>
+          <h2 className="text-3xl font-bold tracking-tight md:text-5xl">{t("feat.title")}</h2>
+          <p className="mx-auto mt-5 max-w-2xl text-lg text-ultiq-indigo/70">{t("feat.subtitle")}</p>
         </motion.div>
 
         {/* §landing-redesign — 7-card layout shaped as an inverted-pyramid: 4
@@ -426,7 +393,7 @@ export default function Home() {
         <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-8">
           {features.map((f, i) => (
             <motion.div
-              key={f.title}
+              key={f.id}
               initial={{ opacity: 0, y: 22 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-40px" }}
@@ -441,8 +408,8 @@ export default function Home() {
                 <div className={`mb-5 inline-flex size-12 items-center justify-center rounded-2xl bg-ultiq-cream ${f.iconColor} shadow-sm`}>
                   <f.icon size={22} strokeWidth={2} />
                 </div>
-                <h3 className="text-lg font-semibold tracking-tight">{f.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-ultiq-indigo/70">{f.body}</p>
+                <h3 className="text-lg font-semibold tracking-tight">{t(`feat.${f.id}.title`)}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-ultiq-indigo/70">{t(`feat.${f.id}.body`)}</p>
               </div>
             </motion.div>
           ))}
@@ -453,13 +420,12 @@ export default function Home() {
        *  alternating each section) and compact phone previews. The hero's
        *  floating phone is the WOW visual; these are supporting context. */}
       {tourSections.map((sect, sectIdx) => {
-        const items = sect.keys.map(screenshotByTitle);
+        const items = sect.keys.map(shotById);
         const isReverse = sectIdx % 2 === 1; // 0,2 = text-left; 1 = text-right
-        const altBg = sectIdx % 2 === 0
-          ? "bg-ultiq-cream/60 border-y border-ultiq-indigo/10"
-          : "";
+        const altBg =
+          sectIdx % 2 === 0 ? "bg-ultiq-cream/60 border-y border-ultiq-indigo/10" : "";
         return (
-          <section key={sect.eyebrow} className={altBg}>
+          <section key={sect.id} className={altBg}>
             <div className="mx-auto w-full max-w-6xl px-6 py-20 md:py-24">
               <div className="grid items-center gap-12 md:grid-cols-2 md:gap-16">
                 {/* Text column */}
@@ -479,13 +445,13 @@ export default function Home() {
                     {sect.emoji}
                   </motion.div>
                   <p className="mb-3 text-sm font-medium uppercase tracking-[0.18em] text-ultiq-indigo/55">
-                    {sect.eyebrow}
+                    {t(`tour.${sect.id}.eyebrow`)}
                   </p>
                   <h2 className="text-3xl font-bold tracking-tight md:text-5xl">
-                    {sect.title}
+                    {t(`tour.${sect.id}.title`)}
                   </h2>
                   <p className="mt-5 max-w-xl text-lg leading-relaxed text-ultiq-indigo/70">
-                    {sect.subtitle}
+                    {t(`tour.${sect.id}.subtitle`)}
                   </p>
                 </motion.div>
 
@@ -494,7 +460,7 @@ export default function Home() {
                   <ul className="flex flex-wrap items-start justify-center gap-4 md:gap-5">
                     {items.map((s, i) => (
                       <motion.li
-                        key={s.title}
+                        key={s.id}
                         initial={{ opacity: 0, y: 24 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true, margin: "-40px" }}
@@ -510,13 +476,13 @@ export default function Home() {
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={s.src}
-                            alt={`${s.title} screen`}
+                            alt={ta("a11y.shot_alt", { title: t(`shot.${s.id}.title`) })}
                             loading="lazy"
                             className="block w-full rounded-[1.2rem] transition group-hover:scale-[1.01]"
                           />
                         </div>
                         <h3 className="mt-3 text-center text-xs font-semibold tracking-tight md:text-sm">
-                          {s.title}
+                          {t(`shot.${s.id}.title`)}
                         </h3>
                       </motion.li>
                     ))}
@@ -558,10 +524,9 @@ export default function Home() {
             transition={{ delay: 0.2, duration: 0.7 }}
             className="font-serif text-3xl italic leading-[1.2] md:text-6xl"
           >
-            &ldquo;Sleep deeply, focus clearly, <br className="hidden md:inline" />
-            rest, repeat.&rdquo;
+            &ldquo;{t("quote.text")}&rdquo;
           </motion.blockquote>
-          <p className="mt-6 text-ultiq-cream/60">— a sleeping book&apos;s daily wish for you</p>
+          <p className="mt-6 text-ultiq-cream/60">{t("quote.attrib")}</p>
         </div>
       </section>
 
@@ -576,7 +541,7 @@ export default function Home() {
             transition={{ duration: 0.6 }}
             className="text-3xl font-bold tracking-tight md:text-5xl"
           >
-            Ready when you are.
+            {t("cta.title")}
           </motion.h2>
           <motion.p
             initial={{ opacity: 0, y: 14 }}
@@ -585,7 +550,7 @@ export default function Home() {
             transition={{ delay: 0.1, duration: 0.6 }}
             className="mx-auto mt-5 max-w-xl text-lg text-ultiq-indigo/75"
           >
-            Direct APK download for Android — sideload it onto your phone today, no Play Store required.
+            {t("cta.subtitle")}
           </motion.p>
 
           <motion.div
@@ -596,34 +561,43 @@ export default function Home() {
             className="mt-12 flex flex-col items-center gap-4"
           >
             <a
-              href="/ultiq.2.22.8.apk"
+              href={`/ultiq.${APP_VERSION}.apk`}
               download
               className="ultiq-glow group inline-flex items-center gap-3 rounded-full bg-ultiq-indigo px-9 py-4 text-base font-medium text-ultiq-cream transition hover:translate-y-[-1px] hover:bg-ultiq-indigo/90"
             >
               <Download size={20} strokeWidth={2.2} />
-              Download APK · v2.22.8 · 85 MB
+              {ta("cta.download", { version: APP_VERSION, size: APK_SIZE })}
               <ArrowRight size={18} strokeWidth={2.2} className="transition group-hover:translate-x-0.5" />
             </a>
-            <span className="text-xs text-ultiq-indigo/55">Android 8.0+ (API 26)</span>
+            <span className="text-xs text-ultiq-indigo/55">{t("cta.requirement")}</span>
           </motion.div>
 
           <details className="mx-auto mt-12 max-w-lg rounded-2xl border border-ultiq-indigo/15 bg-white/40 p-5 text-left text-sm text-ultiq-indigo/80 backdrop-blur dark:bg-ultiq-night-800/40">
-            <summary className="cursor-pointer font-medium text-ultiq-indigo">First time installing?</summary>
+            <summary className="cursor-pointer font-medium text-ultiq-indigo">{t("install.summary")}</summary>
             <ol className="mt-3 list-decimal space-y-2 pl-5 text-ultiq-indigo/70">
-              <li>Tap the downloaded <code className="rounded bg-ultiq-indigo/5 px-1.5 py-0.5">ultiq.2.22.8.apk</code> in your Files or Downloads app.</li>
-              <li>If Android asks <em>&ldquo;allow installs from this source?&rdquo;</em>, tap <strong>Settings</strong> → toggle on <strong>Allow from this source</strong>, then go back.</li>
-              <li>Tap <strong>Install</strong>. The icon appears on your home screen / app drawer when it&apos;s done.</li>
+              <li>
+                <TemplateText
+                  template={t("install.step1")}
+                  values={{
+                    file: (
+                      <code className="rounded bg-ultiq-indigo/5 px-1.5 py-0.5">
+                        ultiq.{APP_VERSION}.apk
+                      </code>
+                    ),
+                  }}
+                />
+              </li>
+              <li>{t("install.step2")}</li>
+              <li>{t("install.step3")}</li>
             </ol>
-            <p className="mt-3 text-xs text-ultiq-indigo/50">
-              That &ldquo;unknown source&rdquo; prompt is Android&apos;s standard one-time check for any APK installed outside the Play Store. Same APK as the Play Store build, just hosted here.
-            </p>
+            <p className="mt-3 text-xs text-ultiq-indigo/50">{t("install.footnote")}</p>
           </details>
 
           <div className="mx-auto mt-10 flex max-w-lg items-center justify-center gap-3 text-sm text-ultiq-indigo/60">
             <span className="rounded-full bg-ultiq-yellow/30 px-2.5 py-1 text-xs font-semibold uppercase tracking-wider text-ultiq-indigo">
-              Coming soon
+              {t("cta.coming_soon")}
             </span>
-            <span>also on Google Play —</span>
+            <span>{t("cta.also_play")}</span>
             <a href="mailto:support@ultiqapp.com" className="text-ultiq-red underline-offset-4 hover:underline">
               support@ultiqapp.com
             </a>
@@ -642,10 +616,18 @@ export default function Home() {
             <span>© {new Date().getFullYear()} Ultiq</span>
           </div>
           <div className="flex items-center gap-6">
-            <a href="https://app.ultiqapp.com" className="hover:text-ultiq-indigo">Dashboard</a>
-            <Link href="/privacy" className="hover:text-ultiq-indigo">Privacy</Link>
-            <Link href="/terms" className="hover:text-ultiq-indigo">Terms</Link>
-            <a href="mailto:support@ultiqapp.com" className="hover:text-ultiq-indigo">Support</a>
+            <a href="https://app.ultiqapp.com" className="hover:text-ultiq-indigo">
+              {t("footer.dashboard")}
+            </a>
+            <Link href="/privacy" className="hover:text-ultiq-indigo">
+              {t("footer.privacy")}
+            </Link>
+            <Link href="/terms" className="hover:text-ultiq-indigo">
+              {t("footer.terms")}
+            </Link>
+            <a href="mailto:support@ultiqapp.com" className="hover:text-ultiq-indigo">
+              {t("footer.support")}
+            </a>
           </div>
         </div>
       </footer>
