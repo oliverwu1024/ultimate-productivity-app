@@ -23,7 +23,7 @@
   "feat.sleep.title": "Pelacak tidur",
   "feat.sleep.body": "Mulai malam dengan satu ketukan. Deteksi pengambilan ponsel, utang tidur + istirahat ekstra, dan pemantauan dengkuran + batuk opsional di perangkat — audio tetap di ponselmu.",
   "feat.wake.title": "Misi bangun",
-  "feat.wake.body": "Alarm gaya Alarmy dengan misi matematika, goyangan, atau foto pemandangan tetap untuk dimatikan. Agar kamu benar-benar bangun dari tempat tidur.",
+  "feat.wake.body": "Alarm tangguh dengan misi matematika, goyangan, atau foto pemandangan tetap untuk dimatikan. Agar kamu benar-benar bangun dari tempat tidur.",
   "feat.focus.title": "Sesi Fokus",
   "feat.focus.body": "Pomodoro dengan overlay kunci layar dan indikator lembur yang jelas. Mencatat setiap pengambilan ponsel tanpa menghakimi. AI menandai otomatis apa yang kamu kerjakan.",
   "feat.checklist.title": "Checklist harian",
@@ -50,7 +50,7 @@
   "shot.insight.title": "Wawasan AI",
   "shot.insight.body": "Refleksi mingguan + dorongan anomali harian. Diam secara bawaan, berguna saat berbicara.",
   "shot.alarm.title": "Alarm",
-  "shot.alarm.body": "Misi bangun gaya Alarmy — selesaikan matematika, goyangkan ponsel, atau foto pemandangan tetap untuk mematikan.",
+  "shot.alarm.body": "Misi bangun tangguh — selesaikan matematika, goyangkan ponsel, atau foto pemandangan tetap untuk mematikan.",
 
   "a11y.shot_alt": "Layar {title}",
   "a11y.shot_show": "Tampilkan {title}",
@@ -63,7 +63,7 @@
   "tour.day.subtitle": "Checklist singkat, Pomodoro yang tenang, dan tampilan bulanan tunggal — dirancang untuk menjalani hari tanpa gangguan.",
   "tour.night.eyebrow": "Malammu",
   "tour.night.title": "Tidur nyenyak. Bangun sesuai caramu.",
-  "tour.night.subtitle": "Mulai malam dengan satu ketukan. Deteksi dengkuran + batuk berjalan di perangkat. Misi bangun gaya Alarmy — matematika, goyangan, atau foto pemandangan tetap — agar kamu benar-benar bangun dari tempat tidur.",
+  "tour.night.subtitle": "Mulai malam dengan satu ketukan. Deteksi dengkuran + batuk berjalan di perangkat. Misi bangun tangguh — matematika, goyangan, atau foto pemandangan tetap — agar kamu benar-benar bangun dari tempat tidur.",
 
   "quote.text": "Tidur nyenyak, fokus jernih, istirahat, ulangi.",
   "quote.attrib": "— harapan harian dari buku tidurmu",

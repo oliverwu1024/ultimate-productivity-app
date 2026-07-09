@@ -23,7 +23,7 @@
   "feat.sleep.title": "Sleep tracking",
   "feat.sleep.body": "Start a night with one tap. Phone-pickup detection, sleep debt + extra rest, and optional on-device snore + cough monitoring — audio stays on your phone.",
   "feat.wake.title": "Wake missions",
-  "feat.wake.body": "Alarmy-style alarms with math, shake, or photograph-a-fixed-scene missions to dismiss. So you actually get out of bed.",
+  "feat.wake.body": "Tough alarms with math, shake, or photograph-a-fixed-scene missions to dismiss. So you actually get out of bed.",
   "feat.focus.title": "Focus sessions",
   "feat.focus.body": "Pomodoro with phone-lockout overlay and prominent overtime indicator. Quietly notices each pickup, no shaming. AI auto-tags what you worked on.",
   "feat.checklist.title": "Daily checklist",
@@ -50,7 +50,7 @@
   "shot.insight.title": "AI insight",
   "shot.insight.body": "Weekly reflection + daily anomaly nudges. Quiet by default, useful when it speaks.",
   "shot.alarm.title": "Alarm",
-  "shot.alarm.body": "Alarmy-style wake missions — solve math, shake the phone, or photograph a fixed scene to silence.",
+  "shot.alarm.body": "Tough wake missions — solve math, shake the phone, or photograph a fixed scene to silence.",
 
   "a11y.shot_alt": "{title} screen",
   "a11y.shot_show": "Show {title}",
@@ -63,7 +63,7 @@
   "tour.day.subtitle": "A short checklist, a quiet Pomodoro, and a single monthly view — built for getting through the day without noise.",
   "tour.night.eyebrow": "Your night",
   "tour.night.title": "Sleep deeply. Wake on your terms.",
-  "tour.night.subtitle": "Start a night with one tap. Snore + cough detection runs on-device. Alarmy-style wake missions — math, shake, or a photo of a fixed scene — so you actually get out of bed.",
+  "tour.night.subtitle": "Start a night with one tap. Snore + cough detection runs on-device. Tough wake missions — math, shake, or a photo of a fixed scene — so you actually get out of bed.",
 
   "quote.text": "Sleep deeply, focus clearly, rest, repeat.",
   "quote.attrib": "— a sleeping book's daily wish for you",

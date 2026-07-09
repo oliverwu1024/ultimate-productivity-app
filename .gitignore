@@ -66,6 +66,10 @@ ultiq-roadmap.md
 AGENTS.md
 CLAUDE.md
 
+# Phase 13.5 — Play Store store-listing copy. Local-only ops artifact (manual
+# paste into Play Console); no repo coupling. Whole folder ignored, incl. README.
+/play-store-listing/
+
 # All other markdown is local-only. Only README.md (anywhere in the tree)
 # is published. Anything else (release checklists, design notes, scratch
 # docs) lives on disk for the developer's reference.

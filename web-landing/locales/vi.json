@@ -23,7 +23,7 @@
   "feat.sleep.title": "Theo dõi giấc ngủ",
   "feat.sleep.body": "Bắt đầu một đêm với một chạm. Phát hiện cầm điện thoại, nợ giấc ngủ + ngủ thêm, và theo dõi tiếng ngáy + ho tùy chọn ngay trên thiết bị — âm thanh ở lại trên điện thoại của bạn.",
   "feat.wake.title": "Nhiệm vụ thức dậy",
-  "feat.wake.body": "Báo thức kiểu Alarmy với nhiệm vụ tắt bằng toán học, lắc máy, hoặc chụp ảnh một cảnh cố định. Để bạn thực sự rời khỏi giường.",
+  "feat.wake.body": "Báo thức cứng đầu với nhiệm vụ tắt bằng toán học, lắc máy, hoặc chụp ảnh một cảnh cố định. Để bạn thực sự rời khỏi giường.",
   "feat.focus.title": "Phiên tập trung",
   "feat.focus.body": "Pomodoro với màn hình khóa điện thoại và chỉ báo làm thêm giờ nổi bật. Âm thầm ghi nhận mỗi lần cầm máy, không phán xét. AI tự động gắn thẻ việc bạn đã làm.",
   "feat.checklist.title": "Danh sách hằng ngày",
@@ -50,7 +50,7 @@
   "shot.insight.title": "AI insight",
   "shot.insight.body": "Nhìn lại hàng tuần + nhắc nhở bất thường hằng ngày. Yên lặng theo mặc định, hữu ích khi lên tiếng.",
   "shot.alarm.title": "Báo thức",
-  "shot.alarm.body": "Nhiệm vụ thức dậy kiểu Alarmy — giải toán, lắc điện thoại, hoặc chụp ảnh một cảnh cố định để tắt.",
+  "shot.alarm.body": "Nhiệm vụ thức dậy cứng đầu — giải toán, lắc điện thoại, hoặc chụp ảnh một cảnh cố định để tắt.",
 
   "a11y.shot_alt": "Màn hình {title}",
   "a11y.shot_show": "Hiển thị {title}",
@@ -63,7 +63,7 @@
   "tour.day.subtitle": "Một danh sách ngắn, Pomodoro yên tĩnh và một chế độ xem hàng tháng — được xây dựng để đi qua ngày mà không có ồn ào.",
   "tour.night.eyebrow": "Đêm của bạn",
   "tour.night.title": "Ngủ sâu giấc. Thức dậy theo cách của bạn.",
-  "tour.night.subtitle": "Bắt đầu một đêm với một chạm. Phát hiện ngáy + ho chạy ngay trên thiết bị. Nhiệm vụ thức dậy kiểu Alarmy — toán học, lắc máy, hoặc chụp ảnh một cảnh cố định — để bạn thực sự rời khỏi giường.",
+  "tour.night.subtitle": "Bắt đầu một đêm với một chạm. Phát hiện ngáy + ho chạy ngay trên thiết bị. Nhiệm vụ thức dậy cứng đầu — toán học, lắc máy, hoặc chụp ảnh một cảnh cố định — để bạn thực sự rời khỏi giường.",
 
   "quote.text": "Ngủ sâu giấc, tập trung rõ ràng, nghỉ ngơi, lặp lại.",
   "quote.attrib": "— điều ước mỗi ngày của một cuốn sách ngủ dành cho bạn",

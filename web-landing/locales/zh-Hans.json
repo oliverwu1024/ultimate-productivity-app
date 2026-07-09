@@ -23,7 +23,7 @@
   "feat.sleep.title": "睡眠追踪",
   "feat.sleep.body": "一键开始一晚记录。手机拿起检测、睡眠债与额外休息统计，以及可选的设备端鼾声与咳嗽监测——音频始终留在手机本地。",
   "feat.wake.title": "起床任务",
-  "feat.wake.body": "Alarmy 风格的闹钟，支持解数学题、摇手机或拍固定场景来关闭。让你真正从床上爬起来。",
+  "feat.wake.body": "硬核闹钟，支持解数学题、摇手机或拍固定场景来关闭。让你真正从床上爬起来。",
   "feat.focus.title": "专注会话",
   "feat.focus.body": "带手机锁屏遮罩和显眼超时提示的 Pomodoro 计时器。静默记录每次手机拿起，不指责你。AI 自动标记你在做什么。",
   "feat.checklist.title": "每日清单",
@@ -50,7 +50,7 @@
   "shot.insight.title": "AI 洞察",
   "shot.insight.body": "每周反思 + 每日异常提醒。默认安静，有话说时才开口。",
   "shot.alarm.title": "闹钟",
-  "shot.alarm.body": "Alarmy 风格的起床任务——解数学题、摇手机或拍固定场景才能关闭。",
+  "shot.alarm.body": "硬核起床任务——解数学题、摇手机或拍固定场景才能关闭。",
 
   "a11y.shot_alt": "{title}截图",
   "a11y.shot_show": "显示{title}",
@@ -63,7 +63,7 @@
   "tour.day.subtitle": "简短清单、安静的 Pomodoro 计时器，以及单一月视图——专为无干扰地过好每一天而设计。",
   "tour.night.eyebrow": "你的夜晚",
   "tour.night.title": "深度睡眠，按你的节奏醒来。",
-  "tour.night.subtitle": "一键开始一晚记录。鼾声与咳嗽检测在设备本地运行。Alarmy 风格的起床任务——解数学题、摇手机或拍固定场景——让你真正起床。",
+  "tour.night.subtitle": "一键开始一晚记录。鼾声与咳嗽检测在设备本地运行。硬核起床任务——解数学题、摇手机或拍固定场景——让你真正起床。",
 
   "quote.text": "深度睡眠，清晰专注，休息，再出发。",
   "quote.attrib": "— 一本沉睡之书，对你每天的祝愿",
