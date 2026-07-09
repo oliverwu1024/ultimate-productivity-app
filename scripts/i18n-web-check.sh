@@ -14,7 +14,7 @@
 set -euo pipefail
 
 DIRS=(
-  "web-landing/messages"
+  "web-landing/locales"
   "web-dashboard/locales"
 )
 BASE="en"
