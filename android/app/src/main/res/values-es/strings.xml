@@ -1001,6 +1001,7 @@
     <string name="nav_focus">Enfoque</string>
     <string name="nav_calendar">Calendario</string>
     <string name="notif_tap_open">Toca para abrir</string>
+    <string name="notif_focus_paused">En pausa</string>
     <string name="notif_sleep_tracking">Seguimiento de sueño activo</string>
     <string name="notif_sleep_tracking_audio">Registrando sueño + sonidos</string>
     <string name="notif_snore_off_title">Seguimiento de ronquidos desactivado — permiso de micrófono necesario</string>

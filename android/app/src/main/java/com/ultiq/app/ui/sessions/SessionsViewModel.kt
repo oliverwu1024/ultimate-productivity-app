@@ -242,30 +242,42 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
     }
 
     private suspend fun restoreActiveSession() {
-        val startMillis = FocusTrackingService.sessionStartTime.value
+        // Prefer the durable store (effective, pause-adjusted start + pause state); fall
+        // back to the service's in-memory anchor for the brief window before the store
+        // is written on a fresh start.
+        val snap = com.ultiq.app.service.LiveFocusSessionStore(getApplication()).load()
+        val startMillis = snap?.startMs?.takeIf { it > 0L }
+            ?: FocusTrackingService.sessionStartTime.value
         if (startMillis <= 0L) return
 
         // Row may not exist yet when the session was JUST started from the widget
-        // (its createSession is async) — fall back to the service state so the timer
-        // still shows; the id is picked up later (completeSession re-fetches it).
+        // (its createSession is async) — fall back to the store/service state so the
+        // timer still shows; the id is picked up later (completeSession re-fetches it).
         val active = sessionDao.getActiveSessions().firstOrNull()?.firstOrNull()
-        val planned = FocusTrackingService.plannedWorkMinutes.value
-            .takeIf { it > 0 } ?: active?.workDuration ?: _uiState.value.workDuration
+        val planned = snap?.plannedMinutes?.takeIf { it > 0 }
+            ?: FocusTrackingService.plannedWorkMinutes.value.takeIf { it > 0 }
+            ?: active?.workDuration ?: _uiState.value.workDuration
         val plannedSec = planned * 60
-        val elapsedSec = ((System.currentTimeMillis() - startMillis) / 1000L)
-            .toInt()
-            .coerceAtLeast(0)
+
+        // Restore paused (elapsed frozen at pausedElapsedMs) vs running (elapsed since
+        // the effective start) — e.g. reopening the app after pausing from the notification.
+        val paused = (snap?.pausedElapsedMs ?: -1L) >= 0L
+        val elapsedSec = if (paused) {
+            (snap!!.pausedElapsedMs / 1000L).toInt().coerceAtLeast(0)
+        } else {
+            ((System.currentTimeMillis() - startMillis) / 1000L).toInt().coerceAtLeast(0)
+        }
         val overtime = elapsedSec >= plannedSec
 
         sessionStartMillis = startMillis
         pausedAccumMillis = 0L
-        pauseStartMillis = 0L
+        pauseStartMillis = if (paused) startMillis + snap!!.pausedElapsedMs else 0L
         currentSessionId = active?.id
 
         _uiState.value = _uiState.value.copy(
-            timerState = TimerState.RUNNING,
+            timerState = if (paused) TimerState.PAUSED else TimerState.RUNNING,
             workDuration = planned,
-            tag = active?.tag ?: "Focus",
+            tag = active?.tag ?: snap?.tag ?: "Focus",
             selectedChecklistItemId = active?.checklistItemId,
             timeRemainingSeconds = if (overtime) 0 else plannedSec - elapsedSec,
             totalTimeSeconds = plannedSec,
@@ -274,7 +286,7 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
             phonePickups = 0,
         )
 
-        startTimer()
+        if (!paused) startTimer()
         startPickupPolling()
     }
 
@@ -463,6 +475,9 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
         }
         _uiState.value = _uiState.value.copy(timerState = TimerState.PAUSED)
         syncFocusStoreForWidget()
+        // Freeze the ongoing notification's timer and flip its text to "Paused": the
+        // service collects this and repaints its notification from the store we just wrote.
+        FocusTrackingService.isPaused.value = true
     }
 
     fun resumeTimer() {
@@ -473,10 +488,12 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
         _uiState.value = _uiState.value.copy(timerState = TimerState.RUNNING)
         startTimer()
         syncFocusStoreForWidget()
-        // Re-arm the lockout gate immediately (mirrors the gate shown on a fresh start),
-        // rather than leaving the user ungated until the next lock/unlock. Store already
-        // holds pausedElapsedMs = -1 from syncFocusStoreForWidget above, so the service's
-        // pause guard won't suppress it.
+        // Unfreeze the notification timer (→ live chronometer), then re-arm the lockout
+        // gate immediately (mirrors the gate shown on a fresh start) rather than leaving
+        // the user ungated until the next lock/unlock. Store already holds
+        // pausedElapsedMs = -1 from syncFocusStoreForWidget above, so the service's pause
+        // guard won't suppress it.
+        FocusTrackingService.isPaused.value = false
         showGateNow()
     }
 

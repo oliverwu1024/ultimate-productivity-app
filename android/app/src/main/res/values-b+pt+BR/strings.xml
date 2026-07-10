@@ -1001,6 +1001,7 @@
     <string name="nav_focus">Foco</string>
     <string name="nav_calendar">Agenda</string>
     <string name="notif_tap_open">Toque para abrir o app</string>
+    <string name="notif_focus_paused">Pausado</string>
     <string name="notif_sleep_tracking">Rastreamento de sono ativo</string>
     <string name="notif_sleep_tracking_audio">Rastreando sono + sons</string>
     <string name="notif_snore_off_title">Rastreamento de ronco desativado — permissão de microfone necessária</string>

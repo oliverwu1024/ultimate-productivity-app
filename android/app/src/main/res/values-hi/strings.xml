@@ -970,6 +970,7 @@
     <string name="nav_focus">फ़ोकस</string>
     <string name="nav_calendar">कैलेंडर</string>
     <string name="notif_tap_open">ऐप खोलने के लिए टैप करें</string>
+    <string name="notif_focus_paused">रुका हुआ</string>
     <string name="notif_sleep_tracking">नींद ट्रैकिंग सक्रिय</string>
     <string name="notif_sleep_tracking_audio">नींद + ध्वनि ट्रैकिंग</string>
     <string name="notif_snore_off_title">खर्राटे ट्रैकिंग बंद — माइक अनुमति आवश्यक</string>

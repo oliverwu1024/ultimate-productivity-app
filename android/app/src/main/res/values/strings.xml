@@ -1019,6 +1019,7 @@
 
     <!-- foreground-service + permission notifications -->
     <string name="notif_tap_open">Tap to open app</string>
+    <string name="notif_focus_paused">Paused</string>
     <string name="notif_sleep_tracking">Sleep tracking active</string>
     <string name="notif_sleep_tracking_audio">Tracking sleep + sounds</string>
     <string name="notif_snore_off_title">Snore tracking off — mic permission needed</string>

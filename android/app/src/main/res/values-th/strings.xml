@@ -939,6 +939,7 @@
     <string name="nav_focus">โฟกัส</string>
     <string name="nav_calendar">ปฏิทิน</string>
     <string name="notif_tap_open">แตะเพื่อเปิดแอป</string>
+    <string name="notif_focus_paused">หยุดชั่วคราว</string>
     <string name="notif_sleep_tracking">กำลังติดตามการนอน</string>
     <string name="notif_sleep_tracking_audio">ติดตามการนอน + เสียง</string>
     <string name="notif_snore_off_title">ปิดติดตามเสียงกรน — ต้องการสิทธิ์ไมโครโฟน</string>

@@ -939,6 +939,7 @@
     <string name="nav_focus">집중</string>
     <string name="nav_calendar">캘린더</string>
     <string name="notif_tap_open">탭하여 앱 열기</string>
+    <string name="notif_focus_paused">일시정지됨</string>
     <string name="notif_sleep_tracking">수면 추적 중</string>
     <string name="notif_sleep_tracking_audio">수면 + 소리 추적 중</string>
     <string name="notif_snore_off_title">코골이 추적 꺼짐 — 마이크 권한 필요</string>
