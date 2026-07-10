@@ -1094,6 +1094,7 @@
     <string name="nav_focus">التركيز</string>
     <string name="nav_calendar">التقويم</string>
     <string name="notif_tap_open">انقر لفتح التطبيق</string>
+    <string name="notif_focus_paused">متوقف مؤقتًا</string>
     <string name="notif_sleep_tracking">تتبع النوم نشط</string>
     <string name="notif_sleep_tracking_audio">تتبع النوم والأصوات</string>
     <string name="notif_snore_off_title">تتبع الشخير متوقف — إذن الميكروفون مطلوب</string>

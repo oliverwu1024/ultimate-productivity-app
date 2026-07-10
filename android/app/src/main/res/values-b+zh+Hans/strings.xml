@@ -939,6 +939,7 @@
     <string name="nav_focus">专注</string>
     <string name="nav_calendar">日历</string>
     <string name="notif_tap_open">点击打开应用</string>
+    <string name="notif_focus_paused">已暂停</string>
     <string name="notif_sleep_tracking">睡眠追踪进行中</string>
     <string name="notif_sleep_tracking_audio">追踪睡眠与声音</string>
     <string name="notif_snore_off_title">鼾声追踪已关闭 — 需要麦克风权限</string>

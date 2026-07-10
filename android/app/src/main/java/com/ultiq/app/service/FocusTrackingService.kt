@@ -57,7 +57,21 @@ class FocusTrackingService : Service() {
         /** Planned focus minutes for the active session — drives the overtime label on the overlay. */
         val plannedWorkMinutes = MutableStateFlow(0)
         val unlockCount = MutableStateFlow(0)
+        /**
+         * Live pause state of the running focus session, set by the in-app timer
+         * (SessionsViewModel.pauseTimer/resumeTimer). It's purely a change signal: this
+         * service collects it and repaints its ongoing notification (frozen "Paused" vs
+         * live chronometer). The durable [LiveFocusSessionStore] the timer writes remains
+         * the source of truth for the actual pause math; this only survives while the
+         * process lives, and the notification is rebuilt from the store regardless.
+         */
+        val isPaused = MutableStateFlow(false)
     }
+
+    /** Set once the service has entered the foreground, so a notification refresh
+     *  (via the [isPaused] collector) can't post before the FGS promotion. */
+    @Volatile
+    private var foregrounded = false
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private lateinit var userPreferences: UserPreferences
@@ -105,6 +119,13 @@ class FocusTrackingService : Service() {
         super.onCreate()
         userPreferences = UserPreferences(applicationContext)
         createNotificationChannel()
+        // Repaint the ongoing notification whenever the in-app timer flips pause state
+        // (SessionsViewModel.pauseTimer/resumeTimer set isPaused): running → live
+        // chronometer, paused → frozen "Paused". Guarded by `foregrounded` so the
+        // initial replay can't post ahead of the FGS promotion.
+        serviceScope.launch {
+            isPaused.collect { refreshNotification() }
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -128,6 +149,9 @@ class FocusTrackingService : Service() {
         val durationFromIntent = intent?.getIntExtra(EXTRA_WORK_DURATION_MIN, 0) ?: 0
         if (durationFromIntent > 0) {
             unlockCount.value = 0
+            // Fresh session always begins running — reset the (static) pause flag in
+            // case a prior session in this process left it paused.
+            isPaused.value = false
             sessionStartTime.value = System.currentTimeMillis()
             plannedWorkMinutes.value = durationFromIntent
             // §widget — durable live-session flag the Focus widget reads. The
@@ -174,6 +198,16 @@ class FocusTrackingService : Service() {
         } else {
             startForeground(NOTIFICATION_ID, createNotification())
         }
+        foregrounded = true
+    }
+
+    /** Repost the ongoing notification in place so it reflects the current pause state
+     *  (frozen "Paused" vs live chronometer). Safe from any thread; no-op until the
+     *  service has entered the foreground. */
+    private fun refreshNotification() {
+        if (!foregrounded) return
+        getSystemService(NotificationManager::class.java)
+            .notify(NOTIFICATION_ID, createNotification())
     }
 
     /**
@@ -264,6 +298,8 @@ class FocusTrackingService : Service() {
         LockoutOverlayController.hide()
         serviceScope.cancel()
         isRunning.value = false
+        isPaused.value = false
+        foregrounded = false
         plannedWorkMinutes.value = 0
         // §widget — any normal stop (widget / lockscreen / in-app) routes through
         // stopService → onDestroy, so clearing here covers every end path.
@@ -301,24 +337,47 @@ class FocusTrackingService : Service() {
             this, 0, tapIntent, PendingIntent.FLAG_IMMUTABLE,
         )
 
-        val start = sessionStartTime.value
+        // Derive display + pause state from the durable store so the notification stays
+        // correct across a process restart (the in-memory anchors reset to 0/false).
+        val live = LiveFocusSessionStore(applicationContext).load()
+        val paused = (live?.pausedElapsedMs ?: -1L) >= 0L
+        // Effective (pause-adjusted) start so the running chronometer reflects real focus
+        // time, excluding paused spans. Fall back to the in-memory anchor.
+        val start = live?.startMs?.takeIf { it > 0L } ?: sessionStartTime.value
+
+        // While paused, surface the frozen elapsed next to "Paused" (a running chronometer
+        // can't freeze in place). DateUtils.formatElapsedTime matches the chronometer's own
+        // M:SS / H:MM:SS rendering, so the number reads as the same timer, just stopped.
+        val contentText = if (paused) {
+            val frozen = android.text.format.DateUtils.formatElapsedTime(
+                ((live?.pausedElapsedMs ?: 0L) / 1000L).coerceAtLeast(0L),
+            )
+            "$frozen · ${getString(R.string.notif_focus_paused)}"
+        } else {
+            getString(R.string.notif_tap_open)
+        }
+
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(getString(R.string.lockout_focus_active))
-            .setContentText(getString(R.string.notif_tap_open))
+            .setContentText(contentText)
             // §branding — see LockoutNotifier / NotificationHelper.
             .setSmallIcon(R.drawable.ic_notification)
             .setColor(ContextCompat.getColor(this, R.color.ultiq_indigo))
             .setOngoing(true)
             // §lockscreen — public + STOPWATCH so the running session shows on a
-            // secure lockscreen. Display-only: controlling the session is app-only.
+            // secure lockscreen. Display-only: pause is driven from the in-app timer,
+            // which this notification then mirrors (frozen "Paused" vs live chronometer).
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setCategory(NotificationCompat.CATEGORY_STOPWATCH)
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .setContentIntent(pendingIntent)
-        // Live elapsed, OS-ticked. Guard the post-process-kill case where the
-        // start anchor reset to 0 (would otherwise show elapsed-since-epoch).
-        if (start > 0L) {
+        // Live elapsed, OS-ticked while running; frozen (chronometer off) while paused,
+        // so the notification timer stops with the in-app timer. Guard the post-process-
+        // kill case where the start anchor reset to 0.
+        if (!paused && start > 0L) {
             builder.setUsesChronometer(true).setWhen(start)
+        } else {
+            builder.setShowWhen(false)
         }
         return builder.build()
     }

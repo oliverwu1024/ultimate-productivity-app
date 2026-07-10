@@ -939,6 +939,7 @@
     <string name="nav_focus">集中</string>
     <string name="nav_calendar">カレンダー</string>
     <string name="notif_tap_open">タップしてアプリを開く</string>
+    <string name="notif_focus_paused">一時停止中</string>
     <string name="notif_sleep_tracking">睡眠トラッキング中</string>
     <string name="notif_sleep_tracking_audio">睡眠 + 音声を記録中</string>
     <string name="notif_snore_off_title">いびき検出オフ — マイク権限が必要</string>

@@ -939,6 +939,7 @@
     <string name="nav_focus">Tập trung</string>
     <string name="nav_calendar">Lịch</string>
     <string name="notif_tap_open">Nhấn để mở ứng dụng</string>
+    <string name="notif_focus_paused">Đã tạm dừng</string>
     <string name="notif_sleep_tracking">Đang theo dõi giấc ngủ</string>
     <string name="notif_sleep_tracking_audio">Theo dõi giấc ngủ + âm thanh</string>
     <string name="notif_snore_off_title">Theo dõi ngáy tắt — cần quyền micrô</string>

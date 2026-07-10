@@ -970,6 +970,7 @@
     <string name="nav_focus">Fokus</string>
     <string name="nav_calendar">Kalender</string>
     <string name="notif_tap_open">Zum Öffnen tippen</string>
+    <string name="notif_focus_paused">Pausiert</string>
     <string name="notif_sleep_tracking">Schlafüberwachung aktiv</string>
     <string name="notif_sleep_tracking_audio">Schlaf + Töne werden erfasst</string>
     <string name="notif_snore_off_title">Schnarchüberwachung aus — Mikrofon-Zugriff nötig</string>

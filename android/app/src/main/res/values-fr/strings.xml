@@ -1001,6 +1001,7 @@
     <string name="nav_focus">Focus</string>
     <string name="nav_calendar">Calendrier</string>
     <string name="notif_tap_open">Appuyez pour ouvrir l\'app</string>
+    <string name="notif_focus_paused">En pause</string>
     <string name="notif_sleep_tracking">Suivi du sommeil actif</string>
     <string name="notif_sleep_tracking_audio">Suivi sommeil + sons</string>
     <string name="notif_snore_off_title">Suivi ronflements désactivé — permission micro requise</string>
