@@ -137,7 +137,7 @@ dependencies {
     // SQLCipher: encrypts the entire Room DB file at rest. Passphrase is stored
     // in EncryptedSharedPreferences (Keystore-rooted), so it never lives in
     // plaintext on disk.
-    implementation("net.zetetic:sqlcipher-android:4.16.0")
+    implementation("net.zetetic:sqlcipher-android:4.17.0")
     implementation("androidx.sqlite:sqlite:2.7.0")
 
     // Lifecycle / ViewModel
