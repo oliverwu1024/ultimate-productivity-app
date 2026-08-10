@@ -138,9 +138,18 @@ async fn main() {
     // the sleep-audio worker's first request would 429 immediately,
     // banner stuck, retry no-op, all because the global bucket was
     // already empty from unrelated traffic.
+    //
+    // NOTE on units: in tower_governor, `per_second(N)` means "replenish ONE
+    // token every N seconds" (rate = 1/N req/s), NOT "N req/s". So the desired
+    // sustained rate R req/s is a period of 1000/R milliseconds — expressed
+    // via `per_millisecond`. The old `per_second(500)` here meant one token
+    // every 500 s (~0.002 req/s): burst 8000 masked it, but normal browsing
+    // (page loads + SSE reconnects + Android catch-up sync) drained the burst
+    // over the task's lifetime and then locked the bucket into multi-hundred-
+    // second `Retry-After`s until the ECS task restarted. Fixed to 500 req/s.
     let global_governor = Arc::new(
         GovernorConfigBuilder::default()
-            .per_second(500)
+            .per_millisecond(2) // 500 req/s sustained
             .burst_size(8000)
             .key_extractor(SmartIpKeyExtractor)
             .use_headers()
@@ -157,9 +166,13 @@ async fn main() {
     // transport-level limit was strictly defense-in-depth that
     // tripped on the happy path. 5 rps / burst 30 still bounds the
     // bucket-per-IP usefully but stops false-positive-429-ing the UI.
+    // (Units: `per_millisecond(200)` = one token per 200 ms = 5 req/s. The
+    // old `per_second(5)` meant one token every 5 s, i.e. 0.2 req/s — the
+    // same inverted-units bug as the global bucket, just with a smaller burst
+    // so it locked up faster.)
     let auth_governor = Arc::new(
         GovernorConfigBuilder::default()
-            .per_second(5)
+            .per_millisecond(200) // 5 req/s sustained
             .burst_size(30)
             .key_extractor(SmartIpKeyExtractor)
             .use_headers()
@@ -169,9 +182,11 @@ async fn main() {
 
     // `/ai/**` rate limit. Tighter than the global bucket because every
     // request fans out into a Bedrock call (or several, for the chat
-    // tool-loop) and downstream dollars. 1 rps with burst 10 smooths to
-    // "10 requests per minute" — plenty for a real interactive user, but
-    // catches retry-loop bugs and abuse before they reach the daily quota.
+    // tool-loop) and downstream dollars. `per_second(1)` = one token per
+    // second = 1 req/s sustained with a burst of 10 — plenty for a real
+    // interactive user, but catches retry-loop bugs and abuse before they
+    // reach the daily quota. (Here the units happen to line up with intent,
+    // unlike the global/auth buckets above, so it's left as `per_second`.)
     let ai_governor = Arc::new(
         GovernorConfigBuilder::default()
             .per_second(1)
