@@ -172,8 +172,18 @@ async fn list(
             .fetch_all(&state.pool)
             .await?
     } else {
+        // §recurring-always-listed — Recurring items are keyed by their
+        // due_date = series START date, but they render on every matching
+        // day forever. Filtering purely on `due_date BETWEEN start AND end`
+        // dropped any recurring master whose start was outside the window
+        // (e.g. a daily task created >30d ago), so the Android sync (±30d)
+        // never pulled it back and it vanished from the app while still
+        // showing on the web (which used a wider 60d lookback). Always
+        // return recurring masters regardless of the date window; one-off
+        // rows keep the window filter.
         sqlx::query_as::<_, ChecklistItem>(select_with_completions!(
-            "WHERE ci.user_id = $1 AND ci.due_date BETWEEN $2 AND $3 \
+            "WHERE ci.user_id = $1 \
+             AND (ci.due_date BETWEEN $2 AND $3 OR ci.recurrence_days_mask <> 0) \
              ORDER BY ci.due_date ASC, ci.priority DESC, ci.created_at ASC"
         ))
             .bind(user_id)
