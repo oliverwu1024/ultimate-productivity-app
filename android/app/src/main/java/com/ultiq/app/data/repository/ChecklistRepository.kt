@@ -317,8 +317,10 @@ class ChecklistRepository(
 
             // Pull a 60-day window centred on today
             val today = LocalDate.now()
-            val start = today.minusDays(30).format(isoDate)
-            val end = today.plusDays(30).format(isoDate)
+            val windowStart = today.minusDays(30)
+            val windowEnd = today.plusDays(30)
+            val start = windowStart.format(isoDate)
+            val end = windowEnd.format(isoDate)
             val serverItems = apiService.getChecklistItems(start, end, null)
             Log.d(tag, "sync — server returned ${serverItems.size} item(s); full ids=${serverItems.map { it.id }}")
             val serverIds = serverItems.map { it.id }.toSet()
@@ -335,8 +337,19 @@ class ChecklistRepository(
             // combine flow turned into N visible "Completed" flickers
             // on every checklist screen open.
             val reconcileDeletes = txWriteBulk {
-                val localSyncedIds = dao.getSyncedIds()
-                Log.d(tag, "sync — localSyncedIds=$localSyncedIds")
+                // §sync-window-fix — Reconcile only against synced rows whose
+                // due date is inside the SAME window we just pulled. Before
+                // this, getSyncedIds() returned every synced row regardless of
+                // date, so any item due outside ±30 days (far-future one-offs,
+                // and old recurring masters whose due_date is the series start)
+                // was absent from the windowed serverIds and got deleted
+                // locally on every sync — even though the backend still had it
+                // (hence "disappears on phone, still on web").
+                val localSyncedIds = dao.getSyncedIdsInRange(
+                    windowStart.toEpochDay(),
+                    windowEnd.toEpochDay(),
+                )
+                Log.d(tag, "sync — localSyncedIds(in-window)=$localSyncedIds")
 
                 val shouldReconcile = shouldReconcile(
                     serverEmpty = serverItems.isEmpty(),
