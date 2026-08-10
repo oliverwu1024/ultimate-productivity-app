@@ -703,7 +703,19 @@ class SleepRepository(
             // parent sleep_record and would only drive a stuck banner.
             cleanupOrphanedAudioEvents()
 
-            val serverRecords = apiService.getSleepRecords(null, null)
+            // §sync-window-fix — Pull an EXPLICIT window that fully covers the
+            // reconcile window below. With null/null the backend defaults to
+            // `actual_bedtime BETWEEN (today-30) AND today`, where `today` is
+            // midnight today — so a record with an after-midnight bedtime or a
+            // same-day nap falls past the top boundary and is excluded from
+            // serverIds. The reconcile window (now-30d .. now) DOES include
+            // those records, so they were deleted locally even though the
+            // backend still had them. Widening the pull to [today-31, today+2]
+            // guarantees reconcile ⊆ pull, so recent records survive.
+            val todayLocal = java.time.LocalDate.now()
+            val pullFrom = todayLocal.minusDays(31).toString()
+            val pullTo = todayLocal.plusDays(2).toString()
+            val serverRecords = apiService.getSleepRecords(pullFrom, pullTo)
             // §v2.15.9 — Exclude any records still tombstoned locally so
             // we don't re-insert what we're still trying to delete. Real
             // tombstones get cleared at the top of next sync once the

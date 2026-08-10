@@ -126,6 +126,15 @@ interface ChecklistDao {
     @Query("SELECT id FROM checklist_items WHERE isSynced = 1")
     suspend fun getSyncedIds(): List<String>
 
+    /// §sync-window-fix — Synced ids whose due date falls inside the pulled
+    /// window. sync() reconciles against THIS, not [getSyncedIds], so a row
+    /// outside the ±30-day pull window (e.g. a task due far out, or an old
+    /// recurring master whose due_date is the series start) is never treated
+    /// as a server-side deletion just because the windowed pull didn't return
+    /// it. Bounds are inclusive epoch-day values matching the fetch range.
+    @Query("SELECT id FROM checklist_items WHERE isSynced = 1 AND dueDateEpochDay BETWEEN :startEpochDay AND :endEpochDay")
+    suspend fun getSyncedIdsInRange(startEpochDay: Long, endEpochDay: Long): List<String>
+
     @Query("UPDATE checklist_items SET isSynced = 1 WHERE id = :id")
     suspend fun markSynced(id: String)
 
