@@ -1,6 +1,6 @@
 {
-  "versionCode": 147,
-  "versionName": "2.22.8",
-  "url": "https://ultiqapp.com/ultiq.2.22.8.apk",
-  "releaseNotes": "Alarms: you can now dismiss the 'make alarms reliable' battery tip with the ✕ — handy on phones (some HTC/OEM models) that don't report the battery-optimisation exemption back to the app."
+  "versionCode": 148,
+  "versionName": "2.22.9",
+  "url": "https://ultiqapp.com/ultiq.2.22.9.apk",
+  "releaseNotes": "Fixes checklist items (and occasionally sleep records) that could randomly disappear from the app while still showing on the web dashboard. The app no longer removes local items that fall outside its sync window — recurring tasks and items dated far out now stay put."
 }
