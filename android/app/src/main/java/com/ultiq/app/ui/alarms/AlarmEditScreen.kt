@@ -56,8 +56,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -93,6 +93,10 @@ fun AlarmEditScreen(
     val context = LocalContext.current
     val alarms by viewModel.alarms.collectAsState()
     var showPhotoLibrary by remember { mutableStateOf(false) }
+    // Bumped whenever the library closes so the photo card re-checks its
+    // file — a photo deleted inside the library must show "Photo missing"
+    // immediately, not only after leaving and re-opening the alarm.
+    var photoLibraryVisits by remember { mutableIntStateOf(0) }
     val photoRequiredMsg = stringResource(R.string.photo_required)
 
     Scaffold(
@@ -282,6 +286,7 @@ fun AlarmEditScreen(
                 item {
                     PhotoReferenceCard(
                         referenceUri = cfg.referenceUri,
+                        refreshKey = photoLibraryVisits,
                         onChoosePhoto = { showPhotoLibrary = true },
                     )
                 }
@@ -398,7 +403,10 @@ fun AlarmEditScreen(
 
     if (showPhotoLibrary && draft != null) {
         Dialog(
-            onDismissRequest = { showPhotoLibrary = false },
+            onDismissRequest = {
+                showPhotoLibrary = false
+                photoLibraryVisits++
+            },
             properties = DialogProperties(
                 usePlatformDefaultWidth = false,
                 dismissOnBackPress = true,
@@ -419,8 +427,12 @@ fun AlarmEditScreen(
                         )
                     }
                     showPhotoLibrary = false
+                    photoLibraryVisits++
                 },
-                onClose = { showPhotoLibrary = false },
+                onClose = {
+                    showPhotoLibrary = false
+                    photoLibraryVisits++
+                },
             )
         }
     }
@@ -714,13 +726,15 @@ private fun MathCountPicker(current: Int, onChange: (Int) -> Unit) {
 @Composable
 private fun PhotoReferenceCard(
     referenceUri: String?,
+    refreshKey: Int,
     onChoosePhoto: () -> Unit,
 ) {
     val context = LocalContext.current
     // Re-checked whenever the URI changes; a photo deleted from the library
     // (or absent after a reinstall / on a new phone) shows the missing state.
-    val present by produceState(initialValue = true, key1 = referenceUri) {
-        value = withContext(Dispatchers.IO) { MissionPhotoStore.exists(context, referenceUri) }
+    var present by remember(referenceUri) { mutableStateOf(true) }
+    LaunchedEffect(referenceUri, refreshKey) {
+        present = withContext(Dispatchers.IO) { MissionPhotoStore.exists(context, referenceUri) }
     }
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
