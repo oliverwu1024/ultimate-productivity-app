@@ -12,6 +12,7 @@ import android.content.IntentFilter
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
@@ -58,6 +59,11 @@ class SleepTrackingService : Service() {
         // existing installs the public/controllable notification.
         const val CHANNEL_ID = "sleep_tracking_v2"
         const val NOTIFICATION_ID = 1001
+
+        /** §wakelock — safety cap for the sleep-audio CPU wakelock: longer than any
+         *  real night. The lock is released explicitly in onDestroy; this only guards
+         *  against a stuck lock if the process is killed without onDestroy. */
+        const val AUDIO_WAKE_LOCK_MAX_MS = 12L * 60 * 60 * 1000  // 12 h
 
         // §sleep-state-fix — Start-intent extras carrying the user-confirmed
         // target window (minute-of-day) into the service. Their presence also
@@ -148,6 +154,10 @@ class SleepTrackingService : Service() {
     private var audioClassifier: SleepAudioClassifier? = null
     private var audioAggregator: SleepAudioEventAggregator? = null
     private var pcmBuffer: PcmRingBuffer? = null
+    // §wakelock — held only while audio capture is live so aggressive Doze / OEM power
+    // management can't suspend the mic loop overnight (the FGS alone doesn't keep the
+    // CPU awake on power-hungry devices like old HTCs). Released in onDestroy.
+    private var audioWakeLock: PowerManager.WakeLock? = null
 
     private val screenReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -479,6 +489,7 @@ class SleepTrackingService : Service() {
             // snapshotting pendingAudioEvents into the End Sleep dialog.
             audioClassifierRef = classifier
             audioTrackingActive.value = true
+            acquireAudioWakeLock()
             Log.i(TAG, "Audio tracking started — pipeline confirmed live")
         }
     }
@@ -594,6 +605,24 @@ class SleepTrackingService : Service() {
         }
     }
 
+    /** §wakelock — pin the CPU on for the mic loop while capture is live. Mirrors the
+     *  alarm services' PARTIAL_WAKE_LOCK. Idempotent; [AUDIO_WAKE_LOCK_MAX_MS] is a
+     *  safety cap — the real release is [releaseAudioWakeLock] in onDestroy. */
+    private fun acquireAudioWakeLock() {
+        if (audioWakeLock?.isHeld == true) return
+        val pm = getSystemService(POWER_SERVICE) as PowerManager
+        audioWakeLock = pm.newWakeLock(
+            PowerManager.PARTIAL_WAKE_LOCK,
+            "ultiq:sleep-audio",
+        ).apply { acquire(AUDIO_WAKE_LOCK_MAX_MS) }
+        Log.i(TAG, "sleep-audio wakelock acquired")
+    }
+
+    private fun releaseAudioWakeLock() {
+        audioWakeLock?.takeIf { it.isHeld }?.release()
+        audioWakeLock = null
+    }
+
     override fun onDestroy() {
         // Capture in-progress pickup if screen is still on
         lastScreenOnTime?.let { onTime ->
@@ -619,6 +648,7 @@ class SleepTrackingService : Service() {
         audioAggregator = null
         pcmBuffer = null
         audioTrackingActive.value = false
+        releaseAudioWakeLock()
 
         try {
             unregisterReceiver(screenReceiver)
