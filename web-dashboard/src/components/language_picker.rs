@@ -5,7 +5,7 @@ use crate::i18n::{t, use_i18n, Locale};
 
 /// Language `<select>`. Writing a choice updates the reactive locale signal
 /// (which the i18n `Effect` persists to LocalStorage and reflects onto
-/// `<html lang dir>`), and — when signed in — syncs it to the server
+/// `<html lang>`), and — when signed in — syncs it to the server
 /// `preferences` blob so the language follows the account across devices and
 /// surfaces. The `class` prop lets the same control style itself for both the
 /// dark sidebar footer and the light login corner.

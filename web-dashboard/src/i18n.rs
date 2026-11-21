@@ -20,57 +20,20 @@ const KEY: &str = "ultiq_lang";
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Locale {
     En,
-    Es,
-    PtBr,
-    Fr,
-    De,
-    Ja,
     ZhHans,
     ZhHant,
-    Ko,
-    Hi,
-    Vi,
-    Th,
-    Id,
-    Ar,
 }
 
 impl Locale {
     /// Every locale the dashboard ships, English first. Order drives the picker.
-    pub const ALL: [Locale; 14] = [
-        Locale::En,
-        Locale::Es,
-        Locale::PtBr,
-        Locale::Fr,
-        Locale::De,
-        Locale::Ja,
-        Locale::ZhHans,
-        Locale::ZhHant,
-        Locale::Ko,
-        Locale::Hi,
-        Locale::Vi,
-        Locale::Th,
-        Locale::Id,
-        Locale::Ar,
-    ];
+    pub const ALL: [Locale; 3] = [Locale::En, Locale::ZhHans, Locale::ZhHant];
 
     /// BCP-47 tag — matches `backend/src/i18n.rs` and the Android picker.
     pub fn tag(self) -> &'static str {
         match self {
             Locale::En => "en",
-            Locale::Es => "es",
-            Locale::PtBr => "pt-BR",
-            Locale::Fr => "fr",
-            Locale::De => "de",
-            Locale::Ja => "ja",
             Locale::ZhHans => "zh-Hans",
             Locale::ZhHant => "zh-Hant",
-            Locale::Ko => "ko",
-            Locale::Hi => "hi",
-            Locale::Vi => "vi",
-            Locale::Th => "th",
-            Locale::Id => "id",
-            Locale::Ar => "ar",
         }
     }
 
@@ -78,24 +41,9 @@ impl Locale {
     pub fn endonym(self) -> &'static str {
         match self {
             Locale::En => "English",
-            Locale::Es => "Español",
-            Locale::PtBr => "Português (Brasil)",
-            Locale::Fr => "Français",
-            Locale::De => "Deutsch",
-            Locale::Ja => "日本語",
             Locale::ZhHans => "简体中文",
             Locale::ZhHant => "繁體中文",
-            Locale::Ko => "한국어",
-            Locale::Hi => "हिन्दी",
-            Locale::Vi => "Tiếng Việt",
-            Locale::Th => "ไทย",
-            Locale::Id => "Bahasa Indonesia",
-            Locale::Ar => "العربية",
         }
-    }
-
-    pub fn is_rtl(self) -> bool {
-        matches!(self, Locale::Ar)
     }
 
     /// Closest `chrono` locale, for locale-aware month/weekday names via
@@ -103,39 +51,17 @@ impl Locale {
     pub fn chrono(self) -> chrono::Locale {
         match self {
             Locale::En => chrono::Locale::en_US,
-            Locale::Es => chrono::Locale::es_ES,
-            Locale::PtBr => chrono::Locale::pt_BR,
-            Locale::Fr => chrono::Locale::fr_FR,
-            Locale::De => chrono::Locale::de_DE,
-            Locale::Ja => chrono::Locale::ja_JP,
             Locale::ZhHans => chrono::Locale::zh_CN,
             Locale::ZhHant => chrono::Locale::zh_TW,
-            Locale::Ko => chrono::Locale::ko_KR,
-            Locale::Hi => chrono::Locale::hi_IN,
-            Locale::Vi => chrono::Locale::vi_VN,
-            Locale::Th => chrono::Locale::th_TH,
-            Locale::Id => chrono::Locale::id_ID,
-            Locale::Ar => chrono::Locale::ar_SA,
         }
     }
 
-    /// Resolve a stored/synced BCP-47 tag. Unknown/empty/`en` → English.
-    /// `pt`/`in` are tolerated as legacy aliases (matches the backend).
+    /// Resolve a stored/synced BCP-47 tag. Unknown/empty/`en` → English,
+    /// including languages we no longer ship (matches the backend).
     pub fn from_tag(tag: &str) -> Locale {
         match tag.trim() {
-            "es" => Locale::Es,
-            "pt-BR" | "pt" => Locale::PtBr,
-            "fr" => Locale::Fr,
-            "de" => Locale::De,
-            "ja" => Locale::Ja,
             "zh-Hans" => Locale::ZhHans,
             "zh-Hant" => Locale::ZhHant,
-            "ko" => Locale::Ko,
-            "hi" => Locale::Hi,
-            "vi" => Locale::Vi,
-            "th" => Locale::Th,
-            "id" | "in" => Locale::Id,
-            "ar" => Locale::Ar,
             _ => Locale::En,
         }
     }
@@ -156,9 +82,6 @@ impl Locale {
             }
             return Locale::ZhHans;
         }
-        if lower.starts_with("pt") {
-            return Locale::PtBr;
-        }
         let primary = lower.split(['-', '_']).next().unwrap_or("");
         Locale::from_tag(primary)
     }
@@ -166,19 +89,8 @@ impl Locale {
     fn catalog_json(self) -> &'static str {
         match self {
             Locale::En => include_str!("../locales/en.json"),
-            Locale::Es => include_str!("../locales/es.json"),
-            Locale::PtBr => include_str!("../locales/pt-BR.json"),
-            Locale::Fr => include_str!("../locales/fr.json"),
-            Locale::De => include_str!("../locales/de.json"),
-            Locale::Ja => include_str!("../locales/ja.json"),
             Locale::ZhHans => include_str!("../locales/zh-Hans.json"),
             Locale::ZhHant => include_str!("../locales/zh-Hant.json"),
-            Locale::Ko => include_str!("../locales/ko.json"),
-            Locale::Hi => include_str!("../locales/hi.json"),
-            Locale::Vi => include_str!("../locales/vi.json"),
-            Locale::Th => include_str!("../locales/th.json"),
-            Locale::Id => include_str!("../locales/id.json"),
-            Locale::Ar => include_str!("../locales/ar.json"),
         }
     }
 }
@@ -340,14 +252,13 @@ fn browser_language() -> Option<String> {
         .filter(|s| !s.is_empty())
 }
 
-/// Reflect the locale onto `<html lang dir>` for accessibility + RTL layout.
+/// Reflect the locale onto `<html lang>` for accessibility.
 fn apply_document(loc: Locale) {
     if let Some(el) = web_sys::window()
         .and_then(|w| w.document())
         .and_then(|d| d.document_element())
     {
         let _ = el.set_attribute("lang", loc.tag());
-        let _ = el.set_attribute("dir", if loc.is_rtl() { "rtl" } else { "ltr" });
     }
 }
 
@@ -359,34 +270,14 @@ mod tests {
     //! fallback chain, placeholder substitution, and catalog integrity.
     use super::*;
 
-    const ALL: [Locale; 14] = [
-        Locale::En,
-        Locale::Es,
-        Locale::PtBr,
-        Locale::Fr,
-        Locale::De,
-        Locale::Ja,
-        Locale::ZhHans,
-        Locale::ZhHant,
-        Locale::Ko,
-        Locale::Hi,
-        Locale::Vi,
-        Locale::Th,
-        Locale::Id,
-        Locale::Ar,
-    ];
+    const ALL: [Locale; 3] = [Locale::En, Locale::ZhHans, Locale::ZhHant];
 
     #[test]
-    fn from_tag_maps_shipped_tags_and_legacy_aliases() {
-        assert_eq!(Locale::from_tag("es"), Locale::Es);
-        assert_eq!(Locale::from_tag("pt-BR"), Locale::PtBr);
-        assert_eq!(Locale::from_tag("pt"), Locale::PtBr); // legacy alias
+    fn from_tag_maps_shipped_tags() {
         assert_eq!(Locale::from_tag("zh-Hans"), Locale::ZhHans);
         assert_eq!(Locale::from_tag("zh-Hant"), Locale::ZhHant);
-        assert_eq!(Locale::from_tag("id"), Locale::Id);
-        assert_eq!(Locale::from_tag("in"), Locale::Id); // legacy Indonesian code
-        assert_eq!(Locale::from_tag("ar"), Locale::Ar);
-        assert_eq!(Locale::from_tag("  fr  "), Locale::Fr); // trimmed
+        assert_eq!(Locale::from_tag("  zh-Hans  "), Locale::ZhHans); // trimmed
+        assert_eq!(Locale::from_tag("fr"), Locale::En); // dropped language → English
         assert_eq!(Locale::from_tag("qq"), Locale::En); // unknown → English
         assert_eq!(Locale::from_tag(""), Locale::En); // empty → English
     }
@@ -410,18 +301,9 @@ mod tests {
         assert_eq!(Locale::from_browser("zh-TW"), Locale::ZhHant);
         assert_eq!(Locale::from_browser("zh-HK"), Locale::ZhHant);
         assert_eq!(Locale::from_browser("zh-Hant"), Locale::ZhHant);
-        assert_eq!(Locale::from_browser("pt-PT"), Locale::PtBr);
-        assert_eq!(Locale::from_browser("es-ES"), Locale::Es);
         assert_eq!(Locale::from_browser("en_US"), Locale::En); // underscore + region
-        assert_eq!(Locale::from_browser("de"), Locale::De);
+        assert_eq!(Locale::from_browser("de"), Locale::En); // not shipped → English
         assert_eq!(Locale::from_browser("xx"), Locale::En);
-    }
-
-    #[test]
-    fn is_rtl_only_for_arabic() {
-        for loc in ALL {
-            assert_eq!(loc.is_rtl(), loc == Locale::Ar);
-        }
     }
 
     #[test]
@@ -458,9 +340,9 @@ mod tests {
     #[test]
     fn translate_falls_back_english_then_raw_key() {
         assert_eq!(translate(Locale::En, "common.cancel"), "Cancel");
-        assert_eq!(translate(Locale::Es, "common.cancel"), "Cancelar"); // real es value
+        assert_eq!(translate(Locale::ZhHans, "common.cancel"), "取消");
         // A missing key surfaces the raw key (visible), never blank or a panic.
-        assert_eq!(translate(Locale::Es, "no.such.key"), "no.such.key");
+        assert_eq!(translate(Locale::ZhHans, "no.such.key"), "no.such.key");
     }
 
     #[test]
@@ -469,6 +351,9 @@ mod tests {
         // repeated token → every occurrence replaced
         assert_eq!(subst("{x}-{x}".into(), &[("x", "9")]), "9-9");
         // missing arg → token left literal (surfaces the mistake instead of blanking)
-        assert_eq!(subst("{count} left".into(), &[("wrong", "3")]), "{count} left");
+        assert_eq!(
+            subst("{count} left".into(), &[("wrong", "3")]),
+            "{count} left"
+        );
     }
 }

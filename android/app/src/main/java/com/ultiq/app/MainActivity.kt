@@ -16,6 +16,7 @@ import androidx.core.view.WindowCompat
 import com.ultiq.app.navigation.AppNavigation
 import com.ultiq.app.ui.theme.UltiqTheme
 import com.ultiq.app.ui.theme.ThemeMode
+import com.ultiq.app.util.LocaleManager
 import com.ultiq.app.util.NotificationHelper
 import com.ultiq.app.util.ThemePreference
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,6 +27,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        LocaleManager.resetIfUnsupported()
         deepLink.value = intent?.getStringExtra(NotificationHelper.EXTRA_DEEP_LINK)
         enableEdgeToEdge()
         setContent {

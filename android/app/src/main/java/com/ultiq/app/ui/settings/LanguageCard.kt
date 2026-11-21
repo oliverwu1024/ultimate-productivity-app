@@ -42,7 +42,7 @@ import com.ultiq.app.R
  * translated. The "" tag = follow the system, rendered from a localized string.
  * Tags mirror res/xml/locales_config.xml + LocaleManager.SUPPORTED.
  *
- * System default + English are the fully-reviewed options; the other 12 are
+ * System default + English are the fully-reviewed options; the two Chinese scripts are
  * machine-translated, so they're grouped under an "Experimental languages"
  * header and annotated with their English name (`english`) to make them easy to
  * identify. `english` is empty for System + English (which need no annotation).
@@ -52,19 +52,8 @@ private data class Lang(val tag: String, val endonym: String, val english: Strin
 private val LANGUAGES: List<Lang> = listOf(
     Lang("", "", ""),
     Lang("en", "English", ""),
-    Lang("es", "Español", "Spanish"),
-    Lang("pt-BR", "Português (Brasil)", "Portuguese (Brazil)"),
-    Lang("fr", "Français", "French"),
-    Lang("de", "Deutsch", "German"),
-    Lang("ja", "日本語", "Japanese"),
     Lang("zh-Hans", "简体中文", "Chinese (Simplified)"),
     Lang("zh-Hant", "繁體中文", "Chinese (Traditional)"),
-    Lang("ko", "한국어", "Korean"),
-    Lang("hi", "हिन्दी", "Hindi"),
-    Lang("vi", "Tiếng Việt", "Vietnamese"),
-    Lang("th", "ไทย", "Thai"),
-    Lang("id", "Bahasa Indonesia", "Indonesian"),
-    Lang("ar", "العربية", "Arabic"),
 )
 
 @Composable
