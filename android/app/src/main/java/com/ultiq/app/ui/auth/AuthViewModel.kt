@@ -160,6 +160,9 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                             com.ultiq.app.util.LocaleManager.setLanguage(lang)
                         }
                     }
+                // §13 — if the server had no (or a dropped) language, push
+                // the one this device is using.
+                (getApplication<Application>() as? com.ultiq.app.UltiqApp)?.syncLanguageIfChanged()
                 // §i18n (v2.13.9) — Push the device's IANA timezone to the
                 // server so all "today" bucketing + the anomaly scheduler use
                 // the user's local clock instead of UTC. Fire-and-forget;
@@ -220,6 +223,8 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                             com.ultiq.app.util.LocaleManager.setLanguage(lang)
                         }
                     }
+                // §13 — a brand-new account has no language yet; push this device's.
+                (getApplication<Application>() as? com.ultiq.app.UltiqApp)?.syncLanguageIfChanged()
                 // §i18n (v2.13.9) — Same as login. For a brand-new account
                 // this is what actually populates the timezone column on the
                 // server (which would otherwise stay at the 'UTC' default

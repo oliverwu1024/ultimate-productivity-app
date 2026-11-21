@@ -219,7 +219,13 @@ class AlarmRepository(
                     alarmDao.deleteAlarmById(id)
                 }
             }
+            // Don't clobber local edits that haven't reached the server yet
+            // (push rejected, or an edit landed while this sync was in
+            // flight) — e.g. a newly chosen mission photo would revert to the
+            // server's older config. They're retried in step 2 next cycle.
+            val pendingLocalIds = alarmDao.getUnsyncedAlarms().map { it.id }.toSet()
             val newEntities = serverAlarms.map { it.toEntity() }
+                .filter { it.id !in pendingLocalIds }
             alarmDao.insertAlarms(newEntities)
             newEntities.forEach { scheduler.schedule(it) }
         } catch (_: IOException) {

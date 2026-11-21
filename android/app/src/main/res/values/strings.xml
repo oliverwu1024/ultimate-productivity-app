@@ -32,7 +32,6 @@
 
     <!-- §13 (i18n) — settings language picker -->
     <string name="settings_language">Language</string>
-    <string name="settings_language_system">System default</string>
     <string name="settings_language_experimental">Experimental languages</string>
     <string name="common_close">Close</string>
 
@@ -641,12 +640,33 @@
     <string name="diff_medium_desc">Two-digit, two-operation arithmetic</string>
     <string name="diff_hard_desc">Order-of-operations with three-digit numbers</string>
     <string name="alarm_problems_required">Problems required</string>
-    <string name="photo_instructions">Take a reference photo of a fixed scene (bathroom sink, desk, kettle). You\'ll have to point at the same scene to dismiss the alarm.</string>
-    <string name="photo_take">Take reference photo</string>
+    <string name="photo_instructions">Choose a reference photo of a fixed scene (bathroom sink, desk, kettle) — take one or upload it. You\'ll have to point at the same scene to dismiss the alarm.</string>
     <string name="photo_cd">Reference photo</string>
     <string name="photo_saved">Reference photo saved</string>
     <string name="photo_local_only">Stored on this device only — never uploaded.</string>
-    <string name="photo_retake">Retake</string>
+    <string name="photo_choose">Choose photo</string>
+    <string name="photo_change">Change photo</string>
+    <string name="photo_missing_title">Photo missing</string>
+    <string name="photo_missing_body">This alarm\'s photo isn\'t on this device. Choose another one to use the photo mission.</string>
+    <string name="photo_required">Choose a photo for the photo mission first</string>
+    <string name="mission_photos_title">Mission photos</string>
+    <string name="mission_photos_choose_title">Choose a photo</string>
+    <string name="mission_photos_take">Take photo</string>
+    <string name="mission_photos_upload">Upload</string>
+    <string name="mission_photos_tip">Pick a photo of the spot you\'ll be standing at when you wake up.</string>
+    <string name="mission_photos_empty">No photos yet. Take or upload a photo of a fixed scene.</string>
+    <string name="mission_photos_use">Use this photo</string>
+    <string name="mission_photos_delete_title">Delete photo?</string>
+    <string name="mission_photos_delete_body">This photo will be removed from this device.</string>
+    <string name="mission_photos_import_failed">Couldn\'t import that image</string>
+    <plurals name="mission_photos_used_by">
+        <item quantity="one">Used by %1$d alarm</item>
+        <item quantity="other">Used by %1$d alarms</item>
+    </plurals>
+    <plurals name="mission_photos_delete_in_use">
+        <item quantity="one">Used by %1$d alarm — it will need a new photo.</item>
+        <item quantity="other">Used by %1$d alarms — they will need a new photo.</item>
+    </plurals>
     <string name="intensity_low_desc">Firm shake (≈ 12 m/s²)</string>
     <string name="intensity_medium_desc">Hard shake (≈ 18 m/s²)</string>
     <string name="intensity_high_desc">Vigorous shake (≈ 25 m/s²)</string>

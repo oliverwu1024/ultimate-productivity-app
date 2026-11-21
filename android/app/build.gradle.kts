@@ -23,8 +23,8 @@ android {
         applicationId = "com.ultiq.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 149
-        versionName = "2.22.10"
+        versionCode = 150
+        versionName = "2.22.11"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -168,6 +168,8 @@ dependencies {
     implementation("androidx.camera:camera-camera2:$cameraX")
     implementation("androidx.camera:camera-lifecycle:$cameraX")
     implementation("androidx.camera:camera-view:$cameraX")
+    // EXIF orientation for photos uploaded to the mission-photo library (API 26–27 path).
+    implementation("androidx.exifinterface:exifinterface:1.4.2")
 
     // Firebase Cloud Messaging — §9.8 anomaly detection push channel. BoM
     // pins all Firebase artefact versions to one tested set; only request

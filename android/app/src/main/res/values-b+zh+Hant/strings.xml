@@ -16,7 +16,6 @@
     <string name="register_login_prompt">已有帳號？登入</string>
 
     <string name="settings_language">語言</string>
-    <string name="settings_language_system">系統預設</string>
     <string name="settings_language_experimental">實驗性語言</string>
     <string name="common_close">關閉</string>
 
@@ -602,12 +601,31 @@
     <string name="diff_medium_desc">兩位數雙重運算</string>
     <string name="diff_hard_desc">含三位數的運算順序題</string>
     <string name="alarm_problems_required">所需題數</string>
-    <string name="photo_instructions">拍攝固定場景的參考照片（如洗手台、書桌、水壺）。解除鬧鐘時，您需要對準相同的場景。</string>
-    <string name="photo_take">拍攝參考照片</string>
+    <string name="photo_instructions">選擇固定場景的參考照片（如洗手台、書桌、水壺）——可以拍攝或上傳。解除鬧鐘時，您需要對準相同的場景。</string>
     <string name="photo_cd">參考照片</string>
     <string name="photo_saved">參考照片已儲存</string>
     <string name="photo_local_only">僅儲存在此裝置上，從不上傳。</string>
-    <string name="photo_retake">重新拍攝</string>
+    <string name="photo_choose">選擇照片</string>
+    <string name="photo_change">更換照片</string>
+    <string name="photo_missing_title">照片遺失</string>
+    <string name="photo_missing_body">此鬧鐘的照片不在此裝置上。請重新選擇一張以使用拍照任務。</string>
+    <string name="photo_required">請先為拍照任務選擇一張照片</string>
+    <string name="mission_photos_title">任務照片</string>
+    <string name="mission_photos_choose_title">選擇照片</string>
+    <string name="mission_photos_take">拍照</string>
+    <string name="mission_photos_upload">上傳</string>
+    <string name="mission_photos_tip">選擇一張您醒來時所站位置的照片。</string>
+    <string name="mission_photos_empty">尚無照片。拍攝或上傳一張固定場景的照片。</string>
+    <string name="mission_photos_use">使用此照片</string>
+    <string name="mission_photos_delete_title">刪除照片？</string>
+    <string name="mission_photos_delete_body">此照片將從此裝置中移除。</string>
+    <string name="mission_photos_import_failed">無法匯入該圖片</string>
+    <plurals name="mission_photos_used_by">
+        <item quantity="other">被 %1$d 個鬧鐘使用</item>
+    </plurals>
+    <plurals name="mission_photos_delete_in_use">
+        <item quantity="other">被 %1$d 個鬧鐘使用——它們需要新的照片。</item>
+    </plurals>
     <string name="intensity_low_desc">輕力搖動（≈ 12 m/s²）</string>
     <string name="intensity_medium_desc">中力搖動（≈ 18 m/s²）</string>
     <string name="intensity_high_desc">用力搖動（≈ 25 m/s²）</string>

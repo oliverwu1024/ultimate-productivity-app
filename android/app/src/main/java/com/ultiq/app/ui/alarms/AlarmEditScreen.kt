@@ -5,6 +5,7 @@ import android.app.TimePickerDialog
 import android.content.Intent
 import android.media.RingtoneManager
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -74,9 +75,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ultiq.app.R
 import com.ultiq.app.alarm.mission.MathDifficulty
 import com.ultiq.app.alarm.mission.MissionConfig
-import com.ultiq.app.alarm.mission.PhotoReferenceSetup
+import com.ultiq.app.alarm.mission.MissionPhotoStore
 import com.ultiq.app.alarm.mission.ShakeIntensity
 import com.ultiq.app.util.LocaleManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -88,7 +91,9 @@ fun AlarmEditScreen(
     LaunchedEffect(alarmId) { viewModel.loadForEdit(alarmId) }
     val draft by viewModel.editing.collectAsState()
     val context = LocalContext.current
-    var showPhotoSetup by remember { mutableStateOf(false) }
+    val alarms by viewModel.alarms.collectAsState()
+    var showPhotoLibrary by remember { mutableStateOf(false) }
+    val photoRequiredMsg = stringResource(R.string.photo_required)
 
     Scaffold(
         topBar = {
@@ -126,7 +131,18 @@ fun AlarmEditScreen(
                         modifier = Modifier.weight(1f),
                     ) { Text(stringResource(R.string.action_cancel)) }
                     Button(
-                        onClick = { viewModel.saveWithEnabled(enabled = true, onDone = onBack) },
+                        onClick = {
+                            // A photo alarm with no usable photo would silently
+                            // ring as math — block arming it until one is chosen.
+                            val d = draft
+                            if (d != null && d.missionKind == "photo" &&
+                                !MissionPhotoStore.exists(context, MissionConfig.parsePhoto(d.missionConfigJson).referenceUri)
+                            ) {
+                                Toast.makeText(context, photoRequiredMsg, Toast.LENGTH_LONG).show()
+                            } else {
+                                viewModel.saveWithEnabled(enabled = true, onDone = onBack)
+                            }
+                        },
                         enabled = draft != null,
                         modifier = Modifier.weight(1f),
                     ) { Text(stringResource(R.string.sleep_set_alarm)) }
@@ -218,6 +234,9 @@ fun AlarmEditScreen(
             item {
                 MissionPicker(current.missionKind) { kind ->
                     viewModel.updateEditingDraft { d ->
+                        // Re-tapping the selected mission must not reset its
+                        // config (it used to wipe the chosen photo).
+                        if (kind == d.missionKind) return@updateEditingDraft d
                         // Prime a sensible default config when switching kinds.
                         val configJson = when (kind) {
                             "math" -> MissionConfig.buildMath(MathDifficulty.MEDIUM, 3)
@@ -263,7 +282,7 @@ fun AlarmEditScreen(
                 item {
                     PhotoReferenceCard(
                         referenceUri = cfg.referenceUri,
-                        onTakePhoto = { showPhotoSetup = true },
+                        onChoosePhoto = { showPhotoLibrary = true },
                     )
                 }
             }
@@ -377,18 +396,19 @@ fun AlarmEditScreen(
         }
     }
 
-    if (showPhotoSetup && draft != null) {
+    if (showPhotoLibrary && draft != null) {
         Dialog(
-            onDismissRequest = { showPhotoSetup = false },
+            onDismissRequest = { showPhotoLibrary = false },
             properties = DialogProperties(
                 usePlatformDefaultWidth = false,
                 dismissOnBackPress = true,
                 dismissOnClickOutside = false,
             ),
         ) {
-            PhotoReferenceSetup(
-                alarmId = draft!!.id,
-                onCaptured = { uri ->
+            MissionPhotoLibrary(
+                alarms = alarms,
+                selectedUri = MissionConfig.parsePhoto(draft!!.missionConfigJson).referenceUri,
+                onPicked = { uri ->
                     viewModel.updateEditingDraft { d ->
                         val existing = MissionConfig.parsePhoto(d.missionConfigJson)
                         d.copy(
@@ -398,9 +418,9 @@ fun AlarmEditScreen(
                             ),
                         )
                     }
-                    showPhotoSetup = false
+                    showPhotoLibrary = false
                 },
-                onCancel = { showPhotoSetup = false },
+                onClose = { showPhotoLibrary = false },
             )
         }
     }
@@ -694,66 +714,75 @@ private fun MathCountPicker(current: Int, onChange: (Int) -> Unit) {
 @Composable
 private fun PhotoReferenceCard(
     referenceUri: String?,
-    onTakePhoto: () -> Unit,
+    onChoosePhoto: () -> Unit,
 ) {
+    val context = LocalContext.current
+    // Re-checked whenever the URI changes; a photo deleted from the library
+    // (or absent after a reinstall / on a new phone) shows the missing state.
+    val present by produceState(initialValue = true, key1 = referenceUri) {
+        value = withContext(Dispatchers.IO) { MissionPhotoStore.exists(context, referenceUri) }
+    }
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            if (referenceUri == null) {
-                Text(
-                    stringResource(R.string.photo_instructions),
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-                Button(
-                    onClick = onTakePhoto,
-                    modifier = Modifier.fillMaxWidth(),
-                ) { Text(stringResource(R.string.photo_take)) }
-            } else {
-                val bitmap by produceState<android.graphics.Bitmap?>(
-                    initialValue = null,
-                    key1 = referenceUri,
-                ) {
-                    value = try {
-                        val file = java.io.File(java.net.URI.create(referenceUri))
-                        android.graphics.BitmapFactory.decodeFile(file.absolutePath)
-                    } catch (_: Exception) {
-                        null
-                    }
+            when {
+                referenceUri == null -> {
+                    Text(
+                        stringResource(R.string.photo_instructions),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Button(
+                        onClick = onChoosePhoto,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text(stringResource(R.string.photo_choose)) }
                 }
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(96.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(MaterialTheme.colorScheme.surface),
-                        contentAlignment = Alignment.Center,
+                !present -> {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        bitmap?.let {
-                            Image(
-                                bitmap = it.asImageBitmap(),
-                                contentDescription = stringResource(R.string.photo_cd),
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize(),
+                        Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(stringResource(R.string.photo_missing_title), style = MaterialTheme.typography.titleMedium)
+                            Text(
+                                stringResource(R.string.photo_missing_body),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
-                        } ?: Text("…", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                     }
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(stringResource(R.string.photo_saved), style = MaterialTheme.typography.titleMedium)
-                        Text(
-                            stringResource(R.string.photo_local_only),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
+                    Button(
+                        onClick = onChoosePhoto,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text(stringResource(R.string.photo_choose)) }
                 }
-                OutlinedButton(
-                    onClick = onTakePhoto,
-                    modifier = Modifier.fillMaxWidth(),
-                ) { Text(stringResource(R.string.photo_retake)) }
+                else -> {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        PhotoThumbnail(
+                            uri = referenceUri,
+                            targetPx = 320,
+                            modifier = Modifier
+                                .size(96.dp)
+                                .clip(RoundedCornerShape(12.dp)),
+                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(stringResource(R.string.photo_saved), style = MaterialTheme.typography.titleMedium)
+                            Text(
+                                stringResource(R.string.photo_local_only),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                    OutlinedButton(
+                        onClick = onChoosePhoto,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text(stringResource(R.string.photo_change)) }
+                }
             }
         }
     }
