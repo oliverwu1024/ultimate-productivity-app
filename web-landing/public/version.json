@@ -2,5 +2,5 @@
   "versionCode": 150,
   "versionName": "2.22.11",
   "url": "https://ultiqapp.com/ultiq.2.22.11.apk",
-  "releaseNotes": "The language setting now lists just English, 简体中文 and 繁體中文 — no more \"System default\". New installs start in Chinese on Chinese phones and English everywhere else, and English always shows dates and times in one consistent format."
+  "releaseNotes": "New photo library for photo-mission alarms: take or upload reference photos once and reuse them across alarms. The language setting now lists just English, 简体中文 and 繁體中文 — new installs start in Chinese on Chinese phones and English everywhere else, and English always shows dates and times in one consistent format."
 }
