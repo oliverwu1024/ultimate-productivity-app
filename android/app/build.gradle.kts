@@ -23,10 +23,18 @@ android {
         applicationId = "com.ultiq.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 148
-        versionName = "2.22.9"
+        versionCode = 149
+        versionName = "2.22.10"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    // Ship only our locales (en + zh-Hans/zh-Hant). Without this, AndroidX/Material
+    // bring ~90 locales, so library UI (pickers, dialogs) would show in e.g. French
+    // while our own strings fall back to English. zh-rCN/rTW/rHK keep the library
+    // strings for region-tagged Chinese devices.
+    androidResources {
+        localeFilters += listOf("en", "b+zh+Hans", "b+zh+Hant", "zh-rCN", "zh-rTW", "zh-rHK")
     }
 
     signingConfigs {

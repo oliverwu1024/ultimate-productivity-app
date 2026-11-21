@@ -1,6 +1,6 @@
 {
-  "versionCode": 148,
-  "versionName": "2.22.9",
-  "url": "https://ultiqapp.com/ultiq.2.22.9.apk",
-  "releaseNotes": "Fixes checklist items (and occasionally sleep records) that could randomly disappear from the app while still showing on the web dashboard. The app no longer removes local items that fall outside its sync window — recurring tasks and items dated far out now stay put."
+  "versionCode": 149,
+  "versionName": "2.22.10",
+  "url": "https://ultiqapp.com/ultiq.2.22.10.apk",
+  "releaseNotes": "Ultiq now comes in English, Simplified Chinese and Traditional Chinese. If you'd picked another language, the app goes back to following your phone's language. Sleep sound detection also keeps running reliably all night with the screen off."
 }
