@@ -117,7 +117,7 @@ dependencies {
     // §13 (i18n) — AppCompatDelegate.setApplicationLocales powers the in-app
     // language picker (per-app locales, backported below API 33). The three
     // activities extend AppCompatActivity; themes reparent to Theme.AppCompat.*.
-    implementation("androidx.appcompat:appcompat:1.7.1")
+    implementation("androidx.appcompat:appcompat:1.8.0")
 
     // Navigation
     implementation("androidx.navigation:navigation-compose:2.9.8")
@@ -145,7 +145,7 @@ dependencies {
     // SQLCipher: encrypts the entire Room DB file at rest. Passphrase is stored
     // in EncryptedSharedPreferences (Keystore-rooted), so it never lives in
     // plaintext on disk.
-    implementation("net.zetetic:sqlcipher-android:4.16.0")
+    implementation("net.zetetic:sqlcipher-android:4.17.0")
     implementation("androidx.sqlite:sqlite:2.7.0")
 
     // Lifecycle / ViewModel
@@ -174,7 +174,7 @@ dependencies {
     // the messaging library (we don't use Auth, Firestore, Crashlytics, etc).
     // BoM 34.x merged the `-ktx` Kotlin extensions into the main artefact,
     // so we depend on `firebase-messaging` (no -ktx suffix).
-    implementation(platform("com.google.firebase:firebase-bom:34.15.0"))
+    implementation(platform("com.google.firebase:firebase-bom:34.17.0"))
     implementation("com.google.firebase:firebase-messaging")
 
     // Lets us `.await()` Firebase's Task<T> results inside suspend functions
