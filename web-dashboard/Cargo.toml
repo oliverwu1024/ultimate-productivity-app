@@ -7,7 +7,7 @@ edition = "2021"
 leptos = { version = "0.8", features = ["csr"] }
 leptos_router = "0.8"
 leptos_meta = "0.8"
-gloo-net = { version = "0.6", features = ["http"] }
+gloo-net = { version = "0.8", features = ["http"] }
 gloo-storage = "0.4"
 gloo-timers = { version = "0.3", features = ["futures"] }
 serde = { version = "1", features = ["derive"] }
