@@ -31,12 +31,23 @@ env:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    # Native arm64 runner (free for public repos) — the image runs on
+    # Graviton Fargate (~20% cheaper than x86). Must match runtimePlatform
+    # set in the snapshot step below.
+    runs-on: ubuntu-24.04-arm
     steps:
       # Action versions are pinned to commit SHAs (not tags) so a hijacked
       # publisher account can't move a tag to a malicious commit and ride into
       # this workflow's deploy IAM role. Update via Dependabot.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Ensure AWS CLI (arm64 runner image)
+        run: |
+          if ! command -v aws >/dev/null; then
+            curl -fsSL https://awscli.amazonaws.com/awscli-exe-linux-aarch64.zip -o awscliv2.zip
+            unzip -q awscliv2.zip && sudo ./aws/install
+          fi
+          aws --version
 
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
@@ -62,6 +73,8 @@ jobs:
           aws ecs describe-task-definition \
             --task-definition "${{ env.ECS_TASK_DEF_FAMILY }}" \
             --query taskDefinition > task-def.json
+          # Pin the task to Graviton so it matches the arm64 image built above.
+          python3 -c 'import json; p="task-def.json"; t=json.load(open(p)); t["runtimePlatform"]={"cpuArchitecture":"ARM64","operatingSystemFamily":"LINUX"}; json.dump(t,open(p,"w"))'
 
       - name: Render new task definition with new image
         id: taskdef
