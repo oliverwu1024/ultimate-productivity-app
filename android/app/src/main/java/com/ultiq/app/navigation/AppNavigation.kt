@@ -87,6 +87,7 @@ sealed class Screen(val route: String) {
     data object SleepSettings : Screen("sleep/settings")
     data object FocusSettings : Screen("focus/settings")
     data object AlarmNew : Screen("alarms/new")
+    data object MissionPhotos : Screen("alarms/photos")
     data object AlarmEdit : Screen("alarms/edit/{id}") {
         fun route(id: String) = "alarms/edit/$id"
     }
@@ -326,6 +327,7 @@ fun AppNavigation(
                 SleepScreen(
                     onCreateAlarm = { navController.navigate(Screen.AlarmNew.route) },
                     onEditAlarm = { id -> navController.navigate(Screen.AlarmEdit.route(id)) },
+                    onOpenMissionPhotos = { navController.navigate(Screen.MissionPhotos.route) },
                     onOpenSleepSettings = { navController.navigate(Screen.SleepSettings.route) },
                     resetSubTab = resetSubTab,
                     onResetSubTabHandled = { entry.savedStateHandle["reset_subtab"] = false },
@@ -359,6 +361,16 @@ fun AppNavigation(
             composable(Screen.Achievements.route) {
                 com.ultiq.app.ui.settings.AchievementsScreen(
                     onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Screen.MissionPhotos.route) {
+                val alarmsViewModel: com.ultiq.app.ui.alarms.AlarmsViewModel = viewModel()
+                val alarms by alarmsViewModel.alarms.collectAsState()
+                com.ultiq.app.ui.alarms.MissionPhotoLibrary(
+                    alarms = alarms,
+                    selectedUri = null,
+                    onPicked = null,
+                    onClose = { navController.popBackStack() },
                 )
             }
             composable(Screen.AlarmNew.route) {

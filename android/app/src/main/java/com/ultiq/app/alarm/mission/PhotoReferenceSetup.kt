@@ -1,9 +1,7 @@
 package com.ultiq.app.alarm.mission
 
 import android.Manifest
-import android.content.Context
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
@@ -50,18 +48,16 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.File
 
 /**
  * Full-screen photo-reference setup overlay (§8.9). Requests CAMERA at runtime,
- * shows a CameraX preview, captures a JPEG on tap, persists the photo to
- * `Context.filesDir/alarm_refs/{alarmId}.jpg`, and calls [onCaptured] with the
+ * shows a CameraX preview, captures a JPEG on tap, saves it as a new photo in
+ * the on-device [MissionPhotoStore] library, and calls [onCaptured] with the
  * saved URI. The reference embedding is computed lazily at mission time from
  * this JPEG (see [PhotoEmbedder]), so setup itself stays model-free.
  */
 @Composable
 fun PhotoReferenceSetup(
-    alarmId: String,
     onCaptured: (uri: String) -> Unit,
     onCancel: () -> Unit,
 ) {
@@ -153,7 +149,7 @@ fun PhotoReferenceSetup(
                             try {
                                 val bitmap = withContext(Dispatchers.IO) { image.toUprightBitmap() }
                                 val uri = withContext(Dispatchers.IO) {
-                                    val u = saveReferencePhoto(context, alarmId, bitmap)
+                                    val u = MissionPhotoStore.saveBitmap(context, bitmap)
                                     bitmap.recycle()
                                     u
                                 }
@@ -279,14 +275,4 @@ private fun PermissionGate(
         Spacer(Modifier.height(8.dp))
         OutlinedButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.action_cancel)) }
     }
-}
-
-/** Persist [bitmap] as a JPEG under `filesDir/alarm_refs/{alarmId}.jpg`. */
-internal fun saveReferencePhoto(context: Context, alarmId: String, bitmap: Bitmap): String {
-    val dir = File(context.filesDir, "alarm_refs").apply { mkdirs() }
-    val file = File(dir, "$alarmId.jpg")
-    file.outputStream().use { out ->
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 85, out)
-    }
-    return file.toURI().toString()
 }

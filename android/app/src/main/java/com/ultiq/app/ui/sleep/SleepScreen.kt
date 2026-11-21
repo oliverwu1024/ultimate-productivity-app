@@ -117,6 +117,7 @@ import java.time.format.DateTimeFormatter
 fun SleepScreen(
     onCreateAlarm: () -> Unit = {},
     onEditAlarm: (String) -> Unit = {},
+    onOpenMissionPhotos: () -> Unit = {},
     onOpenSleepSettings: () -> Unit = {},
     resetSubTab: Boolean = false,
     onResetSubTabHandled: () -> Unit = {},
@@ -207,6 +208,7 @@ fun SleepScreen(
                     alarms = alarms,
                     onCreateAlarm = onCreateAlarm,
                     onEditAlarm = onEditAlarm,
+                    onOpenMissionPhotos = onOpenMissionPhotos,
                     alarmsViewModel = alarmsViewModel,
                     onDelete = { alarmsViewModel.delete(it) },
                 )
@@ -673,6 +675,7 @@ private fun AlarmsSubTab(
     alarms: List<AlarmEntity>,
     onCreateAlarm: () -> Unit,
     onEditAlarm: (String) -> Unit,
+    onOpenMissionPhotos: () -> Unit,
     alarmsViewModel: AlarmsViewModel,
     onDelete: (AlarmEntity) -> Unit,
 ) {
@@ -688,6 +691,7 @@ private fun AlarmsSubTab(
             alarms = alarms,
             onCreate = onCreateAlarm,
             onEdit = onEditAlarm,
+            onOpenMissionPhotos = onOpenMissionPhotos,
             onToggle = { alarm, enabled -> alarmsViewModel.setEnabled(alarm, enabled) },
             onDelete = onDelete,
             onTestAlarm = { kind -> alarmsViewModel.scheduleTestAlarm(kind) },

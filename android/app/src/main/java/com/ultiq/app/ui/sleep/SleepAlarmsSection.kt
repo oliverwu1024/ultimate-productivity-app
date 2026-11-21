@@ -31,6 +31,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -65,6 +66,7 @@ fun LazyListScope.sleepAlarmsSection(
     alarms: List<AlarmEntity>,
     onCreate: () -> Unit,
     onEdit: (String) -> Unit,
+    onOpenMissionPhotos: () -> Unit,
     onToggle: (AlarmEntity, Boolean) -> Unit,
     /// Fires after the user confirms in the swipe-to-delete dialog —
     /// no further confirmation needed at the parent (was double-dialoging
@@ -144,6 +146,18 @@ fun LazyListScope.sleepAlarmsSection(
         // v2.13.19 — Bottom "Add alarm" OutlinedButton removed; the floating
         // + on the Scaffold covers the action and stays in reach regardless
         // of scroll position.
+    }
+
+    // On-device library of photo-mission reference photos (take / upload /
+    // delete), independent of any single alarm.
+    item(key = "alarms-mission-photos") {
+        TextButton(
+            onClick = onOpenMissionPhotos,
+            modifier = Modifier.padding(horizontal = 8.dp),
+        ) {
+            Icon(Icons.Default.PhotoLibrary, contentDescription = null)
+            Text("  " + stringResource(R.string.mission_photos_title))
+        }
     }
 
     // OEM battery-killer guidance — only for manufacturers known to over-kill

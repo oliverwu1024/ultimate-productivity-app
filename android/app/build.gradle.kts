@@ -168,6 +168,8 @@ dependencies {
     implementation("androidx.camera:camera-camera2:$cameraX")
     implementation("androidx.camera:camera-lifecycle:$cameraX")
     implementation("androidx.camera:camera-view:$cameraX")
+    // EXIF orientation for photos uploaded to the mission-photo library (API 26–27 path).
+    implementation("androidx.exifinterface:exifinterface:1.4.2")
 
     // Firebase Cloud Messaging — §9.8 anomaly detection push channel. BoM
     // pins all Firebase artefact versions to one tested set; only request
