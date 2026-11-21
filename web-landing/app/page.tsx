@@ -22,7 +22,7 @@ import { LanguageSwitcher, TemplateText, useI18n, usePageTitle } from "./i18n";
 /** Single source of truth for the shipped APK. Bump on release — the download
  *  href, the install-step filename, and every visible "v…"/size label derive
  *  from these, so the copy and locale catalogs never hardcode a version. */
-const APP_VERSION = "2.22.10";
+const APP_VERSION = "2.22.11";
 const APK_SIZE = "68 MB";
 
 type IconType = ComponentType<{ size?: number; strokeWidth?: number; className?: string }>;

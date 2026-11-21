@@ -39,18 +39,17 @@ import com.ultiq.app.R
  * language calls back into SettingsViewModel, which applies it via LocaleManager
  * (recreating the activity so the whole UI re-resolves), persists it, and syncs
  * it to /auth/me. Endonyms are shown in each language's own script and are never
- * translated. The "" tag = follow the system, rendered from a localized string.
+ * translated. There is no "follow the system" option — see LocaleManager.
  * Tags mirror res/xml/locales_config.xml + LocaleManager.SUPPORTED.
  *
- * System default + English are the fully-reviewed options; the two Chinese scripts are
+ * English is the fully-reviewed option; the two Chinese scripts are
  * machine-translated, so they're grouped under an "Experimental languages"
  * header and annotated with their English name (`english`) to make them easy to
- * identify. `english` is empty for System + English (which need no annotation).
+ * identify. `english` is empty for English (which needs no annotation).
  */
 private data class Lang(val tag: String, val endonym: String, val english: String)
 
 private val LANGUAGES: List<Lang> = listOf(
-    Lang("", "", ""),
     Lang("en", "English", ""),
     Lang("zh-Hans", "简体中文", "Chinese (Simplified)"),
     Lang("zh-Hant", "繁體中文", "Chinese (Traditional)"),
@@ -60,11 +59,9 @@ private val LANGUAGES: List<Lang> = listOf(
 fun LanguageCard(currentTag: String, onSelect: (String) -> Unit) {
     var showDialog by remember { mutableStateOf(false) }
     val label = stringResource(R.string.settings_language)
-    val systemDefault = stringResource(R.string.settings_language_system)
 
-    val current = LANGUAGES.firstOrNull { it.tag == currentTag }
+    val current = LANGUAGES.firstOrNull { it.tag == currentTag } ?: LANGUAGES.first()
     val currentName = when {
-        current == null || current.tag.isBlank() -> systemDefault
         current.english.isEmpty() -> current.endonym                 // English
         else -> "${current.endonym} (${current.english})"            // experimental
     }
@@ -149,7 +146,7 @@ fun LanguageCard(currentTag: String, onSelect: (String) -> Unit) {
                             Spacer(Modifier.width(8.dp))
                             Column {
                                 Text(
-                                    if (lang.tag.isBlank()) systemDefault else lang.endonym,
+                                    lang.endonym,
                                     style = MaterialTheme.typography.bodyLarge,
                                 )
                                 if (isExperimental) {

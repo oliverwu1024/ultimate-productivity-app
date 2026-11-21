@@ -65,6 +65,9 @@ class UltiqApp : Application() {
                     // AI/scheduler math stops running on a stale zone — no
                     // logout/login needed.
                     syncTimezoneIfChanged()
+                    // §13 — push an app language the server doesn't have yet
+                    // (e.g. one auto-picked from the phone on first launch).
+                    syncLanguageIfChanged()
                     // Reflect any background changes on the home-screen widgets
                     // when the app returns to foreground.
                     refreshWidgets()
@@ -104,6 +107,35 @@ class UltiqApp : Application() {
                     com.ultiq.app.data.remote.dto.UpdateProfileRequest(timezone = currentTz)
                 )
                 prefs.setLastSyncedTimezone(currentTz)
+            }
+        }
+    }
+
+    /**
+     * Push the applied app language to `preferences.app_language` when it differs
+     * from the last synced copy, so AI replies / emails / push titles match it.
+     * Covers the language [LocaleManager.ensureExplicitLanguage] picks from the
+     * phone, which never goes through Settings. Only fires when logged in.
+     */
+    fun syncLanguageIfChanged() {
+        appScope.launch {
+            val tag = com.ultiq.app.util.LocaleManager.currentTag()
+            if (tag !in com.ultiq.app.util.LocaleManager.SUPPORTED) return@launch
+            val tokenManager = TokenManager(this@UltiqApp)
+            val token = tokenManager.getToken().firstOrNull()
+            if (token.isNullOrBlank()) return@launch
+            val prefs = UserPreferences(this@UltiqApp)
+            if (tag == prefs.snapshot().appLanguage) return@launch
+            val api = com.ultiq.app.data.remote.RetrofitClient.create(tokenManager)
+            runCatching {
+                api.updateProfile(
+                    com.ultiq.app.data.remote.dto.UpdateProfileRequest(
+                        preferences = com.google.gson.JsonObject().apply {
+                            addProperty("app_language", tag)
+                        },
+                    ),
+                )
+                prefs.setAppLanguage(tag)
             }
         }
     }

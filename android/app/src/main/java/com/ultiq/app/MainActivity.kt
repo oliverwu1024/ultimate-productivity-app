@@ -27,7 +27,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        LocaleManager.resetIfUnsupported()
+        LocaleManager.ensureExplicitLanguage(this)
         deepLink.value = intent?.getStringExtra(NotificationHelper.EXTRA_DEEP_LINK)
         enableEdgeToEdge()
         setContent {
