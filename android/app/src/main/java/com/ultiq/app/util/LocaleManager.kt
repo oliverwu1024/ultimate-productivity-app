@@ -16,15 +16,8 @@ import java.util.Locale
  */
 object LocaleManager {
 
-    /**
-     * BCP-47 tags the app ships translations for — must match res/xml/locales_config.xml.
-     * Note: Indonesian's tag is "id", but Java/Android normalizes it to the legacy code
-     * "in" for resource lookup, so its strings live in `res/values-in/` (verified on-device).
-     */
-    val SUPPORTED: List<String> = listOf(
-        "en", "es", "pt-BR", "fr", "de", "ja",
-        "zh-Hans", "zh-Hant", "ko", "hi", "vi", "th", "id", "ar",
-    )
+    /** BCP-47 tags the app ships translations for — must match res/xml/locales_config.xml. */
+    val SUPPORTED: List<String> = listOf("en", "zh-Hans", "zh-Hant")
 
     /** Apply a language. Empty/blank tag = follow the system language. */
     fun setLanguage(tag: String) {
@@ -34,6 +27,17 @@ object LocaleManager {
             LocaleListCompat.forLanguageTags(tag)
         }
         AppCompatDelegate.setApplicationLocales(locales)
+    }
+
+    /**
+     * Drop a stored app language we no longer ship (e.g. "fr" picked before the
+     * locale trim) back to follow-the-system, so formatting doesn't stay French
+     * while every string already falls back to English. Call from Activity.onCreate,
+     * after AppCompat has restored the stored locales.
+     */
+    fun resetIfUnsupported() {
+        val tag = currentTag()
+        if (tag.isNotBlank() && tag !in SUPPORTED) setLanguage("")
     }
 
     /** Currently-applied app-language tag, or "" when following the system. */

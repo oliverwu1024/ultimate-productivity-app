@@ -3,8 +3,7 @@
 //! The user's chosen app language rides the existing `preferences` JSONB blob
 //! under the key `app_language`, stored as a BCP-47 tag that mirrors the
 //! Android picker in `android/.../ui/settings/LanguageCard.kt`
-//! (`"" | en | es | pt-BR | fr | de | ja | zh-Hans | zh-Hant | ko | hi | vi |
-//! th | id | ar`). An empty tag means "follow the device" and is treated as
+//! (`"" | en | zh-Hans | zh-Hant`). An empty tag means "follow the device" and is treated as
 //! English on the server.
 //!
 //! [`Language`] is the single source of truth for which languages we localize
@@ -23,19 +22,8 @@ use uuid::Uuid;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Language {
     English,
-    Spanish,
-    BrazilianPortuguese,
-    French,
-    German,
-    Japanese,
     SimplifiedChinese,
     TraditionalChinese,
-    Korean,
-    Hindi,
-    Vietnamese,
-    Thai,
-    Indonesian,
-    Arabic,
 }
 
 impl Language {
@@ -43,41 +31,20 @@ impl Language {
     /// to `test` since nothing at runtime enumerates languages yet — drop the
     /// gate the day a "supported languages" surface needs it.
     #[cfg(test)]
-    pub const ALL: [Language; 14] = [
+    pub const ALL: [Language; 3] = [
         Language::English,
-        Language::Spanish,
-        Language::BrazilianPortuguese,
-        Language::French,
-        Language::German,
-        Language::Japanese,
         Language::SimplifiedChinese,
         Language::TraditionalChinese,
-        Language::Korean,
-        Language::Hindi,
-        Language::Vietnamese,
-        Language::Thai,
-        Language::Indonesian,
-        Language::Arabic,
     ];
 
     /// Resolve a stored BCP-47 tag (from the Android picker) to a language.
-    /// Unknown / empty / `en` → [`Language::English`]. `pt`/`in` are tolerated
-    /// as legacy aliases of `pt-BR`/`id`. Keep in sync with `LanguageCard.kt`.
+    /// Unknown / empty / `en` → [`Language::English`] — including tags for
+    /// languages we no longer ship (es, fr, ja, …), which users may still have
+    /// stored. Keep in sync with `LanguageCard.kt`.
     pub fn from_tag(tag: &str) -> Language {
         match tag.trim() {
-            "es" => Language::Spanish,
-            "pt-BR" | "pt" => Language::BrazilianPortuguese,
-            "fr" => Language::French,
-            "de" => Language::German,
-            "ja" => Language::Japanese,
             "zh-Hans" => Language::SimplifiedChinese,
             "zh-Hant" => Language::TraditionalChinese,
-            "ko" => Language::Korean,
-            "hi" => Language::Hindi,
-            "vi" => Language::Vietnamese,
-            "th" => Language::Thai,
-            "id" | "in" => Language::Indonesian,
-            "ar" => Language::Arabic,
             _ => Language::English,
         }
     }
@@ -86,19 +53,8 @@ impl Language {
     pub fn english_name(self) -> &'static str {
         match self {
             Language::English => "English",
-            Language::Spanish => "Spanish",
-            Language::BrazilianPortuguese => "Brazilian Portuguese",
-            Language::French => "French",
-            Language::German => "German",
-            Language::Japanese => "Japanese",
             Language::SimplifiedChinese => "Simplified Chinese",
             Language::TraditionalChinese => "Traditional Chinese",
-            Language::Korean => "Korean",
-            Language::Hindi => "Hindi",
-            Language::Vietnamese => "Vietnamese",
-            Language::Thai => "Thai",
-            Language::Indonesian => "Indonesian",
-            Language::Arabic => "Arabic",
         }
     }
 }
@@ -173,19 +129,8 @@ pub fn respond_in_directive(language: Language) -> Option<String> {
 pub fn anomaly_push_title(language: Language) -> &'static str {
     match language {
         Language::English => "Heads up — Ultiq spotted a pattern",
-        Language::Spanish => "Atención: Ultiq detectó un patrón",
-        Language::BrazilianPortuguese => "Atenção: o Ultiq notou um padrão",
-        Language::French => "Attention : Ultiq a repéré une tendance",
-        Language::German => "Achtung: Ultiq hat ein Muster erkannt",
-        Language::Japanese => "お知らせ — Ultiq がパターンを検知しました",
         Language::SimplifiedChinese => "提醒 — Ultiq 发现了一个规律",
         Language::TraditionalChinese => "提醒 — Ultiq 發現了一個規律",
-        Language::Korean => "알림 — Ultiq가 패턴을 발견했어요",
-        Language::Hindi => "ध्यान दें — Ultiq ने एक पैटर्न देखा",
-        Language::Vietnamese => "Lưu ý — Ultiq phát hiện một xu hướng",
-        Language::Thai => "แจ้งเตือน — Ultiq พบรูปแบบบางอย่าง",
-        Language::Indonesian => "Perhatian — Ultiq menemukan sebuah pola",
-        Language::Arabic => "تنبيه — رصد Ultiq نمطًا",
     }
 }
 
@@ -195,12 +140,7 @@ mod tests {
 
     #[test]
     fn known_tags_map_to_variants() {
-        assert_eq!(Language::from_tag("ja"), Language::Japanese);
         assert_eq!(Language::from_tag("zh-Hans"), Language::SimplifiedChinese);
-        assert_eq!(Language::from_tag("pt-BR"), Language::BrazilianPortuguese);
-        assert_eq!(Language::from_tag("id"), Language::Indonesian);
-        assert_eq!(Language::from_tag("in"), Language::Indonesian); // legacy alias
-        assert_eq!(Language::from_tag("  ja  "), Language::Japanese); // trimmed
     }
 
     #[test]
@@ -208,13 +148,16 @@ mod tests {
         assert_eq!(Language::from_tag(""), Language::English);
         assert_eq!(Language::from_tag("en"), Language::English);
         assert_eq!(Language::from_tag("xx-YY"), Language::English);
+        // Dropped languages fall back to English.
+        assert_eq!(Language::from_tag("ja"), Language::English);
+        assert_eq!(Language::from_tag("pt-BR"), Language::English);
     }
 
     #[test]
     fn english_gets_no_directive_but_others_do() {
         assert!(respond_in_directive(Language::English).is_none());
-        let ja = respond_in_directive(Language::Japanese).expect("non-English → directive");
-        assert!(ja.contains("Japanese"));
+        let zh = respond_in_directive(Language::SimplifiedChinese).expect("non-English → directive");
+        assert!(zh.contains("Simplified Chinese"));
     }
 
     /// Content drift guard: every non-English variant must have a distinct,

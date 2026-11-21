@@ -2,8 +2,8 @@
 
 // Client-side i18n for the landing page. Mirrors the web-dashboard's
 // conventions (src/i18n.rs) so a language chosen on either surface round-trips
-// through the shared `ultiq_lang` localStorage key: same 14 BCP-47 tags, same
-// endonyms, same {name} placeholder syntax, RTL for Arabic only, and the same
+// through the shared `ultiq_lang` localStorage key: same BCP-47 tags (en,
+// zh-Hans, zh-Hant), same endonyms, same {name} placeholder syntax, and the same
 // resolve order (stored → navigator.language → en). Catalogs are flat JSON maps
 // of dotted keys; a missing key falls back to English, then to the raw key so
 // typos surface instead of rendering blank.
@@ -26,68 +26,30 @@ import {
 import { Check, Globe } from "lucide-react";
 
 import en from "../locales/en.json";
-import es from "../locales/es.json";
-import ptBR from "../locales/pt-BR.json";
-import fr from "../locales/fr.json";
-import de from "../locales/de.json";
-import ja from "../locales/ja.json";
 import zhHans from "../locales/zh-Hans.json";
 import zhHant from "../locales/zh-Hant.json";
-import ko from "../locales/ko.json";
-import hi from "../locales/hi.json";
-import vi from "../locales/vi.json";
-import th from "../locales/th.json";
-import id from "../locales/id.json";
-import ar from "../locales/ar.json";
 
 export type Catalog = Record<string, string>;
 
-export type LocaleTag =
-  | "en"
-  | "es"
-  | "pt-BR"
-  | "fr"
-  | "de"
-  | "ja"
-  | "zh-Hans"
-  | "zh-Hant"
-  | "ko"
-  | "hi"
-  | "vi"
-  | "th"
-  | "id"
-  | "ar";
+export type LocaleTag = "en" | "zh-Hans" | "zh-Hant";
 
 type LocaleDef = { tag: LocaleTag; endonym: string; catalog: Catalog };
 
 // Order matches the dashboard's language picker.
 export const LOCALES: LocaleDef[] = [
   { tag: "en", endonym: "English", catalog: en },
-  { tag: "es", endonym: "Español", catalog: es },
-  { tag: "pt-BR", endonym: "Português (Brasil)", catalog: ptBR },
-  { tag: "fr", endonym: "Français", catalog: fr },
-  { tag: "de", endonym: "Deutsch", catalog: de },
-  { tag: "ja", endonym: "日本語", catalog: ja },
   { tag: "zh-Hans", endonym: "简体中文", catalog: zhHans },
   { tag: "zh-Hant", endonym: "繁體中文", catalog: zhHant },
-  { tag: "ko", endonym: "한국어", catalog: ko },
-  { tag: "hi", endonym: "हिन्दी", catalog: hi },
-  { tag: "vi", endonym: "Tiếng Việt", catalog: vi },
-  { tag: "th", endonym: "ไทย", catalog: th },
-  { tag: "id", endonym: "Bahasa Indonesia", catalog: id },
-  { tag: "ar", endonym: "العربية", catalog: ar },
 ];
 
 const STORAGE_KEY = "ultiq_lang";
-const RTL_TAGS: LocaleTag[] = ["ar"];
-export const isRtl = (tag: LocaleTag): boolean => RTL_TAGS.includes(tag);
 
 const BY_TAG = new Map<LocaleTag, LocaleDef>(LOCALES.map((l) => [l.tag, l]));
 const EN_CATALOG = BY_TAG.get("en")!.catalog;
 
 /** Normalise any BCP-47-ish string to one of our supported tags, matching the
- *  dashboard's `from_tag`/`from_browser` logic (Chinese script disambiguation,
- *  pt→pt-BR, legacy `in`→id, primary-subtag fallback). */
+ *  dashboard's `from_tag`/`from_browser` logic (Chinese script disambiguation;
+ *  anything else — including languages we no longer ship — falls back to en). */
 function normalizeTag(raw: string): LocaleTag {
   const s = raw.trim();
   if (!s) return "en";
@@ -100,11 +62,7 @@ function normalizeTag(raw: string): LocaleTag {
   if (primary === "zh") {
     return ["tw", "hk", "mo", "hant"].includes(region) ? "zh-Hant" : "zh-Hans";
   }
-  if (primary === "pt") return "pt-BR";
-  if (primary === "in") return "id"; // legacy ISO code for Indonesian
-
-  const byPrimary = LOCALES.find((l) => l.tag.toLowerCase().split("-")[0] === primary);
-  return byPrimary ? byPrimary.tag : "en";
+  return "en";
 }
 
 function resolveInitial(): LocaleTag {
@@ -144,7 +102,6 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const el = document.documentElement;
     el.setAttribute("lang", locale);
-    el.setAttribute("dir", isRtl(locale) ? "rtl" : "ltr");
   }, [locale]);
 
   const setLocale = (tag: LocaleTag) => {
@@ -215,7 +172,7 @@ export function TemplateText({
 }
 
 /** Globe dropdown listing every locale by its endonym. Persists to
- *  `ultiq_lang` and applies <html lang/dir> via the provider effect. */
+ *  `ultiq_lang` and applies <html lang> via the provider effect. */
 export function LanguageSwitcher() {
   const { locale, setLocale, t } = useI18n();
   const [open, setOpen] = useState(false);
